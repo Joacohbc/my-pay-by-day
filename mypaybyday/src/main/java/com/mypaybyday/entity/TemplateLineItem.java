@@ -11,8 +11,18 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TemplateLineItem extends PanacheEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -39,6 +49,4 @@ public class TemplateLineItem extends PanacheEntity {
 
     @NotNull
     public BigDecimal modifierValue;
-
-    public TemplateLineItem() {}
 }

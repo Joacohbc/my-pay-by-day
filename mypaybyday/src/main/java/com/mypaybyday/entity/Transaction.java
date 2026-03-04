@@ -12,8 +12,18 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Transaction extends PanacheEntity {
 
     @NotNull
@@ -25,9 +35,8 @@ public class Transaction extends PanacheEntity {
     public LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
     public List<LineItem> lineItems = new ArrayList<>();
-
-    public Transaction() {}
 
     @PrePersist
     protected void onCreate() {

@@ -7,8 +7,18 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class FinanceNode extends PanacheEntity {
 
     @NotBlank
@@ -18,16 +28,6 @@ public class FinanceNode extends PanacheEntity {
     @Enumerated(EnumType.STRING)
     public FinanceNodeType type;
 
+    @Builder.Default
     public boolean archived = false;
-
-    // Constructors
-    public FinanceNode() {}
-
-    public FinanceNode(String name, FinanceNodeType type) {
-        this.name = name;
-        this.type = type;
-    }
-
-    // Since it's PanacheEntity, id is inherited and fields are public.
-    // balance is calculated on the fly in the service layer, so no field here.
 }
