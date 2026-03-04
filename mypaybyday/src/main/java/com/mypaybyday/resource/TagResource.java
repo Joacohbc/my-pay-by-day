@@ -1,9 +1,9 @@
 package com.mypaybyday.resource;
 
 import com.mypaybyday.entity.Tag;
-import com.mypaybyday.repository.TagRepository;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.service.TagService;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -14,52 +14,34 @@ import jakarta.ws.rs.core.Response;
 public class TagResource {
 
     @Inject
-    TagRepository tagRepository;
+    TagService tagService;
 
     @GET
     public Response getAll() {
-        return Response.ok(tagRepository.listAll()).build();
+        return Response.ok(tagService.listAll()).build();
     }
 
     @GET
     @Path("/{id}")
-    public Response getById(@PathParam("id") Long id) {
-        Tag tag = tagRepository.findById(id);
-        if (tag == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        return Response.ok(tag).build();
+    public Response getById(@PathParam("id") Long id) throws BusinessException {
+        return Response.ok(tagService.findById(id)).build();
     }
 
     @POST
-    @Transactional
-    public Response create(Tag tag) {
-        tagRepository.persist(tag);
-        return Response.status(Response.Status.CREATED).entity(tag).build();
+    public Response create(Tag tag) throws BusinessException {
+        return Response.status(Response.Status.CREATED).entity(tagService.create(tag)).build();
     }
 
     @PUT
     @Path("/{id}")
-    @Transactional
-    public Response update(@PathParam("id") Long id, Tag tagDetails) {
-        Tag tag = tagRepository.findById(id);
-        if (tag == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        tag.name = tagDetails.name;
-        tag.description = tagDetails.description;
-        return Response.ok(tag).build();
+    public Response update(@PathParam("id") Long id, Tag tagDetails) throws BusinessException {
+        return Response.ok(tagService.update(id, tagDetails)).build();
     }
 
     @DELETE
     @Path("/{id}")
-    @Transactional
-    public Response delete(@PathParam("id") Long id) {
-        Tag tag = tagRepository.findById(id);
-        if (tag == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        tagRepository.delete(tag);
+    public Response delete(@PathParam("id") Long id) throws BusinessException {
+        tagService.delete(id);
         return Response.noContent().build();
     }
 }

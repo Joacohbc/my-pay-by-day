@@ -5,9 +5,7 @@ import com.mypaybyday.entity.FinanceEvent;
 import com.mypaybyday.entity.Tag;
 import com.mypaybyday.entity.FinanceTransaction;
 import com.mypaybyday.exception.BusinessException;
-import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.EventRepository;
-import com.mypaybyday.repository.TagRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -34,10 +32,10 @@ public class EventService {
     TransactionService transactionService;
 
     @Inject
-    CategoryRepository categoryRepository;
+    CategoryService categoryService;
 
     @Inject
-    TagRepository tagRepository;
+    TagService tagService;
 
     // -------------------------------------------------------------------------
     // Queries
@@ -100,11 +98,7 @@ public class EventService {
 
         // Resolve Category reference (only the ID is trusted from clients)
         if (event.category != null && event.category.id != null) {
-            Category category = categoryRepository.findById(event.category.id);
-            if (category == null) {
-                throw new BusinessException("Category not found: " + event.category.id);
-            }
-            event.category = category;
+            event.category = categoryService.findById(event.category.id);
         }
 
         // Resolve Tag references
@@ -147,11 +141,7 @@ public class EventService {
             if (eventDetails.category.id == null) {
                 throw new BusinessException("Category ID must be provided for update");
             }
-            Category category = categoryRepository.findById(eventDetails.category.id);
-            if (category == null) {
-                throw new BusinessException("Category not found: " + eventDetails.category.id);
-            }
-            event.category = category;
+            event.category = categoryService.findById(eventDetails.category.id);
         } else {
             event.category = null;
         }
@@ -199,11 +189,7 @@ public class EventService {
             if (stub.id == null) {
                 throw new BusinessException("All tags must include a valid ID");
             }
-            Tag tag = tagRepository.findById(stub.id);
-            if (tag == null) {
-                throw new BusinessException("Tag not found: " + stub.id);
-            }
-            resolved.add(tag);
+            resolved.add(tagService.findById(stub.id));
         }
         return resolved;
     }

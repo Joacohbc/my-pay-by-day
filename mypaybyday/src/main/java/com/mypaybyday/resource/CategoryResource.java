@@ -1,9 +1,9 @@
 package com.mypaybyday.resource;
 
 import com.mypaybyday.entity.Category;
-import com.mypaybyday.repository.CategoryRepository;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.service.CategoryService;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -14,52 +14,34 @@ import jakarta.ws.rs.core.Response;
 public class CategoryResource {
 
     @Inject
-    CategoryRepository categoryRepository;
+    CategoryService categoryService;
 
     @GET
     public Response getAll() {
-        return Response.ok(categoryRepository.listAll()).build();
+        return Response.ok(categoryService.listAll()).build();
     }
 
     @GET
     @Path("/{id}")
-    public Response getById(@PathParam("id") Long id) {
-        Category category = categoryRepository.findById(id);
-        if (category == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        return Response.ok(category).build();
+    public Response getById(@PathParam("id") Long id) throws BusinessException {
+        return Response.ok(categoryService.findById(id)).build();
     }
 
     @POST
-    @Transactional
-    public Response create(Category category) {
-        categoryRepository.persist(category);
-        return Response.status(Response.Status.CREATED).entity(category).build();
+    public Response create(Category category) throws BusinessException {
+        return Response.status(Response.Status.CREATED).entity(categoryService.create(category)).build();
     }
 
     @PUT
     @Path("/{id}")
-    @Transactional
-    public Response update(@PathParam("id") Long id, Category categoryDetails) {
-        Category category = categoryRepository.findById(id);
-        if (category == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        category.name = categoryDetails.name;
-        category.description = categoryDetails.description;
-        return Response.ok(category).build();
+    public Response update(@PathParam("id") Long id, Category categoryDetails) throws BusinessException {
+        return Response.ok(categoryService.update(id, categoryDetails)).build();
     }
 
     @DELETE
     @Path("/{id}")
-    @Transactional
-    public Response delete(@PathParam("id") Long id) {
-        Category category = categoryRepository.findById(id);
-        if (category == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        categoryRepository.delete(category);
+    public Response delete(@PathParam("id") Long id) throws BusinessException {
+        categoryService.delete(id);
         return Response.noContent().build();
     }
 }
