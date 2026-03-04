@@ -14,6 +14,24 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * The atomic unit of value movement within a {@link Transaction}.
+ *
+ * <p>Each LineItem links exactly one {@link FinanceNode} to a signed monetary amount,
+ * representing a single side of a double-entry accounting movement. The collection of
+ * all LineItems in a Transaction must satisfy the Zero-Sum Rule enforced by
+ * {@link Transaction}.
+ *
+ * <p><b>Sign convention:</b> A positive amount represents value flowing <em>into</em>
+ * the referenced {@link FinanceNode}; a negative amount represents value flowing
+ * <em>out of</em> it. The interpretation is always relative to the node's perspective.
+ *
+ * <p><b>Categorization &amp; Tags:</b> Neither {@code category} nor {@code tags} live
+ * on this entity. They belong exclusively to the parent {@link Event} wrapper.
+ * 
+ * The operational layer is intentionally kept free of any classification concern;
+ * it only cares about math and balance.
+ */
 @Entity
 @Getter
 @Setter
@@ -22,25 +40,37 @@ import lombok.Setter;
 @AllArgsConstructor
 public class LineItem extends PanacheEntity {
 
-    // Parent transaction reference
+    /**
+     * The {@link Transaction} this line item belongs to.
+     *
+     * <p>Loaded lazily to avoid N+1 issues when querying transactions in bulk.
+     * Excluded from JSON serialization since the parent context is always known
+     * from the {@link Event} wrapper.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transaction_id")
     @JsonIgnore
     public Transaction transaction;
 
-    // Reference to the finance node (income/expense category)
+    /**
+     * The {@link FinanceNode} (account, external entity, or contact) involved in this movement.
+     *
+     * <p>A FinanceNode with associated LineItems cannot be hard-deleted — only archived —
+     * to preserve historical balance and debt calculations (Node Immutability Rule).
+     */
     @NotNull
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "finance_node_id")
     public FinanceNode financeNode;
 
-    // Amount for this line item. Can be positive (income) or negative (expense) based on the finance node type.
+    /**
+     * The signed monetary amount for this movement.
+     *
+     * <p>Positive values indicate inflow to the {@link FinanceNode}; negative values
+     * indicate outflow. The sum of all amounts across all LineItems in the parent
+     * {@link Transaction} must equal zero (Zero-Sum Rule).
+     */
     @NotNull
     public BigDecimal amount;
-
-    // Optional description for the line item
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "category_id")
-    public Category category;
 
 }
