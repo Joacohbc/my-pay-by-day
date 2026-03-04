@@ -17,34 +17,29 @@ public class TimePeriodResource {
 
     @GET
     public Response getAll() {
-        return Response.ok(timePeriodService.listAll()).build();
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @GET
     @Path("/{id}")
     public Response getById(@PathParam("id") Long id) {
-        TimePeriod timePeriod = timePeriodService.findById(id);
-        if (timePeriod == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        return Response.ok(timePeriod).build();
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @POST
     public Response create(TimePeriod timePeriod) {
-        return Response.status(Response.Status.CREATED).entity(timePeriodService.create(timePeriod)).build();
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @PUT
     @Path("/{id}")
     public Response update(@PathParam("id") Long id, TimePeriod timePeriodDetails) {
-        return Response.ok(timePeriodService.update(id, timePeriodDetails)).build();
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @DELETE
     @Path("/{id}")
     public Response delete(@PathParam("id") Long id) {
-        timePeriodService.delete(id);
-        return Response.noContent().build();
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 }
