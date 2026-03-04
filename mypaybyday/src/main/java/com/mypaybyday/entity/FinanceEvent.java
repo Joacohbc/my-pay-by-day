@@ -24,10 +24,10 @@ import lombok.Setter;
 /**
  * The human-readable wrapper around the raw accounting data.
  *
- * <p>This is the primary entity exposed to the user. Users do not create {@link Transaction}s
+ * <p>This is the primary entity exposed to the user. Users do not create {@link FinanceTransaction}s
  * directly; they create Events (e.g., "Dinner with friends", "Paid Rent"). The Event holds
  * all human context — description, receipt, and the logical date of occurrence — while the
- * underlying {@link Transaction} and its {@link LineItem}s are managed exclusively by the
+ * underlying {@link FinanceTransaction} and its {@link FinanceLineItem}s are managed exclusively by the
  * backend engine.
  */
 @Entity
@@ -36,7 +36,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Event extends PanacheEntity {
+public class FinanceEvent extends PanacheEntity {
 
     /** Human-readable name for the event (e.g., "Dinner with friends", "Paid Rent"). */
     @NotBlank
@@ -64,19 +64,19 @@ public class Event extends PanacheEntity {
     /**
      * The accounting envelope generated for this event.
      *
-     * <p>Exactly one {@link Transaction} is associated per Event. The Transaction enforces
-     * the Zero-Sum Rule: the sum of all origin {@link LineItem} amounts must equal the sum
+     * <p>Exactly one {@link FinanceTransaction} is associated per Event. The Transaction enforces
+     * the Zero-Sum Rule: the sum of all origin {@link FinanceLineItem} amounts must equal the sum
      * of all destination amounts.
      */
     @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "transaction_id")
-    public Transaction transaction;
+    public FinanceTransaction transaction;
 
     /**
      * The budget bucket this event is assigned to (e.g., "Food", "Transport", "Utilities").
      *
      * <p>Together with {@code tags}, this is the only place where classification lives.
-     * The underlying {@link LineItem}s carry no category of their own.
+     * The underlying {@link FinanceLineItem}s carry no category of their own.
      */
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")

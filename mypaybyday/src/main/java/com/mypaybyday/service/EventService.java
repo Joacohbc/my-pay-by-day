@@ -1,9 +1,9 @@
 package com.mypaybyday.service;
 
 import com.mypaybyday.entity.Category;
-import com.mypaybyday.entity.Event;
+import com.mypaybyday.entity.FinanceEvent;
 import com.mypaybyday.entity.Tag;
-import com.mypaybyday.entity.Transaction;
+import com.mypaybyday.entity.FinanceTransaction;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.EventRepository;
@@ -17,10 +17,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Service responsible for managing {@link Event} lifecycle.
+ * Service responsible for managing {@link FinanceEvent} lifecycle.
  *
  * <p>This service is the single entry point for all Event-related operations.
- * Per the Wrapper Isolation Rule, all {@link Transaction} and {@link LineItem}
+ * Per the Wrapper Isolation Rule, all {@link FinanceTransaction} and {@link FinanceLineItem}
  * creation/mutation must go through this service — never directly through the
  * operational-layer repositories.
  */
@@ -43,12 +43,12 @@ public class EventService {
     // Queries
     // -------------------------------------------------------------------------
 
-    public List<Event> listAll() {
+    public List<FinanceEvent> listAll() {
         return eventRepository.listAll();
     }
 
-    public Event findById(Long id) {
-        Event event = eventRepository.findById(id);
+    public FinanceEvent findById(Long id) {
+        FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
             throw new BusinessException("Event not found");
         }
@@ -60,7 +60,7 @@ public class EventService {
      * This is the mechanism used for Temporal Independence: budget period membership is
      * determined dynamically at query time, never via a hard foreign-key.
      */
-    public List<Event> findByDateRange(LocalDateTime from, LocalDateTime to) {
+    public List<FinanceEvent> findByDateRange(LocalDateTime from, LocalDateTime to) {
         if (from == null || to == null) {
             throw new BusinessException("Date range boundaries cannot be null");
         }
@@ -77,10 +77,10 @@ public class EventService {
     // -------------------------------------------------------------------------
 
     /**
-     * Creates a new {@link Event} together with its inner {@link Transaction}.
+     * Creates a new {@link FinanceEvent} together with its inner {@link FinanceTransaction}.
      *
      * <p>The caller must supply a fully populated Event that includes a non-null
-     * {@link Transaction} with at least one {@link LineItem}. The service validates the
+     * {@link FinanceTransaction} with at least one {@link FinanceLineItem}. The service validates the
      * Zero-Sum Rule before persisting anything.
      *
      * <p>If a {@code category} or {@code tags} are supplied by ID, they are resolved and
@@ -90,13 +90,13 @@ public class EventService {
      * @return the persisted Event with generated IDs
      */
     @Transactional
-    public Event create(Event event) {
+    public FinanceEvent create(FinanceEvent event) {
         if (event.transaction == null) {
             throw new BusinessException("Event must include a Transaction");
         }
 
         // Delegate to TransactionService: validates Zero-Sum, node existence, and persists
-        Transaction tx = transactionService.create(event.transaction);
+        FinanceTransaction tx = transactionService.create(event.transaction);
 
         // Resolve Category reference (only the ID is trusted from clients)
         if (event.category != null && event.category.id != null) {
@@ -126,8 +126,8 @@ public class EventService {
      * @return the updated, managed Event
      */
     @Transactional
-    public Event update(Long id, Event eventDetails) {
-        Event event = eventRepository.findById(id);
+    public FinanceEvent update(Long id, FinanceEvent eventDetails) {
+        FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
             throw new BusinessException("Event not found");
         }
@@ -175,7 +175,7 @@ public class EventService {
      */
     @Transactional
     public void delete(Long id) {
-        Event event = eventRepository.findById(id);
+        FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
             throw new BusinessException("Event not found");
         }

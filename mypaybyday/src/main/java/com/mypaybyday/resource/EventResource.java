@@ -1,6 +1,6 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.entity.Event;
+import com.mypaybyday.entity.FinanceEvent;
 import com.mypaybyday.repository.EventRepository;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -24,7 +24,7 @@ public class EventResource {
     @GET
     @Path("/{id}")
     public Response getById(@PathParam("id") Long id) {
-        Event event = eventRepository.findById(id);
+        FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -33,7 +33,7 @@ public class EventResource {
 
     @POST
     @Transactional
-    public Response create(Event event) {
+    public Response create(FinanceEvent event) {
         eventRepository.persist(event);
         return Response.status(Response.Status.CREATED).entity(event).build();
     }
@@ -41,8 +41,8 @@ public class EventResource {
     @PUT
     @Path("/{id}")
     @Transactional
-    public Response update(@PathParam("id") Long id, Event eventDetails) {
-        Event event = eventRepository.findById(id);
+    public Response update(@PathParam("id") Long id, FinanceEvent eventDetails) {
+        FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -57,7 +57,7 @@ public class EventResource {
     @Path("/{id}")
     @Transactional
     public Response delete(@PathParam("id") Long id) {
-        Event event = eventRepository.findById(id);
+        FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }

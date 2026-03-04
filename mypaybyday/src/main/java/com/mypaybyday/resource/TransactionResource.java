@@ -1,6 +1,6 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.entity.Transaction;
+import com.mypaybyday.entity.FinanceTransaction;
 import com.mypaybyday.service.TransactionService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -23,7 +23,7 @@ public class TransactionResource {
     @GET
     @Path("/{id}")
     public Response getById(@PathParam("id") Long id) {
-        Transaction transaction = transactionService.findById(id);
+        FinanceTransaction transaction = transactionService.findById(id);
         if (transaction == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -31,13 +31,13 @@ public class TransactionResource {
     }
 
     @POST
-    public Response create(Transaction transaction) {
+    public Response create(FinanceTransaction transaction) {
         return Response.status(Response.Status.CREATED).entity(transactionService.create(transaction)).build();
     }
 
     @PUT
     @Path("/{id}")
-    public Response update(@PathParam("id") Long id, Transaction transactionDetails) {
+    public Response update(@PathParam("id") Long id, FinanceTransaction transactionDetails) {
         return Response.ok(transactionService.update(id, transactionDetails)).build();
     }
 

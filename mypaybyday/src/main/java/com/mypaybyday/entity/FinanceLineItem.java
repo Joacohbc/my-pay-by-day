@@ -15,19 +15,19 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * The atomic unit of value movement within a {@link Transaction}.
+ * The atomic unit of value movement within a {@link FinanceTransaction}.
  *
  * <p>Each LineItem links exactly one {@link FinanceNode} to a signed monetary amount,
  * representing a single side of a double-entry accounting movement. The collection of
  * all LineItems in a Transaction must satisfy the Zero-Sum Rule enforced by
- * {@link Transaction}.
+ * {@link FinanceTransaction}.
  *
  * <p><b>Sign convention:</b> A positive amount represents value flowing <em>into</em>
  * the referenced {@link FinanceNode}; a negative amount represents value flowing
  * <em>out of</em> it. The interpretation is always relative to the node's perspective.
  *
  * <p><b>Categorization &amp; Tags:</b> Neither {@code category} nor {@code tags} live
- * on this entity. They belong exclusively to the parent {@link Event} wrapper.
+ * on this entity. They belong exclusively to the parent {@link FinanceEvent} wrapper.
  * 
  * The operational layer is intentionally kept free of any classification concern;
  * it only cares about math and balance.
@@ -38,19 +38,19 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class LineItem extends PanacheEntity {
+public class FinanceLineItem extends PanacheEntity {
 
     /**
-     * The {@link Transaction} this line item belongs to.
+     * The {@link FinanceTransaction} this line item belongs to.
      *
      * <p>Loaded lazily to avoid N+1 issues when querying transactions in bulk.
      * Excluded from JSON serialization since the parent context is always known
-     * from the {@link Event} wrapper.
+     * from the {@link FinanceEvent} wrapper.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transaction_id")
     @JsonIgnore
-    public Transaction transaction;
+    public FinanceTransaction transaction;
 
     /**
      * The {@link FinanceNode} (account, external entity, or contact) involved in this movement.
@@ -68,7 +68,7 @@ public class LineItem extends PanacheEntity {
      *
      * <p>Positive values indicate inflow to the {@link FinanceNode}; negative values
      * indicate outflow. The sum of all amounts across all LineItems in the parent
-     * {@link Transaction} must equal zero (Zero-Sum Rule).
+     * {@link FinanceTransaction} must equal zero (Zero-Sum Rule).
      */
     @NotNull
     public BigDecimal amount;

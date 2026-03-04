@@ -1,7 +1,7 @@
 package com.mypaybyday.service;
 
-import com.mypaybyday.entity.LineItem;
-import com.mypaybyday.entity.Transaction;
+import com.mypaybyday.entity.FinanceLineItem;
+import com.mypaybyday.entity.FinanceTransaction;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.TransactionRepository;
@@ -23,22 +23,22 @@ public class TransactionService {
     @Inject
     TransactionValidator transactionValidator;
 
-    public List<Transaction> listAll() {
+    public List<FinanceTransaction> listAll() {
         return transactionRepository.listAll();
     }
 
-    public Transaction findById(Long id) {
+    public FinanceTransaction findById(Long id) {
         return transactionRepository.findById(id);
     }
 
     @Transactional
-    public Transaction create(Transaction transaction) {
+    public FinanceTransaction create(FinanceTransaction transaction) {
         transactionValidator.validateZeroSum(transaction);
         transactionValidator.validateNodesExist(transaction);
 
         // Link bidirectional mapping and resolve FinanceNode references
         if (transaction.lineItems != null) {
-            for (LineItem item : transaction.lineItems) {
+            for (FinanceLineItem item : transaction.lineItems) {
                 item.transaction = transaction;
                 item.financeNode = financeNodeRepository.findById(item.financeNode.id);
             }
@@ -49,11 +49,11 @@ public class TransactionService {
     }
 
     @Transactional
-    public Transaction update(Long id, Transaction transactionDetails) {
+    public FinanceTransaction update(Long id, FinanceTransaction transactionDetails) {
         transactionValidator.validateZeroSum(transactionDetails);
         transactionValidator.validateNodesExist(transactionDetails);
 
-        Transaction transaction = transactionRepository.findById(id);
+        FinanceTransaction transaction = transactionRepository.findById(id);
         if (transaction == null) {
             throw new BusinessException("Transaction not found");
         }
@@ -63,7 +63,7 @@ public class TransactionService {
         // Clear and add new line items, resolving FinanceNode references
         transaction.lineItems.clear();
         if (transactionDetails.lineItems != null) {
-            for (LineItem item : transactionDetails.lineItems) {
+            for (FinanceLineItem item : transactionDetails.lineItems) {
                 item.transaction = transaction;
                 item.financeNode = financeNodeRepository.findById(item.financeNode.id);
                 transaction.lineItems.add(item);
@@ -75,7 +75,7 @@ public class TransactionService {
 
     @Transactional
     public void delete(Long id) {
-        Transaction transaction = transactionRepository.findById(id);
+        FinanceTransaction transaction = transactionRepository.findById(id);
         if (transaction == null) {
             throw new BusinessException("Transaction not found");
         }

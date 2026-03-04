@@ -1,8 +1,8 @@
 package com.mypaybyday.service;
 
 import com.mypaybyday.entity.FinanceNode;
-import com.mypaybyday.entity.LineItem;
-import com.mypaybyday.entity.Transaction;
+import com.mypaybyday.entity.FinanceLineItem;
+import com.mypaybyday.entity.FinanceTransaction;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -11,7 +11,7 @@ import jakarta.inject.Inject;
 import java.math.BigDecimal;
 
 /**
- * Stateless validator for {@link Transaction} integrity rules.
+ * Stateless validator for {@link FinanceTransaction} integrity rules.
  *
  * <p>Centralises all cross-cutting validation concerns so that any service that
  * creates or mutates transactions applies the same rules without duplicating code.
@@ -27,13 +27,13 @@ public class TransactionValidator {
      *
      * @throws BusinessException if the rule is violated or any amount is null
      */
-    public void validateZeroSum(Transaction transaction) {
+    public void validateZeroSum(FinanceTransaction transaction) {
         if (transaction.lineItems == null || transaction.lineItems.isEmpty()) {
             throw new BusinessException("Transaction must have at least one line item");
         }
 
         BigDecimal sum = BigDecimal.ZERO;
-        for (LineItem item : transaction.lineItems) {
+        for (FinanceLineItem item : transaction.lineItems) {
             if (item.amount == null) {
                 throw new BusinessException("Line item amount cannot be null");
             }
@@ -47,14 +47,14 @@ public class TransactionValidator {
     }
 
     /**
-     * Validates that every {@link LineItem} references a {@link FinanceNode} that exists
+     * Validates that every {@link FinanceLineItem} references a {@link FinanceNode} that exists
      * and is not archived (Node Immutability Rule).
      *
      * @throws BusinessException if a node is missing, not found, or archived
      */
-    public void validateNodesExist(Transaction transaction) {
+    public void validateNodesExist(FinanceTransaction transaction) {
         if (transaction.lineItems == null) return;
-        for (LineItem item : transaction.lineItems) {
+        for (FinanceLineItem item : transaction.lineItems) {
             if (item.financeNode == null || item.financeNode.id == null) {
                 throw new BusinessException("Each line item must reference a FinanceNode");
             }
