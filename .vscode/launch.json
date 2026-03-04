@@ -1,0 +1,34 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Debug Quarkus Backend",
+			"type": "java",
+			"request": "attach",
+			"hostName": "localhost",
+			"port": 5005,
+			"projectName": "mypaybyday",
+			"preLaunchTask": "quarkus:dev"
+		},
+		{
+			"name": "Debug Frontend (Chrome)",
+			"type": "chrome",
+			"request": "launch",
+			"url": "http://localhost:5173",
+			"webRoot": "${workspaceFolder}/frontend/src",
+			"sourceMapPathOverrides": {
+				"webpack:///./src/*": "${workspaceFolder}/frontend/src/*"
+			},
+			"preLaunchTask": "vite:dev"
+		}
+	],
+	"compounds": [
+		{
+			"name": "Full Stack",
+			"configurations": [
+				"Debug Quarkus Backend",
+				"Debug Frontend (Chrome)"
+			]
+		}
+	]
+}
