@@ -1,0 +1,72 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# Source code
+*.java text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+
+# Configuration files
+*.json text eol=lf
+*.xml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.properties text eol=lf
+*.toml text eol=lf
+
+# Documentation
+*.md text eol=lf
+*.txt text eol=lf
+README text eol=lf
+
+# Templates
+*.html text eol=lf
+*.sql text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Maven wrapper scripts (keep original line endings for compatibility)
+mvnw text eol=lf
+mvnw.cmd text eol=crlf
+
+# Package manager files
+package.json text eol=lf
+package-lock.json text eol=lf linguist-generated=true
+pnpm-lock.yaml text eol=lf linguist-generated=true
+yarn.lock text eol=lf linguist-generated=true
+
+# Docker
+Dockerfile* text eol=lf
+*.dockerfile text eol=lf
+.dockerignore text eol=lf
+
+# Git files
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# Binary files (explicitly marked to prevent text normalization)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.jar binary
+*.class binary
+*.pdf binary
+*.war binary
+*.ear binary
+
+# Exclude files from exporting in git archive
+.gitattributes export-ignore
+.gitignore export-ignore
