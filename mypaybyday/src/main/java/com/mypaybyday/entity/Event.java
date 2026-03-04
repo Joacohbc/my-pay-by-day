@@ -1,7 +1,10 @@
 package com.mypaybyday.entity;
 
+import com.mypaybyday.enums.EventType;
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
@@ -11,6 +14,7 @@ import jakarta.persistence.OneToOne;
 import java.util.ArrayList;
 import java.util.List;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -43,6 +47,19 @@ public class Event extends PanacheEntity {
 
     /** URL pointing to an attached receipt or supporting document for this event. */
     public String receiptUrl;
+
+    /**
+     * Directional nature of this event.
+     *
+     * <ul>
+     *   <li>{@link EventType#INBOUND} — money flowing into an own account (e.g., salary).</li>
+     *   <li>{@link EventType#OUTBOUND} — money flowing out of an own account (e.g., purchase).</li>
+     *   <li>{@link EventType#OTHER} — internal transfers or neutral movements.</li>
+     * </ul>
+     */
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    public EventType type;
 
     /**
      * The accounting envelope generated for this event.

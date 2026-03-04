@@ -8,7 +8,11 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import java.util.ArrayList;
+import java.util.List;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
@@ -39,9 +43,14 @@ public class TemplateLineItem extends PanacheEntity {
     @JoinColumn(name = "category_id")
     public Category category;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "tag_id")
-    public Tag tag;
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "template_line_item_tag",
+        joinColumns = @JoinColumn(name = "template_line_item_id"),
+        inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    @Builder.Default
+    public List<Tag> tags = new ArrayList<>();
 
     @NotNull
     @Enumerated(EnumType.STRING)
