@@ -95,7 +95,7 @@ public class EventService {
             throw new BusinessException("Event must include a Transaction");
         }
 
-        // Delegate to TransactionService: validates Zero-Sum, node existence, and persists
+        // Delegate to TransactionService
         FinanceTransaction tx = transactionService.create(event.transaction);
 
         // Resolve Category reference (only the ID is trusted from clients)

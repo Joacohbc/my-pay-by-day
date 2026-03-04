@@ -9,6 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Stateless validator for {@link FinanceTransaction} integrity rules.
@@ -54,18 +55,21 @@ public class TransactionValidator {
      */
     public void validateNodesExist(FinanceTransaction transaction) throws BusinessException {
         if (transaction.lineItems == null) return;
-        for (FinanceLineItem item : transaction.lineItems) {
-            if (item.financeNode == null || item.financeNode.id == null) {
-                throw new BusinessException("Each line item must reference a FinanceNode");
-            }
-            FinanceNode node = financeNodeRepository.findById(item.financeNode.id);
-            if (node == null) {
-                throw new BusinessException("FinanceNode not found: " + item.financeNode.id);
-            }
-            if (node.archived) {
-                throw new BusinessException(
-                        "FinanceNode is archived and cannot be used: " + item.financeNode.id);
-            }
+
+        List<Long> ids = transaction.lineItems.stream()
+            .map(item -> item.financeNode != null ? item.financeNode.id : null)
+            .toList();
+
+        List<FinanceNode> nodes = financeNodeRepository.list(ids);
+        if(nodes.size() != ids.size()) {
+            throw new BusinessException("One or more FinanceNodes referenced by line items do not exist");
         }
+
+        nodes.stream()
+            .filter(node -> node.archived)
+            .findFirst()
+            .ifPresent(node -> {
+                throw new BusinessException("FinanceNode is archived and cannot be used: " + node.id);
+            });
     }
 }

@@ -27,8 +27,12 @@ public class TransactionService {
         return transactionRepository.listAll();
     }
 
-    public FinanceTransaction findById(Long id) {
-        return transactionRepository.findById(id);
+    public FinanceTransaction findById(Long id) throws BusinessException {
+        FinanceTransaction transaction = transactionRepository.findById(id);
+        if (transaction == null) {
+            throw new BusinessException("Transaction not found");
+        }
+        return transaction;
     }
 
     @Transactional
