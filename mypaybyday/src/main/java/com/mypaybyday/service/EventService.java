@@ -47,7 +47,7 @@ public class EventService {
         return eventRepository.listAll();
     }
 
-    public FinanceEvent findById(Long id) {
+    public FinanceEvent findById(Long id) throws BusinessException {
         FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
             throw new BusinessException("Event not found");
@@ -60,7 +60,7 @@ public class EventService {
      * This is the mechanism used for Temporal Independence: budget period membership is
      * determined dynamically at query time, never via a hard foreign-key.
      */
-    public List<FinanceEvent> findByDateRange(LocalDateTime from, LocalDateTime to) {
+    public List<FinanceEvent> findByDateRange(LocalDateTime from, LocalDateTime to) throws BusinessException {
         if (from == null || to == null) {
             throw new BusinessException("Date range boundaries cannot be null");
         }
@@ -90,7 +90,7 @@ public class EventService {
      * @return the persisted Event with generated IDs
      */
     @Transactional
-    public FinanceEvent create(FinanceEvent event) {
+    public FinanceEvent create(FinanceEvent event) throws BusinessException {
         if (event.transaction == null) {
             throw new BusinessException("Event must include a Transaction");
         }
@@ -126,7 +126,7 @@ public class EventService {
      * @return the updated, managed Event
      */
     @Transactional
-    public FinanceEvent update(Long id, FinanceEvent eventDetails) {
+    public FinanceEvent update(Long id, FinanceEvent eventDetails) throws BusinessException {
         FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
             throw new BusinessException("Event not found");
@@ -174,7 +174,7 @@ public class EventService {
      * @param id the ID of the Event to delete
      */
     @Transactional
-    public void delete(Long id) {
+    public void delete(Long id) throws BusinessException {
         FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
             throw new BusinessException("Event not found");
@@ -190,7 +190,7 @@ public class EventService {
      * Resolves a list of Tag stubs (containing only IDs) into managed Tag entities.
      * Returns an empty list if the input is null.
      */
-    private List<Tag> resolveTags(List<Tag> stubs) {
+    private List<Tag> resolveTags(List<Tag> stubs) throws BusinessException {
         if (stubs == null || stubs.isEmpty()) {
             return new ArrayList<>();
         }

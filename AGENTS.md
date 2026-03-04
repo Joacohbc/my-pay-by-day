@@ -83,3 +83,11 @@ A flexible time container representing a financial goal, rather than a rigid cal
 2. **The Zero-Sum Rule (Integrity):** The system must strictly validate that within any single `Transaction`, Origins = Destinations.
 3. **Temporal Independence:** Moving an `Event's` logical date automatically shifts its budget impact to the correct `TimePeriod` without updating any foreign keys.
 4. **Node Immutability:** A `FinanceNode` that has associated `LineItems` cannot be hard-deleted, only archived, to preserve historical debt and balance calculations.
+
+---
+
+## 6. Backend
+
+### Coding Conventions
+
+1. **Explicit Exception Declaration:** Every method in the service and validator layers that throws or propagates a `BusinessException` — even though it is unchecked — **must** declare it explicitly in its `throws` clause. This makes the contract visible at the call site without requiring callers to read the implementation.

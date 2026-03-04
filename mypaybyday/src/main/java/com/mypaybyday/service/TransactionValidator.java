@@ -27,7 +27,7 @@ public class TransactionValidator {
      *
      * @throws BusinessException if the rule is violated or any amount is null
      */
-    public void validateZeroSum(FinanceTransaction transaction) {
+    public void validateZeroSum(FinanceTransaction transaction) throws BusinessException {
         if (transaction.lineItems == null || transaction.lineItems.isEmpty()) {
             throw new BusinessException("Transaction must have at least one line item");
         }
@@ -52,7 +52,7 @@ public class TransactionValidator {
      *
      * @throws BusinessException if a node is missing, not found, or archived
      */
-    public void validateNodesExist(FinanceTransaction transaction) {
+    public void validateNodesExist(FinanceTransaction transaction) throws BusinessException {
         if (transaction.lineItems == null) return;
         for (FinanceLineItem item : transaction.lineItems) {
             if (item.financeNode == null || item.financeNode.id == null) {

@@ -32,7 +32,7 @@ public class TransactionService {
     }
 
     @Transactional
-    public FinanceTransaction create(FinanceTransaction transaction) {
+    public FinanceTransaction create(FinanceTransaction transaction) throws BusinessException {
         transactionValidator.validateZeroSum(transaction);
         transactionValidator.validateNodesExist(transaction);
 
@@ -49,7 +49,7 @@ public class TransactionService {
     }
 
     @Transactional
-    public FinanceTransaction update(Long id, FinanceTransaction transactionDetails) {
+    public FinanceTransaction update(Long id, FinanceTransaction transactionDetails) throws BusinessException {
         transactionValidator.validateZeroSum(transactionDetails);
         transactionValidator.validateNodesExist(transactionDetails);
 
@@ -74,7 +74,7 @@ public class TransactionService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(Long id) throws BusinessException {
         FinanceTransaction transaction = transactionRepository.findById(id);
         if (transaction == null) {
             throw new BusinessException("Transaction not found");

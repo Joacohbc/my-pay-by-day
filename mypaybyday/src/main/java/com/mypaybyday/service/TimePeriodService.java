@@ -24,14 +24,14 @@ public class TimePeriodService {
     }
 
     @Transactional
-    public TimePeriod create(TimePeriod timePeriod) {
+    public TimePeriod create(TimePeriod timePeriod) throws BusinessException {
         validateNoOverlap(timePeriod);
         timePeriodRepository.persist(timePeriod);
         return timePeriod;
     }
 
     @Transactional
-    public TimePeriod update(Long id, TimePeriod timePeriodDetails) {
+    public TimePeriod update(Long id, TimePeriod timePeriodDetails) throws BusinessException {
         TimePeriod timePeriod = timePeriodRepository.findById(id);
         if (timePeriod == null) {
             throw new BusinessException("TimePeriod not found");
@@ -50,7 +50,7 @@ public class TimePeriodService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(Long id) throws BusinessException {
         TimePeriod timePeriod = timePeriodRepository.findById(id);
         if (timePeriod == null) {
             throw new BusinessException("TimePeriod not found");
@@ -58,7 +58,7 @@ public class TimePeriodService {
         timePeriodRepository.delete(timePeriod);
     }
 
-    private void validateNoOverlap(TimePeriod timePeriod) {
+    private void validateNoOverlap(TimePeriod timePeriod) throws BusinessException {
         if (timePeriod.category == null) {
             return; // No category, no overlap rule applied (or rule applies to all? Assuming applies by category as requested)
         }

@@ -39,7 +39,7 @@ public class FinanceNodeService {
     }
 
     @Transactional
-    public FinanceNode update(Long id, FinanceNode nodeDetails) {
+    public FinanceNode update(Long id, FinanceNode nodeDetails) throws BusinessException {
         FinanceNode node = financeNodeRepository.findById(id);
         if (node == null || node.archived) {
             throw new BusinessException("FinanceNode not found or is archived");
@@ -50,7 +50,7 @@ public class FinanceNodeService {
     }
 
     @Transactional
-    public void archive(Long id) {
+    public void archive(Long id) throws BusinessException {
         FinanceNode node = financeNodeRepository.findById(id);
         if (node == null) {
             throw new BusinessException("FinanceNode not found");
@@ -60,7 +60,7 @@ public class FinanceNodeService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(Long id) throws BusinessException {
         FinanceNode node = financeNodeRepository.findById(id);
         if (node == null) {
             throw new BusinessException("FinanceNode not found");
@@ -72,7 +72,7 @@ public class FinanceNodeService {
         financeNodeRepository.delete(node);
     }
 
-    public BigDecimal calculateBalance(Long id) {
+    public BigDecimal calculateBalance(Long id) throws BusinessException {
         FinanceNode node = financeNodeRepository.findById(id);
         if (node == null) {
             throw new BusinessException("FinanceNode not found");
