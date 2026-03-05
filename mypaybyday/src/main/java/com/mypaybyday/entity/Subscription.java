@@ -1,7 +1,7 @@
 package com.mypaybyday.entity;
 
 import com.mypaybyday.enums.RecurrenceFrequency;
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -23,7 +23,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Subscription extends PanacheEntity {
+public class Subscription extends BaseEntity {
 
     @NotBlank
     public String name;

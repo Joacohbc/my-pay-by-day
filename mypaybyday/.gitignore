@@ -39,6 +39,8 @@ nb-configuration.xml
 # Local environment
 .env
 mypaybyday.db
+mypaybyday.db-shm
+mypaybyday.db-wal
 
 # Plugin directory
 /.quarkus/cli/plugins/

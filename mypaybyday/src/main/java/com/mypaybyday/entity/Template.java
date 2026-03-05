@@ -1,6 +1,6 @@
 package com.mypaybyday.entity;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -20,7 +20,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Template extends PanacheEntity {
+public class Template extends BaseEntity {
 
     @NotBlank
     public String name;

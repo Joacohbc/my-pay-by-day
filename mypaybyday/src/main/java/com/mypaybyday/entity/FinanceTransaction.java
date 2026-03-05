@@ -1,6 +1,6 @@
 package com.mypaybyday.entity;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -39,7 +39,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FinanceTransaction extends PanacheEntity {
+public class FinanceTransaction extends BaseEntity {
 
     /** The date and time at which the financial movement occurred. */
     @NotNull

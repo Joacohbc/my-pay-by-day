@@ -1,7 +1,7 @@
 package com.mypaybyday.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -38,7 +38,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FinanceLineItem extends PanacheEntity {
+public class FinanceLineItem extends BaseEntity {
 
     /**
      * The {@link FinanceTransaction} this line item belongs to.

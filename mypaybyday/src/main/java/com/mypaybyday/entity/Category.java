@@ -1,6 +1,6 @@
 package com.mypaybyday.entity;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+
 import jakarta.persistence.Entity;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -15,7 +15,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Category extends PanacheEntity {
+public class Category extends BaseEntity {
 
     @NotBlank
     public String name;

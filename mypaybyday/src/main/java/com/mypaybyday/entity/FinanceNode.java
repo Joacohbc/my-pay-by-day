@@ -1,7 +1,7 @@
 package com.mypaybyday.entity;
 
 import com.mypaybyday.enums.FinanceNodeType;
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -19,7 +19,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FinanceNode extends PanacheEntity {
+public class FinanceNode extends BaseEntity {
 
     @NotBlank
     public String name;

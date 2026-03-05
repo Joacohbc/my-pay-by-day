@@ -1,7 +1,7 @@
 package com.mypaybyday.entity;
 
 import com.mypaybyday.enums.EventType;
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -36,7 +36,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FinanceEvent extends PanacheEntity {
+public class FinanceEvent extends BaseEntity {
 
     /** Human-readable name for the event (e.g., "Dinner with friends", "Paid Rent"). */
     @NotBlank
