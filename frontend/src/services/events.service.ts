@@ -1,5 +1,5 @@
 import type { FinanceEvent, CreateEventDto } from '@/models';
-import { api } from './api';
+import { api } from '@/services/api';
 
 export const eventsService = {
   getAll: () => api.get<FinanceEvent[]>('/events'),

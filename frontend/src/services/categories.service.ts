@@ -1,5 +1,5 @@
 import type { Category, CreateCategoryDto } from '@/models';
-import { api } from './api';
+import { api } from '@/services/api';
 
 export const categoriesService = {
   getAll: () => api.get<Category[]>('/categories'),

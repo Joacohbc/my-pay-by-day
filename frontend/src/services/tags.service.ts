@@ -1,5 +1,5 @@
 import type { Tag, CreateTagDto } from '@/models';
-import { api } from './api';
+import { api } from '@/services/api';
 
 export const tagsService = {
   getAll: () => api.get<Tag[]>('/tags'),

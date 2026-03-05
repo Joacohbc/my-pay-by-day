@@ -1,5 +1,5 @@
 import type { FinanceNode, CreateFinanceNodeDto } from '@/models';
-import { api } from './api';
+import { api } from '@/services/api';
 
 export const nodesService = {
   getAll: () => api.get<FinanceNode[]>('/finance-nodes'),

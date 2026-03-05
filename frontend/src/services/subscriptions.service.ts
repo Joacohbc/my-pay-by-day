@@ -1,5 +1,5 @@
 import type { Subscription, CreateSubscriptionDto } from '@/models';
-import { api } from './api';
+import { api } from '@/services/api';
 
 export const subscriptionsService = {
   getAll: () => api.get<Subscription[]>('/subscriptions'),

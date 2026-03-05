@@ -1,5 +1,5 @@
 import type { FinanceTransaction } from '@/models';
-import { api } from './api';
+import { api } from '@/services/api';
 
 export const transactionsService = {
   getAll: () => api.get<FinanceTransaction[]>('/transactions'),
