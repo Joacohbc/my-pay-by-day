@@ -1,6 +1,5 @@
 package com.mypaybyday.service;
 
-import com.mypaybyday.entity.Category;
 import com.mypaybyday.entity.FinanceEvent;
 import com.mypaybyday.entity.Tag;
 import com.mypaybyday.entity.FinanceTransaction;
