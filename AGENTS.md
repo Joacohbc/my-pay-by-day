@@ -88,6 +88,59 @@ A flexible time container representing a financial goal, rather than a rigid cal
 
 ## 6. Backend
 
+### Tech Stack
+
+* **Runtime:** Quarkus 3.x (JVM mode)
+* **REST layer:** Quarkus REST (Jakarta REST / JAX-RS) + Jackson
+* **ORM:** Hibernate ORM with Panache
+* **Database:** SQLite (via `quarkus-jdbc-sqlite`)
+* **Validation:** Hibernate Validator
+* **API Docs:** MicroProfile OpenAPI (`quarkus-smallrye-openapi`) — UI available at `/q/swagger-ui`
+* **DI:** ArC (Quarkus CDI)
+* **Build:** Maven Wrapper (`./mvnw`)
+
+---
+
+### Project Structure
+
+The backend source code lives under `mypaybyday/src/main/java/com/mypaybyday/` and is split into five packages:
+
+* **`entity/`** — JPA entities that represent the data model (one class per domain concept).
+* **`enums/`** — Domain enumerations shared across entities (node types, event types, modifier types, recurrence frequencies).
+* **`exception/`** — `BusinessException` (unchecked domain exception) and its JAX-RS mapper that converts it to HTTP 400.
+* **`repository/`** — Thin Panache repositories — only persistence calls and simple JPQL queries, one per entity.
+* **`service/`** — All business logic. Each service owns a domain area; `TransactionValidator` is a dedicated validator called by `TransactionService`.
+* **`resource/`** — JAX-RS REST resources — HTTP translation only. One resource per aggregate, each fully annotated with OpenAPI.
+
+---
+
+### Layer Responsibilities & Business Logic
+
+#### Resource layer (`resource/`)
+
+Responsible solely for HTTP concerns: deserializing request bodies, invoking the appropriate service method, and mapping the result to an HTTP response. Contains no business logic. Must never inject or call repositories directly — all operations go through the service layer. Every endpoint is fully annotated with OpenAPI (`@Tag`, `@Operation`, `@APIResponse`).
+
+#### Service layer (`service/`)
+
+Owns all business logic. This is where domain rules are enforced: the Zero-Sum Rule on transactions, node existence checks, archival constraints, balance calculations, and resolution of entity references (e.g. Category and Tag IDs supplied by clients). It also acts as the orchestration point between aggregates — for example, creating an Event triggers Transaction creation and validation in the same atomic operation. All methods that can fail due to a domain rule expose this via an explicit `throws BusinessException` declaration.
+
+#### Repository layer (`repository/`)
+
+Thin data-access layer. Contains only persistence calls and simple JPQL queries. Never called directly from resources.
+
+---
+
+### API Documentation (OpenAPI / Swagger)
+
+* Dependency: `quarkus-smallrye-openapi` (already in `pom.xml`).
+* Swagger UI: `http://localhost:8080/q/swagger-ui`
+* OpenAPI spec: `http://localhost:8080/q/openapi`
+* Each resource class is annotated with `@Tag` (group), and each endpoint with `@Operation` + `@APIResponse`/`@APIResponses` using MicroProfile OpenAPI annotations from `org.eclipse.microprofile.openapi.annotations.*`.
+
+---
+
 ### Coding Conventions
 
 1. **Explicit Exception Declaration:** Every method in the service and validator layers that throws or propagates a `BusinessException` — even though it is unchecked — **must** declare it explicitly in its `throws` clause. This makes the contract visible at the call site without requiring callers to read the implementation.
+2. **Resources use Services, never Repositories:** The resource layer must inject and call the service layer exclusively. Direct repository access from a resource bypasses all business-rule validation and is forbidden.
+3. **OpenAPI annotations on every endpoint:** All public REST methods must carry `@Operation` with a summary, and `@APIResponse`/`@APIResponses` for every possible HTTP status code returned.
