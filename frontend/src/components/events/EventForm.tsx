@@ -1,0 +1,278 @@
+import { useFieldArray, useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod/v4';
+import { Plus, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Textarea } from '@/components/ui/Textarea';
+import { Button } from '@/components/ui/Button';
+import { useCategories } from '@/hooks/useCategories';
+import { useTags } from '@/hooks/useTags';
+import { useNodes } from '@/hooks/useNodes';
+import type { CreateEventDto, FinanceEvent } from '@/models';
+import { toLocalDateTimeString } from '@/lib/format';
+
+// ─── Schema ──────────────────────────────────────────────────────────────────
+
+const lineItemSchema = z.object({
+  nodeId: z.string().min(1, 'Required'),
+  amount: z.string().refine((v) => !isNaN(Number(v)) && Number(v) !== 0, {
+    message: 'Must be a non-zero number',
+  }),
+});
+
+const schema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().optional(),
+  receiptUrl: z.string().optional(),
+  type: z.enum(['INBOUND', 'OUTBOUND', 'OTHER']),
+  transactionDate: z.string().min(1, 'Date is required'),
+  categoryId: z.string().optional(),
+  tagIds: z.array(z.string()).optional(),
+  lineItems: z.array(lineItemSchema).min(1, 'At least one line item required'),
+});
+
+type FormValues = z.infer<typeof schema>;
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
+interface EventFormProps {
+  defaultValues?: Partial<FinanceEvent>;
+  onSubmit: (dto: CreateEventDto) => Promise<void>;
+  submitLabel?: string;
+  loading?: boolean;
+}
+
+export function EventForm({
+  defaultValues,
+  onSubmit,
+  submitLabel = 'Save',
+  loading = false,
+}: EventFormProps) {
+  const { data: categories = [] } = useCategories();
+  const { data: tags = [] } = useTags();
+  const { data: nodes = [] } = useNodes();
+
+  const activeNodes = nodes.filter((n) => !n.archived);
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      name: defaultValues?.name ?? '',
+      description: defaultValues?.description ?? '',
+      receiptUrl: defaultValues?.receiptUrl ?? '',
+      type: defaultValues?.type ?? 'OUTBOUND',
+      transactionDate: defaultValues?.transaction?.transactionDate
+        ? toLocalDateTimeString(new Date(defaultValues.transaction.transactionDate))
+        : toLocalDateTimeString(new Date()),
+      categoryId: defaultValues?.category ? String(defaultValues.category.id) : '',
+      tagIds: defaultValues?.tags?.map((t) => String(t.id)) ?? [],
+      lineItems:
+        defaultValues?.transaction?.lineItems?.map((li) => ({
+          nodeId: String(li.financeNode.id),
+          amount: String(li.amount),
+        })) ?? [{ nodeId: '', amount: '' }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({ control, name: 'lineItems' });
+
+  const handleFormSubmit = async (values: FormValues) => {
+    const dto: CreateEventDto = {
+      name: values.name,
+      description: values.description || undefined,
+      receiptUrl: values.receiptUrl || undefined,
+      type: values.type,
+      transaction: {
+        transactionDate: new Date(values.transactionDate).toISOString(),
+        lineItems: values.lineItems.map((li) => ({
+          financeNode: { id: Number(li.nodeId) },
+          amount: Number(li.amount),
+        })),
+      },
+      category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
+      tags: values.tagIds?.map((id) => ({ id: Number(id) })),
+    };
+    await onSubmit(dto);
+  };
+
+  const nodeOptions = activeNodes.map((n) => ({ value: String(n.id), label: n.name }));
+
+  return (
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
+      {/* Basic Info */}
+      <Input
+        label="Event Name"
+        placeholder="e.g. Dinner with friends"
+        error={errors.name?.message}
+        {...register('name')}
+      />
+
+      <Textarea
+        label="Description"
+        placeholder="Optional details"
+        {...register('description')}
+      />
+
+      <div className="grid grid-cols-2 gap-3">
+        <Controller
+          name="type"
+          control={control}
+          render={({ field }) => (
+            <Select
+              label="Type"
+              error={errors.type?.message}
+              options={[
+                { value: 'INBOUND', label: 'Income' },
+                { value: 'OUTBOUND', label: 'Expense' },
+                { value: 'OTHER', label: 'Transfer' },
+              ]}
+              {...field}
+            />
+          )}
+        />
+
+        <Input
+          type="datetime-local"
+          label="Date & Time"
+          error={errors.transactionDate?.message}
+          {...register('transactionDate')}
+        />
+      </div>
+
+      {/* Category & Tags */}
+      <div className="grid grid-cols-2 gap-3">
+        <Controller
+          name="categoryId"
+          control={control}
+          render={({ field }) => (
+            <Select
+              label="Category"
+              placeholder="None"
+              options={categories.map((c) => ({ value: String(c.id), label: c.name }))}
+              {...field}
+            />
+          )}
+        />
+      </div>
+
+      {/* Tags */}
+      {tags.length > 0 && (
+        <div>
+          <p className="text-sm font-medium text-zinc-300 mb-2">Tags</p>
+          <div className="flex flex-wrap gap-2">
+            <Controller
+              name="tagIds"
+              control={control}
+              render={({ field }) => (
+                <>
+                  {tags.map((tag) => {
+                    const selected = field.value?.includes(String(tag.id));
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => {
+                          const current = field.value ?? [];
+                          if (selected) {
+                            field.onChange(current.filter((id) => id !== String(tag.id)));
+                          } else {
+                            field.onChange([...current, String(tag.id)]);
+                          }
+                        }}
+                        className={[
+                          'px-3 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer',
+                          selected
+                            ? 'bg-indigo-600 border-indigo-500 text-white'
+                            : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600',
+                        ].join(' ')}
+                      >
+                        #{tag.name}
+                      </button>
+                    );
+                  })}
+                </>
+              )}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Line Items */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-sm font-medium text-zinc-300">Line Items</p>
+          <button
+            type="button"
+            onClick={() => append({ nodeId: '', amount: '' })}
+            className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+          >
+            <Plus size={12} />
+            Add
+          </button>
+        </div>
+        {errors.lineItems?.root?.message && (
+          <p className="text-xs text-rose-400 mb-2">{errors.lineItems.root.message}</p>
+        )}
+        <div className="space-y-2">
+          {fields.map((field, i) => (
+            <div key={field.id} className="flex gap-2 items-start">
+              <div className="flex-1">
+                <Controller
+                  name={`lineItems.${i}.nodeId`}
+                  control={control}
+                  render={({ field: f }) => (
+                    <Select
+                      placeholder="Select node"
+                      options={nodeOptions}
+                      error={errors.lineItems?.[i]?.nodeId?.message}
+                      {...f}
+                    />
+                  )}
+                />
+              </div>
+              <div className="w-28">
+                <Input
+                  placeholder="Amount"
+                  type="number"
+                  step="0.01"
+                  error={errors.lineItems?.[i]?.amount?.message}
+                  {...register(`lineItems.${i}.amount`)}
+                />
+              </div>
+              {fields.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => remove(i)}
+                  className="mt-2 p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950 transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-zinc-500 mt-2">
+          Positive = inflow to node, Negative = outflow from node. Sum must equal zero.
+        </p>
+      </div>
+
+      {/* Receipt URL */}
+      <Input
+        label="Receipt URL"
+        placeholder="https://..."
+        type="url"
+        {...register('receiptUrl')}
+      />
+
+      <Button type="submit" fullWidth loading={loading}>
+        {submitLabel}
+      </Button>
+    </form>
+  );
+}

@@ -1,0 +1,42 @@
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { AppLayout } from '@/layouts/AppLayout';
+import { DashboardPage } from '@/pages/DashboardPage';
+import { EventsPage } from '@/pages/EventsPage';
+import { EventDetailPage } from '@/pages/EventDetailPage';
+import { EventNewPage } from '@/pages/EventNewPage';
+import { EventEditPage } from '@/pages/EventEditPage';
+import { NodesPage } from '@/pages/NodesPage';
+import { SubscriptionsPage } from '@/pages/SubscriptionsPage';
+import { SettingsPage } from '@/pages/SettingsPage';
+import { CategoriesPage } from '@/pages/CategoriesPage';
+import { TagsPage } from '@/pages/TagsPage';
+
+export const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <AppLayout />,
+    children: [
+      { index: true, element: <DashboardPage /> },
+
+      // Events
+      { path: 'events', element: <EventsPage /> },
+      { path: 'events/new', element: <EventNewPage /> },
+      { path: 'events/:id', element: <EventDetailPage /> },
+      { path: 'events/:id/edit', element: <EventEditPage /> },
+
+      // Finance Nodes
+      { path: 'nodes', element: <NodesPage /> },
+
+      // Subscriptions
+      { path: 'subscriptions', element: <SubscriptionsPage /> },
+
+      // Settings
+      { path: 'settings', element: <SettingsPage /> },
+      { path: 'settings/categories', element: <CategoriesPage /> },
+      { path: 'settings/tags', element: <TagsPage /> },
+
+      // Fallback
+      { path: '*', element: <Navigate to="/" replace /> },
+    ],
+  },
+]);
