@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { Icon } from '@/components/ui/Icon';
 
 const navItems = [
   { to: '/', label: 'Home', icon: 'home', end: true },
@@ -31,13 +32,12 @@ export function BottomNav() {
                     : 'group-active:bg-dn-surface'
                 }`}
               >
-                <span
-                  className={`material-symbols-outlined text-[24px] ${
+                <Icon
+                  name={icon}
+                  className={`text-[24px] ${
                     isActive ? 'text-dn-primary' : 'text-dn-text-main'
                   }`}
-                >
-                  {icon}
-                </span>
+                />
               </div>
               <span
                 className={`text-[10px] font-medium ${
