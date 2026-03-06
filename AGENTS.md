@@ -144,3 +144,20 @@ Thin data-access layer. Contains only persistence calls and simple JPQL queries.
 1. **Explicit Exception Declaration:** Every method in the service and validator layers that throws or propagates a `BusinessException` — even though it is unchecked — **must** declare it explicitly in its `throws` clause. This makes the contract visible at the call site without requiring callers to read the implementation.
 2. **Resources use Services, never Repositories:** The resource layer must inject and call the service layer exclusively. Direct repository access from a resource bypasses all business-rule validation and is forbidden.
 3. **OpenAPI annotations on every endpoint:** All public REST methods must carry `@Operation` with a summary, and `@APIResponse`/`@APIResponses` for every possible HTTP status code returned.
+
+---
+
+## 7. Frontend
+
+### Tech Stack
+
+* **Framework:** React + TypeScript
+* **Build Tool:** Vite
+* **Package Manager:** pnpm
+
+### Coding Conventions
+
+1. **Absolute Imports:** The frontend project is configured to use path aliases (`@/` mapping to `src/`). You **must** use absolute imports for all internal modules instead of relative paths. 
+   * **Do:** `import Button from '@/components/ui/Button'`
+   * **Don't:** `import Button from '../../components/ui/Button'`
+
