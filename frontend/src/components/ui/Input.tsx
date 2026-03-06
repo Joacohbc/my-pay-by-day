@@ -11,9 +11,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, hint, className = '', id, ...props }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
     return (
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={inputId} className="text-sm font-medium text-zinc-300">
+          <label htmlFor={inputId} className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">
             {label}
           </label>
         )}
@@ -21,18 +21,18 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={inputId}
           className={[
-            'w-full bg-zinc-800 border rounded-xl px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500',
-            'focus:outline-none focus:ring-2 focus:ring-indigo-500',
-            'transition-colors',
-            error ? 'border-rose-500' : 'border-zinc-700',
+            'w-full bg-dn-surface-low rounded-input px-4 py-3 text-sm text-dn-text-main placeholder-dn-text-muted/50',
+            'focus:outline-none focus:ring-2 focus:ring-dn-primary/30',
+            'transition-colors border-none [color-scheme:dark]',
+            error ? 'ring-2 ring-dn-error/50' : '',
             className,
           ]
             .filter(Boolean)
             .join(' ')}
           {...props}
         />
-        {error && <p className="text-xs text-rose-400">{error}</p>}
-        {hint && !error && <p className="text-xs text-zinc-500">{hint}</p>}
+        {error && <p className="text-xs text-dn-error">{error}</p>}
+        {hint && !error && <p className="text-xs text-dn-text-muted">{hint}</p>}
       </div>
     );
   }

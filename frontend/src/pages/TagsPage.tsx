@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Hash } from 'lucide-react';
 import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from '@/hooks/useTags';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -74,59 +73,59 @@ export function TagsPage() {
         subtitle={`${allTags.length} tags`}
         action={
           <Button size="sm" onClick={openCreate}>
-            <Plus size={14} />
+            <span className="material-symbols-outlined text-sm">add</span>
             New
           </Button>
         }
       />
 
       {/* Description */}
-      <div className="px-4">
-        <p className="text-sm text-zinc-500">
-          Tags are transversal labels (e.g. <span className="text-indigo-400">#Vacation2026</span>,{' '}
-          <span className="text-indigo-400">#Reimbursable</span>) that can be applied to multiple
+      <div className="px-5">
+        <p className="text-sm text-dn-text-muted">
+          Tags are transversal labels (e.g. <span className="text-dn-primary">#Vacation2026</span>,{' '}
+          <span className="text-dn-primary">#Reimbursable</span>) that can be applied to multiple
           events for cross-cutting reports.
         </p>
       </div>
 
       {allTags.length === 0 ? (
         <EmptyState
-          icon={<Hash size={22} />}
+          icon={<span className="material-symbols-outlined">tag</span>}
           title="No tags yet"
           description="Create tags to group events across different categories"
           action={
             <Button size="sm" onClick={openCreate}>
-              <Plus size={14} />
+              <span className="material-symbols-outlined text-sm">add</span>
               Add Tag
             </Button>
           }
         />
       ) : (
-        <div className="px-4 flex flex-wrap gap-3">
+        <div className="px-5 flex flex-wrap gap-3">
           {allTags.map((tag) => (
             <div
               key={tag.id}
-              className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 group"
+              className="flex items-center gap-2 bg-dn-surface rounded-card px-4 py-3 group"
             >
               <Badge variant="indigo">#{tag.name}</Badge>
               {tag.description && (
-                <span className="text-xs text-zinc-500 max-w-32 truncate hidden sm:block">
+                <span className="text-xs text-dn-text-muted max-w-32 truncate hidden sm:block">
                   {tag.description}
                 </span>
               )}
               <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={() => openEdit(tag)}
-                  className="p-1 rounded text-zinc-500 hover:text-zinc-300 transition-colors"
+                  className="p-1 rounded-full text-dn-text-muted hover:text-dn-text-main transition-colors"
                 >
-                  <Pencil size={12} />
+                  <span className="material-symbols-outlined text-base">edit</span>
                 </button>
                 <button
                   onClick={() => handleDelete(tag.id)}
                   disabled={deleteTag.isPending}
-                  className="p-1 rounded text-zinc-500 hover:text-rose-400 transition-colors disabled:opacity-50"
+                  className="p-1 rounded-full text-dn-text-muted hover:text-dn-error transition-colors disabled:opacity-50"
                 >
-                  <Trash2 size={12} />
+                  <span className="material-symbols-outlined text-base">delete</span>
                 </button>
               </div>
             </div>

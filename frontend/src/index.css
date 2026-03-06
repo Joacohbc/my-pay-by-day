@@ -1,5 +1,28 @@
 @import "tailwindcss";
 
+@theme {
+  /* ─── Color Palette ─── */
+  --color-dn-bg: #1B1E23;
+  --color-dn-surface: #2A2F38;
+  --color-dn-surface-low: #131619;
+  --color-dn-primary: #D0BCFF;
+  --color-dn-secondary: #CCC2DC;
+  --color-dn-tertiary: #EFB8C8;
+  --color-dn-text-main: #E6E1E5;
+  --color-dn-text-muted: #939094;
+  --color-dn-success: #BBDCC0;
+  --color-dn-error: #F2B8B5;
+
+  /* ─── Typography ─── */
+  --font-display: 'Work Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* ─── Border Radius ─── */
+  --radius-card: 28px;
+  --radius-pill: 9999px;
+  --radius-input: 16px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -8,20 +31,34 @@ html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  background-color: #09090b;
-  color: #f4f4f5;
-  font-family: system-ui, -apple-system, sans-serif;
+  background-color: var(--color-dn-bg);
+  color: var(--color-dn-text-main);
+  font-family: var(--font-display);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-::-webkit-scrollbar {
-  width: 4px;
+/* Hide scrollbar for clean UI */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
-::-webkit-scrollbar-track {
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+::-webkit-scrollbar {
+  width: 0px;
   background: transparent;
 }
-::-webkit-scrollbar-thumb {
-  background: #3f3f46;
-  border-radius: 9999px;
+
+/* Material icon helper */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Active press feedback */
+.press-scale:active {
+  transform: scale(0.98);
+  transition: transform 0.1s;
 }

@@ -9,11 +9,11 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: 'bg-zinc-800 text-zinc-300',
-  income: 'bg-emerald-950 text-emerald-400 border border-emerald-800',
-  expense: 'bg-rose-950 text-rose-400 border border-rose-800',
-  neutral: 'bg-amber-950 text-amber-400 border border-amber-800',
-  indigo: 'bg-indigo-950 text-indigo-400 border border-indigo-800',
+  default: 'bg-dn-surface-low text-dn-text-muted',
+  income: 'bg-dn-success/10 text-dn-success border border-dn-success/20',
+  expense: 'bg-dn-error/10 text-dn-error border border-dn-error/20',
+  neutral: 'bg-dn-tertiary/10 text-dn-tertiary border border-dn-tertiary/20',
+  indigo: 'bg-dn-primary/10 text-dn-primary border border-dn-primary/20',
 };
 
 export function Badge({ children, variant = 'default', className = '' }: BadgeProps) {

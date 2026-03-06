@@ -1,13 +1,4 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  ArrowLeftRight,
-  Pencil,
-  Trash2,
-  Receipt,
-  Tag as TagIcon,
-} from 'lucide-react';
 import { useEvent, useDeleteEvent } from '@/hooks/useEvents';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -20,23 +11,23 @@ import { formatCurrency, formatDateTime, eventNetAmount } from '@/lib/format';
 
 const typeConfig = {
   INBOUND: {
-    Icon: ArrowDownLeft,
-    iconBg: 'bg-emerald-950 text-emerald-400',
-    amountClass: 'text-emerald-400',
+    icon: 'arrow_downward',
+    iconBg: 'bg-dn-success/10 text-dn-success',
+    amountClass: 'text-dn-success',
     label: 'Income',
     badgeVariant: 'income' as const,
   },
   OUTBOUND: {
-    Icon: ArrowUpRight,
-    iconBg: 'bg-rose-950 text-rose-400',
-    amountClass: 'text-rose-400',
+    icon: 'arrow_upward',
+    iconBg: 'bg-dn-surface text-dn-text-main',
+    amountClass: 'text-dn-text-main',
     label: 'Expense',
     badgeVariant: 'expense' as const,
   },
   OTHER: {
-    Icon: ArrowLeftRight,
-    iconBg: 'bg-amber-950 text-amber-400',
-    amountClass: 'text-amber-400',
+    icon: 'swap_horiz',
+    iconBg: 'bg-dn-surface text-dn-secondary',
+    amountClass: 'text-dn-secondary',
     label: 'Transfer',
     badgeVariant: 'neutral' as const,
   },
@@ -52,7 +43,6 @@ export function EventDetailPage() {
   if (error || !event) return <ErrorState message="Event not found" />;
 
   const cfg = typeConfig[event.type];
-  const { Icon } = cfg;
   const net = eventNetAmount(event);
 
   const handleDelete = async () => {
@@ -62,15 +52,15 @@ export function EventDetailPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <PageHeader
-        title="Event Detail"
+        title="Detail"
         back
         action={
           <div className="flex gap-2">
             <Link to={`/events/${event.id}/edit`}>
               <Button variant="secondary" size="sm">
-                <Pencil size={14} />
+                <span className="material-symbols-outlined text-base">edit</span>
               </Button>
             </Link>
             <Button
@@ -79,97 +69,93 @@ export function EventDetailPage() {
               onClick={handleDelete}
               loading={deleteEvent.isPending}
             >
-              <Trash2 size={14} />
+              <span className="material-symbols-outlined text-base">delete</span>
             </Button>
           </div>
         }
       />
 
-      {/* Hero card */}
-      <div className="px-4">
-        <Card>
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`w-12 h-12 flex items-center justify-center rounded-2xl ${cfg.iconBg}`}>
-              <Icon size={22} />
+      {/* Hero */}
+      <div className="px-5 flex flex-col items-center text-center">
+        <div className={`w-16 h-16 flex items-center justify-center rounded-full mb-4 ${cfg.iconBg}`}>
+          <span className="material-symbols-outlined text-3xl">{cfg.icon}</span>
+        </div>
+
+        <h2 className="text-xl font-semibold text-dn-text-main tracking-tight">{event.name}</h2>
+        {event.description && (
+          <p className="text-sm text-dn-text-muted mt-1">{event.description}</p>
+        )}
+
+        <p className={`text-4xl font-mono font-bold tracking-tight mt-3 ${cfg.amountClass}`}>
+          {event.type === 'INBOUND' ? '+' : event.type === 'OUTBOUND' ? '-' : ''}
+          {formatCurrency(Math.abs(net))}
+        </p>
+
+        <div className="flex flex-wrap justify-center gap-2 mt-3">
+          <Badge variant={cfg.badgeVariant}>{cfg.label}</Badge>
+          {event.category && <Badge variant="default">{event.category.name}</Badge>}
+          {event.tags.map((tag) => (
+            <Badge key={tag.id} variant="indigo">#{tag.name}</Badge>
+          ))}
+        </div>
+      </div>
+
+      {/* Details Card */}
+      <div className="px-5">
+        <Card className="divide-y divide-white/5">
+          {event.category && (
+            <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+              <span className="text-sm text-dn-text-muted">Category</span>
+              <span className="text-sm text-dn-text-main">{event.category.name}</span>
             </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold text-zinc-100">{event.name}</h2>
-              {event.description && (
-                <p className="text-sm text-zinc-400 truncate">{event.description}</p>
-              )}
-            </div>
-          </div>
-
-          <div className={`text-3xl font-bold tabular-nums mb-4 ${cfg.amountClass}`}>
-            {event.type === 'INBOUND' ? '+' : event.type === 'OUTBOUND' ? '-' : ''}
-            {formatCurrency(Math.abs(net))}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Badge variant={cfg.badgeVariant}>{cfg.label}</Badge>
-            {event.category && (
-              <Badge variant="default">{event.category.name}</Badge>
-            )}
-            {event.tags.map((tag) => (
-              <Badge key={tag.id} variant="indigo">
-                <TagIcon size={9} className="mr-1" />#{tag.name}
-              </Badge>
-            ))}
-          </div>
-
+          )}
           {event.transaction?.transactionDate && (
-            <p className="text-xs text-zinc-500 mt-3">
-              {formatDateTime(event.transaction.transactionDate)}
-            </p>
+            <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+              <span className="text-sm text-dn-text-muted">Date</span>
+              <span className="text-sm text-dn-text-main font-mono">
+                {formatDateTime(event.transaction.transactionDate)}
+              </span>
+            </div>
+          )}
+          {event.receiptUrl && (
+            <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+              <span className="text-sm text-dn-text-muted">Receipt</span>
+              <a
+                href={event.receiptUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-dn-primary flex items-center gap-1"
+              >
+                View
+                <span className="material-symbols-outlined text-sm">open_in_new</span>
+              </a>
+            </div>
           )}
         </Card>
       </div>
 
       {/* Line Items */}
-      <div className="px-4">
-        <h3 className="text-sm font-semibold text-zinc-300 mb-2">Line Items</h3>
-        <div className="space-y-2">
-          {event.transaction?.lineItems?.length ? (
-            event.transaction.lineItems.map((li) => (
-              <Card key={li.id}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-zinc-100">
-                      {li.financeNode.name}
-                    </p>
-                    <p className="text-xs text-zinc-500">{li.financeNode.type}</p>
-                  </div>
-                  <span
-                    className={`text-sm font-semibold tabular-nums ${
-                      Number(li.amount) >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                    }`}
-                  >
-                    {Number(li.amount) >= 0 ? '+' : ''}
-                    {formatCurrency(Number(li.amount))}
-                  </span>
+      <div className="px-5">
+        <h3 className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">Line Items</h3>
+        {event.transaction?.lineItems?.length ? (
+          <Card className="divide-y divide-white/5">
+            {event.transaction.lineItems.map((li) => (
+              <div key={li.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                <div>
+                  <p className="text-sm font-medium text-dn-text-main">{li.financeNode.name}</p>
+                  <p className="text-xs text-dn-text-muted">{li.financeNode.type}</p>
                 </div>
-              </Card>
-            ))
-          ) : (
-            <EmptyState title="No line items" />
-          )}
-        </div>
+                <span className={`text-sm font-mono ${Number(li.amount) >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
+                  {Number(li.amount) >= 0 ? '+' : ''}
+                  {formatCurrency(Number(li.amount))}
+                </span>
+              </div>
+            ))}
+          </Card>
+        ) : (
+          <EmptyState title="No line items" />
+        )}
       </div>
-
-      {/* Receipt */}
-      {event.receiptUrl && (
-        <div className="px-4">
-          <a
-            href={event.receiptUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300"
-          >
-            <Receipt size={14} />
-            View Receipt
-          </a>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Plus, MoreVertical, Archive, Trash2 } from 'lucide-react';
 import { useNodes, useCreateNode, useArchiveNode, useDeleteNode, useNodeBalance } from '@/hooks/useNodes';
 import { NodeCard } from '@/components/nodes/NodeCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -10,7 +9,6 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Badge } from '@/components/ui/Badge';
 import type { FinanceNode, FinanceNodeType } from '@/models';
 import { useForm, Controller } from 'react-hook-form';
 
@@ -23,7 +21,7 @@ function NodeBalanceBadge({ nodeId }: { nodeId: number }) {
   const { data: balance } = useNodeBalance(nodeId);
   if (balance === undefined) return null;
   return (
-    <span className={`text-xs font-semibold tabular-nums ${balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+    <span className={`text-xs font-mono ${balance >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
       {balance >= 0 ? '+' : ''}
       {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(balance)}
     </span>
@@ -42,28 +40,28 @@ function NodeActionMenu({ node }: { node: FinanceNode }) {
           e.stopPropagation();
           setOpen(!open);
         }}
-        className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+        className="p-1.5 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
       >
-        <MoreVertical size={15} />
+        <span className="material-symbols-outlined text-lg">more_vert</span>
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-8 z-20 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl min-w-36 overflow-hidden">
+          <div className="absolute right-0 top-8 z-20 bg-dn-surface border border-white/5 rounded-card shadow-xl min-w-36 overflow-hidden">
             {!node.archived && (
               <button
                 onClick={() => { archive.mutate(node.id); setOpen(false); }}
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dn-text-main hover:bg-dn-surface-low transition-colors"
               >
-                <Archive size={14} />
+                <span className="material-symbols-outlined text-base">archive</span>
                 Archive
               </button>
             )}
             <button
               onClick={() => { del.mutate(node.id); setOpen(false); }}
-              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-rose-400 hover:bg-rose-950 transition-colors"
+              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dn-error hover:bg-dn-error/10 transition-colors"
             >
-              <Trash2 size={14} />
+              <span className="material-symbols-outlined text-base">delete</span>
               Delete
             </button>
           </div>
@@ -111,21 +109,21 @@ export function NodesPage() {
         subtitle={`${activeNodes.length} active`}
         action={
           <Button size="sm" onClick={() => setShowModal(true)}>
-            <Plus size={14} />
+            <span className="material-symbols-outlined text-sm">add</span>
             New
           </Button>
         }
       />
 
       {/* Filter */}
-      <div className="px-4 flex gap-2">
+      <div className="px-5 flex gap-2">
         <button
           onClick={() => setShowArchived(false)}
           className={[
-            'px-3 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer',
+            'px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer',
             !showArchived
-              ? 'bg-indigo-600 border-indigo-500 text-white'
-              : 'bg-zinc-800 border-zinc-700 text-zinc-400',
+              ? 'bg-dn-primary/20 text-dn-primary'
+              : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
           ].join(' ')}
         >
           Active
@@ -134,10 +132,10 @@ export function NodesPage() {
           <button
             onClick={() => setShowArchived(true)}
             className={[
-              'px-3 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer',
+              'px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer',
               showArchived
-                ? 'bg-indigo-600 border-indigo-500 text-white'
-                : 'bg-zinc-800 border-zinc-700 text-zinc-400',
+                ? 'bg-dn-primary/20 text-dn-primary'
+                : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
             ].join(' ')}
           >
             All ({allNodes.length})
@@ -155,11 +153,11 @@ export function NodesPage() {
           CONTACT: 'Contacts',
         };
         return (
-          <section key={type} className="px-4">
-            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
+          <section key={type} className="px-5">
+            <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">
               {labels[type]}
             </p>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {group.map((node) => (
                 <NodeCard
                   key={node.id}
@@ -184,7 +182,7 @@ export function NodesPage() {
           description="Add accounts, external entities, or contacts"
           action={
             <Button size="sm" onClick={() => setShowModal(true)}>
-              <Plus size={14} />
+              <span className="material-symbols-outlined text-sm">add</span>
               Add Node
             </Button>
           }
@@ -220,10 +218,10 @@ export function NodesPage() {
               />
             )}
           />
-          <div className="bg-zinc-800 rounded-xl p-3 space-y-1 text-xs text-zinc-400">
-            <p><span className="text-zinc-300 font-medium">Own:</span> Your bank accounts, wallets, credit cards</p>
-            <p><span className="text-zinc-300 font-medium">External:</span> Shops, employers, services (expenses/income)</p>
-            <p><span className="text-zinc-300 font-medium">Contact:</span> Friends/family — money owed or lent</p>
+          <div className="bg-dn-surface-low rounded-input p-3 space-y-1 text-xs text-dn-text-muted">
+            <p><span className="text-dn-text-main font-medium">Own:</span> Your bank accounts, wallets, credit cards</p>
+            <p><span className="text-dn-text-main font-medium">External:</span> Shops, employers, services (expenses/income)</p>
+            <p><span className="text-dn-text-main font-medium">Contact:</span> Friends/family — money owed or lent</p>
           </div>
         </form>
       </Modal>

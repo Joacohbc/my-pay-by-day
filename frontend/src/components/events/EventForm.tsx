@@ -1,7 +1,6 @@
 import { useFieldArray, useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
-import { Plus, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
@@ -164,7 +163,7 @@ export function EventForm({
       {/* Tags */}
       {tags.length > 0 && (
         <div>
-          <p className="text-sm font-medium text-zinc-300 mb-2">Tags</p>
+          <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2">Tags</p>
           <div className="flex flex-wrap gap-2">
             <Controller
               name="tagIds"
@@ -186,10 +185,10 @@ export function EventForm({
                           }
                         }}
                         className={[
-                          'px-3 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer',
+                          'px-3 py-1.5 rounded-pill text-xs font-medium border transition-all cursor-pointer',
                           selected
-                            ? 'bg-indigo-600 border-indigo-500 text-white'
-                            : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600',
+                            ? 'bg-dn-primary/20 border-dn-primary/30 text-dn-primary'
+                            : 'bg-dn-surface-low border-white/5 text-dn-text-muted hover:border-white/10',
                         ].join(' ')}
                       >
                         #{tag.name}
@@ -206,18 +205,18 @@ export function EventForm({
       {/* Line Items */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-medium text-zinc-300">Line Items</p>
+          <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">Line Items</p>
           <button
             type="button"
             onClick={() => append({ nodeId: '', amount: '' })}
-            className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+            className="flex items-center gap-1 text-xs text-dn-primary hover:brightness-110 transition-all"
           >
-            <Plus size={12} />
+            <span className="material-symbols-outlined text-sm">add</span>
             Add
           </button>
         </div>
         {errors.lineItems?.root?.message && (
-          <p className="text-xs text-rose-400 mb-2">{errors.lineItems.root.message}</p>
+          <p className="text-xs text-dn-error mb-2">{errors.lineItems.root.message}</p>
         )}
         <div className="space-y-2">
           {fields.map((field, i) => (
@@ -249,15 +248,15 @@ export function EventForm({
                 <button
                   type="button"
                   onClick={() => remove(i)}
-                  className="mt-2 p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950 transition-colors"
+                  className="mt-2 p-1.5 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors"
                 >
-                  <Trash2 size={14} />
+                  <span className="material-symbols-outlined text-base">delete</span>
                 </button>
               )}
             </div>
           ))}
         </div>
-        <p className="text-xs text-zinc-500 mt-2">
+        <p className="text-xs text-dn-text-muted mt-2">
           Positive = inflow to node, Negative = outflow from node. Sum must equal zero.
         </p>
       </div>

@@ -9,8 +9,8 @@ export function Card({ children, padding = true, className = '', ...props }: Car
   return (
     <div
       className={[
-        'bg-zinc-900 border border-zinc-800 rounded-2xl',
-        padding ? 'p-4' : '',
+        'bg-dn-surface rounded-card',
+        padding ? 'p-5' : '',
         className,
       ]
         .filter(Boolean)

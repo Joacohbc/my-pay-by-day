@@ -31,14 +31,14 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
       />
 
       {/* Panel */}
-      <div className="relative z-10 w-full sm:max-w-md bg-zinc-900 border border-zinc-800 rounded-t-3xl sm:rounded-2xl shadow-xl flex flex-col max-h-[90vh]">
+      <div className="relative z-10 w-full sm:max-w-md bg-dn-surface border border-white/5 rounded-t-[28px] sm:rounded-card shadow-xl flex flex-col max-h-[90vh]">
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-zinc-800">
-            <h2 className="text-base font-semibold text-zinc-100">{title}</h2>
+          <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-dn-bg/30">
+            <h2 className="text-base font-semibold text-dn-text-main">{title}</h2>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+              className="p-1.5 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
             >
               <X size={18} />
             </button>
@@ -50,7 +50,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
 
         {/* Footer */}
         {footer && (
-          <div className="px-5 pb-5 pt-3 border-t border-zinc-800">{footer}</div>
+          <div className="px-5 pb-5 pt-3 border-t border-dn-bg/30">{footer}</div>
         )}
       </div>
     </div>

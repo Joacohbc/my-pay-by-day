@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from '@/hooks/useCategories';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -74,7 +73,7 @@ export function CategoriesPage() {
         subtitle={`${allCategories.length} categories`}
         action={
           <Button size="sm" onClick={openCreate}>
-            <Plus size={14} />
+            <span className="material-symbols-outlined text-sm">add</span>
             New
           </Button>
         }
@@ -86,37 +85,37 @@ export function CategoriesPage() {
           description="Categories help classify your events as budget buckets"
           action={
             <Button size="sm" onClick={openCreate}>
-              <Plus size={14} />
+              <span className="material-symbols-outlined text-sm">add</span>
               Add Category
             </Button>
           }
         />
       ) : (
-        <div className="px-4 space-y-2">
+        <div className="px-5 space-y-3">
           {allCategories.map((cat) => (
-            <Card key={cat.id} className="flex items-center gap-3">
-              <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-800 text-zinc-400 shrink-0 font-bold text-sm">
+            <Card key={cat.id} className="flex items-center gap-4">
+              <div className="w-12 h-12 flex items-center justify-center rounded-full bg-dn-primary/10 text-dn-primary shrink-0 font-bold text-base">
                 {cat.name[0].toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-zinc-100">{cat.name}</p>
+                <p className="text-base font-medium text-dn-text-main">{cat.name}</p>
                 {cat.description && (
-                  <p className="text-xs text-zinc-500 truncate">{cat.description}</p>
+                  <p className="text-xs text-dn-text-muted truncate">{cat.description}</p>
                 )}
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <button
                   onClick={() => openEdit(cat)}
-                  className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+                  className="p-2 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
                 >
-                  <Pencil size={13} />
+                  <span className="material-symbols-outlined text-base">edit</span>
                 </button>
                 <button
                   onClick={() => handleDelete(cat.id)}
                   disabled={deleteCategory.isPending}
-                  className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950 transition-colors disabled:opacity-50"
+                  className="p-2 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors disabled:opacity-50"
                 >
-                  <Trash2 size={13} />
+                  <span className="material-symbols-outlined text-base">delete</span>
                 </button>
               </div>
             </Card>

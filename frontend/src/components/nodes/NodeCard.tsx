@@ -1,4 +1,3 @@
-import { Archive, Wallet, Users, Building2 } from 'lucide-react';
 import type { FinanceNode } from '@/models';
 import { Badge } from '@/components/ui/Badge';
 
@@ -11,20 +10,20 @@ interface NodeCardProps {
 
 const nodeTypeConfig = {
   OWN: {
-    Icon: Wallet,
-    iconBg: 'bg-indigo-950 text-indigo-400',
+    icon: 'account_balance_wallet',
+    iconBg: 'bg-dn-primary/10 text-dn-primary',
     label: 'Own Account',
     badgeVariant: 'indigo' as const,
   },
   EXTERNAL: {
-    Icon: Building2,
-    iconBg: 'bg-amber-950 text-amber-400',
+    icon: 'storefront',
+    iconBg: 'bg-dn-tertiary/10 text-dn-tertiary',
     label: 'External',
     badgeVariant: 'neutral' as const,
   },
   CONTACT: {
-    Icon: Users,
-    iconBg: 'bg-emerald-950 text-emerald-400',
+    icon: 'group',
+    iconBg: 'bg-dn-success/10 text-dn-success',
     label: 'Contact',
     badgeVariant: 'income' as const,
   },
@@ -32,33 +31,34 @@ const nodeTypeConfig = {
 
 export function NodeCard({ node, balance, onClick, actions }: NodeCardProps) {
   const cfg = nodeTypeConfig[node.type];
-  const { Icon } = cfg;
 
   return (
     <div
       className={[
-        'flex items-center gap-3 px-4 py-3.5 bg-zinc-900 border rounded-2xl transition-colors',
-        node.archived ? 'opacity-50 border-zinc-800' : 'border-zinc-800 hover:border-zinc-700',
-        onClick ? 'cursor-pointer' : '',
+        'flex items-center gap-4 p-4 bg-dn-surface rounded-card transition-all',
+        node.archived ? 'opacity-50' : '',
+        onClick ? 'cursor-pointer active:scale-[0.99]' : '',
       ]
         .filter(Boolean)
         .join(' ')}
       onClick={onClick}
     >
-      <div className={`shrink-0 w-10 h-10 flex items-center justify-center rounded-xl ${cfg.iconBg}`}>
-        {node.archived ? <Archive size={18} className="text-zinc-500" /> : <Icon size={18} />}
+      <div className={`shrink-0 w-12 h-12 flex items-center justify-center rounded-2xl ${cfg.iconBg}`}>
+        {node.archived ? (
+          <span className="material-symbols-outlined text-dn-text-muted">archive</span>
+        ) : (
+          <span className="material-symbols-outlined">{cfg.icon}</span>
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-medium text-zinc-100 truncate">{node.name}</p>
+          <p className="text-base font-medium text-dn-text-main truncate">{node.name}</p>
           <Badge variant={cfg.badgeVariant}>{cfg.label}</Badge>
-          {node.archived && (
-            <Badge variant="default">Archived</Badge>
-          )}
+          {node.archived && <Badge variant="default">Archived</Badge>}
         </div>
         {balance !== undefined && (
-          <p className={`text-xs mt-0.5 font-medium tabular-nums ${balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+          <p className={`text-sm mt-0.5 font-mono ${balance >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
             {balance >= 0 ? '+' : ''}
             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(balance)}
           </p>

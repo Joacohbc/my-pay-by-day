@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Filter } from 'lucide-react';
 import { useEvents } from '@/hooks/useEvents';
 import { EventCard } from '@/components/events/EventCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { formatCurrency, eventNetAmount } from '@/lib/format';
 import type { EventType } from '@/models';
 
 type FilterType = 'ALL' | EventType;
@@ -42,6 +42,14 @@ export function EventsPage() {
       return db.localeCompare(da);
     });
 
+  // Summary stats
+  const totalIncome = allEvents
+    .filter((e) => e.type === 'INBOUND')
+    .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0);
+  const totalExpenses = allEvents
+    .filter((e) => e.type === 'OUTBOUND')
+    .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0);
+
   const filterBtns: { label: string; value: FilterType }[] = [
     { label: 'All', value: 'ALL' },
     { label: 'Income', value: 'INBOUND' },
@@ -52,57 +60,63 @@ export function EventsPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Events"
-        subtitle={`${allEvents.length} total`}
+        title="Activity"
+        subtitle={`${allEvents.length} events`}
         action={
           <Link to="/events/new">
             <Button size="sm">
-              <Plus size={14} />
+              <span className="material-symbols-outlined text-sm">add</span>
               New
             </Button>
           </Link>
         }
       />
 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 gap-3 px-5">
+        <Card className="text-center">
+          <p className="text-xs text-dn-text-muted mb-1">Income</p>
+          <p className="text-lg font-mono font-semibold text-dn-success">{formatCurrency(totalIncome)}</p>
+        </Card>
+        <Card className="text-center">
+          <p className="text-xs text-dn-text-muted mb-1">Expenses</p>
+          <p className="text-lg font-mono font-semibold text-dn-text-main">{formatCurrency(totalExpenses)}</p>
+        </Card>
+      </div>
+
       {/* Search */}
-      <div className="px-4">
+      <div className="px-5">
         <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-xl">search</span>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search events…"
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-xl pl-9 pr-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 [color-scheme:dark]"
           />
         </div>
       </div>
 
-      {/* Filter chips */}
-      <div className="px-4 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+      {/* Filter pills */}
+      <div className="px-5 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
         {filterBtns.map(({ label, value }) => (
           <button
             key={value}
             onClick={() => setFilter(value)}
             className={[
-              'shrink-0 px-3 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer',
+              'shrink-0 px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer',
               filter === value
-                ? 'bg-indigo-600 border-indigo-500 text-white'
-                : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600',
+                ? 'bg-dn-primary/20 text-dn-primary'
+                : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
             ].join(' ')}
           >
             {label}
           </button>
         ))}
-        {filter !== 'ALL' && (
-          <Badge variant="indigo" className="items-center">
-            <Filter size={10} className="mr-1" />
-            Filtered
-          </Badge>
-        )}
       </div>
 
       {/* Event list */}
-      <div className="px-4 space-y-2">
+      <div className="px-5">
         {filtered.length === 0 ? (
           <EmptyState
             title="No events found"
@@ -110,14 +124,20 @@ export function EventsPage() {
             action={
               <Link to="/events/new">
                 <Button size="sm">
-                  <Plus size={14} />
+                  <span className="material-symbols-outlined text-sm">add</span>
                   New Event
                 </Button>
               </Link>
             }
           />
         ) : (
-          filtered.map((event) => <EventCard key={event.id} event={event} />)
+          <Card className="divide-y divide-white/5">
+            {filtered.map((event) => (
+              <div key={event.id} className="py-3 first:pt-0 last:pb-0">
+                <EventCard event={event} />
+              </div>
+            ))}
+          </Card>
         )}
       </div>
     </div>

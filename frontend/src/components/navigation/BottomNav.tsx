@@ -1,42 +1,55 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, List, Wallet, RefreshCcw, Settings } from 'lucide-react';
 
 const navItems = [
-  { to: '/', label: 'Home', Icon: LayoutDashboard, end: true },
-  { to: '/events', label: 'Events', Icon: List },
-  { to: '/nodes', label: 'Accounts', Icon: Wallet },
-  { to: '/subscriptions', label: 'Recurring', Icon: RefreshCcw },
-  { to: '/settings', label: 'Settings', Icon: Settings },
+  { to: '/', label: 'Home', icon: 'home', end: true },
+  { to: '/events', label: 'Activity', icon: 'pie_chart' },
+  { to: '/nodes', label: 'Wallet', icon: 'account_balance_wallet' },
+  { to: '/subscriptions', label: 'Subs', icon: 'credit_card' },
+  { to: '/settings', label: 'Profile', icon: 'person' },
 ];
 
 export function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur-md border-t border-zinc-800">
-      <ul className="flex items-center justify-around max-w-md mx-auto px-2 h-16">
-        {navItems.map(({ to, label, Icon, end }) => (
-          <li key={to} className="flex-1">
-            <NavLink
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                [
-                  'flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-xl transition-colors',
+    <nav className="fixed bottom-0 left-0 right-0 z-40 h-[80px] bg-dn-surface-low border-t border-dn-surface flex items-center justify-around px-2">
+      {navItems.map(({ to, label, icon, end }) => (
+        <NavLink
+          key={to}
+          to={to}
+          end={end}
+          className={({ isActive }) =>
+            `flex flex-col items-center justify-center gap-1 w-16 group ${
+              isActive ? '' : 'opacity-60 hover:opacity-100'
+            } transition-opacity`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              <div
+                className={`w-16 h-8 rounded-full flex items-center justify-center transition-colors ${
                   isActive
-                    ? 'text-indigo-400'
-                    : 'text-zinc-500 hover:text-zinc-300',
-                ].join(' ')
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                  <span className="text-[10px] font-medium">{label}</span>
-                </>
-              )}
-            </NavLink>
-          </li>
-        ))}
-      </ul>
+                    ? 'bg-dn-primary/20'
+                    : 'group-active:bg-dn-surface'
+                }`}
+              >
+                <span
+                  className={`material-symbols-outlined text-[24px] ${
+                    isActive ? 'text-dn-primary' : 'text-dn-text-main'
+                  }`}
+                >
+                  {icon}
+                </span>
+              </div>
+              <span
+                className={`text-[10px] font-medium ${
+                  isActive ? 'text-dn-primary' : 'text-dn-text-main'
+                }`}
+              >
+                {label}
+              </span>
+            </>
+          )}
+        </NavLink>
+      ))}
     </nav>
   );
 }

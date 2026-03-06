@@ -16,7 +16,7 @@ export function EventNewPage() {
   return (
     <div className="space-y-4">
       <PageHeader title="New Event" back />
-      <div className="px-4 pb-6">
+      <div className="px-5 pb-6">
         <EventForm
           onSubmit={handleSubmit}
           submitLabel="Create Event"

@@ -1,11 +1,4 @@
 import { useState } from 'react';
-import {
-  Plus,
-  RefreshCcw,
-  Calendar,
-  Trash2,
-  AlertCircle,
-} from 'lucide-react';
 import { useSubscriptions, useDeleteSubscription } from '@/hooks/useSubscriptions';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -32,29 +25,29 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
   });
 
   return (
-    <Card className="flex items-center gap-3">
-      <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-indigo-950 text-indigo-400 shrink-0">
-        <RefreshCcw size={18} />
+    <Card className="flex items-center gap-4">
+      <div className="w-12 h-12 flex items-center justify-center rounded-2xl bg-dn-primary/10 text-dn-primary shrink-0">
+        <span className="material-symbols-outlined">sync</span>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-zinc-100 truncate">{sub.name}</p>
+        <p className="text-base font-medium text-dn-text-main truncate">{sub.name}</p>
         <div className="flex items-center gap-2 mt-0.5">
           <Badge variant="indigo">{recurrenceLabel[sub.recurrence]}</Badge>
-          <div className="flex items-center gap-1 text-xs text-zinc-500">
-            <Calendar size={10} />
+          <span className="text-xs text-dn-text-muted flex items-center gap-1">
+            <span className="material-symbols-outlined text-xs">calendar_today</span>
             Next: {nextDate}
-          </div>
+          </span>
         </div>
         {sub.template && (
-          <p className="text-xs text-zinc-600 mt-0.5">Template: {sub.template.name}</p>
+          <p className="text-xs text-dn-text-muted mt-0.5">Template: {sub.template.name}</p>
         )}
       </div>
       <button
         onClick={() => del.mutate(sub.id)}
         disabled={del.isPending}
-        className="shrink-0 p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950 transition-colors disabled:opacity-50"
+        className="shrink-0 p-2 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors disabled:opacity-50"
       >
-        <Trash2 size={14} />
+        <span className="material-symbols-outlined text-lg">delete</span>
       </button>
     </Card>
   );
@@ -78,7 +71,7 @@ export function SubscriptionsPage() {
         subtitle="Recurring agreements"
         action={
           <Button size="sm" onClick={() => setShowInfo(true)}>
-            <Plus size={14} />
+            <span className="material-symbols-outlined text-sm">add</span>
             New
           </Button>
         }
@@ -86,11 +79,11 @@ export function SubscriptionsPage() {
 
       {/* Not-implemented banner */}
       {(error || isNotImplemented) && (
-        <div className="mx-4 flex items-start gap-3 bg-amber-950/50 border border-amber-800 rounded-2xl px-4 py-3">
-          <AlertCircle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+        <div className="mx-5 flex items-start gap-3 bg-dn-tertiary/10 border border-dn-tertiary/20 rounded-card px-4 py-3">
+          <span className="material-symbols-outlined text-dn-tertiary shrink-0 mt-0.5">info</span>
           <div>
-            <p className="text-sm font-medium text-amber-300">Feature coming soon</p>
-            <p className="text-xs text-amber-400/80 mt-0.5">
+            <p className="text-sm font-medium text-dn-tertiary">Feature coming soon</p>
+            <p className="text-xs text-dn-text-muted mt-0.5">
               The subscriptions API is not yet implemented in the backend.
             </p>
           </div>
@@ -98,14 +91,14 @@ export function SubscriptionsPage() {
       )}
 
       {/* How it works */}
-      <div className="px-4">
-        <Card className="bg-zinc-900/50">
+      <div className="px-5">
+        <Card>
           <div className="flex items-start gap-3">
-            <RefreshCcw size={18} className="text-indigo-400 shrink-0 mt-0.5" />
+            <span className="material-symbols-outlined text-dn-primary shrink-0 mt-0.5">sync</span>
             <div>
-              <p className="text-sm font-semibold text-zinc-200">How Subscriptions Work</p>
-              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                Subscriptions are recurring agreements linked to a <span className="text-zinc-300">Template</span>.
+              <p className="text-sm font-semibold text-dn-text-main">How Subscriptions Work</p>
+              <p className="text-xs text-dn-text-muted mt-1 leading-relaxed">
+                Subscriptions are recurring agreements linked to a <span className="text-dn-text-main">Template</span>.
                 When a billing cycle is reached, an Event is automatically generated using that Template.
                 Use them for Netflix, rent, gym, salary, etc.
               </p>
@@ -117,18 +110,18 @@ export function SubscriptionsPage() {
       {/* List */}
       {allSubs.length === 0 && !error ? (
         <EmptyState
-          icon={<RefreshCcw size={22} />}
+          icon={<span className="material-symbols-outlined text-2xl">sync</span>}
           title="No subscriptions yet"
           description="Set up recurring agreements to automate your financial tracking"
           action={
             <Button size="sm" onClick={() => setShowInfo(true)}>
-              <Plus size={14} />
+              <span className="material-symbols-outlined text-sm">add</span>
               Add Subscription
             </Button>
           }
         />
       ) : (
-        <div className="px-4 space-y-2">
+        <div className="px-5 space-y-3">
           {allSubs.map((sub) => (
             <SubscriptionCard key={sub.id} sub={sub} />
           ))}
@@ -146,16 +139,16 @@ export function SubscriptionsPage() {
           </Button>
         }
       >
-        <div className="space-y-3 text-sm text-zinc-400">
+        <div className="space-y-3 text-sm text-dn-text-muted">
           <div className="flex items-start gap-2">
-            <AlertCircle size={15} className="text-amber-400 shrink-0 mt-0.5" />
+            <span className="material-symbols-outlined text-dn-tertiary shrink-0 mt-0.5">info</span>
             <p>
               The subscriptions feature requires the backend to be fully implemented.
               Once available, you'll be able to select a Template, set a recurrence
               (Daily, Weekly, Monthly, Yearly), and define a next execution date.
             </p>
           </div>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-dn-text-muted">
             Templates define the default origin/destination nodes, category, tags, and
             optional amount modifiers (e.g. auto-add 10% tip).
           </p>

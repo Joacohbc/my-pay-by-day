@@ -12,7 +12,7 @@ const sizes = {
 export function Spinner({ size = 'md', className = '' }: SpinnerProps) {
   return (
     <svg
-      className={['animate-spin text-indigo-500', sizes[size], className]
+      className={['animate-spin text-dn-primary', sizes[size], className]
         .filter(Boolean)
         .join(' ')}
       viewBox="0 0 24 24"

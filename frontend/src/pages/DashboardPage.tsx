@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { TrendingUp, TrendingDown, Wallet, ChevronRight, Plus } from 'lucide-react';
 import { useEvents } from '@/hooks/useEvents';
 import { useNodes } from '@/hooks/useNodes';
 import { EventCard } from '@/components/events/EventCard';
@@ -8,30 +7,6 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency, eventNetAmount } from '@/lib/format';
 import type { FinanceEvent } from '@/models';
-
-function SummaryCard({
-  label,
-  amount,
-  icon: Icon,
-  colorClass,
-}: {
-  label: string;
-  amount: number;
-  icon: React.ElementType;
-  colorClass: string;
-}) {
-  return (
-    <Card className="flex-1">
-      <div className={`w-8 h-8 flex items-center justify-center rounded-lg ${colorClass} mb-3`}>
-        <Icon size={16} />
-      </div>
-      <p className="text-xs text-zinc-500 mb-0.5">{label}</p>
-      <p className={`text-base font-bold tabular-nums ${colorClass.includes('emerald') ? 'text-emerald-400' : colorClass.includes('rose') ? 'text-rose-400' : 'text-zinc-100'}`}>
-        {formatCurrency(amount)}
-      </p>
-    </Card>
-  );
-}
 
 export function DashboardPage() {
   const { data: events, isLoading: eventsLoading } = useEvents();
@@ -42,7 +17,6 @@ export function DashboardPage() {
   const allEvents = events ?? [];
   const allNodes = nodes ?? [];
 
-  // Current month
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -59,6 +33,8 @@ export function DashboardPage() {
     .filter((e) => e.type === 'OUTBOUND')
     .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0);
 
+  const netBalance = totalInbound - totalOutbound;
+
   const ownNodes = allNodes.filter((n) => n.type === 'OWN' && !n.archived);
   const recentEvents: FinanceEvent[] = [...allEvents]
     .sort((a, b) => {
@@ -68,113 +44,109 @@ export function DashboardPage() {
     })
     .slice(0, 8);
 
-  const today = now.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
+  const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening';
+  const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="space-y-6 px-4 pt-6">
+    <div className="space-y-6 px-5 pt-6">
       {/* Greeting */}
       <div>
-        <p className="text-xs text-zinc-500 mb-0.5">{today}</p>
-        <h1 className="text-2xl font-bold text-zinc-100">My Finances</h1>
+        <p className="text-sm text-dn-text-muted">{greeting}</p>
+        <h1 className="text-2xl font-semibold text-dn-text-main tracking-tight">My Finances</h1>
       </div>
 
-      {/* Month Summary */}
-      <div className="flex gap-3">
-        <SummaryCard
-          label="Income"
-          amount={totalInbound}
-          icon={TrendingUp}
-          colorClass="bg-emerald-950 text-emerald-400"
-        />
-        <SummaryCard
-          label="Expenses"
-          amount={totalOutbound}
-          icon={TrendingDown}
-          colorClass="bg-rose-950 text-rose-400"
-        />
-      </div>
-
-      {/* Net balance this month */}
-      <Card>
-        <p className="text-xs text-zinc-500 mb-1">Net this month</p>
-        <p
-          className={`text-3xl font-bold tabular-nums ${
-            totalInbound - totalOutbound >= 0 ? 'text-emerald-400' : 'text-rose-400'
-          }`}
-        >
-          {formatCurrency(totalInbound - totalOutbound)}
+      {/* Balance Card */}
+      <Card className="relative overflow-hidden">
+        <p className="text-xs text-dn-text-muted uppercase tracking-wider mb-1">
+          Net Balance · {monthLabel}
         </p>
-        <p className="text-xs text-zinc-500 mt-1">
-          {monthEvents.length} event{monthEvents.length !== 1 ? 's' : ''} recorded
+        <p className={`text-4xl font-mono font-bold tracking-tight ${netBalance >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
+          {formatCurrency(netBalance)}
         </p>
+        <div className="flex items-center gap-2 mt-2">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-pill text-xs font-medium ${netBalance >= 0 ? 'bg-dn-success/10 text-dn-success' : 'bg-dn-error/10 text-dn-error'}`}>
+            <span className="material-symbols-outlined text-sm">{netBalance >= 0 ? 'trending_up' : 'trending_down'}</span>
+            {monthEvents.length} event{monthEvents.length !== 1 ? 's' : ''}
+          </span>
+        </div>
       </Card>
+
+      {/* Income / Expense Summary */}
+      <div className="grid grid-cols-2 gap-3">
+        <Card>
+          <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-success/10 text-dn-success mb-3">
+            <span className="material-symbols-outlined">trending_up</span>
+          </div>
+          <p className="text-xs text-dn-text-muted mb-0.5">Income</p>
+          <p className="text-lg font-mono font-semibold text-dn-success">{formatCurrency(totalInbound)}</p>
+        </Card>
+        <Card>
+          <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-error/10 text-dn-error mb-3">
+            <span className="material-symbols-outlined">trending_down</span>
+          </div>
+          <p className="text-xs text-dn-text-muted mb-0.5">Expenses</p>
+          <p className="text-lg font-mono font-semibold text-dn-text-main">{formatCurrency(totalOutbound)}</p>
+        </Card>
+      </div>
 
       {/* Own Accounts */}
       {ownNodes.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-zinc-300">Accounts</h2>
-            <Link
-              to="/nodes"
-              className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5"
-            >
-              All <ChevronRight size={12} />
+            <h2 className="text-sm font-medium text-dn-text-muted uppercase tracking-wider">Accounts</h2>
+            <Link to="/nodes" className="text-xs text-dn-primary flex items-center gap-0.5">
+              View all
+              <span className="material-symbols-outlined text-sm">chevron_right</span>
             </Link>
           </div>
-          <div className="space-y-2">
+          <Card className="divide-y divide-white/5">
             {ownNodes.slice(0, 3).map((node) => (
-              <Card key={node.id} className="flex items-center gap-3 py-3">
-                <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-indigo-950 text-indigo-400 shrink-0">
-                  <Wallet size={16} />
+              <div key={node.id} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-primary/10 text-dn-primary shrink-0">
+                  <span className="material-symbols-outlined">account_balance_wallet</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-zinc-100 truncate">
-                    {node.name}
-                  </p>
-                  <p className="text-xs text-zinc-500">Own account</p>
+                  <p className="text-sm font-medium text-dn-text-main truncate">{node.name}</p>
+                  <p className="text-xs text-dn-text-muted">Own account</p>
                 </div>
-              </Card>
+              </div>
             ))}
-          </div>
+          </Card>
         </section>
       )}
 
-      {/* Recent Events */}
+      {/* Recent Activity */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-zinc-300">Recent Events</h2>
-          <Link
-            to="/events"
-            className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5"
-          >
-            All <ChevronRight size={12} />
+          <h2 className="text-sm font-medium text-dn-text-muted uppercase tracking-wider">Recent Activity</h2>
+          <Link to="/events" className="text-xs text-dn-primary flex items-center gap-0.5">
+            View all
+            <span className="material-symbols-outlined text-sm">chevron_right</span>
           </Link>
         </div>
 
         {recentEvents.length === 0 ? (
           <Card>
-            <p className="text-sm text-zinc-500 text-center py-4">
+            <p className="text-sm text-dn-text-muted text-center py-4">
               No events yet. Create your first one!
             </p>
           </Card>
         ) : (
-          <div className="space-y-2">
+          <Card className="divide-y divide-white/5">
             {recentEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
+              <div key={event.id} className="py-3 first:pt-0 last:pb-0">
+                <EventCard event={event} />
+              </div>
             ))}
-          </div>
+          </Card>
         )}
       </section>
 
       {/* FAB */}
-      <div className="fixed bottom-20 right-4 z-30">
+      <div className="fixed bottom-24 right-5 z-30">
         <Link to="/events/new">
-          <Button size="lg" className="rounded-2xl shadow-lg shadow-indigo-900/40">
-            <Plus size={20} />
+          <Button size="lg" className="rounded-pill shadow-lg shadow-dn-primary/20 gap-2">
+            <span className="material-symbols-outlined">add</span>
             New Event
           </Button>
         </Link>
