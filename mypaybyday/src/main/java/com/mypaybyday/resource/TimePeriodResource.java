@@ -1,6 +1,8 @@
 package com.mypaybyday.resource;
 
+import com.mypaybyday.dto.TimePeriodBalanceDto;
 import com.mypaybyday.entity.TimePeriod;
+import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TimePeriodService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -28,7 +30,7 @@ public class TimePeriodResource {
     @APIResponse(responseCode = "200", description = "List of time periods",
             content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriod.class)))
     public Response getAll() {
-        throw new UnsupportedOperationException("Not implemented yet");
+        return Response.ok(timePeriodService.listAll()).build();
     }
 
     @GET
@@ -40,8 +42,25 @@ public class TimePeriodResource {
             @APIResponse(responseCode = "404", description = "Time period not found")
     })
     public Response getById(
-            @Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id) {
-        throw new UnsupportedOperationException("Not implemented yet");
+            @Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id)
+            throws BusinessException {
+        return Response.ok(timePeriodService.findById(id)).build();
+    }
+
+    @GET
+    @Path("/{id}/balance")
+    @Operation(summary = "Get balance summary for a time period",
+            description = "Returns the time period together with the total income and outbound amounts, "
+                    + "plus the list of all Events dynamically associated to the period by their transaction date.")
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "Balance summary",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriodBalanceDto.class))),
+            @APIResponse(responseCode = "404", description = "Time period not found")
+    })
+    public Response getBalance(
+            @Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id)
+            throws BusinessException {
+        return Response.ok(timePeriodService.getBalance(id)).build();
     }
 
     @POST
@@ -52,13 +71,14 @@ public class TimePeriodResource {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriod.class))),
             @APIResponse(responseCode = "400", description = "Validation error")
     })
-    public Response create(TimePeriod timePeriod) {
-        throw new UnsupportedOperationException("Not implemented yet");
+    public Response create(TimePeriod timePeriod) throws BusinessException {
+        return Response.status(Response.Status.CREATED).entity(timePeriodService.create(timePeriod)).build();
     }
 
-    @PUT
+    @PATCH
     @Path("/{id}")
-    @Operation(summary = "Update a time period")
+    @Operation(summary = "Partially update a time period",
+            description = "Only the fields present (non-null) in the request body are applied. Omitted fields are left unchanged.")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Time period updated",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriod.class))),
@@ -67,8 +87,8 @@ public class TimePeriodResource {
     })
     public Response update(
             @Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id,
-            TimePeriod timePeriodDetails) {
-        throw new UnsupportedOperationException("Not implemented yet");
+            TimePeriod timePeriodDetails) throws BusinessException {
+        return Response.ok(timePeriodService.patch(id, timePeriodDetails)).build();
     }
 
     @DELETE
@@ -79,7 +99,10 @@ public class TimePeriodResource {
             @APIResponse(responseCode = "404", description = "Time period not found")
     })
     public Response delete(
-            @Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id) {
-        throw new UnsupportedOperationException("Not implemented yet");
+            @Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id)
+            throws BusinessException {
+        timePeriodService.delete(id);
+        return Response.noContent().build();
     }
 }
+
