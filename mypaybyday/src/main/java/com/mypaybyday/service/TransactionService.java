@@ -1,5 +1,6 @@
 package com.mypaybyday.service;
 
+import com.mypaybyday.dto.FinanceTransactionDto;
 import com.mypaybyday.entity.FinanceLineItem;
 import com.mypaybyday.entity.FinanceTransaction;
 import com.mypaybyday.exception.BusinessException;
@@ -23,20 +24,20 @@ public class TransactionService {
     @Inject
     TransactionValidator transactionValidator;
 
-    public List<FinanceTransaction> listAll() {
-        return transactionRepository.listAll();
+    public List<FinanceTransactionDto> listAll() {
+        return transactionRepository.listAll().stream().map(FinanceTransactionDto::from).toList();
     }
 
-    public FinanceTransaction findById(Long id) throws BusinessException {
+    public FinanceTransactionDto findById(Long id) throws BusinessException {
         FinanceTransaction transaction = transactionRepository.findById(id);
         if (transaction == null) {
             throw new BusinessException("Transaction not found");
         }
-        return transaction;
+        return FinanceTransactionDto.from(transaction);
     }
 
     @Transactional
-    public FinanceTransaction create(FinanceTransaction transaction) throws BusinessException {
+    FinanceTransaction create(FinanceTransaction transaction) throws BusinessException {
         transactionValidator.validateZeroSum(transaction);
         transactionValidator.validateNodesExist(transaction);
 
@@ -53,7 +54,7 @@ public class TransactionService {
     }
 
     @Transactional
-    public FinanceTransaction update(Long id, FinanceTransaction transactionDetails) throws BusinessException {
+    FinanceTransaction update(Long id, FinanceTransaction transactionDetails) throws BusinessException {
         transactionValidator.validateZeroSum(transactionDetails);
         transactionValidator.validateNodesExist(transactionDetails);
 

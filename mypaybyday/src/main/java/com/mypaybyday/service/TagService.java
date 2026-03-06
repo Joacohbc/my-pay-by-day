@@ -1,5 +1,6 @@
 package com.mypaybyday.service;
 
+import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.entity.Tag;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.repository.TagRepository;
@@ -19,11 +20,19 @@ public class TagService {
     // Queries
     // -------------------------------------------------------------------------
 
-    public List<Tag> listAll() {
-        return tagRepository.listAll();
+    public List<TagDto> listAll() {
+        return tagRepository.listAll().stream().map(TagDto::from).toList();
     }
 
-    public Tag findById(Long id) throws BusinessException {
+    public TagDto findById(Long id) throws BusinessException {
+        return TagDto.from(findTagEntity(id));
+    }
+
+    /**
+     * Internal method used by other services that need a managed {@link Tag} entity
+     * (e.g. {@link EventService} when resolving tag references).
+     */
+    Tag findTagEntity(Long id) throws BusinessException {
         Tag tag = tagRepository.findById(id);
         if (tag == null) {
             throw new BusinessException("Tag not found: " + id);
@@ -36,34 +45,31 @@ public class TagService {
     // -------------------------------------------------------------------------
 
     @Transactional
-    public Tag create(Tag tag) throws BusinessException {
-        if (tag.name == null || tag.name.isBlank()) {
+    public TagDto create(TagDto dto) throws BusinessException {
+        if (dto.name() == null || dto.name().isBlank()) {
             throw new BusinessException("Tag name must not be blank");
         }
+        Tag tag = new Tag();
+        tag.name = dto.name();
+        tag.description = dto.description();
         tagRepository.persist(tag);
-        return tag;
+        return TagDto.from(tag);
     }
 
     @Transactional
-    public Tag update(Long id, Tag tagDetails) throws BusinessException {
-        Tag tag = tagRepository.findById(id);
-        if (tag == null) {
-            throw new BusinessException("Tag not found: " + id);
-        }
-        if (tagDetails.name == null || tagDetails.name.isBlank()) {
+    public TagDto update(Long id, TagDto dto) throws BusinessException {
+        Tag tag = findTagEntity(id);
+        if (dto.name() == null || dto.name().isBlank()) {
             throw new BusinessException("Tag name must not be blank");
         }
-        tag.name = tagDetails.name;
-        tag.description = tagDetails.description;
-        return tag;
+        tag.name = dto.name();
+        tag.description = dto.description();
+        return TagDto.from(tag);
     }
 
     @Transactional
     public void delete(Long id) throws BusinessException {
-        Tag tag = tagRepository.findById(id);
-        if (tag == null) {
-            throw new BusinessException("Tag not found: " + id);
-        }
+        Tag tag = findTagEntity(id);
         tagRepository.delete(tag);
     }
 }

@@ -1,7 +1,7 @@
 package com.mypaybyday.resource;
 
 import com.mypaybyday.dto.TimePeriodBalanceDto;
-import com.mypaybyday.entity.TimePeriod;
+import com.mypaybyday.dto.TimePeriodDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TimePeriodService;
 import jakarta.inject.Inject;
@@ -28,7 +28,7 @@ public class TimePeriodResource {
     @GET
     @Operation(summary = "List all time periods")
     @APIResponse(responseCode = "200", description = "List of time periods",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriod.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriodDto.class)))
     public Response getAll() {
         return Response.ok(timePeriodService.listAll()).build();
     }
@@ -38,7 +38,7 @@ public class TimePeriodResource {
     @Operation(summary = "Get time period by ID")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Time period found",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriod.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriodDto.class))),
             @APIResponse(responseCode = "404", description = "Time period not found")
     })
     public Response getById(
@@ -68,10 +68,10 @@ public class TimePeriodResource {
             description = "Defines a budget window with a start date, end date, optional budget limit, and optional savings target percentage.")
     @APIResponses({
             @APIResponse(responseCode = "201", description = "Time period created",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriod.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriodDto.class))),
             @APIResponse(responseCode = "400", description = "Validation error")
     })
-    public Response create(TimePeriod timePeriod) throws BusinessException {
+    public Response create(TimePeriodDto timePeriod) throws BusinessException {
         return Response.status(Response.Status.CREATED).entity(timePeriodService.create(timePeriod)).build();
     }
 
@@ -81,13 +81,13 @@ public class TimePeriodResource {
             description = "Only the fields present (non-null) in the request body are applied. Omitted fields are left unchanged.")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Time period updated",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriod.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriodDto.class))),
             @APIResponse(responseCode = "400", description = "Validation error"),
             @APIResponse(responseCode = "404", description = "Time period not found")
     })
     public Response update(
             @Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id,
-            TimePeriod timePeriodDetails) throws BusinessException {
+            TimePeriodDto timePeriodDetails) throws BusinessException {
         return Response.ok(timePeriodService.patch(id, timePeriodDetails)).build();
     }
 

@@ -1,6 +1,6 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.entity.FinanceTransaction;
+import com.mypaybyday.dto.FinanceTransactionDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TransactionService;
 import jakarta.inject.Inject;
@@ -27,7 +27,7 @@ public class TransactionResource {
     @GET
     @Operation(summary = "List all transactions", description = "Returns every Transaction with its LineItems. Read-only audit endpoint.")
     @APIResponse(responseCode = "200", description = "List of transactions",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceTransaction.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceTransactionDto.class)))
     public Response getAll() {
         return Response.ok(transactionService.listAll()).build();
     }
@@ -37,7 +37,7 @@ public class TransactionResource {
     @Operation(summary = "Get transaction by ID", description = "Read-only audit endpoint.")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Transaction found",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceTransaction.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceTransactionDto.class))),
             @APIResponse(responseCode = "404", description = "Transaction not found")
     })
     public Response getById(

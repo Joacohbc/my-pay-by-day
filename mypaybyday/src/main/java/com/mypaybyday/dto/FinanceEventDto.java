@@ -19,10 +19,12 @@ import java.util.List;
  */
 public record FinanceEventDto(
         Long id,
+        Long transactionId,
         String name,
         String description,
         EventType type,
         LocalDateTime transactionDate,
+        List<FinanceLineItemDto> lineItems,
         CategoryDto category,
         List<TagDto> tags
 ) {
@@ -30,10 +32,14 @@ public record FinanceEventDto(
     public static FinanceEventDto from(FinanceEvent event) {
         return new FinanceEventDto(
                 event.id,
+                event.transaction != null ? event.transaction.id : null,
                 event.name,
                 event.description,
                 event.type,
                 event.transaction != null ? event.transaction.transactionDate : null,
+                event.transaction != null && event.transaction.lineItems != null
+                        ? event.transaction.lineItems.stream().map(FinanceLineItemDto::from).toList()
+                        : List.of(),
                 event.category != null ? CategoryDto.from(event.category) : null,
                 event.tags != null
                         ? event.tags.stream().map(TagDto::from).toList()

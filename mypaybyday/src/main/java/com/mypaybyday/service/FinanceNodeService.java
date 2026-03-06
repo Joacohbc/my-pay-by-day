@@ -1,5 +1,6 @@
 package com.mypaybyday.service;
 
+import com.mypaybyday.dto.FinanceNodeDto;
 import com.mypaybyday.entity.FinanceNode;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.repository.FinanceNodeRepository;
@@ -20,33 +21,49 @@ public class FinanceNodeService {
     @Inject
     LineItemRepository lineItemRepository;
 
-    public List<FinanceNode> listAll() {
-        return financeNodeRepository.list("archived", false);
+    public List<FinanceNodeDto> listAll() {
+        return financeNodeRepository.list("archived", false)
+                .stream().map(FinanceNodeDto::from).toList();
     }
 
-    public FinanceNode findById(Long id) {
+    public FinanceNodeDto findById(Long id) {
         FinanceNode node = financeNodeRepository.findById(id);
         if (node == null || node.archived) {
             return null;
         }
+        return FinanceNodeDto.from(node);
+    }
+
+    /**
+     * Internal method used by other services that need a managed {@link FinanceNode} entity
+     * (e.g. {@link TransactionService} when resolving node references on line items).
+     */
+    FinanceNode findNodeEntity(Long id) throws BusinessException {
+        FinanceNode node = financeNodeRepository.findById(id);
+        if (node == null || node.archived) {
+            throw new BusinessException("FinanceNode not found or is archived: " + id);
+        }
         return node;
     }
 
     @Transactional
-    public FinanceNode create(FinanceNode node) {
+    public FinanceNodeDto create(FinanceNodeDto dto) {
+        FinanceNode node = new FinanceNode();
+        node.name = dto.name();
+        node.type = dto.type();
         financeNodeRepository.persist(node);
-        return node;
+        return FinanceNodeDto.from(node);
     }
 
     @Transactional
-    public FinanceNode update(Long id, FinanceNode nodeDetails) throws BusinessException {
+    public FinanceNodeDto update(Long id, FinanceNodeDto dto) throws BusinessException {
         FinanceNode node = financeNodeRepository.findById(id);
         if (node == null || node.archived) {
             throw new BusinessException("FinanceNode not found or is archived");
         }
-        node.name = nodeDetails.name;
-        node.type = nodeDetails.type;
-        return node;
+        node.name = dto.name();
+        node.type = dto.type();
+        return FinanceNodeDto.from(node);
     }
 
     @Transactional

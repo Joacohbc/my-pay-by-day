@@ -1,5 +1,6 @@
 package com.mypaybyday.resource;
 
+import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.entity.FinanceEvent;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.EventService;
@@ -27,7 +28,7 @@ public class EventResource {
     @GET
     @Operation(summary = "List all events", description = "Returns every FinanceEvent stored in the system, including its nested Transaction and LineItems.")
     @APIResponse(responseCode = "200", description = "List of events",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEvent.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class)))
     public Response getAll() {
         return Response.ok(eventService.listAll()).build();
     }
@@ -37,7 +38,7 @@ public class EventResource {
     @Operation(summary = "Get event by ID")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Event found",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEvent.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
             @APIResponse(responseCode = "404", description = "Event not found")
     })
     public Response getById(
@@ -53,7 +54,7 @@ public class EventResource {
                     "The Zero-Sum Rule is validated before persisting.")
     @APIResponses({
             @APIResponse(responseCode = "201", description = "Event created",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEvent.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
             @APIResponse(responseCode = "400", description = "Validation error (e.g. zero-sum violated)")
     })
     public Response create(FinanceEvent event) throws BusinessException {
@@ -67,7 +68,7 @@ public class EventResource {
                     "The Zero-Sum Rule is re-validated whenever lineItems change.")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Event updated",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEvent.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
             @APIResponse(responseCode = "400", description = "Validation error"),
             @APIResponse(responseCode = "404", description = "Event not found")
     })

@@ -1,6 +1,8 @@
 package com.mypaybyday.service;
 
+import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.entity.FinanceEvent;
+import com.mypaybyday.entity.FinanceLineItem;
 import com.mypaybyday.entity.Tag;
 import com.mypaybyday.entity.FinanceTransaction;
 import com.mypaybyday.exception.BusinessException;
@@ -40,16 +42,16 @@ public class EventService {
     // Queries
     // -------------------------------------------------------------------------
 
-    public List<FinanceEvent> listAll() {
-        return eventRepository.listAll();
+    public List<FinanceEventDto> listAll() {
+        return eventRepository.listAll().stream().map(FinanceEventDto::from).toList();
     }
 
-    public FinanceEvent findById(Long id) throws BusinessException {
+    public FinanceEventDto findById(Long id) throws BusinessException {
         FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
             throw new BusinessException("Event not found");
         }
-        return event;
+        return FinanceEventDto.from(event);
     }
 
     /**
@@ -57,16 +59,8 @@ public class EventService {
      * This is the mechanism used for Temporal Independence: budget period membership is
      * determined dynamically at query time, never via a hard foreign-key.
      */
-    public List<FinanceEvent> findByDateRange(LocalDateTime from, LocalDateTime to) throws BusinessException {
-        if (from == null || to == null) {
-            throw new BusinessException("Date range boundaries cannot be null");
-        }
-        if (from.isAfter(to)) {
-            throw new BusinessException("'from' date must not be after 'to' date");
-        }
-        return eventRepository.list(
-                "transaction.transactionDate >= ?1 and transaction.transactionDate <= ?2",
-                from, to);
+    public List<FinanceEventDto> findByDateRange(LocalDateTime from, LocalDateTime to) throws BusinessException {
+        return findEventEntitiesByDateRange(from, to).stream().map(FinanceEventDto::from).toList();
     }
 
     // -------------------------------------------------------------------------
@@ -87,7 +81,7 @@ public class EventService {
      * @return the persisted Event with generated IDs
      */
     @Transactional
-    public FinanceEvent create(FinanceEvent event) throws BusinessException {
+    public FinanceEventDto create(FinanceEvent event) throws BusinessException {
         if (event.transaction == null) {
             throw new BusinessException("Event must include a Transaction");
         }
@@ -97,7 +91,7 @@ public class EventService {
 
         // Resolve Category reference (only the ID is trusted from clients)
         if (event.category != null && event.category.id != null) {
-            event.category = categoryService.findById(event.category.id);
+            event.category = categoryService.findEntityById(event.category.id);
         }
 
         // Resolve Tag references
@@ -105,7 +99,7 @@ public class EventService {
 
         event.transaction = tx;
         eventRepository.persist(event);
-        return event;
+        return FinanceEventDto.from(event);
     }
 
     /**
@@ -119,7 +113,7 @@ public class EventService {
      * @return the updated, managed Event
      */
     @Transactional
-    public FinanceEvent update(Long id, FinanceEvent eventDetails) throws BusinessException {
+    public FinanceEventDto update(Long id, FinanceEvent eventDetails) throws BusinessException {
         FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
             throw new BusinessException("Event not found");
@@ -140,7 +134,7 @@ public class EventService {
             if (eventDetails.category.id == null) {
                 throw new BusinessException("Category ID must be provided for update");
             }
-            event.category = categoryService.findById(eventDetails.category.id);
+            event.category = categoryService.findEntityById(eventDetails.category.id);
         } else {
             event.category = null;
         }
@@ -154,7 +148,7 @@ public class EventService {
             transactionService.update(event.transaction.id, eventDetails.transaction);
         }
 
-        return event;
+        return FinanceEventDto.from(event);
     }
 
     /**
@@ -176,6 +170,22 @@ public class EventService {
     // -------------------------------------------------------------------------
 
     /**
+     * Internal method used by other services that need managed {@link FinanceEvent} entities
+     * with their full graph loaded (e.g. {@link TimePeriodService} for balance calculations).
+     */
+    private List<FinanceEvent> findEventEntitiesByDateRange(LocalDateTime from, LocalDateTime to) throws BusinessException {
+        if (from == null || to == null) {
+            throw new BusinessException("Date range boundaries cannot be null");
+        }
+        if (from.isAfter(to)) {
+            throw new BusinessException("'from' date must not be after 'to' date");
+        }
+        return eventRepository.list(
+                "transaction.transactionDate >= ?1 and transaction.transactionDate <= ?2",
+                from, to);
+    }
+
+    /**
      * Resolves a list of Tag stubs (containing only IDs) into managed Tag entities.
      * Returns an empty list if the input is null.
      */
@@ -188,7 +198,7 @@ public class EventService {
             if (stub.id == null) {
                 throw new BusinessException("All tags must include a valid ID");
             }
-            resolved.add(tagService.findById(stub.id));
+            resolved.add(tagService.findTagEntity(stub.id));
         }
         return resolved;
     }

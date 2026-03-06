@@ -1,6 +1,6 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.entity.FinanceNode;
+import com.mypaybyday.dto.FinanceNodeDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.FinanceNodeService;
 import jakarta.inject.Inject;
@@ -29,7 +29,7 @@ public class FinanceNodeResource {
     @GET
     @Operation(summary = "List all active finance nodes", description = "Returns only non-archived nodes.")
     @APIResponse(responseCode = "200", description = "List of active nodes",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceNode.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceNodeDto.class)))
     public Response getAll() {
         return Response.ok(financeNodeService.listAll()).build();
     }
@@ -39,12 +39,12 @@ public class FinanceNodeResource {
     @Operation(summary = "Get finance node by ID")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Node found",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceNode.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceNodeDto.class))),
             @APIResponse(responseCode = "404", description = "Node not found or archived")
     })
     public Response getById(
             @Parameter(description = "ID of the finance node", required = true) @PathParam("id") Long id) {
-        FinanceNode node = financeNodeService.findById(id);
+        FinanceNodeDto node = financeNodeService.findById(id);
         if (node == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -55,10 +55,10 @@ public class FinanceNodeResource {
     @Operation(summary = "Create a new finance node")
     @APIResponses({
             @APIResponse(responseCode = "201", description = "Node created",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceNode.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceNodeDto.class))),
             @APIResponse(responseCode = "400", description = "Validation error")
     })
-    public Response create(FinanceNode node) {
+    public Response create(FinanceNodeDto node) {
         return Response.status(Response.Status.CREATED).entity(financeNodeService.create(node)).build();
     }
 
@@ -67,13 +67,13 @@ public class FinanceNodeResource {
     @Operation(summary = "Update a finance node")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Node updated",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceNode.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceNodeDto.class))),
             @APIResponse(responseCode = "400", description = "Validation error"),
             @APIResponse(responseCode = "404", description = "Node not found or archived")
     })
     public Response update(
             @Parameter(description = "ID of the finance node", required = true) @PathParam("id") Long id,
-            FinanceNode nodeDetails) throws BusinessException {
+            FinanceNodeDto nodeDetails) throws BusinessException {
         return Response.ok(financeNodeService.update(id, nodeDetails)).build();
     }
 

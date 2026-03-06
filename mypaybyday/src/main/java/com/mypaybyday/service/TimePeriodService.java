@@ -2,6 +2,7 @@ package com.mypaybyday.service;
 
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.TimePeriodBalanceDto;
+import com.mypaybyday.dto.TimePeriodDto;
 import com.mypaybyday.entity.FinanceEvent;
 import com.mypaybyday.entity.TimePeriod;
 import com.mypaybyday.enums.EventType;
@@ -25,20 +26,19 @@ public class TimePeriodService {
     @Inject
     EventService eventService;
 
+    @Inject
+    CategoryService categoryService;
+
     // -------------------------------------------------------------------------
     // Queries
     // -------------------------------------------------------------------------
 
-    public List<TimePeriod> listAll() {
-        return timePeriodRepository.listAll();
+    public List<TimePeriodDto> listAll() {
+        return timePeriodRepository.listAll().stream().map(TimePeriodDto::from).toList();
     }
 
-    public TimePeriod findById(Long id) throws BusinessException {
-        TimePeriod timePeriod = timePeriodRepository.findById(id);
-        if (timePeriod == null) {
-            throw new BusinessException("TimePeriod not found: " + id);
-        }
-        return timePeriod;
+    public TimePeriodDto findById(Long id) throws BusinessException {
+        return TimePeriodDto.from(findTimePeriodEntity(id));
     }
 
     /**
@@ -56,37 +56,36 @@ public class TimePeriodService {
      */
     @Transactional
     public TimePeriodBalanceDto getBalance(Long id) throws BusinessException {
-        TimePeriod timePeriod = findById(id);
+        TimePeriod timePeriod = findTimePeriodEntity(id);
 
         LocalDateTime from = timePeriod.startDate.atStartOfDay();
         LocalDateTime to   = timePeriod.endDate.atTime(LocalTime.MAX);
 
-        List<FinanceEvent> events = eventService.findByDateRange(from, to);
+        List<FinanceEventDto> events = eventService.findByDateRange(from, to);
 
         BigDecimal income   = BigDecimal.ZERO;
         BigDecimal outbound = BigDecimal.ZERO;
 
-        for (FinanceEvent event : events) {
-            if (event.transaction == null || event.transaction.lineItems == null) {
+        for (FinanceEventDto event : events) {
+            if (event.transactionId() == null || event.lineItems() == null) {
                 continue;
             }
 
             // The "amount" of an event = sum of its positive line items.
             // By the Zero-Sum Rule, this equals the sum of its absolute negative line items.
-            BigDecimal eventAmount = event.transaction.lineItems.stream()
-                    .map(li -> li.amount)
+            BigDecimal eventAmount = event.lineItems().stream()
+                    .map(li -> li.amount())
                     .filter(a -> a.compareTo(BigDecimal.ZERO) > 0)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            if (event.type == EventType.INBOUND) {
+            if (event.type() == EventType.INBOUND) {
                 income = income.add(eventAmount);
-            } else if (event.type == EventType.OUTBOUND) {
+            } else if (event.type() == EventType.OUTBOUND) {
                 outbound = outbound.add(eventAmount);
             }
         }
 
-        List<FinanceEventDto> eventDtos = events.stream().map(FinanceEventDto::from).toList();
-        return new TimePeriodBalanceDto(timePeriod, income, outbound, eventDtos);
+        return new TimePeriodBalanceDto(timePeriod, income, outbound, events);
     }
 
     // -------------------------------------------------------------------------
@@ -94,57 +93,69 @@ public class TimePeriodService {
     // -------------------------------------------------------------------------
 
     @Transactional
-    public TimePeriod create(TimePeriod timePeriod) throws BusinessException {
+    public TimePeriodDto create(TimePeriodDto dto) throws BusinessException {
+        TimePeriod timePeriod = dto.to();
+        if (dto.category() != null && dto.category().id() != null) {
+            timePeriod.category = categoryService.findEntityById(dto.category().id());
+        }
         validatePeriod(timePeriod);
         timePeriodRepository.persist(timePeriod);
-        return timePeriod;
+        return TimePeriodDto.from(timePeriod);
     }
 
     @Transactional
-    public TimePeriod patch(Long id, TimePeriod timePeriodDetails) throws BusinessException {
-        TimePeriod timePeriod = findById(id);
+    public TimePeriodDto patch(Long id, TimePeriodDto dto) throws BusinessException {
+        TimePeriod timePeriod = findTimePeriodEntity(id);
 
-        if (timePeriodDetails.name != null) {
-            if (timePeriodDetails.name.isBlank()) {
+        if (dto.name() != null) {
+            if (dto.name().isBlank()) {
                 throw new BusinessException("TimePeriod name must not be blank");
             }
-            timePeriod.name = timePeriodDetails.name;
+            timePeriod.name = dto.name();
         }
-        if (timePeriodDetails.startDate != null) {
-            timePeriod.startDate = timePeriodDetails.startDate;
+        if (dto.startDate() != null) {
+            timePeriod.startDate = dto.startDate();
         }
-        if (timePeriodDetails.endDate != null) {
-            timePeriod.endDate = timePeriodDetails.endDate;
+        if (dto.endDate() != null) {
+            timePeriod.endDate = dto.endDate();
         }
         if (timePeriod.endDate.isBefore(timePeriod.startDate)) {
             throw new BusinessException("TimePeriod endDate must not be before startDate");
         }
-        if (timePeriodDetails.category != null) {
-            timePeriod.category = timePeriodDetails.category;
+        if (dto.category() != null && dto.category().id() != null) {
+            timePeriod.category = categoryService.findEntityById(dto.category().id());
         }
-        if (timePeriodDetails.budgetedAmount != null) {
-            timePeriod.budgetedAmount = timePeriodDetails.budgetedAmount;
+        if (dto.budgetedAmount() != null) {
+            timePeriod.budgetedAmount = dto.budgetedAmount();
         }
-        if (timePeriodDetails.savingsPercentageGoal != null) {
-            if (timePeriodDetails.savingsPercentageGoal.compareTo(BigDecimal.ZERO) < 0
-                    || timePeriodDetails.savingsPercentageGoal.compareTo(new BigDecimal("100")) > 0) {
+        if (dto.savingsPercentageGoal() != null) {
+            if (dto.savingsPercentageGoal().compareTo(BigDecimal.ZERO) < 0
+                    || dto.savingsPercentageGoal().compareTo(new BigDecimal("100")) > 0) {
                 throw new BusinessException("savingsPercentageGoal must be between 0 and 100");
             }
-            timePeriod.savingsPercentageGoal = timePeriodDetails.savingsPercentageGoal;
+            timePeriod.savingsPercentageGoal = dto.savingsPercentageGoal();
         }
 
-        return timePeriod;
+        return TimePeriodDto.from(timePeriod);
     }
 
     @Transactional
     public void delete(Long id) throws BusinessException {
-        TimePeriod timePeriod = findById(id);
+        TimePeriod timePeriod = findTimePeriodEntity(id);
         timePeriodRepository.delete(timePeriod);
     }
 
     // -------------------------------------------------------------------------
     // Internal helpers
     // -------------------------------------------------------------------------
+
+    private TimePeriod findTimePeriodEntity(Long id) throws BusinessException {
+        TimePeriod timePeriod = timePeriodRepository.findById(id);
+        if (timePeriod == null) {
+            throw new BusinessException("TimePeriod not found: " + id);
+        }
+        return timePeriod;
+    }
 
     private void validatePeriod(TimePeriod tp) throws BusinessException {
         if (tp.name == null || tp.name.isBlank()) {

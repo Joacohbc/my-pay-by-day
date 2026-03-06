@@ -124,6 +124,8 @@ Responsible solely for HTTP concerns: deserializing request bodies, invoking the
 
 Owns all business logic. This is where domain rules are enforced: the Zero-Sum Rule on transactions, node existence checks, archival constraints, balance calculations, and resolution of entity references (e.g. Category and Tag IDs supplied by clients). It also acts as the orchestration point between aggregates — for example, creating an Event triggers Transaction creation and validation in the same atomic operation. All methods that can fail due to a domain rule expose this via an explicit `throws BusinessException` declaration.
 
+**DTO Contract:** Every public service method **must** receive and return DTOs (from `dto/`), never raw JPA entities. This decouples the API surface from the persistence model and prevents accidental entity mutation outside a transaction. Internal (package-private) helper methods may accept or return entities when required for intra-service collaboration (e.g. `findEntityById` used by `EventService` to resolve a `Category` reference).
+
 #### Repository layer (`repository/`)
 
 Thin data-access layer. Contains only persistence calls and simple JPQL queries. Never called directly from resources.
@@ -144,6 +146,7 @@ Thin data-access layer. Contains only persistence calls and simple JPQL queries.
 1. **Explicit Exception Declaration:** Every method in the service and validator layers that throws or propagates a `BusinessException` — even though it is unchecked — **must** declare it explicitly in its `throws` clause. This makes the contract visible at the call site without requiring callers to read the implementation.
 2. **Resources use Services, never Repositories:** The resource layer must inject and call the service layer exclusively. Direct repository access from a resource bypasses all business-rule validation and is forbidden.
 3. **OpenAPI annotations on every endpoint:** All public REST methods must carry `@Operation` with a summary, and `@APIResponse`/`@APIResponses` for every possible HTTP status code returned.
+4. **Service layer uses DTOs:** Every public method in `service/` must receive and return DTOs (`dto/` package), never raw JPA entities. Internal (package-private) methods used only for intra-service entity resolution are exempt.
 
 ---
 

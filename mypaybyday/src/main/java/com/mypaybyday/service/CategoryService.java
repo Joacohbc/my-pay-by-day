@@ -1,5 +1,6 @@
 package com.mypaybyday.service;
 
+import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.entity.Category;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.repository.CategoryRepository;
@@ -19,11 +20,19 @@ public class CategoryService {
     // Queries
     // -------------------------------------------------------------------------
 
-    public List<Category> listAll() {
-        return categoryRepository.listAll();
+    public List<CategoryDto> listAll() {
+        return categoryRepository.listAll().stream().map(CategoryDto::from).toList();
     }
 
-    public Category findById(Long id) throws BusinessException {
+    public CategoryDto findById(Long id) throws BusinessException {
+        return CategoryDto.from(findEntityById(id));
+    }
+
+    /**
+     * Internal method used by other services that need a managed {@link Category} entity
+     * (e.g. {@link EventService} when resolving a category reference).
+     */
+    Category findEntityById(Long id) throws BusinessException {
         Category category = categoryRepository.findById(id);
         if (category == null) {
             throw new BusinessException("Category not found: " + id);
@@ -36,34 +45,31 @@ public class CategoryService {
     // -------------------------------------------------------------------------
 
     @Transactional
-    public Category create(Category category) throws BusinessException {
-        if (category.name == null || category.name.isBlank()) {
+    public CategoryDto create(CategoryDto dto) throws BusinessException {
+        if (dto.name() == null || dto.name().isBlank()) {
             throw new BusinessException("Category name must not be blank");
         }
+        Category category = new Category();
+        category.name = dto.name();
+        category.description = dto.description();
         categoryRepository.persist(category);
-        return category;
+        return CategoryDto.from(category);
     }
 
     @Transactional
-    public Category update(Long id, Category categoryDetails) throws BusinessException {
-        Category category = categoryRepository.findById(id);
-        if (category == null) {
-            throw new BusinessException("Category not found: " + id);
-        }
-        if (categoryDetails.name == null || categoryDetails.name.isBlank()) {
+    public CategoryDto update(Long id, CategoryDto dto) throws BusinessException {
+        Category category = findEntityById(id);
+        if (dto.name() == null || dto.name().isBlank()) {
             throw new BusinessException("Category name must not be blank");
         }
-        category.name = categoryDetails.name;
-        category.description = categoryDetails.description;
-        return category;
+        category.name = dto.name();
+        category.description = dto.description();
+        return CategoryDto.from(category);
     }
 
     @Transactional
     public void delete(Long id) throws BusinessException {
-        Category category = categoryRepository.findById(id);
-        if (category == null) {
-            throw new BusinessException("Category not found: " + id);
-        }
+        Category category = findEntityById(id);
         categoryRepository.delete(category);
     }
 }

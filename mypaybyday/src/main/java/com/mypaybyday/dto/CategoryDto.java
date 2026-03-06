@@ -10,4 +10,12 @@ public record CategoryDto(
     public static CategoryDto from(Category category) {
         return new CategoryDto(category.id, category.name, category.description);
     }
+
+    public Category to() {
+        Category c = new Category();
+        c.id = this.id;
+        c.name = this.name;
+        c.description = this.description;
+        return c;
+    }
 }

@@ -1,5 +1,6 @@
 package com.mypaybyday.resource;
 
+import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TagService;
 import jakarta.inject.Inject;
@@ -26,7 +27,7 @@ public class TagResource {
     @GET
     @Operation(summary = "List all tags")
     @APIResponse(responseCode = "200", description = "List of tags",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = com.mypaybyday.entity.Tag.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TagDto.class)))
     public Response getAll() {
         return Response.ok(tagService.listAll()).build();
     }
@@ -36,7 +37,7 @@ public class TagResource {
     @Operation(summary = "Get tag by ID")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Tag found",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = com.mypaybyday.entity.Tag.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TagDto.class))),
             @APIResponse(responseCode = "404", description = "Tag not found")
     })
     public Response getById(
@@ -49,10 +50,10 @@ public class TagResource {
     @Operation(summary = "Create a new tag")
     @APIResponses({
             @APIResponse(responseCode = "201", description = "Tag created",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = com.mypaybyday.entity.Tag.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TagDto.class))),
             @APIResponse(responseCode = "400", description = "Validation error")
     })
-    public Response create(com.mypaybyday.entity.Tag tag) throws BusinessException {
+    public Response create(TagDto tag) throws BusinessException {
         return Response.status(Response.Status.CREATED).entity(tagService.create(tag)).build();
     }
 
@@ -61,13 +62,13 @@ public class TagResource {
     @Operation(summary = "Update a tag")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Tag updated",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = com.mypaybyday.entity.Tag.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TagDto.class))),
             @APIResponse(responseCode = "400", description = "Validation error"),
             @APIResponse(responseCode = "404", description = "Tag not found")
     })
     public Response update(
             @Parameter(description = "ID of the tag", required = true) @PathParam("id") Long id,
-            com.mypaybyday.entity.Tag tagDetails) throws BusinessException {
+            TagDto tagDetails) throws BusinessException {
         return Response.ok(tagService.update(id, tagDetails)).build();
     }
 

@@ -1,6 +1,6 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.entity.Category;
+import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.CategoryService;
 import jakarta.inject.Inject;
@@ -27,7 +27,7 @@ public class CategoryResource {
     @GET
     @Operation(summary = "List all categories")
     @APIResponse(responseCode = "200", description = "List of categories",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Category.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class)))
     public Response getAll() {
         return Response.ok(categoryService.listAll()).build();
     }
@@ -37,7 +37,7 @@ public class CategoryResource {
     @Operation(summary = "Get category by ID")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Category found",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Category.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class))),
             @APIResponse(responseCode = "404", description = "Category not found")
     })
     public Response getById(
@@ -50,10 +50,10 @@ public class CategoryResource {
     @Operation(summary = "Create a new category", description = "Category name must not be blank.")
     @APIResponses({
             @APIResponse(responseCode = "201", description = "Category created",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Category.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class))),
             @APIResponse(responseCode = "400", description = "Validation error")
     })
-    public Response create(Category category) throws BusinessException {
+    public Response create(CategoryDto category) throws BusinessException {
         return Response.status(Response.Status.CREATED).entity(categoryService.create(category)).build();
     }
 
@@ -62,13 +62,13 @@ public class CategoryResource {
     @Operation(summary = "Update a category")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Category updated",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Category.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class))),
             @APIResponse(responseCode = "400", description = "Validation error"),
             @APIResponse(responseCode = "404", description = "Category not found")
     })
     public Response update(
             @Parameter(description = "ID of the category", required = true) @PathParam("id") Long id,
-            Category categoryDetails) throws BusinessException {
+            CategoryDto categoryDetails) throws BusinessException {
         return Response.ok(categoryService.update(id, categoryDetails)).build();
     }
 
