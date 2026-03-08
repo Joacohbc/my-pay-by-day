@@ -17,7 +17,7 @@
 ###
 
 ## Stage 1 — Build the native binary
-FROM quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:jdk-17 AS build
+FROM quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:jdk-21 AS build
 
 USER root
 RUN microdnf install -y findutils && microdnf clean all
