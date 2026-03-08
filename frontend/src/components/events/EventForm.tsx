@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useFieldArray, useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
@@ -63,10 +64,14 @@ export function EventForm({
 
   const activeNodes = nodes.filter((n) => !n.archived);
 
+  const initialType = defaultValues?.type ?? preset?.type ?? 'OUTBOUND';
+
   const {
     register,
     handleSubmit,
     control,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -87,7 +92,7 @@ export function EventForm({
       lineItems:
         defaultValues?.lineItems?.map((li) => ({
           nodeId: String(li.financeNodeId),
-          amount: String(li.amount),
+          amount: initialType !== 'OTHER' ? String(Math.abs(li.amount)) : String(li.amount),
         })) ??
         (preset?.lineNodeIds?.length
           ? preset.lineNodeIds.map((id) => ({ nodeId: String(id), amount: '' }))
@@ -97,6 +102,24 @@ export function EventForm({
 
   const { fields, append, remove } = useFieldArray({ control, name: 'lineItems' });
 
+  const watchType = watch('type');
+  const isTemplateMode = !!(preset?.lineNodeIds && preset.lineNodeIds.length >= 2);
+  const firstAmount = watch('lineItems.0.amount');
+
+  useEffect(() => {
+    if (!isTemplateMode) return;
+    for (let i = 1; i < fields.length; i++) {
+      setValue(`lineItems.${i}.amount`, firstAmount ?? '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstAmount, isTemplateMode, fields.length]);
+
+  const getLineItemSignMultiplier = (type: string, index: number): 1 | -1 => {
+    if (type === 'INBOUND') return index % 2 === 0 ? 1 : -1;
+    if (type === 'OUTBOUND') return index % 2 === 0 ? -1 : 1;
+    return 1;
+  };
+
   const handleFormSubmit = async (values: FormValues) => {
     const dto: CreateEventDto = {
       name: values.name,
@@ -105,9 +128,12 @@ export function EventForm({
       type: values.type,
       transaction: {
         transactionDate: new Date(values.transactionDate).toISOString(),
-        lineItems: values.lineItems.map((li) => ({
+        lineItems: values.lineItems.map((li, i) => ({
           financeNode: { id: Number(li.nodeId) },
-          amount: Number(li.amount),
+          amount:
+            values.type !== 'OTHER'
+              ? getLineItemSignMultiplier(values.type, i) * Math.abs(Number(li.amount))
+              : Number(li.amount),
         })),
       },
       category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
@@ -222,58 +248,127 @@ export function EventForm({
       <div>
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">Line Items</p>
-          <button
-            type="button"
-            onClick={() => append({ nodeId: '', amount: '' })}
-            className="flex items-center gap-1 text-xs text-dn-primary hover:brightness-110 transition-all"
-          >
-            <span className="material-symbols-outlined text-sm">add</span>
-            Add
-          </button>
+          {!isTemplateMode && (
+            <button
+              type="button"
+              onClick={() => append({ nodeId: '', amount: '' })}
+              className="flex items-center gap-1 text-xs text-dn-primary hover:brightness-110 transition-all"
+            >
+              <span className="material-symbols-outlined text-sm">add</span>
+              Add
+            </button>
+          )}
         </div>
         {errors.lineItems?.root?.message && (
           <p className="text-xs text-dn-error mb-2">{errors.lineItems.root.message}</p>
         )}
-        <div className="space-y-2">
-          {fields.map((field, i) => (
-            <div key={field.id} className="flex gap-2 items-start">
-              <div className="flex-1">
-                <Controller
-                  name={`lineItems.${i}.nodeId`}
-                  control={control}
-                  render={({ field: f }) => (
-                    <Select
-                      placeholder="Select node"
-                      options={nodeOptions}
-                      error={errors.lineItems?.[i]?.nodeId?.message}
-                      {...f}
-                    />
+
+        {isTemplateMode ? (
+          /* Template mode: node rows with sign badge + single shared amount input */
+          <div className="space-y-3">
+            <div className="space-y-2">
+              {fields.map((field, i) => (
+                <div key={field.id} className="flex items-center gap-3 px-3 py-2 rounded-input bg-dn-surface-low">
+                  {watchType !== 'OTHER' && (
+                    <span
+                      className={[
+                        'text-sm font-bold w-4 text-center shrink-0',
+                        getLineItemSignMultiplier(watchType, i) === 1
+                          ? 'text-dn-success'
+                          : 'text-dn-error',
+                      ].join(' ')}
+                    >
+                      {getLineItemSignMultiplier(watchType, i) === 1 ? '+' : '−'}
+                    </span>
                   )}
-                />
-              </div>
-              <div className="w-28">
-                <Input
-                  placeholder="Amount"
-                  type="number"
-                  step="0.01"
-                  error={errors.lineItems?.[i]?.amount?.message}
-                  {...register(`lineItems.${i}.amount`)}
-                />
-              </div>
-              {fields.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => remove(i)}
-                  className="mt-2 p-1.5 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-base">delete</span>
-                </button>
-              )}
+                  <div className="flex-1">
+                    <Controller
+                      name={`lineItems.${i}.nodeId`}
+                      control={control}
+                      render={({ field: f }) => (
+                        <Select
+                          placeholder="Select node"
+                          options={nodeOptions}
+                          error={errors.lineItems?.[i]?.nodeId?.message}
+                          {...f}
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+            <Input
+              label="Amount"
+              placeholder="0.00"
+              type="number"
+              step="0.01"
+              min="0.01"
+              error={errors.lineItems?.[0]?.amount?.message}
+              {...register('lineItems.0.amount')}
+            />
+          </div>
+        ) : (
+          /* Normal mode: per-row node + amount */
+          <div className="space-y-2">
+            {fields.map((field, i) => (
+              <div key={field.id} className="flex gap-2 items-center">
+                <div className="flex-1">
+                  <Controller
+                    name={`lineItems.${i}.nodeId`}
+                    control={control}
+                    render={({ field: f }) => (
+                      <Select
+                        placeholder="Select node"
+                        options={nodeOptions}
+                        error={errors.lineItems?.[i]?.nodeId?.message}
+                        {...f}
+                      />
+                    )}
+                  />
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {watchType !== 'OTHER' && (
+                    <span
+                      className={[
+                        'text-sm font-bold w-4 text-center shrink-0',
+                        getLineItemSignMultiplier(watchType, i) === 1
+                          ? 'text-dn-success'
+                          : 'text-dn-error',
+                      ].join(' ')}
+                    >
+                      {getLineItemSignMultiplier(watchType, i) === 1 ? '+' : '−'}
+                    </span>
+                  )}
+                  <div className="w-24">
+                    <Input
+                      placeholder="0.00"
+                      type="number"
+                      step="0.01"
+                      min={watchType !== 'OTHER' ? '0.01' : undefined}
+                      error={errors.lineItems?.[i]?.amount?.message}
+                      {...register(`lineItems.${i}.amount`)}
+                    />
+                  </div>
+                </div>
+                {fields.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => remove(i)}
+                    className="p-1.5 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base">delete</span>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <p className="text-xs text-dn-text-muted mt-2">
-          Positive = inflow to node, Negative = outflow from node. Sum must equal zero.
+          {watchType !== 'OTHER'
+            ? 'Enter positive amounts — signs are assigned automatically by position. Sum must equal zero.'
+            : 'Positive = inflow to node, Negative = outflow from node. Sum must equal zero.'}
         </p>
       </div>
 
