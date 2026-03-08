@@ -6,6 +6,10 @@ This document outlines the conceptual data model and architectural rules for a h
 
 ---
 
+# Part I — Business Logic / Domain Model
+
+*Technology-agnostic rules. These apply regardless of implementation stack.*
+
 ## 1. The Core Entities (The "Who" and "Where")
 
 ### `FinanceNode`
@@ -86,9 +90,9 @@ A flexible time container representing a financial goal, rather than a rigid cal
 
 ---
 
-## 6. Backend
+# Part II — Backend
 
-### Tech Stack
+## 6. Tech Stack
 
 * **Runtime:** Quarkus 3.x (JVM mode)
 * **REST layer:** Quarkus REST (Jakarta REST / JAX-RS) + Jackson
@@ -101,7 +105,7 @@ A flexible time container representing a financial goal, rather than a rigid cal
 
 ---
 
-### Project Structure
+## 7. Project Structure
 
 The backend source code lives under `mypaybyday/src/main/java/com/mypaybyday/` and is split into five packages:
 
@@ -114,25 +118,25 @@ The backend source code lives under `mypaybyday/src/main/java/com/mypaybyday/` a
 
 ---
 
-### Layer Responsibilities & Business Logic
+## 8. Layer Responsibilities
 
-#### Resource layer (`resource/`)
+### Resource layer (`resource/`)
 
 Responsible solely for HTTP concerns: deserializing request bodies, invoking the appropriate service method, and mapping the result to an HTTP response. Contains no business logic. Must never inject or call repositories directly — all operations go through the service layer. Every endpoint is fully annotated with OpenAPI (`@Tag`, `@Operation`, `@APIResponse`).
 
-#### Service layer (`service/`)
+### Service layer (`service/`)
 
 Owns all business logic. This is where domain rules are enforced: the Zero-Sum Rule on transactions, node existence checks, archival constraints, balance calculations, and resolution of entity references (e.g. Category and Tag IDs supplied by clients). It also acts as the orchestration point between aggregates — for example, creating an Event triggers Transaction creation and validation in the same atomic operation. All methods that can fail due to a domain rule expose this via an explicit `throws BusinessException` declaration.
 
 **DTO Contract:** Every public service method **must** receive and return DTOs (from `dto/`), never raw JPA entities. This decouples the API surface from the persistence model and prevents accidental entity mutation outside a transaction. Internal (package-private) helper methods may accept or return entities when required for intra-service collaboration (e.g. `findEntityById` used by `EventService` to resolve a `Category` reference).
 
-#### Repository layer (`repository/`)
+### Repository layer (`repository/`)
 
 Thin data-access layer. Contains only persistence calls and simple JPQL queries. Never called directly from resources.
 
 ---
 
-### API Documentation (OpenAPI / Swagger)
+## 9. API Documentation (OpenAPI / Swagger)
 
 * Dependency: `quarkus-smallrye-openapi` (already in `pom.xml`).
 * Swagger UI: `http://localhost:8080/q/swagger-ui`
@@ -141,26 +145,31 @@ Thin data-access layer. Contains only persistence calls and simple JPQL queries.
 
 ---
 
-### Coding Conventions
+## 10. Coding Conventions
 
 1. **Explicit Exception Declaration:** Every method in the service and validator layers that throws or propagates a `BusinessException` — even though it is unchecked — **must** declare it explicitly in its `throws` clause. This makes the contract visible at the call site without requiring callers to read the implementation.
 2. **Resources use Services, never Repositories:** The resource layer must inject and call the service layer exclusively. Direct repository access from a resource bypasses all business-rule validation and is forbidden.
 3. **OpenAPI annotations on every endpoint:** All public REST methods must carry `@Operation` with a summary, and `@APIResponse`/`@APIResponses` for every possible HTTP status code returned.
 4. **Service layer uses DTOs:** Every public method in `service/` must receive and return DTOs (`dto/` package), never raw JPA entities. Internal (package-private) methods used only for intra-service entity resolution are exempt.
+5. **Compile check:** After any code change, the build must pass without errors by running `./mvnw clean compile` from the `mypaybyday/` directory.
 
 ---
 
-## 7. Frontend
+# Part III — Frontend
 
-### Tech Stack
+## 11. Tech Stack
 
 * **Framework:** React + TypeScript
 * **Build Tool:** Vite
 * **Package Manager:** pnpm
 
-### Coding Conventions
+---
 
-1. **Absolute Imports:** The frontend project is configured to use path aliases (`@/` mapping to `src/`). You **must** use absolute imports for all internal modules instead of relative paths. 
+## 12. Coding Conventions
+
+1. **Absolute Imports:** The frontend project is configured to use path aliases (`@/` mapping to `src/`). You **must** use absolute imports for all internal modules instead of relative paths.
    * **Do:** `import Button from '@/components/ui/Button'`
    * **Don't:** `import Button from '../../components/ui/Button'`
-
+2. **Lint & Type check:** After any code change, both of the following must pass without errors from the `frontend/` directory:
+   * `pnpm lint` — ESLint validation.
+   * `pnpm tsc --noEmit` — TypeScript type checking.
