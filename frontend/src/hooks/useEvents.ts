@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventsService } from '@/services/events.service';
-import type { CreateEventDto } from '@/models';
+import { usePendingEventsStore } from '@/store/pendingEventsStore';
+import type { CreateEventDto, FinanceEvent } from '@/models';
 
 export const EVENTS_KEY = ['events'] as const;
 
@@ -18,10 +19,23 @@ export function useEvent(id: number) {
 
 export function useCreateEvent() {
   const qc = useQueryClient();
-  return useMutation({
+  const addPending = usePendingEventsStore((s) => s.addPending);
+
+  const mutation = useMutation({
     mutationFn: (dto: CreateEventDto) => eventsService.create(dto),
     onSuccess: () => qc.invalidateQueries({ queryKey: EVENTS_KEY }),
   });
+
+  /** Saves online (API) or queues locally when offline. Returns null if queued. */
+  const saveAsync = async (dto: CreateEventDto): Promise<FinanceEvent | null> => {
+    if (!navigator.onLine) {
+      addPending(dto);
+      return null;
+    }
+    return mutation.mutateAsync(dto);
+  };
+
+  return { ...mutation, saveAsync };
 }
 
 export function useUpdateEvent() {

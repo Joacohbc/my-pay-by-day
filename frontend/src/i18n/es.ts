@@ -307,6 +307,20 @@ const es = {
     preferences: 'Preferencias',
   },
 
+  // ─── Offline ─────────────────────────────────────────────────────────────
+  offline: {
+    banner: 'Estás sin conexión — los eventos nuevos se guardarán localmente',
+    pendingTitle: 'Pendiente de sincronización ({{count}})',
+    pendingSub: 'Estos eventos fueron creados sin conexión y todavía no se enviaron',
+    send: 'Enviar',
+    sendAll: 'Enviar todos',
+    discard: 'Descartar',
+    discardAll: 'Descartar todos',
+    savedLocally: 'No enviado',
+    queuedFeedback: 'Guardado sin conexión — confirmá el envío al reconectarte',
+    noConnectionToSend: 'Sin conexión — reconectáte para enviar',
+  },
+
   // ─── Errors ──────────────────────────────────────────────────────────────
   errors: {
     somethingWentWrong: 'Algo salió mal',

@@ -307,6 +307,20 @@ const en = {
     preferences: 'Preferences',
   },
 
+  // ─── Offline ─────────────────────────────────────────────────────────────
+  offline: {
+    banner: 'You are offline — new events will be saved locally',
+    pendingTitle: 'Pending sync ({{count}})',
+    pendingSub: 'These events were created offline and have not been sent yet',
+    send: 'Send',
+    sendAll: 'Send all',
+    discard: 'Discard',
+    discardAll: 'Discard all',
+    savedLocally: 'Not sent',
+    queuedFeedback: 'Saved offline — confirm sync when you reconnect',
+    noConnectionToSend: 'No connection — reconnect to send',
+  },
+
   // ─── Errors ──────────────────────────────────────────────────────────────
   errors: {
     somethingWentWrong: 'Something went wrong',
