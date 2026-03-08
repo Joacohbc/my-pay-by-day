@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useTimePeriodBalance } from '@/hooks/useTimePeriods';
 import { useDefaultTimePeriod } from '@/hooks/useDefaultTimePeriod';
+import { formatDateFromParts, formatCurrency, formatCurrencyShort } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
@@ -22,17 +24,12 @@ function BalanceSkeleton() {
   );
 }
 
-const formatDate = (d: string) =>
-  new Date(d + 'T00:00:00').toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+const formatCardDate = (d: string) => formatDateFromParts(d);
 
-const fmt = (n: number) =>
-  n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+const fmt = (n: number) => formatCurrencyShort(n);
 
 export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardProps) {
+  const { t } = useTranslation();
   const { defaultId, setDefaultId } = useDefaultTimePeriod();
   const { data: balance, isLoading: balanceLoading } = useTimePeriodBalance(tp.id);
 
@@ -59,7 +56,7 @@ export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardP
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 flex-wrap min-w-0">
               <p className="text-base font-semibold text-dn-text-main truncate">{tp.name}</p>
-              {isDefault && <Badge variant="indigo">Home</Badge>}
+              {isDefault && <Badge variant="indigo">{t('nav.home')}</Badge>}
               {tp.category && <Badge variant="gray">{tp.category.name}</Badge>}
             </div>
             {/* Star */}
@@ -78,7 +75,7 @@ export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardP
 
           {/* Date range */}
           <p className="text-sm text-dn-text-muted mt-1">
-            {formatDate(tp.startDate)} – {formatDate(tp.endDate)}
+            {formatCardDate(tp.startDate)} – {formatCardDate(tp.endDate)}
           </p>
 
           {/* Async balance row */}
@@ -105,14 +102,14 @@ export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardP
             <div className="flex items-center gap-4 mt-1.5 flex-wrap">
               {tp.budgetedAmount != null && (
                 <p className="text-xs text-dn-text-muted">
-                  Budget: <span className="text-dn-text-main">
-                    {tp.budgetedAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                  {t('periods.budgetLabel')}: <span className="text-dn-text-main">
+                    {formatCurrency(tp.budgetedAmount)}
                   </span>
                 </p>
               )}
               {tp.savingsPercentageGoal != null && (
                 <p className="text-xs text-dn-text-muted">
-                  Savings: <span className="text-dn-text-main">{tp.savingsPercentageGoal}%</span>
+                  {t('periods.savingsLabel')}: <span className="text-dn-text-main">{tp.savingsPercentageGoal}%</span>
                 </p>
               )}
             </div>
@@ -123,21 +120,21 @@ export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardP
             <Link
               to={`/periods/${tp.id}`}
               className="p-1.5 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
-              title="View balance"
+              title={t('periods.viewBalance')}
             >
               <Icon name="bar_chart" className="text-[18px]" />
             </Link>
             <button
               onClick={() => onEdit(tp)}
               className="p-1.5 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
-              title="Edit"
+              title={t('common.edit')}
             >
               <Icon name="edit" className="text-[18px]" />
             </button>
             <button
               onClick={() => onDelete(tp)}
               className="p-1.5 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors"
-              title="Delete"
+              title={t('common.delete')}
             >
               <Icon name="delete" className="text-[18px]" />
             </button>

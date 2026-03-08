@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useEvent, useDeleteEvent } from '@/hooks/useEvents';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -15,39 +16,40 @@ const typeConfig = {
     icon: 'arrow_downward',
     iconBg: 'bg-dn-success/10 text-dn-success',
     amountClass: 'text-dn-success',
-    label: 'Income',
+    labelKey: 'eventType.INBOUND',
     badgeVariant: 'income' as const,
   },
   OUTBOUND: {
     icon: 'arrow_upward',
     iconBg: 'bg-dn-surface text-dn-text-main',
     amountClass: 'text-dn-text-main',
-    label: 'Expense',
+    labelKey: 'eventType.OUTBOUND',
     badgeVariant: 'expense' as const,
   },
   OTHER: {
     icon: 'swap_horiz',
     iconBg: 'bg-dn-surface text-dn-secondary',
     amountClass: 'text-dn-secondary',
-    label: 'Transfer',
+    labelKey: 'eventType.OTHER',
     badgeVariant: 'neutral' as const,
   },
 };
 
 export function EventDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: event, isLoading, error } = useEvent(Number(id));
   const deleteEvent = useDeleteEvent();
 
   if (isLoading) return <FullPageSpinner />;
-  if (error || !event) return <ErrorState message="Event not found" />;
+  if (error || !event) return <ErrorState message={t('errors.eventNotFound')} />;
 
   const cfg = typeConfig[event.type];
   const net = eventNetAmount(event);
 
   const handleDelete = async () => {
-    if (!confirm('Delete this event permanently?')) return;
+    if (!confirm(t('events.deleteConfirm'))) return;
     await deleteEvent.mutateAsync(event.id);
     navigate('/events', { replace: true });
   };
@@ -55,7 +57,7 @@ export function EventDetailPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Detail"
+        title={t('events.detail')}
         back
         action={
           <div className="flex gap-2">
@@ -93,7 +95,7 @@ export function EventDetailPage() {
         </p>
 
         <div className="flex flex-wrap justify-center gap-2 mt-3">
-          <Badge variant={cfg.badgeVariant}>{cfg.label}</Badge>
+          <Badge variant={cfg.badgeVariant}>{t(cfg.labelKey)}</Badge>
           {event.category && <Badge variant="default">{event.category.name}</Badge>}
           {event.tags.map((tag) => (
             <Badge key={tag.id} variant="indigo">#{tag.name}</Badge>
@@ -106,13 +108,13 @@ export function EventDetailPage() {
         <Card className="divide-y divide-white/5">
           {event.category && (
             <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-              <span className="text-sm text-dn-text-muted">Category</span>
+              <span className="text-sm text-dn-text-muted">{t('events.category')}</span>
               <span className="text-sm text-dn-text-main">{event.category.name}</span>
             </div>
           )}
           {event.transactionDate && (
             <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-              <span className="text-sm text-dn-text-muted">Date</span>
+              <span className="text-sm text-dn-text-muted">{t('events.date')}</span>
               <span className="text-sm text-dn-text-main font-mono">
                 {formatDateTime(event.transactionDate)}
               </span>
@@ -120,14 +122,14 @@ export function EventDetailPage() {
           )}
           {event.receiptUrl && (
             <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-              <span className="text-sm text-dn-text-muted">Receipt</span>
+              <span className="text-sm text-dn-text-muted">{t('events.receipt')}</span>
               <a
                 href={event.receiptUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-dn-primary flex items-center gap-1"
               >
-                View
+                {t('common.view')}
                 <Icon name="open_in_new" className="text-sm" />
               </a>
             </div>
@@ -137,7 +139,7 @@ export function EventDetailPage() {
 
       {/* Line Items */}
       <div className="px-5">
-        <h3 className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">Line Items</h3>
+        <h3 className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">{t('events.lineItems')}</h3>
         {event.lineItems?.length ? (
           <Card className="divide-y divide-white/5">
             {event.lineItems.map((li) => (
@@ -153,7 +155,7 @@ export function EventDetailPage() {
             ))}
           </Card>
         ) : (
-          <EmptyState title="No line items" />
+          <EmptyState title={t('events.noLineItems')} />
         )}
       </div>
     </div>

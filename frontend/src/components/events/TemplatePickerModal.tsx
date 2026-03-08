@@ -1,14 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import { useTemplates } from '@/hooks/useTemplates';
 import { Modal } from '@/components/ui/Modal';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { Icon } from '@/components/ui/Icon';
 import type { Template } from '@/models';
-
-const EVENT_TYPE_LABELS: Record<string, string> = {
-  INBOUND: 'Income',
-  OUTBOUND: 'Expense',
-  OTHER: 'Transfer',
-};
 
 interface TemplatePickerModalProps {
   open: boolean;
@@ -18,10 +13,11 @@ interface TemplatePickerModalProps {
 }
 
 export function TemplatePickerModal({ open, onClose, onSelect }: TemplatePickerModalProps) {
+  const { t } = useTranslation();
   const { data: templates = [], isLoading } = useTemplates();
 
   return (
-    <Modal open={open} onClose={onClose} title="New Event">
+    <Modal open={open} onClose={onClose} title={t('templatePicker.title')}>
       <div className="space-y-3">
         {/* From Scratch */}
         <button
@@ -32,8 +28,8 @@ export function TemplatePickerModal({ open, onClose, onSelect }: TemplatePickerM
             <Icon name="edit_note" />
           </div>
           <div>
-            <p className="text-sm font-medium text-dn-text-main">From Scratch</p>
-            <p className="text-xs text-dn-text-muted">Create a new event manually</p>
+            <p className="text-sm font-medium text-dn-text-main">{t('templatePicker.fromScratch')}</p>
+            <p className="text-xs text-dn-text-muted">{t('templatePicker.fromScratchDesc')}</p>
           </div>
         </button>
 
@@ -43,7 +39,7 @@ export function TemplatePickerModal({ open, onClose, onSelect }: TemplatePickerM
         ) : templates.length > 0 ? (
           <div>
             <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2 px-1">
-              Templates
+              {t('templatePicker.templates')}
             </p>
             <div className="space-y-2">
               {templates.map((template) => (
@@ -60,7 +56,7 @@ export function TemplatePickerModal({ open, onClose, onSelect }: TemplatePickerM
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       {template.eventType && (
                         <span className="text-xs text-dn-text-muted">
-                          {EVENT_TYPE_LABELS[template.eventType]}
+                          {t(`eventType.${template.eventType}`)}
                         </span>
                       )}
                       {(template.originNodeName || template.destinationNodeName) && (

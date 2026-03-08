@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useEvents } from '@/hooks/useEvents';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
@@ -18,6 +19,7 @@ import type { EventType } from '@/models';
 type FilterType = 'ALL' | EventType;
 
 export function EventsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: events, isLoading, error } = useEvents();
   const [search, setSearch] = useState('');
@@ -66,21 +68,21 @@ export function EventsPage() {
     .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0);
 
   const filterBtns: { label: string; value: FilterType }[] = [
-    { label: 'All', value: 'ALL' },
-    { label: 'Income', value: 'INBOUND' },
-    { label: 'Expenses', value: 'OUTBOUND' },
-    { label: 'Transfers', value: 'OTHER' },
+    { label: t('common.all'), value: 'ALL' },
+    { label: t('events.income'), value: 'INBOUND' },
+    { label: t('events.expenses'), value: 'OUTBOUND' },
+    { label: t('events.transfers'), value: 'OTHER' },
   ];
 
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Activity"
-        subtitle={`${allEvents.length} events`}
+        title={t('events.title')}
+        subtitle={t('events.eventsCount', { count: allEvents.length })}
         action={
           <Button size="sm" onClick={() => setShowPicker(true)}>
             <Icon name="add" className="text-sm" />
-            New
+            {t('common.new')}
           </Button>
         }
       />
@@ -88,11 +90,11 @@ export function EventsPage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3 px-5">
         <Card className="text-center">
-          <p className="text-xs text-dn-text-muted mb-1">Income</p>
+          <p className="text-xs text-dn-text-muted mb-1">{t('events.income')}</p>
           <p className="text-lg font-mono font-semibold text-dn-success">{formatCurrency(totalIncome)}</p>
         </Card>
         <Card className="text-center">
-          <p className="text-xs text-dn-text-muted mb-1">Expenses</p>
+          <p className="text-xs text-dn-text-muted mb-1">{t('events.expenses')}</p>
           <p className="text-lg font-mono font-semibold text-dn-text-main">{formatCurrency(totalExpenses)}</p>
         </Card>
       </div>
@@ -104,7 +106,7 @@ export function EventsPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search events…"
+            placeholder={t('events.searchPlaceholder')}
             className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 [color-scheme:dark]"
           />
         </div>
@@ -132,12 +134,12 @@ export function EventsPage() {
       <div className="px-5">
         {filtered.length === 0 ? (
           <EmptyState
-            title="No events found"
-            description={search ? 'Try a different search term' : 'Create your first financial event'}
+            title={t('events.noEventsFound')}
+            description={search ? t('events.noEventsFoundSearch') : t('events.noEventsFoundCreate')}
             action={
               <Button size="sm" onClick={() => setShowPicker(true)}>
                 <Icon name="add" className="text-sm" />
-                New Event
+                {t('events.newEvent')}
               </Button>
             }
           />

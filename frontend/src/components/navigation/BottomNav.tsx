@@ -1,19 +1,22 @@
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 
 const navItems = [
-  { to: '/', label: 'Home', icon: 'home', end: true },
-  { to: '/events', label: 'Activity', icon: 'pie_chart' },
-  { to: '/nodes', label: 'Wallet', icon: 'account_balance_wallet' },
-  { to: '/periods', label: 'Periods', icon: 'calendar_month' },
-  { to: '/subscriptions', label: 'Subs', icon: 'credit_card' },
-  { to: '/settings', label: 'Profile', icon: 'person' },
+  { to: '/', labelKey: 'nav.home', icon: 'home', end: true },
+  { to: '/events', labelKey: 'nav.activity', icon: 'pie_chart' },
+  { to: '/nodes', labelKey: 'nav.wallet', icon: 'account_balance_wallet' },
+  { to: '/periods', labelKey: 'nav.periods', icon: 'calendar_month' },
+  { to: '/subscriptions', labelKey: 'nav.subs', icon: 'credit_card' },
+  { to: '/settings', labelKey: 'nav.profile', icon: 'person' },
 ];
 
 export function BottomNav() {
+  const { t } = useTranslation();
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 h-[80px] bg-dn-surface-low border-t border-dn-surface flex items-center justify-around px-1">
-      {navItems.map(({ to, label, icon, end }) => (
+      {navItems.map(({ to, labelKey, icon, end }) => (
         <NavLink
           key={to}
           to={to}
@@ -45,7 +48,7 @@ export function BottomNav() {
                   isActive ? 'text-dn-primary' : 'text-dn-text-main'
                 }`}
               >
-                {label}
+                {t(labelKey)}
               </span>
             </>
           )}

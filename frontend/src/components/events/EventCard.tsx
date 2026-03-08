@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { FinanceEvent } from '@/models';
 import { Icon } from '@/components/ui/Icon';
 import { formatCurrency, formatDate, eventNetAmount } from '@/lib/format';
@@ -12,23 +13,24 @@ const typeConfig = {
     icon: 'arrow_downward',
     iconBg: 'bg-dn-success/10 text-dn-success',
     amountClass: 'text-dn-success',
-    label: 'Income',
+    labelKey: 'eventType.INBOUND',
   },
   OUTBOUND: {
     icon: 'arrow_upward',
     iconBg: 'bg-dn-surface text-dn-text-main',
     amountClass: 'text-dn-text-main',
-    label: 'Expense',
+    labelKey: 'eventType.OUTBOUND',
   },
   OTHER: {
     icon: 'swap_horiz',
     iconBg: 'bg-dn-surface text-dn-secondary',
     amountClass: 'text-dn-secondary',
-    label: 'Transfer',
+    labelKey: 'eventType.OTHER',
   },
 };
 
 export function EventCard({ event }: EventCardProps) {
+  const { t } = useTranslation();
   const cfg = typeConfig[event.type];
   const net = eventNetAmount(event);
   const date = event.transactionDate;
@@ -50,7 +52,7 @@ export function EventCard({ event }: EventCardProps) {
             {event.name}
           </span>
           <span className="text-xs text-dn-text-muted">
-            {event.category?.name ?? cfg.label}
+            {event.category?.name ?? t(cfg.labelKey)}
             {date ? ` · ${formatDate(date)}` : ''}
           </span>
         </div>

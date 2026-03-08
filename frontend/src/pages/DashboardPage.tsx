@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDefaultTimePeriod } from '@/hooks/useDefaultTimePeriod';
 import { useTimePeriods } from '@/hooks/useTimePeriods';
@@ -11,6 +12,7 @@ import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import type { Template } from '@/models';
 
 export function DashboardPage() {
+  const { t } = useTranslation();
   const { defaultId } = useDefaultTimePeriod();
   const { data: periods, isLoading } = useTimePeriods();
   const navigate = useNavigate();
@@ -27,7 +29,7 @@ export function DashboardPage() {
 
   const now = new Date();
   const greeting =
-    now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening';
+    now.getHours() < 12 ? t('greeting.morning') : now.getHours() < 18 ? t('greeting.afternoon') : t('greeting.evening');
 
   if (isLoading) return <FullPageSpinner />;
 
@@ -54,7 +56,7 @@ export function DashboardPage() {
       {/* Greeting */}
       <div>
         <p className="text-sm text-dn-text-muted">{greeting}</p>
-        <h1 className="text-2xl font-semibold text-dn-text-main tracking-tight">My Finances</h1>
+        <h1 className="text-2xl font-semibold text-dn-text-main tracking-tight">{t('dashboard.myFinances')}</h1>
       </div>
 
       <Card>
@@ -63,23 +65,23 @@ export function DashboardPage() {
             <Icon name="calendar_month" className="text-3xl" />
           </div>
           <div>
-            <p className="text-base font-semibold text-dn-text-main">No default period set</p>
+            <p className="text-base font-semibold text-dn-text-main">{t('dashboard.noDefaultPeriod')}</p>
             <p className="text-sm text-dn-text-muted mt-1 leading-relaxed">
-              Choose a Time Period to track here on the Home tab. Your selection is saved locally.
+              {t('dashboard.noDefaultPeriodDesc')}
             </p>
           </div>
           {allPeriods.length === 0 ? (
             <Link to="/periods">
               <Button size="sm">
                 <Icon name="add" className="text-sm" />
-                Create a Period
+                {t('dashboard.createPeriod')}
               </Button>
             </Link>
           ) : (
             <Link to="/periods">
               <Button size="sm">
                 <Icon name="calendar_month" className="text-sm" />
-                Select a Period
+                {t('dashboard.selectPeriod')}
               </Button>
             </Link>
           )}
@@ -90,7 +92,7 @@ export function DashboardPage() {
       <div className="fixed bottom-24 right-5 z-30">
         <Button size="lg" className="rounded-pill shadow-lg shadow-dn-primary/20 gap-2" onClick={() => setShowPicker(true)}>
           <Icon name="add" />
-          New Event
+          {t('dashboard.newEvent')}
         </Button>
       </div>
 

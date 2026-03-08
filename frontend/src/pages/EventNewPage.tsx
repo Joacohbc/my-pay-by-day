@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -5,6 +6,7 @@ import { useCreateEvent } from '@/hooks/useEvents';
 import type { CreateEventDto, Template } from '@/models';
 
 export function EventNewPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const createEvent = useCreateEvent();
@@ -30,11 +32,11 @@ export function EventNewPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="New Event" back />
+      <PageHeader title={t('events.newEventTitle')} back />
       {template && (
         <div className="px-5">
           <p className="text-xs text-dn-text-muted">
-            Template:{' '}
+            {t('events.template')}:{' '}
             <span className="text-dn-primary font-medium">{template.name}</span>
           </p>
         </div>
@@ -43,7 +45,7 @@ export function EventNewPage() {
         <EventForm
           preset={preset}
           onSubmit={handleSubmit}
-          submitLabel="Create Event"
+          submitLabel={t('events.createEvent')}
           loading={createEvent.isPending}
         />
       </div>

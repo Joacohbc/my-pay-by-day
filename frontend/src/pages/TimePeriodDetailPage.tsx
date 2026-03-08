@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { TimePeriodDashboard } from '@/components/time-periods/TimePeriodDashboard';
 import { useDefaultTimePeriod } from '@/hooks/useDefaultTimePeriod';
 import { Button } from '@/components/ui/Button';
@@ -6,6 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { ErrorState } from '@/components/ui/ErrorState';
 
 export function TimePeriodDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { defaultId, setDefaultId } = useDefaultTimePeriod();
@@ -13,7 +15,7 @@ export function TimePeriodDetailPage() {
   const numericId = id ? parseInt(id, 10) : NaN;
 
   if (isNaN(numericId)) {
-    return <ErrorState message="Invalid time period ID" />;
+    return <ErrorState message={t('periods.invalidId')} />;
   }
 
   const isDefault = defaultId === numericId;
@@ -38,7 +40,7 @@ export function TimePeriodDetailPage() {
           className={`flex items-center gap-1.5 ${isDefault ? 'text-dn-warning' : 'text-dn-text-muted'}`}
         >
           <Icon name={isDefault ? 'star' : 'star_border'} className="text-base" />
-          {isDefault ? 'Home default' : 'Set as default'}
+          {isDefault ? t('periods.homeDefault') : t('periods.setAsDefault')}
         </Button>
       </div>
       <TimePeriodDashboard timePeriodId={numericId} />

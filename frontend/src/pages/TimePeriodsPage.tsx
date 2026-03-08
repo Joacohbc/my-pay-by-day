@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import {
   useTimePeriods,
@@ -46,6 +47,7 @@ function getPeriodStatus(tp: TimePeriod): FilterTab {
 // ─── component ────────────────────────────────────────────────────────────────
 
 export function TimePeriodsPage() {
+  const { t } = useTranslation();
   const { data: periods, isLoading, error } = useTimePeriods();
   const createPeriod = useCreateTimePeriod();
   const updatePeriod = useUpdateTimePeriod();
@@ -159,27 +161,27 @@ export function TimePeriodsPage() {
   if (error) return <ErrorState message={String(error)} />;
 
   const filterTabs: { key: FilterTab; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'active', label: 'Active' },
-    { key: 'future', label: 'Future' },
-    { key: 'past', label: 'Past' },
+    { key: 'all', label: t('common.all') },
+    { key: 'active', label: t('periods.active') },
+    { key: 'future', label: t('periods.future') },
+    { key: 'past', label: t('periods.past') },
   ];
 
   const sortOptions: { field: SortField; label: string }[] = [
-    { field: 'startDate', label: 'Start' },
-    { field: 'endDate', label: 'End' },
-    { field: 'name', label: 'Name' },
+    { field: 'startDate', label: t('periods.start') },
+    { field: 'endDate', label: t('periods.end') },
+    { field: 'name', label: t('common.name') },
   ];
 
   return (
     <div className="space-y-4 pb-24">
       <PageHeader
-        title="Time Periods"
-        subtitle={`${allPeriods.length} period${allPeriods.length !== 1 ? 's' : ''}`}
+        title={t('periods.title')}
+        subtitle={t(allPeriods.length !== 1 ? 'periods.count_plural' : 'periods.count', { count: allPeriods.length })}
         action={
           <Button size="sm" onClick={openCreate}>
             <Icon name="add" className="text-sm" />
-            New
+            {t('common.new')}
           </Button>
         }
       />
@@ -189,8 +191,7 @@ export function TimePeriodsPage() {
         <div className="flex items-start gap-3 bg-dn-primary/5 border border-dn-primary/20 rounded-card px-4 py-3">
           <Icon name="info" className="text-dn-primary shrink-0 mt-0.5 text-base" />
           <p className="text-xs text-dn-text-muted leading-relaxed">
-            Star a period to set it as your <span className="text-dn-text-main font-medium">Home</span> default.
-            Income &amp; expense totals load in the background.
+            {t('periods.infoBanner')}
           </p>
         </div>
       </div>
@@ -201,7 +202,7 @@ export function TimePeriodsPage() {
           <Icon name="search" className="text-dn-text-muted text-[18px] shrink-0" />
           <input
             type="text"
-            placeholder="Search periods…"
+            placeholder={t('periods.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1 bg-transparent text-sm text-dn-text-main placeholder-dn-text-muted/50 focus:outline-none"
@@ -232,7 +233,7 @@ export function TimePeriodsPage() {
 
         {/* Sort controls (right-aligned) */}
         <div className="ml-auto flex items-center gap-1 shrink-0">
-          <span className="text-xs text-dn-text-muted">Sort:</span>
+          <span className="text-xs text-dn-text-muted">{t('common.sort')}:</span>
           {sortOptions.map(({ field, label }) => (
             <button
               key={field}
@@ -259,12 +260,12 @@ export function TimePeriodsPage() {
       {allPeriods.length === 0 ? (
         <EmptyState
           icon={<Icon name="calendar_month" className="text-2xl" />}
-          title="No time periods yet"
-          description="Create budget windows to track income, spending, and savings goals"
+          title={t('periods.noPeriods')}
+          description={t('periods.noPeriodsDesc')}
           action={
             <Button size="sm" onClick={openCreate}>
               <Icon name="add" className="text-sm" />
-              Create Period
+              {t('periods.createPeriod')}
             </Button>
           }
         />
@@ -272,12 +273,12 @@ export function TimePeriodsPage() {
         <div className="px-5">
           <div className="flex flex-col items-center gap-3 py-10 text-center">
             <Icon name="search_off" className="text-dn-text-muted text-3xl" />
-            <p className="text-sm text-dn-text-muted">No periods match your search or filter.</p>
+            <p className="text-sm text-dn-text-muted">{t('periods.noMatch')}</p>
             <button
               onClick={() => { setSearch(''); setFilter('all'); }}
               className="text-xs text-dn-primary underline"
             >
-              Clear filters
+              {t('common.clearFilters')}
             </button>
           </div>
         </div>
@@ -298,44 +299,44 @@ export function TimePeriodsPage() {
       <Modal
         open={showModal}
         onClose={() => { setShowModal(false); reset(); }}
-        title={editTarget ? 'Edit Time Period' : 'New Time Period'}
+        title={editTarget ? t('periods.editPeriod') : t('periods.newPeriod')}
         footer={
           <Button fullWidth onClick={handleSubmit(onSubmit)} loading={isSubmitting}>
-            {editTarget ? 'Update' : 'Create'}
+            {editTarget ? t('common.update') : t('common.create')}
           </Button>
         }
       >
         <form className="space-y-4">
           <Input
-            label="Name"
-            placeholder="e.g. March 2026, Q1 Budget"
+            label={t('common.name')}
+            placeholder={t('periods.namePlaceholder')}
             error={errors.name?.message}
-            {...register('name', { required: 'Name is required' })}
+            {...register('name', { required: t('common.nameRequired') })}
           />
           <Input
-            label="Start Date"
+            label={t('periods.startDate')}
             type="date"
             error={errors.startDate?.message}
-            {...register('startDate', { required: 'Start date is required' })}
+            {...register('startDate', { required: t('periods.startDateRequired') })}
           />
           <Input
-            label="End Date"
+            label={t('periods.endDate')}
             type="date"
             error={errors.endDate?.message}
-            {...register('endDate', { required: 'End date is required' })}
+            {...register('endDate', { required: t('periods.endDateRequired') })}
           />
           <Input
-            label="Budget Limit (optional)"
+            label={t('periods.budgetLimit')}
             type="number"
-            placeholder="e.g. 3000"
+            placeholder={t('periods.budgetLimitPlaceholder')}
             min="0"
             step="0.01"
             {...register('budgetedAmount')}
           />
           <Input
-            label="Savings Goal % (optional)"
+            label={t('periods.savingsGoal')}
             type="number"
-            placeholder="e.g. 20"
+            placeholder={t('periods.savingsGoalPlaceholder')}
             min="0"
             max="100"
             step="1"

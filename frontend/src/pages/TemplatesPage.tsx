@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { useTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate } from '@/hooks/useTemplates';
 import { useCategories } from '@/hooks/useCategories';
@@ -54,6 +55,7 @@ const DEFAULT_FORM: FormValues = {
 };
 
 export function TemplatesPage() {
+  const { t } = useTranslation();
   const { data: templates, isLoading, error } = useTemplates();
   const { data: categories = [] } = useCategories();
   const { data: tags = [] } = useTags();
@@ -130,7 +132,7 @@ export function TemplatesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this template?')) return;
+    if (!confirm(t('templates.deleteConfirm'))) return;
     await deleteTemplate.mutateAsync(id);
   };
 
@@ -141,84 +143,84 @@ export function TemplatesPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Templates"
+        title={t('templates.title')}
         back
-        subtitle={`${allTemplates.length} templates`}
+        subtitle={t('templates.count', { count: allTemplates.length })}
         action={
           <Button size="sm" onClick={openCreate}>
             <Icon name="add" className="text-sm" />
-            New
+            {t('common.new')}
           </Button>
         }
       />
 
       {allTemplates.length === 0 ? (
         <EmptyState
-          title="No templates"
-          description="Templates speed up event creation with pre-configured defaults and modifiers"
+          title={t('templates.noTemplates')}
+          description={t('templates.noTemplatesDesc')}
           action={
             <Button size="sm" onClick={openCreate}>
               <Icon name="add" className="text-sm" />
-              Add Template
+              {t('templates.addTemplate')}
             </Button>
           }
         />
       ) : (
         <div className="px-5 space-y-3">
-          {allTemplates.map((t) => (
-            <Card key={t.id} className="flex items-start gap-4">
+          {allTemplates.map((tpl) => (
+            <Card key={tpl.id} className="flex items-start gap-4">
               <div className="w-12 h-12 flex items-center justify-center rounded-full bg-dn-primary/10 text-dn-primary shrink-0 mt-0.5">
                 <Icon name="auto_fix_high" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-base font-medium text-dn-text-main">{t.name}</p>
-                  {t.eventType && (
+                  <p className="text-base font-medium text-dn-text-main">{tpl.name}</p>
+                  {tpl.eventType && (
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-pill font-medium ${EVENT_TYPE_COLORS[t.eventType] ?? 'text-dn-text-muted bg-dn-surface-low'}`}
+                      className={`text-xs px-2 py-0.5 rounded-pill font-medium ${EVENT_TYPE_COLORS[tpl.eventType] ?? 'text-dn-text-muted bg-dn-surface-low'}`}
                     >
-                      {EVENT_TYPE_LABELS[t.eventType]}
+                      {EVENT_TYPE_LABELS[tpl.eventType]}
                     </span>
                   )}
                 </div>
-                {t.description && (
-                  <p className="text-xs text-dn-text-muted mt-0.5 truncate">{t.description}</p>
+                {tpl.description && (
+                  <p className="text-xs text-dn-text-muted mt-0.5 truncate">{tpl.description}</p>
                 )}
-                {(t.originNodeName || t.destinationNodeName) && (
+                {(tpl.originNodeName || tpl.destinationNodeName) && (
                   <p className="text-xs text-dn-text-muted mt-0.5">
-                    {t.originNodeName}
-                    {t.destinationNodeName && (
-                      <span> → {t.destinationNodeName}</span>
+                    {tpl.originNodeName}
+                    {tpl.destinationNodeName && (
+                      <span> → {tpl.destinationNodeName}</span>
                     )}
                   </p>
                 )}
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  {t.category && (
-                    <span className="text-xs text-dn-text-muted">{t.category.name}</span>
+                  {tpl.category && (
+                    <span className="text-xs text-dn-text-muted">{tpl.category.name}</span>
                   )}
-                  {t.tags.map((tag) => (
+                  {tpl.tags.map((tag) => (
                     <span key={tag.id} className="text-xs text-dn-text-muted/70">
                       #{tag.name}
                     </span>
                   ))}
-                  {t.modifierType && t.modifierValue !== undefined && (
+                  {tpl.modifierType && tpl.modifierValue !== undefined && (
                     <span className="text-xs text-dn-primary/80">
-                      {t.modifierType === 'PERCENTAGE'
-                        ? `${t.modifierValue}% modifier`
-                        : `+$${t.modifierValue} fixed`}
+                      {tpl.modifierType === 'PERCENTAGE'
+                        ? `${tpl.modifierValue}% modifier`
+                        : `+$${tpl.modifierValue} fixed`}
                     </span>
                   )}
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <button
-                  onClick={() => openEdit(t)}
+                  onClick={() => openEdit(tpl)}
                   className="p-2 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
                 >
                   <Icon name="edit" className="text-base" />
                 </button>
                 <button
-                  onClick={() => handleDelete(t.id)}
+                  onClick={() => handleDelete(tpl.id)}
                   disabled={deleteTemplate.isPending}
                   className="p-2 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors disabled:opacity-50"
                 >
@@ -236,24 +238,24 @@ export function TemplatesPage() {
           setShowModal(false);
           reset(DEFAULT_FORM);
         }}
-        title={editTarget ? 'Edit Template' : 'New Template'}
+        title={editTarget ? t('templates.editTemplate') : t('templates.newTemplate')}
         footer={
           <Button fullWidth onClick={handleSubmit(onSubmit)} loading={isSubmitting}>
-            {editTarget ? 'Update' : 'Create'}
+            {editTarget ? t('common.update') : t('common.create')}
           </Button>
         }
       >
         <form className="space-y-4">
           <Input
-            label="Name"
-            placeholder="e.g. Work Uber, Grocery Run"
+            label={t('common.name')}
+            placeholder={t('templates.namePlaceholder')}
             error={errors.name?.message}
-            {...register('name', { required: 'Name is required' })}
+            {...register('name', { required: t('common.nameRequired') })}
           />
 
           <Textarea
-            label="Description"
-            placeholder="Optional description"
+            label={t('common.description')}
+            placeholder={t('templates.descriptionPlaceholder')}
             {...register('description')}
           />
 
@@ -262,12 +264,12 @@ export function TemplatesPage() {
             control={control}
             render={({ field }) => (
               <Select
-                label="Event Type"
-                placeholder="None"
+                label={t('templates.eventType')}
+                placeholder={t('common.none')}
                 options={[
-                  { value: 'INBOUND', label: 'Income' },
-                  { value: 'OUTBOUND', label: 'Expense' },
-                  { value: 'OTHER', label: 'Transfer' },
+                  { value: 'INBOUND', label: t('eventType.INBOUND') },
+                  { value: 'OUTBOUND', label: t('eventType.OUTBOUND') },
+                  { value: 'OTHER', label: t('eventType.OTHER') },
                 ]}
                 {...field}
               />
@@ -280,8 +282,8 @@ export function TemplatesPage() {
               control={control}
               render={({ field }) => (
                 <Select
-                  label="Origin Node"
-                  placeholder="None"
+                  label={t('templates.originNode')}
+                  placeholder={t('common.none')}
                   options={nodeOptions}
                   {...field}
                 />
@@ -292,8 +294,8 @@ export function TemplatesPage() {
               control={control}
               render={({ field }) => (
                 <Select
-                  label="Destination Node"
-                  placeholder="None"
+                  label={t('templates.destinationNode')}
+                  placeholder={t('common.none')}
                   options={nodeOptions}
                   {...field}
                 />
@@ -306,8 +308,8 @@ export function TemplatesPage() {
             control={control}
             render={({ field }) => (
               <Select
-                label="Category"
-                placeholder="None"
+                label={t('eventForm.category')}
+                placeholder={t('common.none')}
                 options={categories.map((c) => ({ value: String(c.id), label: c.name }))}
                 {...field}
               />
@@ -317,7 +319,7 @@ export function TemplatesPage() {
           {tags.length > 0 && (
             <div>
               <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2">
-                Tags
+                {t('eventForm.tags')}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Controller
@@ -363,11 +365,11 @@ export function TemplatesPage() {
               control={control}
               render={({ field }) => (
                 <Select
-                  label="Modifier"
-                  placeholder="None"
+                  label={t('templates.modifierType')}
+                  placeholder={t('common.none')}
                   options={[
-                    { value: 'PERCENTAGE', label: 'Percentage' },
-                    { value: 'FIXED', label: 'Fixed' },
+                    { value: 'PERCENTAGE', label: t('templates.percentage') },
+                    { value: 'FIXED', label: t('templates.fixed') },
                   ]}
                   {...field}
                 />
@@ -375,7 +377,7 @@ export function TemplatesPage() {
             />
             {watchModifierType && (
               <Input
-                label="Modifier Value"
+                label={t('templates.modifierValue')}
                 placeholder={watchModifierType === 'PERCENTAGE' ? 'e.g. 10' : 'e.g. 5.00'}
                 type="number"
                 step="0.01"

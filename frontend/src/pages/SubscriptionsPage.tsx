@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSubscriptions, useDeleteSubscription } from '@/hooks/useSubscriptions';
+import { formatDateFromParts } from '@/lib/format';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Card } from '@/components/ui/Card';
@@ -10,20 +12,10 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import type { Subscription } from '@/models';
 
-const recurrenceLabel: Record<string, string> = {
-  DAILY: 'Daily',
-  WEEKLY: 'Weekly',
-  MONTHLY: 'Monthly',
-  YEARLY: 'Yearly',
-};
-
 function SubscriptionCard({ sub }: { sub: Subscription }) {
+  const { t } = useTranslation();
   const del = useDeleteSubscription();
-  const nextDate = new Date(sub.nextExecutionDate).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  const nextDate = formatDateFromParts(sub.nextExecutionDate.slice(0, 10));
 
   return (
     <Card className="flex items-center gap-4">
@@ -33,14 +25,14 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
       <div className="flex-1 min-w-0">
         <p className="text-base font-medium text-dn-text-main truncate">{sub.name}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          <Badge variant="indigo">{recurrenceLabel[sub.recurrence]}</Badge>
+          <Badge variant="indigo">{t(`subscriptions.recurrence.${sub.recurrence}`)}</Badge>
           <span className="text-xs text-dn-text-muted flex items-center gap-1">
             <Icon name="calendar_today" className="text-xs" />
-            Next: {nextDate}
+            {t('subscriptions.next')}: {nextDate}
           </span>
         </div>
         {sub.template && (
-          <p className="text-xs text-dn-text-muted mt-0.5">Template: {sub.template.name}</p>
+          <p className="text-xs text-dn-text-muted mt-0.5">{t('events.template')}: {sub.template.name}</p>
         )}
       </div>
       <button
@@ -55,6 +47,7 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
 }
 
 export function SubscriptionsPage() {
+  const { t } = useTranslation();
   const { data: subs, isLoading, error } = useSubscriptions();
   const [showInfo, setShowInfo] = useState(false);
 
@@ -68,12 +61,12 @@ export function SubscriptionsPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Subscriptions"
-        subtitle="Recurring agreements"
+        title={t('subscriptions.title')}
+        subtitle={t('subscriptions.subtitle')}
         action={
           <Button size="sm" onClick={() => setShowInfo(true)}>
             <Icon name="add" className="text-sm" />
-            New
+            {t('common.new')}
           </Button>
         }
       />
@@ -83,9 +76,9 @@ export function SubscriptionsPage() {
         <div className="mx-5 flex items-start gap-3 bg-dn-tertiary/10 border border-dn-tertiary/20 rounded-card px-4 py-3">
           <Icon name="info" className="text-dn-tertiary shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-dn-tertiary">Feature coming soon</p>
+            <p className="text-sm font-medium text-dn-tertiary">{t('subscriptions.featureComingSoon')}</p>
             <p className="text-xs text-dn-text-muted mt-0.5">
-              The subscriptions API is not yet implemented in the backend.
+              {t('subscriptions.featureComingSoonDesc')}
             </p>
           </div>
         </div>
@@ -97,11 +90,9 @@ export function SubscriptionsPage() {
           <div className="flex items-start gap-3">
             <Icon name="sync" className="text-dn-primary shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-dn-text-main">How Subscriptions Work</p>
+              <p className="text-sm font-semibold text-dn-text-main">{t('subscriptions.howItWorks')}</p>
               <p className="text-xs text-dn-text-muted mt-1 leading-relaxed">
-                Subscriptions are recurring agreements linked to a <span className="text-dn-text-main">Template</span>.
-                When a billing cycle is reached, an Event is automatically generated using that Template.
-                Use them for Netflix, rent, gym, salary, etc.
+                {t('subscriptions.howItWorksDesc')}
               </p>
             </div>
           </div>
@@ -112,12 +103,12 @@ export function SubscriptionsPage() {
       {allSubs.length === 0 && !error ? (
         <EmptyState
           icon={<Icon name="sync" className="text-2xl" />}
-          title="No subscriptions yet"
-          description="Set up recurring agreements to automate your financial tracking"
+          title={t('subscriptions.noSubs')}
+          description={t('subscriptions.noSubsDesc')}
           action={
             <Button size="sm" onClick={() => setShowInfo(true)}>
               <Icon name="add" className="text-sm" />
-              Add Subscription
+                {t('subscriptions.addSubscription')}
             </Button>
           }
         />
@@ -133,10 +124,10 @@ export function SubscriptionsPage() {
       <Modal
         open={showInfo}
         onClose={() => setShowInfo(false)}
-        title="Create Subscription"
+        title={t('subscriptions.createSubscription')}
         footer={
           <Button variant="secondary" fullWidth onClick={() => setShowInfo(false)}>
-            Close
+            {t('common.close')}
           </Button>
         }
       >
@@ -144,14 +135,11 @@ export function SubscriptionsPage() {
           <div className="flex items-start gap-2">
             <Icon name="info" className="text-dn-tertiary shrink-0 mt-0.5" />
             <p>
-              The subscriptions feature requires the backend to be fully implemented.
-              Once available, you'll be able to select a Template, set a recurrence
-              (Daily, Weekly, Monthly, Yearly), and define a next execution date.
+              {t('subscriptions.infoModalDesc')}
             </p>
           </div>
           <p className="text-xs text-dn-text-muted">
-            Templates define the default origin/destination nodes, category, tags, and
-            optional amount modifiers (e.g. auto-add 10% tip).
+            {t('subscriptions.infoModalSubtext')}
           </p>
         </div>
       </Modal>

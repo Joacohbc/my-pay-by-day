@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from '@/hooks/useCategories';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -19,6 +20,7 @@ interface FormValues {
 }
 
 export function CategoriesPage() {
+  const { t } = useTranslation();
   const { data: categories, isLoading, error } = useCategories();
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
@@ -60,7 +62,7 @@ export function CategoriesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this category?')) return;
+    if (!confirm(t('categories.deleteConfirm'))) return;
     await deleteCategory.mutateAsync(id);
   };
 
@@ -69,25 +71,25 @@ export function CategoriesPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Categories"
+        title={t('categories.title')}
         back
-        subtitle={`${allCategories.length} categories`}
+        subtitle={t('categories.count', { count: allCategories.length })}
         action={
           <Button size="sm" onClick={openCreate}>
             <Icon name="add" className="text-sm" />
-            New
+            {t('common.new')}
           </Button>
         }
       />
 
       {allCategories.length === 0 ? (
         <EmptyState
-          title="No categories"
-          description="Categories help classify your events as budget buckets"
+          title={t('categories.noCategories')}
+          description={t('categories.noCategoriesDesc')}
           action={
             <Button size="sm" onClick={openCreate}>
               <Icon name="add" className="text-sm" />
-              Add Category
+              {t('categories.addCategory')}
             </Button>
           }
         />
@@ -127,23 +129,23 @@ export function CategoriesPage() {
       <Modal
         open={showModal}
         onClose={() => { setShowModal(false); reset(); }}
-        title={editTarget ? 'Edit Category' : 'New Category'}
+        title={editTarget ? t('categories.editCategory') : t('categories.newCategory')}
         footer={
           <Button fullWidth onClick={handleSubmit(onSubmit)} loading={isSubmitting}>
-            {editTarget ? 'Update' : 'Create'}
+            {editTarget ? t('common.update') : t('common.create')}
           </Button>
         }
       >
         <form className="space-y-4">
           <Input
-            label="Name"
-            placeholder="e.g. Food, Transport, Utilities"
+            label={t('common.name')}
+            placeholder={t('categories.namePlaceholder')}
             error={errors.name?.message}
-            {...register('name', { required: 'Name is required' })}
+            {...register('name', { required: t('common.nameRequired') })}
           />
           <Textarea
-            label="Description"
-            placeholder="Optional description"
+            label={t('common.description')}
+            placeholder={t('categories.descriptionPlaceholder')}
             {...register('description')}
           />
         </form>

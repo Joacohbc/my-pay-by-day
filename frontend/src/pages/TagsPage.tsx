@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from '@/hooks/useTags';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -19,6 +20,7 @@ interface FormValues {
 }
 
 export function TagsPage() {
+  const { t } = useTranslation();
   const { data: tags, isLoading, error } = useTags();
   const createTag = useCreateTag();
   const updateTag = useUpdateTag();
@@ -60,7 +62,7 @@ export function TagsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this tag?')) return;
+    if (!confirm(t('tags.deleteConfirm'))) return;
     await deleteTag.mutateAsync(id);
   };
 
@@ -69,13 +71,13 @@ export function TagsPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Tags"
+        title={t('tags.title')}
         back
-        subtitle={`${allTags.length} tags`}
+        subtitle={t('tags.count', { count: allTags.length })}
         action={
           <Button size="sm" onClick={openCreate}>
             <Icon name="add" className="text-sm" />
-            New
+            {t('common.new')}
           </Button>
         }
       />
@@ -83,21 +85,19 @@ export function TagsPage() {
       {/* Description */}
       <div className="px-5">
         <p className="text-sm text-dn-text-muted">
-          Tags are transversal labels (e.g. <span className="text-dn-primary">#Vacation2026</span>,{' '}
-          <span className="text-dn-primary">#Reimbursable</span>) that can be applied to multiple
-          events for cross-cutting reports.
+          {t('tags.explanation')}
         </p>
       </div>
 
       {allTags.length === 0 ? (
         <EmptyState
           icon={<Icon name="tag" />}
-          title="No tags yet"
-          description="Create tags to group events across different categories"
+          title={t('tags.noTags')}
+          description={t('tags.noTagsDesc')}
           action={
             <Button size="sm" onClick={openCreate}>
               <Icon name="add" className="text-sm" />
-              Add Tag
+              {t('tags.addTag')}
             </Button>
           }
         />
@@ -137,23 +137,23 @@ export function TagsPage() {
       <Modal
         open={showModal}
         onClose={() => { setShowModal(false); reset(); }}
-        title={editTarget ? 'Edit Tag' : 'New Tag'}
+        title={editTarget ? t('tags.editTag') : t('tags.newTag')}
         footer={
           <Button fullWidth onClick={handleSubmit(onSubmit)} loading={isSubmitting}>
-            {editTarget ? 'Update' : 'Create'}
+            {editTarget ? t('common.update') : t('common.create')}
           </Button>
         }
       >
         <form className="space-y-4">
           <Input
-            label="Tag Name"
-            placeholder="e.g. Vacation2026, Reimbursable"
+            label={t('tags.tagName')}
+            placeholder={t('tags.namePlaceholder')}
             error={errors.name?.message}
-            {...register('name', { required: 'Name is required' })}
+            {...register('name', { required: t('common.nameRequired') })}
           />
           <Textarea
-            label="Description"
-            placeholder="Optional description"
+            label={t('common.description')}
+            placeholder={t('tags.descriptionPlaceholder')}
             {...register('description')}
           />
         </form>

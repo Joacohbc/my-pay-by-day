@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
@@ -6,6 +8,8 @@ import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
 import { useTemplates } from '@/hooks/useTemplates';
+import { changeLanguage } from '@/i18n';
+import { getCurrency, setCurrency, onCurrencyChange } from '@/lib/format';
 
 interface SettingRowProps {
   to: string;
@@ -39,49 +43,110 @@ function SettingRow({ to, icon, title, subtitle, count }: SettingRowProps) {
 }
 
 export function SettingsPage() {
+  const { t, i18n } = useTranslation();
+  const [currency, _setCurrency] = useState(getCurrency);
   const { data: categories = [] } = useCategories();
   const { data: tags = [] } = useTags();
   const { data: nodes = [] } = useNodes();
   const { data: templates = [] } = useTemplates();
 
+  useEffect(() => onCurrencyChange(() => _setCurrency(getCurrency())), []);
+
+  const handleCurrencyChange = (code: string) => {
+    setCurrency(code);
+    _setCurrency(code);
+  };
+
   const activeNodes = nodes.filter((n) => !n.archived);
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Settings" />
+      <PageHeader title={t('settings.title')} />
+
+      {/* Preferences */}
+      <section className="px-5">
+        <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">
+          {t('settings.preferences')}
+        </p>
+        <Card padding={false} className="overflow-hidden divide-y divide-white/5">
+          <div className="flex items-center gap-4 px-4 py-3.5">
+            <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-surface-low text-dn-text-muted shrink-0">
+              <Icon name="language" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dn-text-main">{t('settings.language')}</p>
+              <p className="text-xs text-dn-text-muted">{t('settings.languageDesc')}</p>
+            </div>
+            <select
+              value={i18n.language}
+              onChange={(e) => changeLanguage(e.target.value)}
+              className="text-sm bg-dn-surface-low text-dn-text-main border border-white/10 rounded-input px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-dn-primary shrink-0"
+            >
+              <option value="en">English</option>
+              <option value="es">Español</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-4 px-4 py-3.5">
+            <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-surface-low text-dn-text-muted shrink-0">
+              <Icon name="payments" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dn-text-main">{t('settings.currency')}</p>
+              <p className="text-xs text-dn-text-muted">{t('settings.currencyDesc')}</p>
+            </div>
+            <select
+              value={currency}
+              onChange={(e) => handleCurrencyChange(e.target.value)}
+              className="text-sm bg-dn-surface-low text-dn-text-main border border-white/10 rounded-input px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-dn-primary shrink-0"
+            >
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="ARS">ARS ($)</option>
+              <option value="MXN">MXN ($)</option>
+              <option value="COP">COP ($)</option>
+              <option value="CLP">CLP ($)</option>
+              <option value="PEN">PEN (S/)</option>
+              <option value="BRL">BRL (R$)</option>
+              <option value="UYU">UYU ($)</option>
+              <option value="JPY">JPY (¥)</option>
+            </select>
+          </div>
+        </Card>
+      </section>
 
       {/* Data Management */}
       <section className="px-5">
         <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">
-          Data Management
+          {t('settings.dataManagement')}
         </p>
         <Card padding={false} className="overflow-hidden divide-y divide-white/5">
           <SettingRow
             to="/settings/categories"
             icon="folder_open"
-            title="Categories"
-            subtitle="Budget classification buckets"
+            title={t('categories.title')}
+            subtitle={t('settings.categoriesDesc')}
             count={categories.length}
           />
           <SettingRow
             to="/settings/tags"
             icon="tag"
-            title="Tags"
-            subtitle="Transversal labels for events"
+            title={t('tags.title')}
+            subtitle={t('settings.tagsDesc')}
             count={tags.length}
           />
           <SettingRow
             to="/nodes"
             icon="account_balance_wallet"
-            title="Finance Nodes"
-            subtitle="Accounts, entities, contacts"
+            title={t('nodes.title')}
+            subtitle={t('settings.nodesDesc')}
             count={activeNodes.length}
           />
           <SettingRow
             to="/settings/templates"
             icon="auto_fix_high"
-            title="Templates"
-            subtitle="Blueprints for rapid event creation"
+            title={t('templates.title')}
+            subtitle={t('settings.templatesDesc')}
             count={templates.length}
           />
         </Card>
@@ -90,21 +155,19 @@ export function SettingsPage() {
       {/* About */}
       <section className="px-5">
         <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">
-          About
+          {t('settings.about')}
         </p>
         <Card>
           <div className="flex items-start gap-3">
             <Icon name="info" className="text-dn-text-muted shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="text-sm font-medium text-dn-text-main">MyPayByDay</p>
+              <p className="text-sm font-medium text-dn-text-main">{t('settings.appName')}</p>
               <p className="text-xs text-dn-text-muted leading-relaxed">
-                A double-entry personal finance system. Every Event wraps a
-                Transaction whose Line Items must always sum to zero — money
-                never appears or disappears.
+                {t('settings.appDesc')}
               </p>
               <div className="pt-2 space-y-0.5">
-                <p className="text-xs text-dn-text-muted/60">Backend: Quarkus 3.x + SQLite</p>
-                <p className="text-xs text-dn-text-muted/60">Frontend: React + TypeScript + Tailwind CSS</p>
+                <p className="text-xs text-dn-text-muted/60">{t('settings.backendStack')}</p>
+                <p className="text-xs text-dn-text-muted/60">{t('settings.frontendStack')}</p>
               </div>
             </div>
           </div>

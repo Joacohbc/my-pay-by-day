@@ -1,35 +1,85 @@
+import i18n from '@/i18n';
 import type { FinanceEvent } from '@/models';
 
-const currencyFmt = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  minimumFractionDigits: 2,
-});
+const LOCALE_MAP: Record<string, string> = {
+  en: 'en-US',
+  es: 'es-ES',
+};
 
-const dateFmt = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-});
+const CURRENCY_KEY = 'app-currency';
+const DEFAULT_CURRENCY = 'USD';
 
-const timeFmt = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-});
+const currencyListeners: Array<() => void> = [];
+
+export function getCurrency(): string {
+  try {
+    return localStorage.getItem(CURRENCY_KEY) ?? DEFAULT_CURRENCY;
+  } catch {
+    return DEFAULT_CURRENCY;
+  }
+}
+
+export function setCurrency(code: string) {
+  try {
+    localStorage.setItem(CURRENCY_KEY, code);
+  } catch {
+    // ignore
+  }
+  currencyListeners.forEach((fn) => fn());
+}
+
+export function onCurrencyChange(fn: () => void): () => void {
+  currencyListeners.push(fn);
+  return () => {
+    const idx = currencyListeners.indexOf(fn);
+    if (idx >= 0) currencyListeners.splice(idx, 1);
+  };
+}
+
+function locale(): string {
+  return LOCALE_MAP[i18n.language] ?? i18n.language;
+}
 
 export function formatCurrency(amount: number): string {
-  return currencyFmt.format(amount);
+  return new Intl.NumberFormat(locale(), {
+    style: 'currency',
+    currency: getCurrency(),
+    minimumFractionDigits: 2,
+  }).format(amount);
+}
+
+export function formatCurrencyShort(amount: number): string {
+  return new Intl.NumberFormat(locale(), {
+    style: 'currency',
+    currency: getCurrency(),
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 export function formatDate(isoString: string): string {
-  return dateFmt.format(new Date(isoString));
+  return new Intl.DateTimeFormat(locale(), {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(isoString));
+}
+
+export function formatDateFromParts(dateOnly: string): string {
+  return new Intl.DateTimeFormat(locale(), {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(dateOnly + 'T00:00:00'));
 }
 
 export function formatDateTime(isoString: string): string {
-  return timeFmt.format(new Date(isoString));
+  return new Intl.DateTimeFormat(locale(), {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(isoString));
 }
 
 export function formatDateInput(isoString: string): string {

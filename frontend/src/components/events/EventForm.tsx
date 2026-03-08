@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useFieldArray, useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
@@ -56,9 +57,10 @@ export function EventForm({
   defaultValues,
   preset,
   onSubmit,
-  submitLabel = 'Save',
+  submitLabel,
   loading = false,
 }: EventFormProps) {
+  const { t } = useTranslation();
   const { data: categories = [] } = useCategories();
   const { data: tags = [] } = useTags();
   const { data: nodes = [] } = useNodes();
@@ -149,15 +151,15 @@ export function EventForm({
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
       {/* Basic Info */}
       <Input
-        label="Event Name"
-        placeholder="e.g. Dinner with friends"
+        label={t('eventForm.eventName')}
+        placeholder={t('eventForm.eventNamePlaceholder')}
         error={errors.name?.message}
         {...register('name')}
       />
 
       <Textarea
-        label="Description"
-        placeholder="Optional details"
+        label={t('eventForm.description')}
+        placeholder={t('eventForm.descriptionPlaceholder')}
         {...register('description')}
       />
 
@@ -167,12 +169,12 @@ export function EventForm({
           control={control}
           render={({ field }) => (
             <Select
-              label="Type"
+              label={t('eventForm.type')}
               error={errors.type?.message}
               options={[
-                { value: 'INBOUND', label: 'Income' },
-                { value: 'OUTBOUND', label: 'Expense' },
-                { value: 'OTHER', label: 'Transfer' },
+                { value: 'INBOUND', label: t('eventType.INBOUND') },
+                { value: 'OUTBOUND', label: t('eventType.OUTBOUND') },
+                { value: 'OTHER', label: t('eventType.OTHER') },
               ]}
               {...field}
             />
@@ -181,7 +183,7 @@ export function EventForm({
 
         <Input
           type="datetime-local"
-          label="Date & Time"
+          label={t('eventForm.dateTime')}
           error={errors.transactionDate?.message}
           {...register('transactionDate')}
         />
@@ -194,8 +196,8 @@ export function EventForm({
           control={control}
           render={({ field }) => (
             <Select
-              label="Category"
-              placeholder="None"
+              label={t('eventForm.category')}
+              placeholder={t('common.none')}
               options={categories.map((c) => ({ value: String(c.id), label: c.name }))}
               {...field}
             />
@@ -206,7 +208,7 @@ export function EventForm({
       {/* Tags */}
       {tags.length > 0 && (
         <div>
-          <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2">Tags</p>
+          <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2">{t('eventForm.tags')}</p>
           <div className="flex flex-wrap gap-2">
             <Controller
               name="tagIds"
@@ -248,7 +250,7 @@ export function EventForm({
       {/* Line Items */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">Line Items</p>
+          <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">{t('eventForm.lineItems')}</p>
           {!isTemplateMode && (
             <button
               type="button"
@@ -256,7 +258,7 @@ export function EventForm({
               className="flex items-center gap-1 text-xs text-dn-primary hover:brightness-110 transition-all"
             >
               <Icon name="add" className="text-sm" />
-              Add
+              {t('eventForm.addLineItem')}
             </button>
           )}
         </div>
@@ -288,7 +290,7 @@ export function EventForm({
                       control={control}
                       render={({ field: f }) => (
                         <Select
-                          placeholder="Select node"
+                          placeholder={t('eventForm.selectNode')}
                           options={nodeOptions}
                           error={errors.lineItems?.[i]?.nodeId?.message}
                           {...f}
@@ -300,7 +302,7 @@ export function EventForm({
               ))}
             </div>
             <Input
-              label="Amount"
+              label={t('eventForm.amount')}
               placeholder="0.00"
               type="number"
               step="0.01"
@@ -320,7 +322,7 @@ export function EventForm({
                     control={control}
                     render={({ field: f }) => (
                       <Select
-                        placeholder="Select node"
+                        placeholder={t('eventForm.selectNode')}
                         options={nodeOptions}
                         error={errors.lineItems?.[i]?.nodeId?.message}
                         {...f}
@@ -368,21 +370,21 @@ export function EventForm({
 
         <p className="text-xs text-dn-text-muted mt-2">
           {watchType !== 'OTHER'
-            ? 'Enter positive amounts — signs are assigned automatically by position. Sum must equal zero.'
-            : 'Positive = inflow to node, Negative = outflow from node. Sum must equal zero.'}
+            ? t('eventForm.signedAmountHint')
+            : t('eventForm.manualAmountHint')}
         </p>
       </div>
 
       {/* Receipt URL */}
       <Input
-        label="Receipt URL"
-        placeholder="https://..."
+        label={t('eventForm.receiptUrl')}
+        placeholder={t('eventForm.receiptUrlPlaceholder')}
         type="url"
         {...register('receiptUrl')}
       />
 
       <Button type="submit" fullWidth loading={loading}>
-        {submitLabel}
+        {submitLabel ?? t('common.save')}
       </Button>
     </form>
   );

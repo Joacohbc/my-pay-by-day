@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNodes, useCreateNode, useArchiveNode, useDeleteNode, useNodeBalance } from '@/hooks/useNodes';
+import { formatCurrency } from '@/lib/format';
 import { NodeCard } from '@/components/nodes/NodeCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -24,12 +26,13 @@ function NodeBalanceBadge({ nodeId }: { nodeId: number }) {
   return (
     <span className={`text-xs font-mono ${balance >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
       {balance >= 0 ? '+' : ''}
-      {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(balance)}
+      {formatCurrency(balance)}
     </span>
   );
 }
 
 function NodeActionMenu({ node }: { node: FinanceNode }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const archive = useArchiveNode();
   const del = useDeleteNode();
@@ -55,7 +58,7 @@ function NodeActionMenu({ node }: { node: FinanceNode }) {
                 className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dn-text-main hover:bg-dn-surface-low transition-colors"
               >
                 <Icon name="archive" className="text-base" />
-                Archive
+                {t('common.archive')}
               </button>
             )}
             <button
@@ -73,6 +76,7 @@ function NodeActionMenu({ node }: { node: FinanceNode }) {
 }
 
 export function NodesPage() {
+  const { t } = useTranslation();
   const { data: nodes, isLoading, error } = useNodes();
   const createNode = useCreateNode();
   const [showModal, setShowModal] = useState(false);
@@ -98,20 +102,20 @@ export function NodesPage() {
   };
 
   const nodeTypeOptions = [
-    { value: 'OWN', label: 'Own Account (Bank, Cash, Credit)' },
-    { value: 'EXTERNAL', label: 'External Entity (Shop, Employer)' },
-    { value: 'CONTACT', label: 'Contact (Friend, Family)' },
+    { value: 'OWN', label: t('nodes.ownAccountType') },
+    { value: 'EXTERNAL', label: t('nodes.externalType') },
+    { value: 'CONTACT', label: t('nodes.contactType') },
   ];
 
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Finance Nodes"
-        subtitle={`${activeNodes.length} active`}
+        title={t('nodes.title')}
+        subtitle={t('nodes.activeCount', { count: activeNodes.length })}
         action={
           <Button size="sm" onClick={() => setShowModal(true)}>
             <Icon name="add" className="text-sm" />
-            New
+            {t('common.new')}
           </Button>
         }
       />
@@ -127,7 +131,7 @@ export function NodesPage() {
               : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
           ].join(' ')}
         >
-          Active
+          {t('common.active')}
         </button>
         {archivedNodes.length > 0 && (
           <button
@@ -139,7 +143,7 @@ export function NodesPage() {
                 : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
             ].join(' ')}
           >
-            All ({allNodes.length})
+            {t('common.all')} ({allNodes.length})
           </button>
         )}
       </div>
@@ -149,9 +153,9 @@ export function NodesPage() {
         const group = displayNodes.filter((n) => n.type === type);
         if (group.length === 0) return null;
         const labels: Record<FinanceNodeType, string> = {
-          OWN: 'Own Accounts',
-          EXTERNAL: 'External Entities',
-          CONTACT: 'Contacts',
+          OWN: t('nodes.ownAccounts'),
+          EXTERNAL: t('nodes.externalEntities'),
+          CONTACT: t('nodes.contacts'),
         };
         return (
           <section key={type} className="px-5">
@@ -179,12 +183,12 @@ export function NodesPage() {
 
       {displayNodes.length === 0 && (
         <EmptyState
-          title="No nodes yet"
-          description="Add accounts, external entities, or contacts"
+          title={t('nodes.noNodesYet')}
+          description={t('nodes.noNodesDesc')}
           action={
             <Button size="sm" onClick={() => setShowModal(true)}>
               <Icon name="add" className="text-sm" />
-              Add Node
+              {t('nodes.addNode')}
             </Button>
           }
         />
@@ -194,35 +198,35 @@ export function NodesPage() {
       <Modal
         open={showModal}
         onClose={() => { setShowModal(false); reset(); }}
-        title="New Finance Node"
+        title={t('nodes.newNode')}
         footer={
           <Button fullWidth onClick={handleSubmit(onSubmit)} loading={createNode.isPending}>
-            Create Node
+            {t('nodes.createNode')}
           </Button>
         }
       >
         <form className="space-y-4">
           <Input
-            label="Name"
-            placeholder="e.g. Main Bank Account"
+            label={t('common.name')}
+            placeholder={t('nodes.nodeNamePlaceholder')}
             error={errors.name?.message}
-            {...register('name', { required: 'Name is required' })}
+            {...register('name', { required: t('common.nameRequired') })}
           />
           <Controller
             name="type"
             control={control}
             render={({ field }) => (
               <Select
-                label="Type"
+                label={t('common.type')}
                 options={nodeTypeOptions}
                 {...field}
               />
             )}
           />
           <div className="bg-dn-surface-low rounded-input p-3 space-y-1 text-xs text-dn-text-muted">
-            <p><span className="text-dn-text-main font-medium">Own:</span> Your bank accounts, wallets, credit cards</p>
-            <p><span className="text-dn-text-main font-medium">External:</span> Shops, employers, services (expenses/income)</p>
-            <p><span className="text-dn-text-main font-medium">Contact:</span> Friends/family — money owed or lent</p>
+            <p><span className="text-dn-text-main font-medium">{t('nodeType.OWN')}:</span> {t('nodes.ownDesc')}</p>
+            <p><span className="text-dn-text-main font-medium">{t('nodeType.EXTERNAL')}:</span> {t('nodes.externalDesc')}</p>
+            <p><span className="text-dn-text-main font-medium">{t('nodeType.CONTACT')}:</span> {t('nodes.contactDesc')}</p>
           </div>
         </form>
       </Modal>

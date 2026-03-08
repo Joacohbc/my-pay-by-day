@@ -1,4 +1,6 @@
+import { useTranslation } from 'react-i18next';
 import type { FinanceNode } from '@/models';
+import { formatCurrency } from '@/lib/format';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
 
@@ -13,24 +15,25 @@ const nodeTypeConfig = {
   OWN: {
     icon: 'account_balance_wallet',
     iconBg: 'bg-dn-primary/10 text-dn-primary',
-    label: 'Own Account',
+    labelKey: 'nodeType.OWN',
     badgeVariant: 'indigo' as const,
   },
   EXTERNAL: {
     icon: 'storefront',
     iconBg: 'bg-dn-tertiary/10 text-dn-tertiary',
-    label: 'External',
+    labelKey: 'nodeType.EXTERNAL',
     badgeVariant: 'neutral' as const,
   },
   CONTACT: {
     icon: 'group',
     iconBg: 'bg-dn-success/10 text-dn-success',
-    label: 'Contact',
+    labelKey: 'nodeType.CONTACT',
     badgeVariant: 'income' as const,
   },
 };
 
 export function NodeCard({ node, balance, onClick, actions }: NodeCardProps) {
+  const { t } = useTranslation();
   const cfg = nodeTypeConfig[node.type];
 
   return (
@@ -55,13 +58,13 @@ export function NodeCard({ node, balance, onClick, actions }: NodeCardProps) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-base font-medium text-dn-text-main truncate">{node.name}</p>
-          <Badge variant={cfg.badgeVariant}>{cfg.label}</Badge>
-          {node.archived && <Badge variant="default">Archived</Badge>}
+          <Badge variant={cfg.badgeVariant}>{t(cfg.labelKey)}</Badge>
+          {node.archived && <Badge variant="default">{t('common.archived')}</Badge>}
         </div>
         {balance !== undefined && (
           <p className={`text-sm mt-0.5 font-mono ${balance >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
             {balance >= 0 ? '+' : ''}
-            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(balance)}
+            {formatCurrency(balance)}
           </p>
         )}
       </div>
