@@ -88,17 +88,30 @@ export interface CreateEventDto {
 
 // ─── Template ─────────────────────────────────────────────────────────────────
 
-export interface TemplateLineItem extends Identifiable {
-  financeNode: FinanceNode;
-  amount: number;
+export interface Template extends Identifiable {
+  name: string;
+  description?: string;
+  originNodeId?: number;
+  originNodeName?: string;
+  destinationNodeId?: number;
+  destinationNodeName?: string;
+  category?: Category;
+  tags: Tag[];
+  eventType?: EventType;
   modifierType?: ModifierType;
   modifierValue?: number;
 }
 
-export interface Template extends Identifiable {
+export interface CreateTemplateDto {
   name: string;
   description?: string;
-  lineItems: TemplateLineItem[];
+  originNodeId?: number;
+  destinationNodeId?: number;
+  category?: { id: number };
+  tags?: { id: number }[];
+  eventType?: EventType;
+  modifierType?: ModifierType;
+  modifierValue?: number;
 }
 
 // ─── Subscription ─────────────────────────────────────────────────────────────

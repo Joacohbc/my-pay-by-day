@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
-import type { CreateEventDto, FinanceEvent } from '@/models';
+import type { CreateEventDto, EventType, FinanceEvent } from '@/models';
 import { toLocalDateTimeString } from '@/lib/format';
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
@@ -35,8 +35,16 @@ type FormValues = z.infer<typeof schema>;
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
+interface EventFormPreset {
+  type?: EventType;
+  categoryId?: number;
+  tagIds?: string[];
+  lineNodeIds?: number[];
+}
+
 interface EventFormProps {
   defaultValues?: Partial<FinanceEvent>;
+  preset?: EventFormPreset;
   onSubmit: (dto: CreateEventDto) => Promise<void>;
   submitLabel?: string;
   loading?: boolean;
@@ -44,6 +52,7 @@ interface EventFormProps {
 
 export function EventForm({
   defaultValues,
+  preset,
   onSubmit,
   submitLabel = 'Save',
   loading = false,
@@ -65,17 +74,24 @@ export function EventForm({
       name: defaultValues?.name ?? '',
       description: defaultValues?.description ?? '',
       receiptUrl: defaultValues?.receiptUrl ?? '',
-      type: defaultValues?.type ?? 'OUTBOUND',
+      type: defaultValues?.type ?? preset?.type ?? 'OUTBOUND',
       transactionDate: defaultValues?.transactionDate
         ? toLocalDateTimeString(new Date(defaultValues.transactionDate))
         : toLocalDateTimeString(new Date()),
-      categoryId: defaultValues?.category ? String(defaultValues.category.id) : '',
-      tagIds: defaultValues?.tags?.map((t) => String(t.id)) ?? [],
+      categoryId: defaultValues?.category
+        ? String(defaultValues.category.id)
+        : preset?.categoryId
+        ? String(preset.categoryId)
+        : '',
+      tagIds: defaultValues?.tags?.map((t) => String(t.id)) ?? preset?.tagIds ?? [],
       lineItems:
         defaultValues?.lineItems?.map((li) => ({
           nodeId: String(li.financeNodeId),
           amount: String(li.amount),
-        })) ?? [{ nodeId: '', amount: '' }],
+        })) ??
+        (preset?.lineNodeIds?.length
+          ? preset.lineNodeIds.map((id) => ({ nodeId: String(id), amount: '' }))
+          : [{ nodeId: '', amount: '' }]),
     },
   });
 

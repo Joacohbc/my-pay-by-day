@@ -10,6 +10,7 @@ import { SubscriptionsPage } from '@/pages/SubscriptionsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { CategoriesPage } from '@/pages/CategoriesPage';
 import { TagsPage } from '@/pages/TagsPage';
+import { TemplatesPage } from '@/pages/TemplatesPage';
 
 export const router = createBrowserRouter([
   {
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
       { path: 'settings', element: <SettingsPage /> },
       { path: 'settings/categories', element: <CategoriesPage /> },
       { path: 'settings/tags', element: <TagsPage /> },
+      { path: 'settings/templates', element: <TemplatesPage /> },
 
       // Fallback
       { path: '*', element: <Navigate to="/" replace /> },

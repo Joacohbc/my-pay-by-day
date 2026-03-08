@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useEvents } from '@/hooks/useEvents';
+import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
+import type { Template } from '@/models';
 import { EventCard } from '@/components/events/EventCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -11,12 +13,24 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { formatCurrency, eventNetAmount } from '@/lib/format';
 import type { EventType } from '@/models';
 
+
 type FilterType = 'ALL' | EventType;
 
 export function EventsPage() {
+  const navigate = useNavigate();
   const { data: events, isLoading, error } = useEvents();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('ALL');
+  const [showPicker, setShowPicker] = useState(false);
+
+  const handlePickTemplate = (template: Template | null) => {
+    setShowPicker(false);
+    if (template) {
+      navigate('/events/new', { state: { template } });
+    } else {
+      navigate('/events/new');
+    }
+  };
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
@@ -63,12 +77,10 @@ export function EventsPage() {
         title="Activity"
         subtitle={`${allEvents.length} events`}
         action={
-          <Link to="/events/new">
-            <Button size="sm">
-              <span className="material-symbols-outlined text-sm">add</span>
-              New
-            </Button>
-          </Link>
+          <Button size="sm" onClick={() => setShowPicker(true)}>
+            <span className="material-symbols-outlined text-sm">add</span>
+            New
+          </Button>
         }
       />
 
@@ -122,12 +134,10 @@ export function EventsPage() {
             title="No events found"
             description={search ? 'Try a different search term' : 'Create your first financial event'}
             action={
-              <Link to="/events/new">
-                <Button size="sm">
-                  <span className="material-symbols-outlined text-sm">add</span>
-                  New Event
-                </Button>
-              </Link>
+              <Button size="sm" onClick={() => setShowPicker(true)}>
+                <span className="material-symbols-outlined text-sm">add</span>
+                New Event
+              </Button>
             }
           />
         ) : (
@@ -140,6 +150,12 @@ export function EventsPage() {
           </Card>
         )}
       </div>
+
+      <TemplatePickerModal
+        open={showPicker}
+        onClose={() => setShowPicker(false)}
+        onSelect={handlePickTemplate}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
+import { useTemplates } from '@/hooks/useTemplates';
 
 interface SettingRowProps {
   to: string;
@@ -40,6 +41,7 @@ export function SettingsPage() {
   const { data: categories = [] } = useCategories();
   const { data: tags = [] } = useTags();
   const { data: nodes = [] } = useNodes();
+  const { data: templates = [] } = useTemplates();
 
   const activeNodes = nodes.filter((n) => !n.archived);
 
@@ -73,6 +75,13 @@ export function SettingsPage() {
             title="Finance Nodes"
             subtitle="Accounts, entities, contacts"
             count={activeNodes.length}
+          />
+          <SettingRow
+            to="/settings/templates"
+            icon="auto_fix_high"
+            title="Templates"
+            subtitle="Blueprints for rapid event creation"
+            count={templates.length}
           />
         </Card>
       </section>
