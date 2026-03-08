@@ -77,14 +77,17 @@ export function SettingsPage() {
               <p className="text-sm font-medium text-dn-text-main">{t('settings.language')}</p>
               <p className="text-xs text-dn-text-muted">{t('settings.languageDesc')}</p>
             </div>
-            <select
-              value={i18n.language}
-              onChange={(e) => changeLanguage(e.target.value)}
-              className="text-sm bg-dn-surface-low text-dn-text-main border border-white/10 rounded-input px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-dn-primary shrink-0"
-            >
-              <option value="en">English</option>
-              <option value="es">Español</option>
-            </select>
+            <div className="relative shrink-0">
+              <select
+                value={i18n.language}
+                onChange={(e) => changeLanguage(e.target.value)}
+                className="appearance-none text-sm bg-dn-surface-low text-dn-text-main border border-white/10 rounded-input pl-3 pr-8 py-2 focus:outline-none focus:ring-1 focus:ring-dn-primary"
+              >
+                <option value="en">English</option>
+                <option value="es">Español</option>
+              </select>
+              <Icon name="expand_more" className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-base text-dn-text-muted" />
+            </div>
           </div>
           <div className="flex items-center gap-4 px-4 py-3.5">
             <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-surface-low text-dn-text-muted shrink-0">
@@ -94,11 +97,12 @@ export function SettingsPage() {
               <p className="text-sm font-medium text-dn-text-main">{t('settings.currency')}</p>
               <p className="text-xs text-dn-text-muted">{t('settings.currencyDesc')}</p>
             </div>
-            <select
-              value={currency}
-              onChange={(e) => handleCurrencyChange(e.target.value)}
-              className="text-sm bg-dn-surface-low text-dn-text-main border border-white/10 rounded-input px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-dn-primary shrink-0"
-            >
+            <div className="relative shrink-0">
+              <select
+                value={currency}
+                onChange={(e) => handleCurrencyChange(e.target.value)}
+                className="appearance-none text-sm bg-dn-surface-low text-dn-text-main border border-white/10 rounded-input pl-3 pr-8 py-2 focus:outline-none focus:ring-1 focus:ring-dn-primary"
+              >
               <option value="USD">USD ($)</option>
               <option value="EUR">EUR (€)</option>
               <option value="GBP">GBP (£)</option>
@@ -110,7 +114,9 @@ export function SettingsPage() {
               <option value="BRL">BRL (R$)</option>
               <option value="UYU">UYU ($)</option>
               <option value="JPY">JPY (¥)</option>
-            </select>
+              </select>
+              <Icon name="expand_more" className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-base text-dn-text-muted" />
+            </div>
           </div>
         </Card>
       </section>
