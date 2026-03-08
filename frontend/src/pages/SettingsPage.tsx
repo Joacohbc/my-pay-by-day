@@ -6,7 +6,6 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
-import { useNodes } from '@/hooks/useNodes';
 import { useTemplates } from '@/hooks/useTemplates';
 import { changeLanguage } from '@/i18n';
 import { getCurrency, setCurrency, onCurrencyChange } from '@/lib/format';
@@ -47,7 +46,6 @@ export function SettingsPage() {
   const [currency, _setCurrency] = useState(getCurrency);
   const { data: categories = [] } = useCategories();
   const { data: tags = [] } = useTags();
-  const { data: nodes = [] } = useNodes();
   const { data: templates = [] } = useTemplates();
 
   useEffect(() => onCurrencyChange(() => _setCurrency(getCurrency())), []);
@@ -56,8 +54,6 @@ export function SettingsPage() {
     setCurrency(code);
     _setCurrency(code);
   };
-
-  const activeNodes = nodes.filter((n) => !n.archived);
 
   return (
     <div className="space-y-6">
