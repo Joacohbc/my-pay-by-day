@@ -112,6 +112,7 @@ The backend source code lives under `mypaybyday/src/main/java/com/mypaybyday/` a
 * **`entity/`** — JPA entities that represent the data model (one class per domain concept).
 * **`enums/`** — Domain enumerations shared across entities (node types, event types, modifier types, recurrence frequencies).
 * **`exception/`** — `BusinessException` (unchecked domain exception) and its JAX-RS mapper that converts it to HTTP 400.
+* **`i18n/`** — Backend internationalisation infrastructure (see §12).
 * **`repository/`** — Thin Panache repositories — only persistence calls and simple JPQL queries, one per entity.
 * **`service/`** — All business logic. Each service owns a domain area; `TransactionValidator` is a dedicated validator called by `TransactionService`.
 * **`resource/`** — JAX-RS REST resources — HTTP translation only. One resource per aggregate, each fully annotated with OpenAPI.
@@ -197,9 +198,55 @@ Every endpoint **must** return the appropriate HTTP status code:
 
 ---
 
+## 12. Backend Internationalisation (i18n)
+
+Error messages returned to the client are localised based on a `?lang=` query parameter sent by the frontend on every request.
+
+### 12.1 How it works
+
+| Class | Role |
+|---|---|
+| `LanguageContext` (`@RequestScoped`) | Holds the resolved language for the current request (`en` by default). |
+| `LangFilter` (`@Provider`, `ContainerRequestFilter`) | Reads `?lang=` from the URL and writes it into `LanguageContext`. Supported values: `en`, `es`. Any other value falls back to `en`. |
+| `Messages` (`@ApplicationScoped`) | Resolves a `MsgKey` to a localised string using `ResourceBundle` backed by `i18n/messages_<lang>.properties`. Supports `MessageFormat` placeholders (`{0}`, `{1}`, …). |
+| `MsgKey` (enum) | Type-safe enumeration of every message key. Use `MsgKey` constants instead of raw strings so typos are caught at compile time. |
+
+Resource bundle files live at `src/main/resources/i18n/`:
+* `messages_en.properties` — English messages.
+* `messages_es.properties` — Spanish messages.
+
+### 12.2 Rules
+
+1. **No hardcoded error strings in services:** Every `BusinessException` message **must** be produced via `messages.get(MsgKey.SOME_KEY)` or `messages.get(MsgKey.SOME_KEY, arg0, …)`. Plain string literals are forbidden.
+2. **`MsgKey` is the only key contract:** Never call `Messages` with a raw `String`. Always use a `MsgKey` constant.
+3. **Both languages required:** When adding a new error message, the corresponding key **must** be added to **both** `messages_en.properties` and `messages_es.properties` in the same change.
+4. **`MsgKey` covers all keys:** Every property key that exists in the `.properties` files must have a matching constant in `MsgKey`. A key without a constant is unreachable.
+5. **Frontend sends the language:** The frontend `api.ts` automatically appends `?lang=<i18n.language>` to every API call, so backend messages always arrive in the user's active language.
+
+### 12.3 Adding a new message
+
+1. Add a constant to `MsgKey.java`:
+   ```java
+   SUBSCRIPTION_NOT_FOUND("error.subscription.not_found"),
+   ```
+2. Add the key to both property files:
+   ```properties
+   # messages_en.properties
+   error.subscription.not_found=Subscription not found: {0}
+
+   # messages_es.properties
+   error.subscription.not_found=Suscripción no encontrada: {0}
+   ```
+3. Use it in the service:
+   ```java
+   throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NOT_FOUND, id));
+   ```
+
+---
+
 # Part III — Frontend
 
-## 12. Tech Stack
+## 13. Tech Stack
 
 * **Framework:** React + TypeScript
 * **Build Tool:** Vite
@@ -207,7 +254,7 @@ Every endpoint **must** return the appropriate HTTP status code:
 
 ---
 
-## 13. Icon Conventions
+## 14. Icon Conventions
 
 * **Icon library:** All icons **must** use the **Material Symbols Outlined** set. Never use raw `<span>` tags with `material-symbols-outlined` directly in components — always go through the `Icon` component.
 * **Icon component:** Use `<Icon name="..." />` from `@/components/ui/Icon` for every icon render. This is the single source of truth for icon rendering.
@@ -217,7 +264,7 @@ Every endpoint **must** return the appropriate HTTP status code:
 
 ---
 
-## 14. Internationalisation (i18n)
+## 15. Internationalisation (i18n)
 
 * **Library:** `react-i18next` with `i18next`. The setup lives in `src/i18n/index.ts`.
 * **Supported languages:** English (`en`) and Spanish (`es`). Translation files are `src/i18n/en.ts` and `src/i18n/es.ts`.
@@ -227,7 +274,7 @@ Every endpoint **must** return the appropriate HTTP status code:
 
 ---
 
-## 15. Coding Conventions
+## 16. Coding Conventions
 
 1. **Absolute Imports:** The frontend project is configured to use path aliases (`@/` mapping to `src/`). You **must** use absolute imports for all internal modules instead of relative paths.
    * **Do:** `import Button from '@/components/ui/Button'`
