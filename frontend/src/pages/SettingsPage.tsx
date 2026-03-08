@@ -136,13 +136,6 @@ export function SettingsPage() {
             count={tags.length}
           />
           <SettingRow
-            to="/nodes"
-            icon="account_balance_wallet"
-            title={t('nodes.title')}
-            subtitle={t('settings.nodesDesc')}
-            count={activeNodes.length}
-          />
-          <SettingRow
             to="/settings/templates"
             icon="auto_fix_high"
             title={t('templates.title')}
