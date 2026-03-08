@@ -1,7 +1,10 @@
 package com.mypaybyday.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.mypaybyday.crypto.BigDecimalEncryptionConverter;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -69,8 +72,15 @@ public class FinanceLineItem extends BaseEntity {
      * <p>Positive values indicate inflow to the {@link FinanceNode}; negative values
      * indicate outflow. The sum of all amounts across all LineItems in the parent
      * {@link FinanceTransaction} must equal zero (Zero-Sum Rule).
+     *
+     * <p><b>Encrypted at rest</b> via AES-256-GCM (stored as TEXT in the database).
+     * Cannot be used in JPQL/SQL {@code WHERE}, {@code SUM()}, {@code AVG()},
+     * {@code MAX()}, {@code MIN()}, or {@code ORDER BY} clauses — aggregate or
+     * compare in memory after loading.
      */
     @NotNull
+    @Convert(converter = BigDecimalEncryptionConverter.class)
+    @Column(columnDefinition = "TEXT")
     public BigDecimal amount;
 
 }

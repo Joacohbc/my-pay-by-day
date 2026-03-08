@@ -1,7 +1,9 @@
 package com.mypaybyday.entity;
 
+import com.mypaybyday.crypto.StringEncryptionConverter;
 import com.mypaybyday.enums.EventType;
 
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -38,14 +40,33 @@ import lombok.Setter;
 @AllArgsConstructor
 public class FinanceEvent extends BaseEntity {
 
-    /** Human-readable name for the event (e.g., "Dinner with friends", "Paid Rent"). */
+    /**
+     * Human-readable name for the event (e.g., "Dinner with friends", "Paid Rent").
+     *
+     * <p><b>Encrypted at rest</b> via AES-256-GCM. Cannot be used in JPQL/SQL
+     * {@code WHERE}, {@code LIKE}, or {@code ORDER BY} clauses — filter or sort
+     * in memory after loading.
+     */
     @NotBlank
+    @Convert(converter = StringEncryptionConverter.class)
     public String name;
 
-    /** Optional free-text description providing additional context about the event. */
+    /**
+     * Optional free-text description providing additional context about the event.
+     *
+     * <p><b>Encrypted at rest</b> via AES-256-GCM. Cannot be used in JPQL/SQL
+     * {@code WHERE} or {@code LIKE} clauses — filter in memory after loading.
+     */
+    @Convert(converter = StringEncryptionConverter.class)
     public String description;
 
-    /** URL pointing to an attached receipt or supporting document for this event. */
+    /**
+     * URL pointing to an attached receipt or supporting document for this event.
+     *
+     * <p><b>Encrypted at rest</b> via AES-256-GCM. Cannot be used in JPQL/SQL
+     * {@code WHERE} clauses — compare in memory after loading.
+     */
+    @Convert(converter = StringEncryptionConverter.class)
     public String receiptUrl;
 
     /**
