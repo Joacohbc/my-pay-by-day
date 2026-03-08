@@ -4,6 +4,8 @@ import com.mypaybyday.entity.FinanceNode;
 import com.mypaybyday.entity.FinanceLineItem;
 import com.mypaybyday.entity.FinanceTransaction;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -23,6 +25,9 @@ public class TransactionValidator {
     @Inject
     FinanceNodeRepository financeNodeRepository;
 
+    @Inject
+    Messages messages;
+
     /**
      * Validates the Zero-Sum Rule: the algebraic sum of all line-item amounts must equal 0.
      *
@@ -30,20 +35,19 @@ public class TransactionValidator {
      */
     public void validateZeroSum(FinanceTransaction transaction) throws BusinessException {
         if (transaction.lineItems == null || transaction.lineItems.isEmpty()) {
-            throw new BusinessException("Transaction must have at least one line item");
+            throw new BusinessException(messages.get(MsgKey.TRANSACTION_NO_LINE_ITEMS));
         }
 
         BigDecimal sum = BigDecimal.ZERO;
         for (FinanceLineItem item : transaction.lineItems) {
             if (item.amount == null) {
-                throw new BusinessException("Line item amount cannot be null");
+                throw new BusinessException(messages.get(MsgKey.TRANSACTION_LINE_ITEM_AMOUNT_NULL));
             }
             sum = sum.add(item.amount);
         }
 
         if (sum.compareTo(BigDecimal.ZERO) != 0) {
-            throw new BusinessException(
-                    "Zero-sum rule violated: the sum of all line item amounts must be 0. Current sum: " + sum);
+            throw new BusinessException(messages.get(MsgKey.TRANSACTION_ZERO_SUM_VIOLATED, sum));
         }
     }
 
@@ -62,14 +66,14 @@ public class TransactionValidator {
 
         List<FinanceNode> nodes = financeNodeRepository.list(ids);
         if(nodes.size() != ids.size()) {
-            throw new BusinessException("One or more FinanceNodes referenced by line items do not exist");
+            throw new BusinessException(messages.get(MsgKey.TRANSACTION_LINE_ITEM_NODES_NOT_FOUND));
         }
 
         nodes.stream()
             .filter(node -> node.archived)
             .findFirst()
             .ifPresent(node -> {
-                throw new BusinessException("FinanceNode is archived and cannot be used: " + node.id);
+                throw new BusinessException(messages.get(MsgKey.NODE_ARCHIVED_IN_USE, node.id));
             });
     }
 }

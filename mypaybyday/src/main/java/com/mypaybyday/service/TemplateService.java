@@ -4,6 +4,8 @@ import com.mypaybyday.dto.TemplateDto;
 import com.mypaybyday.entity.Tag;
 import com.mypaybyday.entity.Template;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -31,6 +33,9 @@ public class TemplateService {
     @Inject
     FinanceNodeService financeNodeService;
 
+    @Inject
+    Messages messages;
+
     // -------------------------------------------------------------------------
     // Queries
     // -------------------------------------------------------------------------
@@ -50,7 +55,7 @@ public class TemplateService {
     Template findEntityById(Long id) throws BusinessException {
         Template template = templateRepository.findById(id);
         if (template == null) {
-            throw new BusinessException("Template not found: " + id);
+            throw new BusinessException(messages.get(MsgKey.TEMPLATE_NOT_FOUND, id));
         }
         return template;
     }
@@ -62,7 +67,7 @@ public class TemplateService {
     @Transactional
     public TemplateDto create(TemplateDto dto) throws BusinessException {
         if (dto.name() == null || dto.name().isBlank()) {
-            throw new BusinessException("Template name must not be blank");
+            throw new BusinessException(messages.get(MsgKey.TEMPLATE_NAME_REQUIRED));
         }
         Template template = new Template();
         applyDto(template, dto);
@@ -74,7 +79,7 @@ public class TemplateService {
     public TemplateDto update(Long id, TemplateDto dto) throws BusinessException {
         Template template = findEntityById(id);
         if (dto.name() == null || dto.name().isBlank()) {
-            throw new BusinessException("Template name must not be blank");
+            throw new BusinessException(messages.get(MsgKey.TEMPLATE_NAME_REQUIRED));
         }
         applyDto(template, dto);
         return TemplateDto.from(template);
@@ -85,8 +90,7 @@ public class TemplateService {
         Template template = findEntityById(id);
         long usageCount = subscriptionRepository.count("template.id", id);
         if (usageCount > 0) {
-            throw new BusinessException(
-                    "Template is referenced by " + usageCount + " subscription(s) and cannot be deleted");
+            throw new BusinessException(messages.get(MsgKey.TEMPLATE_IN_USE, usageCount));
         }
         templateRepository.delete(template);
     }

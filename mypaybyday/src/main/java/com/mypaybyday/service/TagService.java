@@ -3,6 +3,8 @@ package com.mypaybyday.service;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.entity.Tag;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TagRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -15,6 +17,9 @@ public class TagService {
 
     @Inject
     TagRepository tagRepository;
+
+    @Inject
+    Messages messages;
 
     // -------------------------------------------------------------------------
     // Queries
@@ -35,7 +40,7 @@ public class TagService {
     Tag findTagEntity(Long id) throws BusinessException {
         Tag tag = tagRepository.findById(id);
         if (tag == null) {
-            throw new BusinessException("Tag not found: " + id);
+            throw new BusinessException(messages.get(MsgKey.TAG_NOT_FOUND, id));
         }
         return tag;
     }
@@ -47,7 +52,7 @@ public class TagService {
     @Transactional
     public TagDto create(TagDto dto) throws BusinessException {
         if (dto.name() == null || dto.name().isBlank()) {
-            throw new BusinessException("Tag name must not be blank");
+            throw new BusinessException(messages.get(MsgKey.TAG_NAME_REQUIRED));
         }
         Tag tag = new Tag();
         tag.name = dto.name();
@@ -60,7 +65,7 @@ public class TagService {
     public TagDto update(Long id, TagDto dto) throws BusinessException {
         Tag tag = findTagEntity(id);
         if (dto.name() == null || dto.name().isBlank()) {
-            throw new BusinessException("Tag name must not be blank");
+            throw new BusinessException(messages.get(MsgKey.TAG_NAME_REQUIRED));
         }
         tag.name = dto.name();
         tag.description = dto.description();

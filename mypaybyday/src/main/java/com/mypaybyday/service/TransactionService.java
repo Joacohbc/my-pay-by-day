@@ -4,6 +4,8 @@ import com.mypaybyday.dto.FinanceTransactionDto;
 import com.mypaybyday.entity.FinanceLineItem;
 import com.mypaybyday.entity.FinanceTransaction;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.TransactionRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -24,6 +26,9 @@ public class TransactionService {
     @Inject
     TransactionValidator transactionValidator;
 
+    @Inject
+    Messages messages;
+
     public List<FinanceTransactionDto> listAll() {
         return transactionRepository.listAll().stream().map(FinanceTransactionDto::from).toList();
     }
@@ -31,7 +36,7 @@ public class TransactionService {
     public FinanceTransactionDto findById(Long id) throws BusinessException {
         FinanceTransaction transaction = transactionRepository.findById(id);
         if (transaction == null) {
-            throw new BusinessException("Transaction not found");
+            throw new BusinessException(messages.get(MsgKey.TRANSACTION_NOT_FOUND));
         }
         return FinanceTransactionDto.from(transaction);
     }
@@ -60,7 +65,7 @@ public class TransactionService {
 
         FinanceTransaction transaction = transactionRepository.findById(id);
         if (transaction == null) {
-            throw new BusinessException("Transaction not found");
+            throw new BusinessException(messages.get(MsgKey.TRANSACTION_NOT_FOUND));
         }
 
         transaction.transactionDate = transactionDetails.transactionDate;
@@ -82,7 +87,7 @@ public class TransactionService {
     public void delete(Long id) throws BusinessException {
         FinanceTransaction transaction = transactionRepository.findById(id);
         if (transaction == null) {
-            throw new BusinessException("Transaction not found");
+            throw new BusinessException(messages.get(MsgKey.TRANSACTION_NOT_FOUND));
         }
         transactionRepository.delete(transaction);
     }

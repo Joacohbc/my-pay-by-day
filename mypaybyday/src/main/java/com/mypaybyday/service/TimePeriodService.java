@@ -7,6 +7,8 @@ import com.mypaybyday.entity.FinanceEvent;
 import com.mypaybyday.entity.TimePeriod;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TimePeriodRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -28,6 +30,9 @@ public class TimePeriodService {
 
     @Inject
     CategoryService categoryService;
+
+    @Inject
+    Messages messages;
 
     // -------------------------------------------------------------------------
     // Queries
@@ -109,7 +114,7 @@ public class TimePeriodService {
 
         if (dto.name() != null) {
             if (dto.name().isBlank()) {
-                throw new BusinessException("TimePeriod name must not be blank");
+                throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NAME_REQUIRED));
             }
             timePeriod.name = dto.name();
         }
@@ -120,7 +125,7 @@ public class TimePeriodService {
             timePeriod.endDate = dto.endDate();
         }
         if (timePeriod.endDate.isBefore(timePeriod.startDate)) {
-            throw new BusinessException("TimePeriod endDate must not be before startDate");
+            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
         }
         if (dto.category() != null && dto.category().id() != null) {
             timePeriod.category = categoryService.findEntityById(dto.category().id());
@@ -131,7 +136,7 @@ public class TimePeriodService {
         if (dto.savingsPercentageGoal() != null) {
             if (dto.savingsPercentageGoal().compareTo(BigDecimal.ZERO) < 0
                     || dto.savingsPercentageGoal().compareTo(new BigDecimal("100")) > 0) {
-                throw new BusinessException("savingsPercentageGoal must be between 0 and 100");
+                throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_SAVINGS_GOAL_RANGE));
             }
             timePeriod.savingsPercentageGoal = dto.savingsPercentageGoal();
         }
@@ -152,28 +157,28 @@ public class TimePeriodService {
     private TimePeriod findTimePeriodEntity(Long id) throws BusinessException {
         TimePeriod timePeriod = timePeriodRepository.findById(id);
         if (timePeriod == null) {
-            throw new BusinessException("TimePeriod not found: " + id);
+            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NOT_FOUND, id));
         }
         return timePeriod;
     }
 
     private void validatePeriod(TimePeriod tp) throws BusinessException {
         if (tp.name == null || tp.name.isBlank()) {
-            throw new BusinessException("TimePeriod name must not be blank");
+            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NAME_REQUIRED));
         }
         if (tp.startDate == null) {
-            throw new BusinessException("TimePeriod startDate must not be null");
+            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_START_DATE_REQUIRED));
         }
         if (tp.endDate == null) {
-            throw new BusinessException("TimePeriod endDate must not be null");
+            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_DATE_REQUIRED));
         }
         if (tp.endDate.isBefore(tp.startDate)) {
-            throw new BusinessException("TimePeriod endDate must not be before startDate");
+            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
         }
         if (tp.savingsPercentageGoal != null
                 && (tp.savingsPercentageGoal.compareTo(BigDecimal.ZERO) < 0
                     || tp.savingsPercentageGoal.compareTo(new BigDecimal("100")) > 0)) {
-            throw new BusinessException("savingsPercentageGoal must be between 0 and 100");
+                throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_SAVINGS_GOAL_RANGE));
         }
     }
 }

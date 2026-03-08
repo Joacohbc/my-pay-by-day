@@ -3,6 +3,8 @@ package com.mypaybyday.service;
 import com.mypaybyday.dto.FinanceNodeDto;
 import com.mypaybyday.entity.FinanceNode;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.LineItemRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -20,6 +22,9 @@ public class FinanceNodeService {
 
     @Inject
     LineItemRepository lineItemRepository;
+
+    @Inject
+    Messages messages;
 
     public List<FinanceNodeDto> listAll() {
         return financeNodeRepository.list("archived", false)
@@ -41,7 +46,7 @@ public class FinanceNodeService {
     FinanceNode findNodeEntity(Long id) throws BusinessException {
         FinanceNode node = financeNodeRepository.findById(id);
         if (node == null || node.archived) {
-            throw new BusinessException("FinanceNode not found or is archived: " + id);
+            throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND_ARCHIVED, id));
         }
         return node;
     }
@@ -59,7 +64,7 @@ public class FinanceNodeService {
     public FinanceNodeDto update(Long id, FinanceNodeDto dto) throws BusinessException {
         FinanceNode node = financeNodeRepository.findById(id);
         if (node == null || node.archived) {
-            throw new BusinessException("FinanceNode not found or is archived");
+            throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND_ARCHIVED_GENERIC));
         }
         node.name = dto.name();
         node.type = dto.type();
@@ -70,7 +75,7 @@ public class FinanceNodeService {
     public void archive(Long id) throws BusinessException {
         FinanceNode node = financeNodeRepository.findById(id);
         if (node == null) {
-            throw new BusinessException("FinanceNode not found");
+            throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
         }
         // It's always allowed to archive, we just don't physically delete
         node.archived = true;
@@ -80,11 +85,11 @@ public class FinanceNodeService {
     public void delete(Long id) throws BusinessException {
         FinanceNode node = financeNodeRepository.findById(id);
         if (node == null) {
-            throw new BusinessException("FinanceNode not found");
+            throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
         }
         long txCount = lineItemRepository.count("financeNode", node);
         if (txCount > 0) {
-            throw new BusinessException("Cannot delete FinanceNode with existing transactions. Please archive it instead.");
+            throw new BusinessException(messages.get(MsgKey.NODE_HAS_TRANSACTIONS));
         }
         financeNodeRepository.delete(node);
     }
@@ -92,7 +97,7 @@ public class FinanceNodeService {
     public BigDecimal calculateBalance(Long id) throws BusinessException {
         FinanceNode node = financeNodeRepository.findById(id);
         if (node == null) {
-            throw new BusinessException("FinanceNode not found");
+            throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
         }
 
         // Calculate balance on-the-fly summing all amounts for this node

@@ -3,6 +3,8 @@ package com.mypaybyday.service;
 import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.entity.Category;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.CategoryRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -15,6 +17,9 @@ public class CategoryService {
 
     @Inject
     CategoryRepository categoryRepository;
+
+    @Inject
+    Messages messages;
 
     // -------------------------------------------------------------------------
     // Queries
@@ -35,7 +40,7 @@ public class CategoryService {
     Category findEntityById(Long id) throws BusinessException {
         Category category = categoryRepository.findById(id);
         if (category == null) {
-            throw new BusinessException("Category not found: " + id);
+            throw new BusinessException(messages.get(MsgKey.CATEGORY_NOT_FOUND, id));
         }
         return category;
     }
@@ -47,7 +52,7 @@ public class CategoryService {
     @Transactional
     public CategoryDto create(CategoryDto dto) throws BusinessException {
         if (dto.name() == null || dto.name().isBlank()) {
-            throw new BusinessException("Category name must not be blank");
+            throw new BusinessException(messages.get(MsgKey.CATEGORY_NAME_REQUIRED));
         }
         Category category = new Category();
         category.name = dto.name();
@@ -60,7 +65,7 @@ public class CategoryService {
     public CategoryDto update(Long id, CategoryDto dto) throws BusinessException {
         Category category = findEntityById(id);
         if (dto.name() == null || dto.name().isBlank()) {
-            throw new BusinessException("Category name must not be blank");
+            throw new BusinessException(messages.get(MsgKey.CATEGORY_NAME_REQUIRED));
         }
         category.name = dto.name();
         category.description = dto.description();

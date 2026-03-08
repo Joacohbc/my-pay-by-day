@@ -6,6 +6,8 @@ import com.mypaybyday.entity.FinanceLineItem;
 import com.mypaybyday.entity.Tag;
 import com.mypaybyday.entity.FinanceTransaction;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -38,6 +40,9 @@ public class EventService {
     @Inject
     TagService tagService;
 
+    @Inject
+    Messages messages;
+
     // -------------------------------------------------------------------------
     // Queries
     // -------------------------------------------------------------------------
@@ -49,7 +54,7 @@ public class EventService {
     public FinanceEventDto findById(Long id) throws BusinessException {
         FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
-            throw new BusinessException("Event not found");
+            throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
         }
         return FinanceEventDto.from(event);
     }
@@ -83,7 +88,7 @@ public class EventService {
     @Transactional
     public FinanceEventDto create(FinanceEvent event) throws BusinessException {
         if (event.transaction == null) {
-            throw new BusinessException("Event must include a Transaction");
+            throw new BusinessException(messages.get(MsgKey.EVENT_TRANSACTION_REQUIRED));
         }
 
         // Delegate to TransactionService
@@ -116,7 +121,7 @@ public class EventService {
     public FinanceEventDto update(Long id, FinanceEvent eventDetails) throws BusinessException {
         FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
-            throw new BusinessException("Event not found");
+            throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
         }
 
         // --- Metadata ---
@@ -132,7 +137,7 @@ public class EventService {
         // --- Category ---
         if (eventDetails.category != null) {
             if (eventDetails.category.id == null) {
-                throw new BusinessException("Category ID must be provided for update");
+                throw new BusinessException(messages.get(MsgKey.EVENT_CATEGORY_ID_REQUIRED));
             }
             event.category = categoryService.findEntityById(eventDetails.category.id);
         } else {
@@ -160,7 +165,7 @@ public class EventService {
     public void delete(Long id) throws BusinessException {
         FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
-            throw new BusinessException("Event not found");
+            throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
         }
         eventRepository.delete(event);
     }
@@ -175,10 +180,10 @@ public class EventService {
      */
     private List<FinanceEvent> findEventEntitiesByDateRange(LocalDateTime from, LocalDateTime to) throws BusinessException {
         if (from == null || to == null) {
-            throw new BusinessException("Date range boundaries cannot be null");
+            throw new BusinessException(messages.get(MsgKey.EVENT_DATE_RANGE_NULL));
         }
         if (from.isAfter(to)) {
-            throw new BusinessException("'from' date must not be after 'to' date");
+            throw new BusinessException(messages.get(MsgKey.EVENT_DATE_RANGE_INVALID));
         }
         return eventRepository.list(
                 "transaction.transactionDate >= ?1 and transaction.transactionDate <= ?2",
@@ -196,7 +201,7 @@ public class EventService {
         List<Tag> resolved = new ArrayList<>();
         for (Tag stub : stubs) {
             if (stub.id == null) {
-                throw new BusinessException("All tags must include a valid ID");
+                throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
             }
             resolved.add(tagService.findTagEntity(stub.id));
         }
