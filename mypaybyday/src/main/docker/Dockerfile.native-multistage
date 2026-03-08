@@ -1,0 +1,52 @@
+####
+# This Dockerfile is used in order to build a container that runs the Quarkus
+# application in native (no JVM) mode using a multi-stage build.
+#
+# Unlike Dockerfile.native, this file does NOT require pre-building the native
+# binary on the host. The native compilation happens inside the first stage,
+# which avoids Docker-in-Docker volume-mount issues (e.g. dev containers, CI).
+#
+# Build the image with (from the mypaybyday/ directory):
+#
+#   docker build -f src/main/docker/Dockerfile.native-multistage -t quarkus/mypaybyday .
+#
+# Then run the container using:
+#
+#   docker run -i --rm -p 8080:8080 quarkus/mypaybyday
+#
+###
+
+## Stage 1 — Build the native binary
+FROM quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:jdk-17 AS build
+
+USER root
+RUN microdnf install -y findutils && microdnf clean all
+USER quarkus
+
+COPY --chown=quarkus:quarkus mvnw /code/mvnw
+COPY --chown=quarkus:quarkus .mvn /code/.mvn
+COPY --chown=quarkus:quarkus pom.xml /code/
+
+WORKDIR /code
+# Download dependencies first (layer cache)
+RUN ./mvnw -B dependency:go-offline
+
+COPY --chown=quarkus:quarkus src /code/src
+
+RUN ./mvnw package -B -DskipTests -Dnative \
+    -Dquarkus.native.container-build=false
+
+## Stage 2 — Minimal runtime image
+FROM quay.io/quarkus/ubi9-quarkus-micro-image:2.0
+
+WORKDIR /work/
+RUN chown 1001 /work \
+    && chmod "g+rwX" /work \
+    && chown 1001:root /work
+
+COPY --from=build --chown=1001:root --chmod=0755 /code/target/*-runner /work/application
+
+EXPOSE 8080
+USER 1001
+
+ENTRYPOINT ["./application", "-Dquarkus.http.host=0.0.0.0"]

@@ -3,3 +3,9 @@
 !target/*-runner.jar
 !target/lib/*
 !target/quarkus-app/*
+
+# Multi-stage native build needs source files
+!mvnw
+!.mvn
+!pom.xml
+!src
