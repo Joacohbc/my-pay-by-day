@@ -217,7 +217,17 @@ Every endpoint **must** return the appropriate HTTP status code:
 
 ---
 
-## 14. Coding Conventions
+## 14. Internationalisation (i18n)
+
+* **Library:** `react-i18next` with `i18next`. The setup lives in `src/i18n/index.ts`.
+* **Supported languages:** English (`en`) and Spanish (`es`). Translation files are `src/i18n/en.ts` and `src/i18n/es.ts`.
+* **No hard-coded UI strings:** Every user-visible string **must** go through the `t()` function (from `useTranslation()`). Never embed raw English or Spanish text in components.
+* **Both languages required:** When adding or modifying a translation key, you **must** add/update the entry in **both** `en.ts` and `es.ts` in the same change. A key present in one file but missing in the other is treated as a bug.
+* **Key organisation:** Keys are grouped by domain area using nested objects (e.g., `common.*`, `events.*`, `nodes.*`). Follow the existing structure and place new keys in the appropriate group.
+
+---
+
+## 15. Coding Conventions
 
 1. **Absolute Imports:** The frontend project is configured to use path aliases (`@/` mapping to `src/`). You **must** use absolute imports for all internal modules instead of relative paths.
    * **Do:** `import Button from '@/components/ui/Button'`
