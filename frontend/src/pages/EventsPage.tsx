@@ -37,8 +37,8 @@ export function EventsPage() {
       return true;
     })
     .sort((a, b) => {
-      const da = a.transaction?.transactionDate ?? '';
-      const db = b.transaction?.transactionDate ?? '';
+      const da = a.transactionDate ?? '';
+      const db = b.transactionDate ?? '';
       return db.localeCompare(da);
     });
 

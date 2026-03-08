@@ -40,11 +40,11 @@ export function formatDateInput(isoString: string): string {
 /**
  * For INBOUND: sum of positive line items (inflows to own account).
  * For OUTBOUND: sum of negative line items (outflows from own account).
- * For OTHER: sum of all absolute values divided by 2.
+ * For OTHER: sum of all amounts.
  */
 export function eventNetAmount(event: FinanceEvent): number {
-  if (!event.transaction?.lineItems?.length) return 0;
-  const items = event.transaction.lineItems;
+  if (!event.lineItems?.length) return 0;
+  const items = event.lineItems;
   if (event.type === 'INBOUND') {
     return items.filter((li) => li.amount > 0).reduce((s, li) => s + Number(li.amount), 0);
   }

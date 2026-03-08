@@ -30,7 +30,7 @@ const typeConfig = {
 export function EventCard({ event }: EventCardProps) {
   const cfg = typeConfig[event.type];
   const net = eventNetAmount(event);
-  const date = event.transaction?.transactionDate;
+  const date = event.transactionDate;
 
   return (
     <Link

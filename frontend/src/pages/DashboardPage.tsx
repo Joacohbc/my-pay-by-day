@@ -21,7 +21,7 @@ export function DashboardPage() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const monthEvents = allEvents.filter((e) => {
-    const d = e.transaction?.transactionDate;
+    const d = e.transactionDate;
     return d && new Date(d) >= monthStart;
   });
 
@@ -38,8 +38,8 @@ export function DashboardPage() {
   const ownNodes = allNodes.filter((n) => n.type === 'OWN' && !n.archived);
   const recentEvents: FinanceEvent[] = [...allEvents]
     .sort((a, b) => {
-      const da = a.transaction?.transactionDate ?? '';
-      const db = b.transaction?.transactionDate ?? '';
+      const da = a.transactionDate ?? '';
+      const db = b.transactionDate ?? '';
       return db.localeCompare(da);
     })
     .slice(0, 8);

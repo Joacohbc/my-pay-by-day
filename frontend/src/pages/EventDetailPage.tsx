@@ -109,11 +109,11 @@ export function EventDetailPage() {
               <span className="text-sm text-dn-text-main">{event.category.name}</span>
             </div>
           )}
-          {event.transaction?.transactionDate && (
+          {event.transactionDate && (
             <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
               <span className="text-sm text-dn-text-muted">Date</span>
               <span className="text-sm text-dn-text-main font-mono">
-                {formatDateTime(event.transaction.transactionDate)}
+                {formatDateTime(event.transactionDate)}
               </span>
             </div>
           )}
@@ -137,13 +137,12 @@ export function EventDetailPage() {
       {/* Line Items */}
       <div className="px-5">
         <h3 className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">Line Items</h3>
-        {event.transaction?.lineItems?.length ? (
+        {event.lineItems?.length ? (
           <Card className="divide-y divide-white/5">
-            {event.transaction.lineItems.map((li) => (
+            {event.lineItems.map((li) => (
               <div key={li.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                 <div>
-                  <p className="text-sm font-medium text-dn-text-main">{li.financeNode.name}</p>
-                  <p className="text-xs text-dn-text-muted">{li.financeNode.type}</p>
+                  <p className="text-sm font-medium text-dn-text-main">{li.financeNodeName}</p>
                 </div>
                 <span className={`text-sm font-mono ${Number(li.amount) >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
                   {Number(li.amount) >= 0 ? '+' : ''}

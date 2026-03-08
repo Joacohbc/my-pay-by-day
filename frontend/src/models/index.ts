@@ -41,8 +41,10 @@ export type CreateFinanceNodeDto = Omit<FinanceNode, 'id' | 'archived'>;
 
 // ─── FinanceLineItem ──────────────────────────────────────────────────────────
 
+/** Read model — matches the flat FinanceLineItemDto from the backend */
 export interface FinanceLineItem extends Identifiable {
-  financeNode: FinanceNode;
+  financeNodeId: number;
+  financeNodeName: string;
   amount: number;
 }
 
@@ -53,13 +55,7 @@ export interface CreateLineItemDto {
 
 // ─── FinanceTransaction ───────────────────────────────────────────────────────
 
-export interface FinanceTransaction extends Identifiable {
-  transactionDate: string; // ISO-8601 date-time
-  createdAt: string;
-  updatedAt: string;
-  lineItems: FinanceLineItem[];
-}
-
+/** Used only when constructing write payloads (POST/PUT /events) */
 export interface CreateTransactionDto {
   transactionDate: string;
   lineItems: CreateLineItemDto[];
@@ -67,12 +63,15 @@ export interface CreateTransactionDto {
 
 // ─── FinanceEvent ─────────────────────────────────────────────────────────────
 
+/** Read model — matches the flat FinanceEventDto from the backend */
 export interface FinanceEvent extends Identifiable {
+  transactionId: number;
   name: string;
   description?: string;
   receiptUrl?: string;
   type: EventType;
-  transaction: FinanceTransaction;
+  transactionDate: string; // ISO-8601 date-time
+  lineItems: FinanceLineItem[];
   category?: Category;
   tags: Tag[];
 }

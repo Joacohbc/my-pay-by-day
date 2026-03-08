@@ -66,14 +66,14 @@ export function EventForm({
       description: defaultValues?.description ?? '',
       receiptUrl: defaultValues?.receiptUrl ?? '',
       type: defaultValues?.type ?? 'OUTBOUND',
-      transactionDate: defaultValues?.transaction?.transactionDate
-        ? toLocalDateTimeString(new Date(defaultValues.transaction.transactionDate))
+      transactionDate: defaultValues?.transactionDate
+        ? toLocalDateTimeString(new Date(defaultValues.transactionDate))
         : toLocalDateTimeString(new Date()),
       categoryId: defaultValues?.category ? String(defaultValues.category.id) : '',
       tagIds: defaultValues?.tags?.map((t) => String(t.id)) ?? [],
       lineItems:
-        defaultValues?.transaction?.lineItems?.map((li) => ({
-          nodeId: String(li.financeNode.id),
+        defaultValues?.lineItems?.map((li) => ({
+          nodeId: String(li.financeNodeId),
           amount: String(li.amount),
         })) ?? [{ nodeId: '', amount: '' }],
     },
