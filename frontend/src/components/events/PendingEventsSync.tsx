@@ -128,7 +128,7 @@ export function PendingEventsSync() {
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-full bg-dn-surface-low flex items-center justify-center shrink-0">
-                  <Icon name={cfg.icon} className="text-base text-dn-text-muted" />
+                  <Icon name={cfg.icon} className="text-xl leading-none text-dn-text-muted" />
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="text-sm font-medium text-dn-text-main truncate">
@@ -153,10 +153,10 @@ export function PendingEventsSync() {
                 <button
                   onClick={() => removePending(p.localId)}
                   disabled={isBusy}
-                  className="text-dn-text-muted hover:text-dn-error transition-colors disabled:opacity-40 cursor-pointer"
+                  className="flex items-center justify-center text-dn-text-muted hover:text-dn-error transition-colors disabled:opacity-40 cursor-pointer"
                   title={t('offline.discard')}
                 >
-                  <Icon name="delete_outline" className="text-base" />
+                  <Icon name="delete_outline" className="text-xl leading-none" />
                 </button>
                 <Button
                   size="sm"
