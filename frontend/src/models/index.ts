@@ -141,3 +141,10 @@ export interface TimePeriod extends Identifiable {
 export type CreateTimePeriodDto = Omit<TimePeriod, 'id' | 'category'> & {
   category?: { id: number };
 };
+
+export interface TimePeriodBalance {
+  timePeriod: TimePeriod;
+  income: number;
+  outbound: number;
+  events: FinanceEvent[];
+}

@@ -11,6 +11,8 @@ import { SettingsPage } from '@/pages/SettingsPage';
 import { CategoriesPage } from '@/pages/CategoriesPage';
 import { TagsPage } from '@/pages/TagsPage';
 import { TemplatesPage } from '@/pages/TemplatesPage';
+import { TimePeriodsPage } from '@/pages/TimePeriodsPage';
+import { TimePeriodDetailPage } from '@/pages/TimePeriodDetailPage';
 
 export const router = createBrowserRouter([
   {
@@ -30,6 +32,10 @@ export const router = createBrowserRouter([
 
       // Subscriptions
       { path: 'subscriptions', element: <SubscriptionsPage /> },
+
+      // Time Periods
+      { path: 'periods', element: <TimePeriodsPage /> },
+      { path: 'periods/:id', element: <TimePeriodDetailPage /> },
 
       // Settings
       { path: 'settings', element: <SettingsPage /> },

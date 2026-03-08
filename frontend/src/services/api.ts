@@ -35,6 +35,13 @@ export const api = {
       body: JSON.stringify(body),
     }).then((r) => handleResponse<T>(r)),
 
+  patch: <T>(path: string, body: unknown): Promise<T> =>
+    fetch(`${BASE_URL}${path}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+    }).then((r) => handleResponse<T>(r)),
+
   delete: (path: string): Promise<void> =>
     fetch(`${BASE_URL}${path}`, { method: 'DELETE' }).then((r) =>
       handleResponse<void>(r)
