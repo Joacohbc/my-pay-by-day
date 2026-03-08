@@ -14,9 +14,15 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.71.2(react@19.2.4))
+      '@tanstack/query-async-storage-persister':
+        specifier: ^5.90.24
+        version: 5.90.24
       '@tanstack/react-query':
         specifier: ^5.90.21
         version: 5.90.21(react@19.2.4)
+      '@tanstack/react-query-persist-client':
+        specifier: ^5.90.24
+        version: 5.90.24(@tanstack/react-query@5.90.21(react@19.2.4))(react@19.2.4)
       i18next:
         specifier: ^25.8.14
         version: 25.8.14(typescript@5.9.3)
@@ -941,8 +947,20 @@ packages:
     peerDependencies:
       vite: ^8.0.0-beta.13
 
+  '@tanstack/query-async-storage-persister@5.90.24':
+    resolution: {integrity: sha512-3mljhSqeyu4xqF6BzNAzCe5MbteWPlOWHegLLmgiyppAENjaE0HpJcJAHlKaGhrP5IUhh3zytxW0gSydjmgwIw==}
+
   '@tanstack/query-core@5.90.20':
     resolution: {integrity: sha512-OMD2HLpNouXEfZJWcKeVKUgQ5n+n3A2JFmBaScpNDUqSrQSjiveC7dKMe53uJUg1nDG16ttFPz2xfilz6i2uVg==}
+
+  '@tanstack/query-persist-client-core@5.92.1':
+    resolution: {integrity: sha512-XGzB1lulFrGc8UwQnMI12r71R7ock/XOZvDaz3Fu3xrxCFwLHuFcABAOkIolS/6hFHe0pRdsBRXd4Q8ECqiCug==}
+
+  '@tanstack/react-query-persist-client@5.90.24':
+    resolution: {integrity: sha512-FkfU37vHq61Efr/qGiz+CUNmGfCky1jjsaZFuS5MsWwA9vPHudCwmdirgyTx+RfcQxyHON904q/pc48zrIEhxg==}
+    peerDependencies:
+      '@tanstack/react-query': ^5.90.21
+      react: ^18 || ^19
 
   '@tanstack/react-query@5.90.21':
     resolution: {integrity: sha512-0Lu6y5t+tvlTJMTO7oh5NSpJfpg/5D41LlThfepTixPYkJ0sE2Jj0m0f6yYqujBwIXlId87e234+MxG3D3g7kg==}
@@ -3451,7 +3469,22 @@ snapshots:
       tailwindcss: 4.2.1
       vite: 8.0.0-beta.16(@types/node@24.11.0)(jiti@2.6.1)(terser@5.46.0)
 
+  '@tanstack/query-async-storage-persister@5.90.24':
+    dependencies:
+      '@tanstack/query-core': 5.90.20
+      '@tanstack/query-persist-client-core': 5.92.1
+
   '@tanstack/query-core@5.90.20': {}
+
+  '@tanstack/query-persist-client-core@5.92.1':
+    dependencies:
+      '@tanstack/query-core': 5.90.20
+
+  '@tanstack/react-query-persist-client@5.90.24(@tanstack/react-query@5.90.21(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      '@tanstack/query-persist-client-core': 5.92.1
+      '@tanstack/react-query': 5.90.21(react@19.2.4)
+      react: 19.2.4
 
   '@tanstack/react-query@5.90.21(react@19.2.4)':
     dependencies:

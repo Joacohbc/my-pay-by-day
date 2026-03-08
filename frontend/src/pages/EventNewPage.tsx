@@ -26,8 +26,13 @@ export function EventNewPage() {
     : undefined;
 
   const handleSubmit = async (dto: CreateEventDto) => {
-    const created = await createEvent.mutateAsync(dto);
-    navigate(`/events/${created.id}`, { replace: true });
+    const created = await createEvent.saveAsync(dto);
+    if (created) {
+      navigate(`/events/${created.id}`, { replace: true });
+    } else {
+      // Queued offline — go back to event list
+      navigate('/events', { replace: true });
+    }
   };
 
   return (

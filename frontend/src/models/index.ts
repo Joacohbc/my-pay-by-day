@@ -55,6 +55,12 @@ export interface CreateLineItemDto {
 
 // ─── FinanceTransaction ───────────────────────────────────────────────────────
 
+/** Read model — matches the flat FinanceTransactionDto from the backend */
+export interface FinanceTransaction extends Identifiable {
+  transactionDate: string;
+  lineItems: FinanceLineItem[];
+}
+
 /** Used only when constructing write payloads (POST/PUT /events) */
 export interface CreateTransactionDto {
   transactionDate: string;

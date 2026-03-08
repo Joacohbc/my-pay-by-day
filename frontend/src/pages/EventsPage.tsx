@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useEvents } from '@/hooks/useEvents';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
+import { PendingEventsSync } from '@/components/events/PendingEventsSync';
 import type { Template } from '@/models';
 import { EventCard } from '@/components/events/EventCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -98,6 +99,9 @@ export function EventsPage() {
           <p className="text-lg font-mono font-semibold text-dn-text-main">{formatCurrency(totalExpenses)}</p>
         </Card>
       </div>
+
+      {/* Pending offline events */}
+      <PendingEventsSync />
 
       {/* Search */}
       <div className="px-5">
