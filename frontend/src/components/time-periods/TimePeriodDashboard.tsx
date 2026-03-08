@@ -15,12 +15,15 @@ interface TimePeriodDashboardProps {
   onChangePeriod?: () => void;
   /** Whether to show the greeting header (Home page only) */
   showGreeting?: boolean;
+  /** Optional callback for the New Event FAB (opens template picker) */
+  onNewEvent?: () => void;
 }
 
 export function TimePeriodDashboard({
   timePeriodId,
   onChangePeriod,
   showGreeting = false,
+  onNewEvent,
 }: TimePeriodDashboardProps) {
   const { data: balance, isLoading, error } = useTimePeriodBalance(timePeriodId);
 
@@ -178,12 +181,19 @@ export function TimePeriodDashboard({
 
       {/* FAB */}
       <div className="fixed bottom-24 right-5 z-30">
-        <Link to="/events/new">
-          <Button size="lg" className="rounded-pill shadow-lg shadow-dn-primary/20 gap-2">
+        {onNewEvent ? (
+          <Button size="lg" className="rounded-pill shadow-lg shadow-dn-primary/20 gap-2" onClick={onNewEvent}>
             <Icon name="add" />
             New Event
           </Button>
-        </Link>
+        ) : (
+          <Link to="/events/new">
+            <Button size="lg" className="rounded-pill shadow-lg shadow-dn-primary/20 gap-2">
+              <Icon name="add" />
+              New Event
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Bottom spacer */}

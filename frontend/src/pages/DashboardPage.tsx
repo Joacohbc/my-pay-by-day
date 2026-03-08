@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDefaultTimePeriod } from '@/hooks/useDefaultTimePeriod';
 import { useTimePeriods } from '@/hooks/useTimePeriods';
@@ -6,11 +7,23 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { Icon } from '@/components/ui/Icon';
+import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
+import type { Template } from '@/models';
 
 export function DashboardPage() {
   const { defaultId } = useDefaultTimePeriod();
   const { data: periods, isLoading } = useTimePeriods();
   const navigate = useNavigate();
+  const [showPicker, setShowPicker] = useState(false);
+
+  const handlePickTemplate = (template: Template | null) => {
+    setShowPicker(false);
+    if (template) {
+      navigate('/events/new', { state: { template } });
+    } else {
+      navigate('/events/new');
+    }
+  };
 
   const now = new Date();
   const greeting =
@@ -21,11 +34,15 @@ export function DashboardPage() {
   // Default period is set — show its dashboard
   if (defaultId !== null) {
     return (
-      <TimePeriodDashboard
-        timePeriodId={defaultId}
-        showGreeting
-        onChangePeriod={() => navigate('/periods')}
-      />
+      <>
+        <TimePeriodDashboard
+          timePeriodId={defaultId}
+          showGreeting
+          onChangePeriod={() => navigate('/periods')}
+          onNewEvent={() => setShowPicker(true)}
+        />
+        <TemplatePickerModal open={showPicker} onSelect={handlePickTemplate} onClose={() => setShowPicker(false)} />
+      </>
     );
   }
 
@@ -71,13 +88,13 @@ export function DashboardPage() {
 
       {/* FAB */}
       <div className="fixed bottom-24 right-5 z-30">
-        <Link to="/events/new">
-          <Button size="lg" className="rounded-pill shadow-lg shadow-dn-primary/20 gap-2">
-            <Icon name="add" />
-            New Event
-          </Button>
-        </Link>
+        <Button size="lg" className="rounded-pill shadow-lg shadow-dn-primary/20 gap-2" onClick={() => setShowPicker(true)}>
+          <Icon name="add" />
+          New Event
+        </Button>
       </div>
+
+      <TemplatePickerModal open={showPicker} onSelect={handlePickTemplate} onClose={() => setShowPicker(false)} />
     </div>
   );
 }
