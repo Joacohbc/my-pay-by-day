@@ -6,6 +6,7 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/lib/format';
+import { Icon } from '@/components/ui/Icon';
 import type { FinanceEvent, TimePeriod } from '@/models';
 
 interface TimePeriodDashboardProps {
@@ -55,7 +56,7 @@ export function TimePeriodDashboard({
               onClick={onChangePeriod}
               className="shrink-0 flex items-center gap-1 text-xs text-dn-primary px-2 py-1 rounded-pill bg-dn-primary/10 hover:bg-dn-primary/20 transition-colors mt-1"
             >
-              <span className="material-symbols-outlined text-sm">swap_horiz</span>
+              <Icon name="swap_horiz" className="text-sm" />
               Change
             </button>
           )}
@@ -79,9 +80,7 @@ export function TimePeriodDashboard({
               netBalance >= 0 ? 'bg-dn-success/10 text-dn-success' : 'bg-dn-error/10 text-dn-error'
             }`}
           >
-            <span className="material-symbols-outlined text-sm">
-              {netBalance >= 0 ? 'trending_up' : 'trending_down'}
-            </span>
+            <Icon name={netBalance >= 0 ? 'trending_up' : 'trending_down'} className="text-sm" />
             {events.length} event{events.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -91,14 +90,14 @@ export function TimePeriodDashboard({
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-success/10 text-dn-success mb-3">
-            <span className="material-symbols-outlined">trending_up</span>
+            <Icon name="trending_up" />
           </div>
           <p className="text-xs text-dn-text-muted mb-0.5">Income</p>
           <p className="text-lg font-mono font-semibold text-dn-success">{formatCurrency(income ?? 0)}</p>
         </Card>
         <Card>
           <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-error/10 text-dn-error mb-3">
-            <span className="material-symbols-outlined">trending_down</span>
+            <Icon name="trending_down" />
           </div>
           <p className="text-xs text-dn-text-muted mb-0.5">Expenses</p>
           <p className="text-lg font-mono font-semibold text-dn-text-main">{formatCurrency(outbound ?? 0)}</p>
@@ -131,7 +130,7 @@ export function TimePeriodDashboard({
         <Card>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-primary/10 text-dn-primary shrink-0">
-              <span className="material-symbols-outlined">savings</span>
+              <Icon name="savings" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-dn-text-muted uppercase tracking-wider">Savings Goal</p>
@@ -156,7 +155,7 @@ export function TimePeriodDashboard({
           <h2 className="text-sm font-medium text-dn-text-muted uppercase tracking-wider">Activity</h2>
           <Link to="/events" className="text-xs text-dn-primary flex items-center gap-0.5">
             View all
-            <span className="material-symbols-outlined text-sm">chevron_right</span>
+            <Icon name="chevron_right" className="text-sm" />
           </Link>
         </div>
 
@@ -181,7 +180,7 @@ export function TimePeriodDashboard({
       <div className="fixed bottom-24 right-5 z-30">
         <Link to="/events/new">
           <Button size="lg" className="rounded-pill shadow-lg shadow-dn-primary/20 gap-2">
-            <span className="material-symbols-outlined">add</span>
+            <Icon name="add" />
             New Event
           </Button>
         </Link>

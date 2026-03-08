@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Icon } from '@/components/ui/Icon';
 import type { Category } from '@/models';
 import { useForm } from 'react-hook-form';
 
@@ -73,7 +74,7 @@ export function CategoriesPage() {
         subtitle={`${allCategories.length} categories`}
         action={
           <Button size="sm" onClick={openCreate}>
-            <span className="material-symbols-outlined text-sm">add</span>
+            <Icon name="add" className="text-sm" />
             New
           </Button>
         }
@@ -85,7 +86,7 @@ export function CategoriesPage() {
           description="Categories help classify your events as budget buckets"
           action={
             <Button size="sm" onClick={openCreate}>
-              <span className="material-symbols-outlined text-sm">add</span>
+              <Icon name="add" className="text-sm" />
               Add Category
             </Button>
           }
@@ -108,14 +109,14 @@ export function CategoriesPage() {
                   onClick={() => openEdit(cat)}
                   className="p-2 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
                 >
-                  <span className="material-symbols-outlined text-base">edit</span>
+                  <Icon name="edit" className="text-base" />
                 </button>
                 <button
                   onClick={() => handleDelete(cat.id)}
                   disabled={deleteCategory.isPending}
                   className="p-2 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors disabled:opacity-50"
                 >
-                  <span className="material-symbols-outlined text-base">delete</span>
+                  <Icon name="delete" className="text-base" />
                 </button>
               </div>
             </Card>

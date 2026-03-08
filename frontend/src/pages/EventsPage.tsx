@@ -10,6 +10,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Icon } from '@/components/ui/Icon';
 import { formatCurrency, eventNetAmount } from '@/lib/format';
 import type { EventType } from '@/models';
 
@@ -78,7 +79,7 @@ export function EventsPage() {
         subtitle={`${allEvents.length} events`}
         action={
           <Button size="sm" onClick={() => setShowPicker(true)}>
-            <span className="material-symbols-outlined text-sm">add</span>
+            <Icon name="add" className="text-sm" />
             New
           </Button>
         }
@@ -99,7 +100,7 @@ export function EventsPage() {
       {/* Search */}
       <div className="px-5">
         <div className="relative">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-xl">search</span>
+          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-xl" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -135,7 +136,7 @@ export function EventsPage() {
             description={search ? 'Try a different search term' : 'Create your first financial event'}
             action={
               <Button size="sm" onClick={() => setShowPicker(true)}>
-                <span className="material-symbols-outlined text-sm">add</span>
+                <Icon name="add" className="text-sm" />
                 New Event
               </Button>
             }

@@ -72,9 +72,7 @@ export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardP
                   : 'text-dn-text-muted hover:text-dn-warning hover:bg-dn-warning/10'
               }`}
             >
-              <span className="material-symbols-outlined text-[20px]">
-                {isDefault ? 'star' : 'star_border'}
-              </span>
+              <Icon name={isDefault ? 'star' : 'star_border'} className="text-[20px]" />
             </button>
           </div>
 
@@ -89,11 +87,11 @@ export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardP
           ) : (
             <div className="flex items-center gap-4 mt-2 flex-wrap">
               <span className="inline-flex items-center gap-1 text-sm text-dn-success">
-                <span className="material-symbols-outlined text-sm">arrow_downward</span>
+                <Icon name="arrow_downward" className="text-sm" />
                 {fmt(income)}
               </span>
               <span className="inline-flex items-center gap-1 text-sm text-dn-error">
-                <span className="material-symbols-outlined text-sm">arrow_upward</span>
+                <Icon name="arrow_upward" className="text-sm" />
                 {fmt(outbound)}
               </span>
               <span className={`text-sm font-semibold font-mono ${net >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
@@ -127,21 +125,21 @@ export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardP
               className="p-1.5 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
               title="View balance"
             >
-              <span className="material-symbols-outlined text-[18px]">bar_chart</span>
+              <Icon name="bar_chart" className="text-[18px]" />
             </Link>
             <button
               onClick={() => onEdit(tp)}
               className="p-1.5 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
               title="Edit"
             >
-              <span className="material-symbols-outlined text-[18px]">edit</span>
+              <Icon name="edit" className="text-[18px]" />
             </button>
             <button
               onClick={() => onDelete(tp)}
               className="p-1.5 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors"
               title="Delete"
             >
-              <span className="material-symbols-outlined text-[18px]">delete</span>
+              <Icon name="delete" className="text-[18px]" />
             </button>
           </div>
         </div>

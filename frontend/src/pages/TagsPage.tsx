@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Icon } from '@/components/ui/Icon';
 import type { Tag } from '@/models';
 import { useForm } from 'react-hook-form';
 
@@ -73,7 +74,7 @@ export function TagsPage() {
         subtitle={`${allTags.length} tags`}
         action={
           <Button size="sm" onClick={openCreate}>
-            <span className="material-symbols-outlined text-sm">add</span>
+            <Icon name="add" className="text-sm" />
             New
           </Button>
         }
@@ -90,12 +91,12 @@ export function TagsPage() {
 
       {allTags.length === 0 ? (
         <EmptyState
-          icon={<span className="material-symbols-outlined">tag</span>}
+          icon={<Icon name="tag" />}
           title="No tags yet"
           description="Create tags to group events across different categories"
           action={
             <Button size="sm" onClick={openCreate}>
-              <span className="material-symbols-outlined text-sm">add</span>
+              <Icon name="add" className="text-sm" />
               Add Tag
             </Button>
           }
@@ -118,14 +119,14 @@ export function TagsPage() {
                   onClick={() => openEdit(tag)}
                   className="p-1 rounded-full text-dn-text-muted hover:text-dn-text-main transition-colors"
                 >
-                  <span className="material-symbols-outlined text-base">edit</span>
+                  <Icon name="edit" className="text-base" />
                 </button>
                 <button
                   onClick={() => handleDelete(tag.id)}
                   disabled={deleteTag.isPending}
                   className="p-1 rounded-full text-dn-text-muted hover:text-dn-error transition-colors disabled:opacity-50"
                 >
-                  <span className="material-symbols-outlined text-base">delete</span>
+                  <Icon name="delete" className="text-base" />
                 </button>
               </div>
             </div>

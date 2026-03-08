@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Icon } from '@/components/ui/Icon';
 import type { Subscription } from '@/models';
 
 const recurrenceLabel: Record<string, string> = {
@@ -27,14 +28,14 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
   return (
     <Card className="flex items-center gap-4">
       <div className="w-12 h-12 flex items-center justify-center rounded-2xl bg-dn-primary/10 text-dn-primary shrink-0">
-        <span className="material-symbols-outlined">sync</span>
+        <Icon name="sync" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-base font-medium text-dn-text-main truncate">{sub.name}</p>
         <div className="flex items-center gap-2 mt-0.5">
           <Badge variant="indigo">{recurrenceLabel[sub.recurrence]}</Badge>
           <span className="text-xs text-dn-text-muted flex items-center gap-1">
-            <span className="material-symbols-outlined text-xs">calendar_today</span>
+            <Icon name="calendar_today" className="text-xs" />
             Next: {nextDate}
           </span>
         </div>
@@ -47,7 +48,7 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
         disabled={del.isPending}
         className="shrink-0 p-2 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors disabled:opacity-50"
       >
-        <span className="material-symbols-outlined text-lg">delete</span>
+        <Icon name="delete" className="text-lg" />
       </button>
     </Card>
   );
@@ -71,7 +72,7 @@ export function SubscriptionsPage() {
         subtitle="Recurring agreements"
         action={
           <Button size="sm" onClick={() => setShowInfo(true)}>
-            <span className="material-symbols-outlined text-sm">add</span>
+            <Icon name="add" className="text-sm" />
             New
           </Button>
         }
@@ -80,7 +81,7 @@ export function SubscriptionsPage() {
       {/* Not-implemented banner */}
       {(error || isNotImplemented) && (
         <div className="mx-5 flex items-start gap-3 bg-dn-tertiary/10 border border-dn-tertiary/20 rounded-card px-4 py-3">
-          <span className="material-symbols-outlined text-dn-tertiary shrink-0 mt-0.5">info</span>
+          <Icon name="info" className="text-dn-tertiary shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-dn-tertiary">Feature coming soon</p>
             <p className="text-xs text-dn-text-muted mt-0.5">
@@ -94,7 +95,7 @@ export function SubscriptionsPage() {
       <div className="px-5">
         <Card>
           <div className="flex items-start gap-3">
-            <span className="material-symbols-outlined text-dn-primary shrink-0 mt-0.5">sync</span>
+            <Icon name="sync" className="text-dn-primary shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-dn-text-main">How Subscriptions Work</p>
               <p className="text-xs text-dn-text-muted mt-1 leading-relaxed">
@@ -110,12 +111,12 @@ export function SubscriptionsPage() {
       {/* List */}
       {allSubs.length === 0 && !error ? (
         <EmptyState
-          icon={<span className="material-symbols-outlined text-2xl">sync</span>}
+          icon={<Icon name="sync" className="text-2xl" />}
           title="No subscriptions yet"
           description="Set up recurring agreements to automate your financial tracking"
           action={
             <Button size="sm" onClick={() => setShowInfo(true)}>
-              <span className="material-symbols-outlined text-sm">add</span>
+              <Icon name="add" className="text-sm" />
               Add Subscription
             </Button>
           }
@@ -141,7 +142,7 @@ export function SubscriptionsPage() {
       >
         <div className="space-y-3 text-sm text-dn-text-muted">
           <div className="flex items-start gap-2">
-            <span className="material-symbols-outlined text-dn-tertiary shrink-0 mt-0.5">info</span>
+            <Icon name="info" className="text-dn-tertiary shrink-0 mt-0.5" />
             <p>
               The subscriptions feature requires the backend to be fully implemented.
               Once available, you'll be able to select a Template, set a recurrence

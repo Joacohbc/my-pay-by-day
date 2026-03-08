@@ -5,6 +5,7 @@ import { TimePeriodDashboard } from '@/components/time-periods/TimePeriodDashboa
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { FullPageSpinner } from '@/components/ui/Spinner';
+import { Icon } from '@/components/ui/Icon';
 
 export function DashboardPage() {
   const { defaultId } = useDefaultTimePeriod();
@@ -42,7 +43,7 @@ export function DashboardPage() {
       <Card>
         <div className="flex flex-col items-center text-center gap-4 py-4">
           <div className="w-16 h-16 flex items-center justify-center rounded-3xl bg-dn-primary/10 text-dn-primary">
-            <span className="material-symbols-outlined text-3xl">calendar_month</span>
+            <Icon name="calendar_month" className="text-3xl" />
           </div>
           <div>
             <p className="text-base font-semibold text-dn-text-main">No default period set</p>
@@ -53,14 +54,14 @@ export function DashboardPage() {
           {allPeriods.length === 0 ? (
             <Link to="/periods">
               <Button size="sm">
-                <span className="material-symbols-outlined text-sm">add</span>
+                <Icon name="add" className="text-sm" />
                 Create a Period
               </Button>
             </Link>
           ) : (
             <Link to="/periods">
               <Button size="sm">
-                <span className="material-symbols-outlined text-sm">calendar_month</span>
+                <Icon name="calendar_month" className="text-sm" />
                 Select a Period
               </Button>
             </Link>
@@ -72,7 +73,7 @@ export function DashboardPage() {
       <div className="fixed bottom-24 right-5 z-30">
         <Link to="/events/new">
           <Button size="lg" className="rounded-pill shadow-lg shadow-dn-primary/20 gap-2">
-            <span className="material-symbols-outlined">add</span>
+            <Icon name="add" />
             New Event
           </Button>
         </Link>

@@ -1,6 +1,7 @@
 import { useTemplates } from '@/hooks/useTemplates';
 import { Modal } from '@/components/ui/Modal';
 import { FullPageSpinner } from '@/components/ui/Spinner';
+import { Icon } from '@/components/ui/Icon';
 import type { Template } from '@/models';
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
@@ -28,7 +29,7 @@ export function TemplatePickerModal({ open, onClose, onSelect }: TemplatePickerM
           className="w-full flex items-center gap-3 p-4 rounded-card bg-dn-surface-low hover:bg-dn-surface transition-colors text-left cursor-pointer"
         >
           <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-primary/10 text-dn-primary shrink-0">
-            <span className="material-symbols-outlined">edit_note</span>
+            <Icon name="edit_note" />
           </div>
           <div>
             <p className="text-sm font-medium text-dn-text-main">From Scratch</p>
@@ -52,7 +53,7 @@ export function TemplatePickerModal({ open, onClose, onSelect }: TemplatePickerM
                   className="w-full flex items-center gap-3 p-4 rounded-card bg-dn-surface-low hover:bg-dn-surface transition-colors text-left cursor-pointer"
                 >
                   <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-surface text-dn-text-muted shrink-0">
-                    <span className="material-symbols-outlined">auto_fix_high</span>
+                    <Icon name="auto_fix_high" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-dn-text-main">{template.name}</p>
@@ -75,9 +76,7 @@ export function TemplatePickerModal({ open, onClose, onSelect }: TemplatePickerM
                       )}
                     </div>
                   </div>
-                  <span className="material-symbols-outlined text-lg text-dn-text-muted/50 shrink-0">
-                    chevron_right
-                  </span>
+                  <Icon name="chevron_right" className="text-lg text-dn-text-muted/50 shrink-0" />
                 </button>
               ))}
             </div>

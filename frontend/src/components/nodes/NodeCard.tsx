@@ -1,5 +1,6 @@
 import type { FinanceNode } from '@/models';
 import { Badge } from '@/components/ui/Badge';
+import { Icon } from '@/components/ui/Icon';
 
 interface NodeCardProps {
   node: FinanceNode;
@@ -45,9 +46,9 @@ export function NodeCard({ node, balance, onClick, actions }: NodeCardProps) {
     >
       <div className={`shrink-0 w-12 h-12 flex items-center justify-center rounded-2xl ${cfg.iconBg}`}>
         {node.archived ? (
-          <span className="material-symbols-outlined text-dn-text-muted">archive</span>
+          <Icon name="archive" className="text-dn-text-muted" />
         ) : (
-          <span className="material-symbols-outlined">{cfg.icon}</span>
+          <Icon name={cfg.icon} />
         )}
       </div>
 

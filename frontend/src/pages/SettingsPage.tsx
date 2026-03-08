@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Icon } from '@/components/ui/Icon';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
@@ -21,7 +22,7 @@ function SettingRow({ to, icon, title, subtitle, count }: SettingRowProps) {
       className="flex items-center gap-4 px-4 py-3.5 hover:bg-dn-surface-low/50 transition-colors"
     >
       <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-surface-low text-dn-text-muted shrink-0">
-        <span className="material-symbols-outlined">{icon}</span>
+        <Icon name={icon} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-dn-text-main">{title}</p>
@@ -31,7 +32,7 @@ function SettingRow({ to, icon, title, subtitle, count }: SettingRowProps) {
         {count !== undefined && (
           <span className="text-xs font-mono text-dn-text-muted">{count}</span>
         )}
-        <span className="material-symbols-outlined text-lg text-dn-text-muted/50">chevron_right</span>
+        <Icon name="chevron_right" className="text-lg text-dn-text-muted/50" />
       </div>
     </Link>
   );
@@ -93,7 +94,7 @@ export function SettingsPage() {
         </p>
         <Card>
           <div className="flex items-start gap-3">
-            <span className="material-symbols-outlined text-dn-text-muted shrink-0 mt-0.5">info</span>
+            <Icon name="info" className="text-dn-text-muted shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="text-sm font-medium text-dn-text-main">MyPayByDay</p>
               <p className="text-xs text-dn-text-muted leading-relaxed">

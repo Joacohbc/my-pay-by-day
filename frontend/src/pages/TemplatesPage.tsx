@@ -14,6 +14,7 @@ import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Icon } from '@/components/ui/Icon';
 import type { Template, EventType, ModifierType } from '@/models';
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
@@ -145,7 +146,7 @@ export function TemplatesPage() {
         subtitle={`${allTemplates.length} templates`}
         action={
           <Button size="sm" onClick={openCreate}>
-            <span className="material-symbols-outlined text-sm">add</span>
+            <Icon name="add" className="text-sm" />
             New
           </Button>
         }
@@ -157,7 +158,7 @@ export function TemplatesPage() {
           description="Templates speed up event creation with pre-configured defaults and modifiers"
           action={
             <Button size="sm" onClick={openCreate}>
-              <span className="material-symbols-outlined text-sm">add</span>
+              <Icon name="add" className="text-sm" />
               Add Template
             </Button>
           }
@@ -167,7 +168,7 @@ export function TemplatesPage() {
           {allTemplates.map((t) => (
             <Card key={t.id} className="flex items-start gap-4">
               <div className="w-12 h-12 flex items-center justify-center rounded-full bg-dn-primary/10 text-dn-primary shrink-0 mt-0.5">
-                <span className="material-symbols-outlined">auto_fix_high</span>
+                <Icon name="auto_fix_high" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -214,14 +215,14 @@ export function TemplatesPage() {
                   onClick={() => openEdit(t)}
                   className="p-2 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
                 >
-                  <span className="material-symbols-outlined text-base">edit</span>
+                  <Icon name="edit" className="text-base" />
                 </button>
                 <button
                   onClick={() => handleDelete(t.id)}
                   disabled={deleteTemplate.isPending}
                   className="p-2 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors disabled:opacity-50"
                 >
-                  <span className="material-symbols-outlined text-base">delete</span>
+                  <Icon name="delete" className="text-base" />
                 </button>
               </div>
             </Card>

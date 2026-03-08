@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Icon } from '@/components/ui/Icon';
 import type { FinanceNode, FinanceNodeType } from '@/models';
 import { useForm, Controller } from 'react-hook-form';
 
@@ -42,7 +43,7 @@ function NodeActionMenu({ node }: { node: FinanceNode }) {
         }}
         className="p-1.5 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
       >
-        <span className="material-symbols-outlined text-lg">more_vert</span>
+        <Icon name="more_vert" className="text-lg" />
       </button>
       {open && (
         <>
@@ -53,7 +54,7 @@ function NodeActionMenu({ node }: { node: FinanceNode }) {
                 onClick={() => { archive.mutate(node.id); setOpen(false); }}
                 className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dn-text-main hover:bg-dn-surface-low transition-colors"
               >
-                <span className="material-symbols-outlined text-base">archive</span>
+                <Icon name="archive" className="text-base" />
                 Archive
               </button>
             )}
@@ -61,7 +62,7 @@ function NodeActionMenu({ node }: { node: FinanceNode }) {
               onClick={() => { del.mutate(node.id); setOpen(false); }}
               className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dn-error hover:bg-dn-error/10 transition-colors"
             >
-              <span className="material-symbols-outlined text-base">delete</span>
+              <Icon name="delete" className="text-base" />
               Delete
             </button>
           </div>
@@ -109,7 +110,7 @@ export function NodesPage() {
         subtitle={`${activeNodes.length} active`}
         action={
           <Button size="sm" onClick={() => setShowModal(true)}>
-            <span className="material-symbols-outlined text-sm">add</span>
+            <Icon name="add" className="text-sm" />
             New
           </Button>
         }
@@ -182,7 +183,7 @@ export function NodesPage() {
           description="Add accounts, external entities, or contacts"
           action={
             <Button size="sm" onClick={() => setShowModal(true)}>
-              <span className="material-symbols-outlined text-sm">add</span>
+              <Icon name="add" className="text-sm" />
               Add Node
             </Button>
           }

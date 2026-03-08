@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Icon } from '@/components/ui/Icon';
 import { formatCurrency, formatDateTime, eventNetAmount } from '@/lib/format';
 
 const typeConfig = {
@@ -60,7 +61,7 @@ export function EventDetailPage() {
           <div className="flex gap-2">
             <Link to={`/events/${event.id}/edit`}>
               <Button variant="secondary" size="sm">
-                <span className="material-symbols-outlined text-base">edit</span>
+                <Icon name="edit" className="text-base" />
               </Button>
             </Link>
             <Button
@@ -69,7 +70,7 @@ export function EventDetailPage() {
               onClick={handleDelete}
               loading={deleteEvent.isPending}
             >
-              <span className="material-symbols-outlined text-base">delete</span>
+              <Icon name="delete" className="text-base" />
             </Button>
           </div>
         }
@@ -78,7 +79,7 @@ export function EventDetailPage() {
       {/* Hero */}
       <div className="px-5 flex flex-col items-center text-center">
         <div className={`w-16 h-16 flex items-center justify-center rounded-full mb-4 ${cfg.iconBg}`}>
-          <span className="material-symbols-outlined text-3xl">{cfg.icon}</span>
+          <Icon name={cfg.icon} className="text-3xl" />
         </div>
 
         <h2 className="text-xl font-semibold text-dn-text-main tracking-tight">{event.name}</h2>
@@ -127,7 +128,7 @@ export function EventDetailPage() {
                 className="text-sm text-dn-primary flex items-center gap-1"
               >
                 View
-                <span className="material-symbols-outlined text-sm">open_in_new</span>
+                <Icon name="open_in_new" className="text-sm" />
               </a>
             </div>
           )}

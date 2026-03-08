@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Icon } from '@/components/ui/Icon';
 
 interface PageHeaderProps {
   title: string;
@@ -18,7 +19,7 @@ export function PageHeader({ title, subtitle, back = false, action }: PageHeader
             onClick={() => navigate(-1)}
             className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-dn-surface-low text-dn-text-main hover:bg-dn-surface transition-colors"
           >
-            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            <Icon name="arrow_back" className="text-[18px]" />
           </button>
         )}
         <div className="min-w-0">

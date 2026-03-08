@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
+import { Icon } from '@/components/ui/Icon';
 import type { CreateEventDto, EventType, FinanceEvent } from '@/models';
 import { toLocalDateTimeString } from '@/lib/format';
 
@@ -254,7 +255,7 @@ export function EventForm({
               onClick={() => append({ nodeId: '', amount: '' })}
               className="flex items-center gap-1 text-xs text-dn-primary hover:brightness-110 transition-all"
             >
-              <span className="material-symbols-outlined text-sm">add</span>
+              <Icon name="add" className="text-sm" />
               Add
             </button>
           )}
@@ -357,7 +358,7 @@ export function EventForm({
                     onClick={() => remove(i)}
                     className="p-1.5 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors"
                   >
-                    <span className="material-symbols-outlined text-base">delete</span>
+                    <Icon name="delete" className="text-base" />
                   </button>
                 )}
               </div>

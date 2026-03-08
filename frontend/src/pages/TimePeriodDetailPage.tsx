@@ -37,9 +37,7 @@ export function TimePeriodDetailPage() {
           onClick={handleToggleDefault}
           className={`flex items-center gap-1.5 ${isDefault ? 'text-dn-warning' : 'text-dn-text-muted'}`}
         >
-          <span className="material-symbols-outlined text-base">
-            {isDefault ? 'star' : 'star_border'}
-          </span>
+          <Icon name={isDefault ? 'star' : 'star_border'} className="text-base" />
           {isDefault ? 'Home default' : 'Set as default'}
         </Button>
       </div>

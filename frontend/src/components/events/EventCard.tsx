@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { FinanceEvent } from '@/models';
+import { Icon } from '@/components/ui/Icon';
 import { formatCurrency, formatDate, eventNetAmount } from '@/lib/format';
 
 interface EventCardProps {
@@ -40,7 +41,7 @@ export function EventCard({ event }: EventCardProps) {
       <div className="flex items-center gap-4">
         {/* Icon */}
         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${cfg.iconBg}`}>
-          <span className="material-symbols-outlined">{cfg.icon}</span>
+          <Icon name={cfg.icon} />
         </div>
 
         {/* Info */}
