@@ -1,18 +1,13 @@
 package com.mypaybyday.entity;
 
-
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.OneToMany;
+import com.mypaybyday.enums.EventType;
+import com.mypaybyday.enums.ModifierType;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Getter
@@ -27,7 +22,32 @@ public class Template extends BaseEntity {
 
     public String description;
 
-    @OneToMany(mappedBy = "template", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "origin_node_id")
+    public FinanceNode originNode;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "destination_node_id")
+    public FinanceNode destinationNode;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "category_id")
+    public Category category;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "template_tag",
+        joinColumns = @JoinColumn(name = "template_id"),
+        inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
     @Builder.Default
-    public List<TemplateLineItem> lineItems = new ArrayList<>();
+    public List<Tag> tags = new ArrayList<>();
+
+    @Enumerated(EnumType.STRING)
+    public EventType eventType;
+
+    @Enumerated(EnumType.STRING)
+    public ModifierType modifierType;
+
+    public BigDecimal modifierValue;
 }

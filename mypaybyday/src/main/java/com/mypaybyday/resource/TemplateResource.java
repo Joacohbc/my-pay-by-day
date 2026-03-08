@@ -1,6 +1,9 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.entity.Template;
+import com.mypaybyday.dto.TemplateDto;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.service.TemplateService;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -18,12 +21,15 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Tag(name = "Templates", description = "Blueprints for rapid Event creation, with optional mathematical modifiers on amounts")
 public class TemplateResource {
 
+    @Inject
+    TemplateService templateService;
+
     @GET
     @Operation(summary = "List all templates")
     @APIResponse(responseCode = "200", description = "List of templates",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Template.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TemplateDto.class)))
     public Response getAll() {
-        throw new UnsupportedOperationException("Not implemented yet");
+        return Response.ok(templateService.listAll()).build();
     }
 
     @GET
@@ -31,12 +37,13 @@ public class TemplateResource {
     @Operation(summary = "Get template by ID")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Template found",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Template.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TemplateDto.class))),
             @APIResponse(responseCode = "404", description = "Template not found")
     })
     public Response getById(
-            @Parameter(description = "ID of the template", required = true) @PathParam("id") Long id) {
-        throw new UnsupportedOperationException("Not implemented yet");
+            @Parameter(description = "ID of the template", required = true) @PathParam("id") Long id)
+            throws BusinessException {
+        return Response.ok(templateService.findById(id)).build();
     }
 
     @POST
@@ -44,11 +51,11 @@ public class TemplateResource {
             description = "Defines static config (origin/destination nodes, category, tags) and optional dynamic modifiers.")
     @APIResponses({
             @APIResponse(responseCode = "201", description = "Template created",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Template.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TemplateDto.class))),
             @APIResponse(responseCode = "400", description = "Validation error")
     })
-    public Response create(Template template) {
-        throw new UnsupportedOperationException("Not implemented yet");
+    public Response create(TemplateDto dto) throws BusinessException {
+        return Response.status(Response.Status.CREATED).entity(templateService.create(dto)).build();
     }
 
     @PUT
@@ -56,14 +63,14 @@ public class TemplateResource {
     @Operation(summary = "Update a template")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Template updated",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Template.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TemplateDto.class))),
             @APIResponse(responseCode = "400", description = "Validation error"),
             @APIResponse(responseCode = "404", description = "Template not found")
     })
     public Response update(
             @Parameter(description = "ID of the template", required = true) @PathParam("id") Long id,
-            Template templateDetails) {
-        throw new UnsupportedOperationException("Not implemented yet");
+            TemplateDto dto) throws BusinessException {
+        return Response.ok(templateService.update(id, dto)).build();
     }
 
     @DELETE
@@ -71,10 +78,13 @@ public class TemplateResource {
     @Operation(summary = "Delete a template")
     @APIResponses({
             @APIResponse(responseCode = "204", description = "Template deleted"),
+            @APIResponse(responseCode = "400", description = "Template is in use by a subscription"),
             @APIResponse(responseCode = "404", description = "Template not found")
     })
     public Response delete(
-            @Parameter(description = "ID of the template", required = true) @PathParam("id") Long id) {
-        throw new UnsupportedOperationException("Not implemented yet");
+            @Parameter(description = "ID of the template", required = true) @PathParam("id") Long id)
+            throws BusinessException {
+        templateService.delete(id);
+        return Response.noContent().build();
     }
 }
