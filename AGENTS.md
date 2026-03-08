@@ -145,7 +145,49 @@ Thin data-access layer. Contains only persistence calls and simple JPQL queries.
 
 ---
 
-## 10. Coding Conventions
+## 10. REST Endpoint Structure
+
+All resource endpoints **must** follow standard REST conventions for path design, HTTP methods, and response status codes.
+
+### 10.1 Path Design
+
+* **Plural nouns only:** Collection paths use the plural form of the resource name (e.g., `/events`, `/finance-nodes`, `/time-periods`).
+* **Kebab-case for multi-word resources:** Use hyphens, never underscores or camelCase (e.g., `/finance-nodes`, `/time-periods`).
+* **No verbs in paths:** Actions are expressed via HTTP methods, not URL segments. The only exception is action sub-resources that cannot map naturally to a verb (e.g., `POST /finance-nodes/{id}/archive` for a state transition).
+* **Sub-resource paths for relationships:** Derived or nested reads use sub-paths (e.g., `GET /finance-nodes/{id}/balance`, `GET /time-periods/{id}/balance`).
+
+### 10.2 HTTP Method Semantics
+
+| Operation | HTTP Method | Path | Notes |
+|---|---|---|---|
+| List all | `GET` | `/{resource}` | |
+| Get one | `GET` | `/{resource}/{id}` | |
+| Create | `POST` | `/{resource}` | |
+| Full replace | `PUT` | `/{resource}/{id}` | Replaces the entire resource |
+| Partial update | `PATCH` | `/{resource}/{id}` | Updates only the supplied fields — **preferred over `PUT`** |
+| Delete | `DELETE` | `/{resource}/{id}` | |
+| State transition / Action | `POST` | `/{resource}/{id}/{action}` | e.g., `POST /finance-nodes/{id}/archive` |
+
+> **Update preference:** Prefer `@PATCH` over `@PUT` for update endpoints. Use `@PATCH` by default unless the endpoint is explicitly designed to replace the entire resource and `null` fields mean intentional deletion. Never mix both for the same semantic across different resources.
+
+### 10.3 HTTP Response Status Codes
+
+Every endpoint **must** return the appropriate HTTP status code:
+
+| Scenario | Status Code |
+|---|---|
+| Successful list or single fetch | `200 OK` |
+| Successful creation | `201 Created` (include `Location` header when feasible) |
+| Successful full/partial update | `200 OK` (return updated resource) |
+| Successful delete | `204 No Content` |
+| Successful action (state transition) | `200 OK` |
+| Resource not found | `404 Not Found` |
+| Business rule violation | `400 Bad Request` |
+| Validation error | `400 Bad Request` |
+
+---
+
+## 11. Coding Conventions
 
 1. **Explicit Exception Declaration:** Every method in the service and validator layers that throws or propagates a `BusinessException` — even though it is unchecked — **must** declare it explicitly in its `throws` clause. This makes the contract visible at the call site without requiring callers to read the implementation.
 2. **Resources use Services, never Repositories:** The resource layer must inject and call the service layer exclusively. Direct repository access from a resource bypasses all business-rule validation and is forbidden.
@@ -157,7 +199,7 @@ Thin data-access layer. Contains only persistence calls and simple JPQL queries.
 
 # Part III — Frontend
 
-## 11. Tech Stack
+## 12. Tech Stack
 
 * **Framework:** React + TypeScript
 * **Build Tool:** Vite
@@ -165,7 +207,17 @@ Thin data-access layer. Contains only persistence calls and simple JPQL queries.
 
 ---
 
-## 12. Coding Conventions
+## 13. Icon Conventions
+
+* **Icon library:** All icons **must** use the **Material Symbols Outlined** set. Never use raw `<span>` tags with `material-symbols-outlined` directly in components — always go through the `Icon` component.
+* **Icon component:** Use `<Icon name="..." />` from `@/components/ui/Icon` for every icon render. This is the single source of truth for icon rendering.
+* **Reusable named icons:** If an icon is used in more than one place, or if its name carries semantic meaning in the domain (e.g., "archive", "add event", "template"), it **must** be extracted as a named constant or wrapper in `@/components/ui/Icon.tsx` instead of repeating the string literal.
+  * **Do:** `export const ArchiveIcon = () => <Icon name="archive" />` and then use `<ArchiveIcon />` everywhere.
+  * **Don't:** Scatter `<Icon name="archive" />` across multiple unrelated components.
+
+---
+
+## 14. Coding Conventions
 
 1. **Absolute Imports:** The frontend project is configured to use path aliases (`@/` mapping to `src/`). You **must** use absolute imports for all internal modules instead of relative paths.
    * **Do:** `import Button from '@/components/ui/Button'`
