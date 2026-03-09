@@ -1,6 +1,27 @@
 import i18n from '@/i18n';
 
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api';
+// In production (Docker) VITE_API_BASE_URL is injected at container startup
+// via /env.js into window.__env__. In dev, Vite exposes it through import.meta.env.
+function resolveBaseUrl(): string {
+  
+  // Runtime environment (Docker): read from window.__env__
+  const runtimeEnv = (window as { __env__?: Record<string, unknown> }).__env__;
+  if (runtimeEnv?.VITE_API_BASE_URL 
+      && typeof runtimeEnv.VITE_API_BASE_URL === 'string' 
+      && runtimeEnv.VITE_API_BASE_URL !== '') {
+    return runtimeEnv.VITE_API_BASE_URL;
+  }
+
+  // Build-time environment (Vite): read from import.meta.env
+  const buildTimeUrl = import.meta.env.VITE_API_BASE_URL;
+  if (typeof buildTimeUrl === 'string' && buildTimeUrl !== '') {
+    return buildTimeUrl;
+  }
+
+  return '/api';
+}
+
+const BASE_URL = resolveBaseUrl();
 
 function withLang(path: string): string {
   const lang = i18n.language ?? 'en';
