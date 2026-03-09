@@ -33,8 +33,14 @@ RUN ./mvnw -B dependency:go-offline
 
 COPY --chown=quarkus:quarkus src /code/src
 
+# -Dquarkus.native.march=compatibility forces Mandrel to target the lowest
+# common CPU baseline (x86-64 / armv8-a) instead of the builder's own
+# microarchitecture. Without this, binaries built in CI (GitHub Actions) may
+# use CPU extensions not present on the deployment host and crash at startup
+# with "Failed to create the main Isolate (code 24)" or illegal-instruction errors.
 RUN ./mvnw package -B -DskipTests -Dnative \
-    -Dquarkus.native.container-build=false
+    -Dquarkus.native.container-build=false \
+    -Dquarkus.native.march=compatibility
 
 ## Stage 2 — Minimal runtime image
 FROM quay.io/quarkus/ubi9-quarkus-micro-image:2.0
