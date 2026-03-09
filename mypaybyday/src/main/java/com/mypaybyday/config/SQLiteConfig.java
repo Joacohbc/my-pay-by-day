@@ -4,6 +4,7 @@ import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.Statement;
