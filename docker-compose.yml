@@ -1,0 +1,25 @@
+services:
+  backend:
+    build:
+      context: ./mypaybyday
+      dockerfile: src/main/docker/Dockerfile.native-multistage
+    environment:
+      - QUARKUS_DATASOURCE_JDBC_URL=jdbc:sqlite:/work/data/mypaybyday.db
+      - DB_FIELD_ENCRYPTION_KEY=${DB_FIELD_ENCRYPTION_KEY}
+    volumes:
+      - db_data:/work/data
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Points nginx proxy to the backend service on the internal Docker network.
+        # VITE_API_BASE_URL stays at the default /api; nginx rewrites it to this URL.
+        BACKEND_URL: http://backend:8080
+    ports:
+      - "8081:80"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:

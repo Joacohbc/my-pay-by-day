@@ -1,6 +1,6 @@
 import i18n from '@/i18n';
 
-const BASE_URL = '/api';
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api';
 
 function withLang(path: string): string {
   const lang = i18n.language ?? 'en';
