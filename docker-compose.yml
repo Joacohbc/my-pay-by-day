@@ -4,7 +4,7 @@ services:
     environment:
       - QUARKUS_DATASOURCE_JDBC_URL=jdbc:sqlite:/work/data/mypaybyday.db
       - DB_FIELD_ENCRYPTION_KEY=${DB_FIELD_ENCRYPTION_KEY}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173}
+      - QUARKUS_HTTP_CORS_ORIGINS=${QUARKUS_HTTP_CORS_ORIGINS:-http://localhost:5173}
     volumes:
       - db_data:/work/data
 

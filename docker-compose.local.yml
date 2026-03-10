@@ -1,0 +1,46 @@
+# docker-compose.local.yml
+#
+# Single-domain setup — no CORS needed.
+# An nginx reverse proxy sits in front of both services:
+#   GET /api/*   →  backend:8080  (prefix stripped)
+#   GET /*       →  frontend:80
+#
+# Usage:
+#   export DB_FIELD_ENCRYPTION_KEY=<your-key-longer-than-32-chars>
+#   docker compose -f docker-compose.local.yml up
+#
+# Port exposed on the host: http://localhost:8080  (override with PORT=xxxx)
+
+services:
+
+  proxy:
+    image: nginx:stable-alpine
+    ports:
+      - "${PORT:-8080}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+
+  frontend:
+    image: ghcr.io/joacohbc/my-pay-by-day/frontend
+    # VITE_API_BASE_URL=/api  →  same origin, no CORS
+    environment:
+      - VITE_API_BASE_URL=/api
+    depends_on:
+      - backend
+
+  backend:
+    image: ghcr.io/joacohbc/my-pay-by-day/backend
+    environment:
+      - QUARKUS_DATASOURCE_JDBC_URL=jdbc:sqlite:/work/data/mypaybyday.db
+      - DB_FIELD_ENCRYPTION_KEY=${DB_FIELD_ENCRYPTION_KEY}
+      # CORS is irrelevant when everything goes through the proxy,
+      # but set a safe value in case the filter is still evaluated.
+      - QUARKUS_HTTP_CORS_ORIGINS=http://localhost:${PORT:-8080}
+    volumes:
+      - db_data:/work/data
+
+volumes:
+  db_data:
