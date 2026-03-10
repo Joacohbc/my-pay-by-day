@@ -13,6 +13,8 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import java.util.ArrayList;
 import java.util.List;
 import jakarta.validation.constraints.NotBlank;
@@ -38,6 +40,10 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(indexes = {
+    @Index(name = "idx_finance_event_transaction", columnList = "transaction_id"),
+    @Index(name = "idx_finance_event_category", columnList = "category_id")
+})
 public class FinanceEvent extends BaseEntity {
 
     /**
@@ -110,7 +116,11 @@ public class FinanceEvent extends BaseEntity {
     @JoinTable(
         name = "event_tag",
         joinColumns = @JoinColumn(name = "event_id"),
-        inverseJoinColumns = @JoinColumn(name = "tag_id")
+        inverseJoinColumns = @JoinColumn(name = "tag_id"),
+        indexes = {
+            @Index(name = "idx_event_tag_event", columnList = "event_id"),
+            @Index(name = "idx_event_tag_tag", columnList = "tag_id")
+        }
     )
     @Builder.Default
     public List<Tag> tags = new ArrayList<>();

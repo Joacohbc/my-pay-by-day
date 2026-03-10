@@ -8,6 +8,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -39,6 +41,9 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(indexes = {
+    @Index(name = "idx_finance_transaction_date", columnList = "transactionDate")
+})
 public class FinanceTransaction extends BaseEntity {
 
     /** The date and time at which the financial movement occurred. */
