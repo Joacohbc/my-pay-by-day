@@ -20,9 +20,6 @@ public class StartupLogger {
     @ConfigProperty(name = "quarkus.datasource.jdbc.min-size")
     int jdbcMinSize;
 
-    @ConfigProperty(name = "quarkus.http.cors.origins")
-    String corsOrigins;
-
     @ConfigProperty(name = "db.field.encryption.key")
     String encryptionKey;
 
@@ -30,7 +27,6 @@ public class StartupLogger {
         LOG.info("=== Startup Configuration ===");
         LOG.infof("  SQLite URL        : %s", jdbcUrl);
         LOG.infof("  SQLite pool       : min=%d, max=%d", jdbcMinSize, jdbcMaxSize);
-        LOG.infof("  CORS origins      : %s", corsOrigins);
         LOG.infof("  Encryption key set: %b", encryptionKey != null && !encryptionKey.isBlank());
         LOG.info("=============================");
     }
