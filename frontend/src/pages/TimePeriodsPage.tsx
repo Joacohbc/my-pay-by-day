@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { Pagination } from '@/components/ui/Pagination';
 import type { TimePeriod } from '@/models';
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -48,11 +49,15 @@ function getPeriodStatus(tp: TimePeriod): FilterTab {
 
 export function TimePeriodsPage() {
   const { t } = useTranslation();
-  const { data: periods, isLoading, error } = useTimePeriods();
+  const [page, setPage] = useState(0);
+  const { data: paged, isLoading, error } = useTimePeriods(page);
   const createPeriod = useCreateTimePeriod();
   const updatePeriod = useUpdateTimePeriod();
   const deletePeriod = useDeleteTimePeriod();
   const { defaultId, setDefaultId } = useDefaultTimePeriod();
+
+  const allPeriods = useMemo(() => paged?.content ?? [], [paged]);
+  const totalPages = paged?.totalPages ?? 1;
 
   const [editTarget, setEditTarget] = useState<TimePeriod | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -70,8 +75,6 @@ export function TimePeriodsPage() {
   } = useForm<FormValues>({
     defaultValues: { name: '', startDate: '', endDate: '', budgetedAmount: '', savingsPercentageGoal: '' },
   });
-
-  const allPeriods = useMemo(() => periods ?? [], [periods]);
 
   const displayed = useMemo(() => {
     let list = allPeriods;
@@ -177,7 +180,7 @@ export function TimePeriodsPage() {
     <div className="space-y-4 pb-24">
       <PageHeader
         title={t('periods.title')}
-        subtitle={t(allPeriods.length !== 1 ? 'periods.count_plural' : 'periods.count', { count: allPeriods.length })}
+        subtitle={t(paged?.totalElements !== 1 ? 'periods.count_plural' : 'periods.count', { count: paged?.totalElements ?? 0 })}
         action={
           <Button size="sm" onClick={openCreate}>
             <Icon name="add" className="text-sm" />
@@ -297,6 +300,8 @@ export function TimePeriodsPage() {
           ))}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       {/* Create / Edit Modal */}
       <Modal

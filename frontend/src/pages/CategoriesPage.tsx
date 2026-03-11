@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { Pagination } from '@/components/ui/Pagination';
 import type { Category } from '@/models';
 import { useForm } from 'react-hook-form';
 
@@ -21,7 +22,8 @@ interface FormValues {
 
 export function CategoriesPage() {
   const { t } = useTranslation();
-  const { data: categories, isLoading, error } = useCategories();
+  const [page, setPage] = useState(0);
+  const { data: paged, isLoading, error } = useCategories(page);
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
@@ -36,7 +38,8 @@ export function CategoriesPage() {
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
 
-  const allCategories = categories ?? [];
+  const allCategories = paged?.content ?? [];
+  const totalPages = paged?.totalPages ?? 1;
 
   const openCreate = () => {
     setEditTarget(null);
@@ -73,7 +76,7 @@ export function CategoriesPage() {
       <PageHeader
         title={t('categories.title')}
         back
-        subtitle={t('categories.count', { count: allCategories.length })}
+        subtitle={t('categories.count', { count: paged?.totalElements ?? 0 })}
         action={
           <Button size="sm" onClick={openCreate}>
             <Icon name="add" className="text-sm" />
@@ -125,6 +128,8 @@ export function CategoriesPage() {
           ))}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       <Modal
         open={showModal}

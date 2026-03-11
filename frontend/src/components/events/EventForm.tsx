@@ -61,9 +61,13 @@ export function EventForm({
   loading = false,
 }: EventFormProps) {
   const { t } = useTranslation();
-  const { data: categories = [] } = useCategories();
-  const { data: tags = [] } = useTags();
-  const { data: nodes = [] } = useNodes();
+  const { data: categoriesResponse } = useCategories();
+  const { data: tagsResponse } = useTags();
+  const { data: nodesResponse } = useNodes();
+
+  const categories = categoriesResponse?.content ?? [];
+  const tags = tagsResponse?.content ?? [];
+  const nodes = nodesResponse?.content ?? [];
 
   const activeNodes = nodes.filter((n) => !n.archived);
 

@@ -6,10 +6,10 @@ import type { CreateTimePeriodDto } from '@/models';
 
 export const TIME_PERIODS_KEY = ['time-periods'] as const;
 
-export function useTimePeriods() {
+export function useTimePeriods(page = 0, size = 20) {
   return useQuery({
-    queryKey: TIME_PERIODS_KEY,
-    queryFn: timePeriodsService.getAll,
+    queryKey: [...TIME_PERIODS_KEY, page, size],
+    queryFn: () => timePeriodsService.getAll(page, size),
   });
 }
 

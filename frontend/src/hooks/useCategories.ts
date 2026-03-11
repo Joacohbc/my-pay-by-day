@@ -6,8 +6,11 @@ import type { CreateCategoryDto } from '@/models';
 
 export const CATEGORIES_KEY = ['categories'] as const;
 
-export function useCategories() {
-  return useQuery({ queryKey: CATEGORIES_KEY, queryFn: categoriesService.getAll });
+export function useCategories(page = 0, size = 20) {
+  return useQuery({
+    queryKey: [...CATEGORIES_KEY, page, size],
+    queryFn: () => categoriesService.getAll(page, size),
+  });
 }
 
 export function useCreateCategory() {

@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { Pagination } from '@/components/ui/Pagination';
 import type { FinanceNode, FinanceNodeType } from '@/models';
 import { useForm, Controller } from 'react-hook-form';
 
@@ -88,7 +89,8 @@ function NodeActionMenu({ node, onEdit }: { node: FinanceNode; onEdit: (node: Fi
 
 export function NodesPage() {
   const { t } = useTranslation();
-  const { data: nodes, isLoading, error } = useNodes();
+  const [page, setPage] = useState(0);
+  const { data: paged, isLoading, error } = useNodes(page);
   const createNode = useCreateNode();
   const updateNode = useUpdateNode();
   const [showModal, setShowModal] = useState(false);
@@ -102,7 +104,8 @@ export function NodesPage() {
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
 
-  const allNodes = nodes ?? [];
+  const allNodes = paged?.content ?? [];
+  const totalPages = paged?.totalPages ?? 1;
   const activeNodes = allNodes.filter((n) => !n.archived);
   const archivedNodes = allNodes.filter((n) => n.archived);
 
@@ -145,7 +148,7 @@ export function NodesPage() {
     <div className="space-y-4">
       <PageHeader
         title={t('nodes.title')}
-        subtitle={t('nodes.activeCount', { count: activeNodes.length })}
+        subtitle={t('nodes.activeCount', { count: paged?.totalElements ?? 0 })}
         action={
           <Button size="sm" onClick={openNewModal}>
             <Icon name="add" className="text-sm" />
@@ -227,6 +230,8 @@ export function NodesPage() {
           }
         />
       )}
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       {/* Create Modal */}
       <Modal

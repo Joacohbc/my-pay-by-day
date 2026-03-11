@@ -6,8 +6,11 @@ import type { CreateTagDto } from '@/models';
 
 export const TAGS_KEY = ['tags'] as const;
 
-export function useTags() {
-  return useQuery({ queryKey: TAGS_KEY, queryFn: tagsService.getAll });
+export function useTags(page = 0, size = 20) {
+  return useQuery({
+    queryKey: [...TAGS_KEY, page, size],
+    queryFn: () => tagsService.getAll(page, size),
+  });
 }
 
 export function useCreateTag() {

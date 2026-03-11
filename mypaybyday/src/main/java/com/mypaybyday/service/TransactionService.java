@@ -29,10 +29,12 @@ public class TransactionService {
     @Inject
     Messages messages;
 
+    @Transactional
     public List<FinanceTransactionDto> listAll() {
         return transactionRepository.listAll().stream().map(FinanceTransactionDto::from).toList();
     }
 
+    @Transactional
     public FinanceTransactionDto findById(Long id) throws BusinessException {
         FinanceTransaction transaction = transactionRepository.findById(id);
         if (transaction == null) {

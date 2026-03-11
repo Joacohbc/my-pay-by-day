@@ -30,6 +30,9 @@ const es = {
     confirmDeleteNamed: '¿Eliminar "{{name}}"?',
     nameRequired: 'El nombre es requerido',
     loading: 'Cargando…',
+    prevPage: 'Anterior',
+    nextPage: 'Siguiente',
+    pageOf: 'Página {{page}} de {{total}}',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────

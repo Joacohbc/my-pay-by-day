@@ -1,5 +1,6 @@
 package com.mypaybyday.service;
 
+import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TemplateDto;
 import com.mypaybyday.entity.Tag;
 import com.mypaybyday.entity.Template;
@@ -8,6 +9,7 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TemplateRepository;
+import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -40,10 +42,18 @@ public class TemplateService {
     // Queries
     // -------------------------------------------------------------------------
 
-    public List<TemplateDto> listAll() {
-        return templateRepository.listAll().stream().map(TemplateDto::from).toList();
+    @Transactional
+    public PagedResponse<TemplateDto> listAll(int page, int size) {
+        long totalElements = templateRepository.count();
+        List<TemplateDto> content = templateRepository.findAll()
+                .page(Page.of(page, size))
+                .stream()
+                .map(TemplateDto::from)
+                .toList();
+        return PagedResponse.of(content, page, size, totalElements);
     }
 
+    @Transactional
     public TemplateDto findById(Long id) throws BusinessException {
         return TemplateDto.from(findEntityById(id));
     }

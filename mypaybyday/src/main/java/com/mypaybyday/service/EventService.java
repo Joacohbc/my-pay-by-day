@@ -1,6 +1,7 @@
 package com.mypaybyday.service;
 
 import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.FinanceEvent;
 import com.mypaybyday.entity.FinanceLineItem;
 import com.mypaybyday.entity.Tag;
@@ -9,6 +10,7 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
+import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -47,10 +49,18 @@ public class EventService {
     // Queries
     // -------------------------------------------------------------------------
 
-    public List<FinanceEventDto> listAll() {
-        return eventRepository.listAll().stream().map(FinanceEventDto::from).toList();
+    @Transactional
+    public PagedResponse<FinanceEventDto> listAll(int page, int size) {
+        long totalElements = eventRepository.count();
+        List<FinanceEventDto> content = eventRepository.findAll()
+                .page(Page.of(page, size))
+                .stream()
+                .map(FinanceEventDto::from)
+                .toList();
+        return PagedResponse.of(content, page, size, totalElements);
     }
 
+    @Transactional
     public FinanceEventDto findById(Long id) throws BusinessException {
         FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
@@ -64,6 +74,7 @@ public class EventService {
      * This is the mechanism used for Temporal Independence: budget period membership is
      * determined dynamically at query time, never via a hard foreign-key.
      */
+    @Transactional
     public List<FinanceEventDto> findByDateRange(LocalDateTime from, LocalDateTime to) throws BusinessException {
         return findEventEntitiesByDateRange(from, to).stream().map(FinanceEventDto::from).toList();
     }

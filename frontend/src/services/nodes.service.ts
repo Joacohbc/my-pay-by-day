@@ -1,8 +1,9 @@
-import type { FinanceNode, CreateFinanceNodeDto } from '@/models';
+import type { FinanceNode, CreateFinanceNodeDto, PagedResponse } from '@/models';
 import { api } from '@/services/api';
 
 export const nodesService = {
-  getAll: () => api.get<FinanceNode[]>('/finance-nodes'),
+  getAll: (page = 0, size = 20) =>
+    api.get<PagedResponse<FinanceNode>>(`/finance-nodes?page=${page}&size=${size}`),
   getById: (id: number) => api.get<FinanceNode>(`/finance-nodes/${id}`),
   getBalance: (id: number) => api.get<number>(`/finance-nodes/${id}/balance`),
   create: (dto: CreateFinanceNodeDto) => api.post<FinanceNode>('/finance-nodes', dto),

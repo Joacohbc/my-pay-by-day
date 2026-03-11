@@ -6,8 +6,11 @@ import type { CreateFinanceNodeDto } from '@/models';
 
 export const NODES_KEY = ['financeNodes'] as const;
 
-export function useNodes() {
-  return useQuery({ queryKey: NODES_KEY, queryFn: nodesService.getAll });
+export function useNodes(page = 0, size = 20) {
+  return useQuery({
+    queryKey: [...NODES_KEY, page, size],
+    queryFn: () => nodesService.getAll(page, size),
+  });
 }
 
 export function useNode(id: number) {

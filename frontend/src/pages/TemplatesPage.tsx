@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { Pagination } from '@/components/ui/Pagination';
 import { truncate } from '@/lib/format';
 import type { Template, EventType, ModifierType } from '@/models';
 
@@ -57,10 +58,15 @@ const DEFAULT_FORM: FormValues = {
 
 export function TemplatesPage() {
   const { t } = useTranslation();
-  const { data: templates, isLoading, error } = useTemplates();
-  const { data: categories = [] } = useCategories();
-  const { data: tags = [] } = useTags();
-  const { data: nodes = [] } = useNodes();
+  const [page, setPage] = useState(0);
+  const { data: paged, isLoading, error } = useTemplates(page);
+  // Helper hook calls for dropdown options — always fetch page 0 with a large size
+  const { data: categoriesPaged } = useCategories(0, 200);
+  const { data: tagsPaged } = useTags(0, 200);
+  const { data: nodesPaged } = useNodes(0, 200);
+  const categories = categoriesPaged?.content ?? [];
+  const tags = tagsPaged?.content ?? [];
+  const nodes = nodesPaged?.content ?? [];
 
   const createTemplate = useCreateTemplate();
   const updateTemplate = useUpdateTemplate();
@@ -85,7 +91,8 @@ export function TemplatesPage() {
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
 
-  const allTemplates = templates ?? [];
+  const allTemplates = paged?.content ?? [];
+  const totalPages = paged?.totalPages ?? 1;
 
   const openCreate = () => {
     setEditTarget(null);
@@ -146,7 +153,7 @@ export function TemplatesPage() {
       <PageHeader
         title={t('templates.title')}
         back
-        subtitle={t('templates.count', { count: allTemplates.length })}
+        subtitle={t('templates.count', { count: paged?.totalElements ?? 0 })}
         action={
           <Button size="sm" onClick={openCreate}>
             <Icon name="add" className="text-sm" />
@@ -234,6 +241,8 @@ export function TemplatesPage() {
           ))}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       <Modal
         open={showModal}

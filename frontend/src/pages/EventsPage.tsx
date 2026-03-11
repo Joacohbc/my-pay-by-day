@@ -14,6 +14,7 @@ import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Input } from '@/components/ui/Input';
 import { Icon } from '@/components/ui/Icon';
+import { Pagination } from '@/components/ui/Pagination';
 import { formatCurrency, eventNetAmount } from '@/lib/format';
 import type { EventType } from '@/models';
 
@@ -23,7 +24,8 @@ type FilterType = 'ALL' | EventType;
 export function EventsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data: events, isLoading, error } = useEvents();
+  const [page, setPage] = useState(0);
+  const { data: paged, isLoading, error } = useEvents(page);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('ALL');
   const [startDate, setStartDate] = useState('');
@@ -42,7 +44,9 @@ export function EventsPage() {
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
 
-  const allEvents = events ?? [];
+  const allEvents = paged?.content ?? [];
+  const totalPages = paged?.totalPages ?? 1;
+  const totalElements = paged?.totalElements ?? 0;
 
   const filtered = allEvents
     .filter((e) => {
@@ -87,7 +91,7 @@ export function EventsPage() {
     <div className="space-y-4">
       <PageHeader
         title={t('events.title')}
-        subtitle={t('events.eventsCount', { count: allEvents.length })}
+        subtitle={t('events.eventsCount', { count: totalElements })}
         action={
           <Button size="sm" onClick={() => setShowPicker(true)}>
             <Icon name="add" className="text-sm" />
@@ -185,6 +189,8 @@ export function EventsPage() {
           </Card>
         )}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       <TemplatePickerModal
         open={showPicker}

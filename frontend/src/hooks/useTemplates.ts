@@ -6,10 +6,10 @@ import type { CreateTemplateDto } from '@/models';
 
 export const TEMPLATES_KEY = ['templates'] as const;
 
-export function useTemplates() {
+export function useTemplates(page = 0, size = 20) {
   return useQuery({
-    queryKey: TEMPLATES_KEY,
-    queryFn: templatesService.getAll,
+    queryKey: [...TEMPLATES_KEY, page, size],
+    queryFn: () => templatesService.getAll(page, size),
   });
 }
 

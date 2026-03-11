@@ -7,8 +7,11 @@ import type { CreateEventDto, FinanceEvent } from '@/models';
 
 export const EVENTS_KEY = ['events'] as const;
 
-export function useEvents() {
-  return useQuery({ queryKey: EVENTS_KEY, queryFn: eventsService.getAll });
+export function useEvents(page = 0, size = 20) {
+  return useQuery({
+    queryKey: [...EVENTS_KEY, page, size],
+    queryFn: () => eventsService.getAll(page, size),
+  });
 }
 
 export function useEvent(id: number) {

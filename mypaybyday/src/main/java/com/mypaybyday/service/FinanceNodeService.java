@@ -1,12 +1,14 @@
 package com.mypaybyday.service;
 
 import com.mypaybyday.dto.FinanceNodeDto;
+import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.FinanceNode;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.LineItemRepository;
+import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -26,11 +28,18 @@ public class FinanceNodeService {
     @Inject
     Messages messages;
 
-    public List<FinanceNodeDto> listAll() {
-        return financeNodeRepository.list("archived", false)
-                .stream().map(FinanceNodeDto::from).toList();
+    @Transactional
+    public PagedResponse<FinanceNodeDto> listAll(int page, int size) {
+        long totalElements = financeNodeRepository.count("archived", false);
+        List<FinanceNodeDto> content = financeNodeRepository.find("archived", false)
+                .page(Page.of(page, size))
+                .stream()
+                .map(FinanceNodeDto::from)
+                .toList();
+        return PagedResponse.of(content, page, size, totalElements);
     }
 
+    @Transactional
     public FinanceNodeDto findById(Long id) {
         FinanceNode node = financeNodeRepository.findById(id);
         if (node == null || node.archived) {
@@ -94,6 +103,7 @@ public class FinanceNodeService {
         financeNodeRepository.delete(node);
     }
 
+    @Transactional
     public BigDecimal calculateBalance(Long id) throws BusinessException {
         FinanceNode node = financeNodeRepository.findById(id);
         if (node == null) {
