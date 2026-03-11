@@ -21,6 +21,9 @@
   --radius-card: 28px;
   --radius-pill: 9999px;
   --radius-input: 16px;
+
+  /* ─── Breakpoints ─── */
+  --breakpoint-xs: 23.4375rem; /* 375px */
 }
 
 * {
