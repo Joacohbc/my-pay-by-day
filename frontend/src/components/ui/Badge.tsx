@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react';
 
 type BadgeVariant = 'default' | 'income' | 'expense' | 'neutral' | 'indigo' | 'gray';
+type BadgeSize = 'sm' | 'md';
 
 interface BadgeProps {
   children: ReactNode;
   variant?: BadgeVariant;
+  size?: BadgeSize;
   className?: string;
+  centered?: boolean;
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
@@ -17,12 +20,25 @@ const variantClasses: Record<BadgeVariant, string> = {
   gray: 'bg-white/5 text-dn-text-muted border border-white/10',
 };
 
-export function Badge({ children, variant = 'default', className = '' }: BadgeProps) {
+const sizeClasses: Record<BadgeSize, string> = {
+  sm: 'px-2 py-0.5 text-[10px] leading-3',
+  md: 'px-2.5 py-1 text-xs',
+};
+
+export function Badge({ 
+  children, 
+  variant = 'default', 
+  size = 'md',
+  centered = false,
+  className = '' 
+}: BadgeProps) {
   return (
     <span
       className={[
-        'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+        'inline-flex items-center rounded-full font-medium whitespace-nowrap',
+        centered ? 'justify-center text-center' : '',
         variantClasses[variant],
+        sizeClasses[size],
         className,
       ]
         .filter(Boolean)
