@@ -84,6 +84,8 @@ const es = {
     updateEvent: 'Actualizar Evento',
     createEvent: 'Crear Evento',
     template: 'Plantilla',
+    startDate: 'Fecha Inicio',
+    endDate: 'Fecha Fin',
   },
 
   // ─── Event Types ─────────────────────────────────────────────────────────

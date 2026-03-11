@@ -12,6 +12,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Input } from '@/components/ui/Input';
 import { Icon } from '@/components/ui/Icon';
 import { formatCurrency, eventNetAmount } from '@/lib/format';
 import type { EventType } from '@/models';
@@ -25,6 +26,8 @@ export function EventsPage() {
   const { data: events, isLoading, error } = useEvents();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('ALL');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [showPicker, setShowPicker] = useState(false);
 
   const handlePickTemplate = (template: Template | null) => {
@@ -44,6 +47,11 @@ export function EventsPage() {
   const filtered = allEvents
     .filter((e) => {
       if (filter !== 'ALL' && e.type !== filter) return false;
+      
+      const eventDate = e.transactionDate ? e.transactionDate.split('T')[0] : '';
+      if (startDate && eventDate < startDate) return false;
+      if (endDate && eventDate > endDate) return false;
+
       if (search) {
         const q = search.toLowerCase();
         return (
@@ -112,6 +120,26 @@ export function EventsPage() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('events.searchPlaceholder')}
             className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 [color-scheme:dark]"
+          />
+        </div>
+      </div>
+
+      {/* Date Filters */}
+      <div className="px-5 flex gap-3">
+        <div className="flex-1">
+          <Input 
+            type="date" 
+            label={t('events.startDate')} 
+            value={startDate} 
+            onChange={(e) => setStartDate(e.target.value)} 
+          />
+        </div>
+        <div className="flex-1">
+          <Input 
+            type="date" 
+            label={t('events.endDate')} 
+            value={endDate} 
+            onChange={(e) => setEndDate(e.target.value)} 
           />
         </div>
       </div>
