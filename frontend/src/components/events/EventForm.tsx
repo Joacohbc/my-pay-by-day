@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useFieldArray, useForm, Controller } from 'react-hook-form';
+import { useFieldArray, useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
 import { Input } from '@/components/ui/Input';
@@ -75,7 +75,6 @@ export function EventForm({
     register,
     handleSubmit,
     control,
-    watch,
     setValue,
     formState: { errors },
   } = useForm<FormValues>({
@@ -108,7 +107,7 @@ export function EventForm({
   const { fields, append, remove } = useFieldArray({ control, name: 'lineItems' });
 
   const isTemplateMode = !!(preset?.lineNodeIds && preset.lineNodeIds.length >= 2);
-  const firstAmount = watch('lineItems.0.amount');
+  const firstAmount = useWatch({ control, name: 'lineItems.0.amount' });
 
   useEffect(() => {
     if (!isTemplateMode) return;
