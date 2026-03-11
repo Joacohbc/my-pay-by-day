@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { truncate } from '@/lib/format';
 import type { Template, EventType, ModifierType } from '@/models';
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
@@ -174,7 +175,9 @@ export function TemplatesPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-base font-medium text-dn-text-main">{tpl.name}</p>
+                  <p className="text-base font-medium text-dn-text-main">
+                    {truncate(tpl.name, 40)}
+                  </p>
                   {tpl.eventType && (
                     <span
                       className={`text-xs px-2 py-0.5 rounded-pill font-medium ${EVENT_TYPE_COLORS[tpl.eventType] ?? 'text-dn-text-muted bg-dn-surface-low'}`}
@@ -184,10 +187,10 @@ export function TemplatesPage() {
                   )}
                 </div>
                 {tpl.description && (
-                  <p className="text-xs text-dn-text-muted mt-0.5 truncate">{tpl.description}</p>
+                  <p className="text-xs text-dn-text-muted mt-2">{truncate(tpl.description, 50)}</p>
                 )}
                 {(tpl.originNodeName || tpl.destinationNodeName) && (
-                  <p className="text-xs text-dn-text-muted mt-0.5">
+                  <p className="text-xs text-dn-text-muted mt-2">
                     {tpl.originNodeName}
                     {tpl.destinationNodeName && (
                       <span> → {tpl.destinationNodeName}</span>

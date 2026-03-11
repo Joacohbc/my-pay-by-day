@@ -7,6 +7,6 @@ export const subscriptionsService = {
   create: (dto: CreateSubscriptionDto) =>
     api.post<Subscription>('/subscriptions', dto),
   update: (id: number, dto: Partial<CreateSubscriptionDto>) =>
-    api.put<Subscription>(`/subscriptions/${id}`, dto),
+    api.patch<Subscription>(`/subscriptions/${id}`, dto),
   delete: (id: number) => api.delete(`/subscriptions/${id}`),
 };

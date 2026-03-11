@@ -6,6 +6,8 @@ const es = {
     update: 'Actualizar',
     delete: 'Eliminar',
     save: 'Guardar',
+    saved: 'Guardado correctamente',
+    error: 'Ha ocurrido un error',
     close: 'Cerrar',
     cancel: 'Cancelar',
     edit: 'Editar',

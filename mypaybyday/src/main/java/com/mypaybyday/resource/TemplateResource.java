@@ -58,7 +58,7 @@ public class TemplateResource {
         return Response.status(Response.Status.CREATED).entity(templateService.create(dto)).build();
     }
 
-    @PUT
+    @PATCH
     @Path("/{id}")
     @Operation(summary = "Update a template")
     @APIResponses({

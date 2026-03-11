@@ -62,7 +62,7 @@ public class FinanceNodeResource {
         return Response.status(Response.Status.CREATED).entity(financeNodeService.create(node)).build();
     }
 
-    @PUT
+    @PATCH
     @Path("/{id}")
     @Operation(summary = "Update a finance node")
     @APIResponses({
@@ -77,7 +77,7 @@ public class FinanceNodeResource {
         return Response.ok(financeNodeService.update(id, nodeDetails)).build();
     }
 
-    @PUT
+    @PATCH
     @Path("/{id}/archive")
     @Operation(summary = "Archive a finance node",
             description = "Soft-deletes the node. Archived nodes are excluded from listings and cannot be used in new transactions. " +

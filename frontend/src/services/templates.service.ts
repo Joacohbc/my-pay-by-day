@@ -6,6 +6,6 @@ export const templatesService = {
   getById: (id: number) => api.get<Template>(`/templates/${id}`),
   create: (dto: CreateTemplateDto) => api.post<Template>('/templates', dto),
   update: (id: number, dto: Partial<CreateTemplateDto>) =>
-    api.put<Template>(`/templates/${id}`, dto),
+    api.patch<Template>(`/templates/${id}`, dto),
   delete: (id: number) => api.delete(`/templates/${id}`),
 };

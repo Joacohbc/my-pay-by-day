@@ -23,14 +23,17 @@
   --radius-input: 16px;
 
   /* ─── Breakpoints ─── */
-  --breakpoint-xs: 23.4375rem; /* 375px */
+  --breakpoint-xs: 23.4375rem;
+  /* 375px */
 }
 
 * {
   box-sizing: border-box;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -45,6 +48,7 @@ html, body, #root {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;

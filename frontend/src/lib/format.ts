@@ -135,3 +135,8 @@ export function toLocalDateTimeString(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
+
+export function truncate(text: string, length: number): string {
+  if (text.length <= length) return text;
+  return text.slice(0, length).trim() + '...';
+}

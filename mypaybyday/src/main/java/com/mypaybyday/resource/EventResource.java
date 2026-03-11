@@ -61,7 +61,7 @@ public class EventResource {
         return Response.status(Response.Status.CREATED).entity(eventService.create(event)).build();
     }
 
-    @PUT
+    @PATCH
     @Path("/{id}")
     @Operation(summary = "Update an existing event",
             description = "Updates metadata, category, tags, and/or the nested Transaction. " +
