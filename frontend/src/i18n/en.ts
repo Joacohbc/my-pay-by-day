@@ -84,6 +84,8 @@ const en = {
     updateEvent: 'Update Event',
     createEvent: 'Create Event',
     template: 'Template',
+    startDate: 'Start Date',
+    endDate: 'End Date',
   },
 
   // ─── Event Types ─────────────────────────────────────────────────────────
