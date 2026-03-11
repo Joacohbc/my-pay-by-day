@@ -10,7 +10,6 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.Index;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
@@ -43,10 +42,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(indexes = {
-    @Index(name = "idx_finance_line_item_transaction", columnList = "transaction_id"),
-    @Index(name = "idx_finance_line_item_node", columnList = "finance_node_id")
-})
+@Table
 public class FinanceLineItem extends BaseEntity {
 
     /**
