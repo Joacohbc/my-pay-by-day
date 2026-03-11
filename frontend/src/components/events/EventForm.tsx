@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useFieldArray, useForm, Controller } from 'react-hook-form';
+import { useFieldArray, useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
 import { Input } from '@/components/ui/Input';
@@ -61,9 +61,13 @@ export function EventForm({
   loading = false,
 }: EventFormProps) {
   const { t } = useTranslation();
-  const { data: categories = [] } = useCategories();
-  const { data: tags = [] } = useTags();
-  const { data: nodes = [] } = useNodes();
+  const { data: categoriesResponse } = useCategories(0, 200);
+  const { data: tagsResponse } = useTags(0, 200);
+  const { data: nodesResponse } = useNodes(0, 200);
+
+  const categories = categoriesResponse?.content ?? [];
+  const tags = tagsResponse?.content ?? [];
+  const nodes = nodesResponse?.content ?? [];
 
   const activeNodes = nodes.filter((n) => !n.archived);
 
@@ -71,7 +75,6 @@ export function EventForm({
     register,
     handleSubmit,
     control,
-    watch,
     setValue,
     formState: { errors },
   } = useForm<FormValues>({
@@ -87,8 +90,8 @@ export function EventForm({
       categoryId: defaultValues?.category
         ? String(defaultValues.category.id)
         : preset?.categoryId
-        ? String(preset.categoryId)
-        : '',
+          ? String(preset.categoryId)
+          : '',
       tagIds: defaultValues?.tags?.map((t) => String(t.id)) ?? preset?.tagIds ?? [],
       lineItems:
         defaultValues?.lineItems?.map((li) => ({
@@ -104,7 +107,7 @@ export function EventForm({
   const { fields, append, remove } = useFieldArray({ control, name: 'lineItems' });
 
   const isTemplateMode = !!(preset?.lineNodeIds && preset.lineNodeIds.length >= 2);
-  const firstAmount = watch('lineItems.0.amount');
+  const firstAmount = useWatch({ control, name: 'lineItems.0.amount' });
 
   useEffect(() => {
     if (!isTemplateMode) return;
@@ -122,10 +125,16 @@ export function EventForm({
       type: values.type,
       transaction: {
         transactionDate: new Date(values.transactionDate).toISOString(),
-        lineItems: values.lineItems.map((li) => ({
-          financeNode: { id: Number(li.nodeId) },
-          amount: Number(li.amount),
-        })),
+        lineItems: values.lineItems.map((li, i) => {
+          let amount = Number(li.amount);
+          if (isTemplateMode) {
+            amount = i === 0 ? -Math.abs(amount) : Math.abs(amount);
+          }
+          return {
+            financeNode: { id: Number(li.nodeId) },
+            amount,
+          };
+        }),
       },
       category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
       tags: values.tagIds?.map((id) => ({ id: Number(id) })),

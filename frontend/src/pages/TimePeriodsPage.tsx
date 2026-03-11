@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { Pagination } from '@/components/ui/Pagination';
 import type { TimePeriod } from '@/models';
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -48,11 +49,15 @@ function getPeriodStatus(tp: TimePeriod): FilterTab {
 
 export function TimePeriodsPage() {
   const { t } = useTranslation();
-  const { data: periods, isLoading, error } = useTimePeriods();
+  const [page, setPage] = useState(0);
+  const { data: paged, isLoading, error } = useTimePeriods(page);
   const createPeriod = useCreateTimePeriod();
   const updatePeriod = useUpdateTimePeriod();
   const deletePeriod = useDeleteTimePeriod();
   const { defaultId, setDefaultId } = useDefaultTimePeriod();
+
+  const allPeriods = useMemo(() => paged?.content ?? [], [paged]);
+  const totalPages = paged?.totalPages ?? 1;
 
   const [editTarget, setEditTarget] = useState<TimePeriod | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -70,8 +75,6 @@ export function TimePeriodsPage() {
   } = useForm<FormValues>({
     defaultValues: { name: '', startDate: '', endDate: '', budgetedAmount: '', savingsPercentageGoal: '' },
   });
-
-  const allPeriods = useMemo(() => periods ?? [], [periods]);
 
   const displayed = useMemo(() => {
     let list = allPeriods;
@@ -177,7 +180,7 @@ export function TimePeriodsPage() {
     <div className="space-y-4 pb-24">
       <PageHeader
         title={t('periods.title')}
-        subtitle={t(allPeriods.length !== 1 ? 'periods.count_plural' : 'periods.count', { count: allPeriods.length })}
+        subtitle={t(paged?.totalElements !== 1 ? 'periods.count_plural' : 'periods.count', { count: paged?.totalElements ?? 0 })}
         action={
           <Button size="sm" onClick={openCreate}>
             <Icon name="add" className="text-sm" />
@@ -215,44 +218,47 @@ export function TimePeriodsPage() {
         </div>
       </div>
 
-      {/* Filter tabs */}
-      <div className="px-5 flex items-center gap-2 overflow-x-auto scrollbar-none">
-        {filterTabs.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className={`shrink-0 px-3 py-1 rounded-pill text-xs font-medium transition-colors ${
-              filter === key
-                ? 'bg-dn-primary/20 text-dn-primary'
-                : 'bg-dn-surface-low text-dn-text-muted hover:text-dn-text-main'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-
-        {/* Sort controls (right-aligned) */}
-        <div className="ml-auto flex items-center gap-1 shrink-0">
-          <span className="text-xs text-dn-text-muted">{t('common.sort')}:</span>
-          {sortOptions.map(({ field, label }) => (
+      {/* Filter and Sort */}
+      <div className="px-5 flex flex-col md:flex-row md:items-center gap-3 justify-between">
+        {/* Filter tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 md:pb-0">
+          {filterTabs.map(({ key, label }) => (
             <button
-              key={field}
-              onClick={() => toggleSort(field)}
-              className={`inline-flex items-center gap-0.5 px-2 py-1 rounded-pill text-xs font-medium transition-colors ${
-                sortField === field
-                  ? 'bg-dn-surface text-dn-text-main'
-                  : 'text-dn-text-muted hover:text-dn-text-main'
-              }`}
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`shrink-0 px-3 py-1 rounded-pill text-xs font-medium transition-colors ${filter === key
+                  ? 'bg-dn-primary/20 text-dn-primary'
+                  : 'bg-dn-surface-low text-dn-text-muted hover:text-dn-text-main'
+                }`}
             >
               {label}
-              {sortField === field && (
-                <Icon
-                  name={sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward'}
-                  className="text-[12px]"
-                />
-              )}
             </button>
           ))}
+        </div>
+
+        {/* Sort controls */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none shrink-0 pb-1 md:pb-0">
+          <span className="text-xs text-dn-text-muted">{t('common.sort')}:</span>
+          <div className="flex items-center gap-1">
+            {sortOptions.map(({ field, label }) => (
+              <button
+                key={field}
+                onClick={() => toggleSort(field)}
+                className={`inline-flex items-center gap-0.5 px-2 py-1 rounded-pill text-xs font-medium transition-colors ${sortField === field
+                    ? 'bg-dn-surface text-dn-text-main'
+                    : 'text-dn-text-muted hover:text-dn-text-main'
+                  }`}
+              >
+                {label}
+                {sortField === field && (
+                  <Icon
+                    name={sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward'}
+                    className="text-[14px]! leading-none text-dn-text-main"
+                  />
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -294,6 +300,8 @@ export function TimePeriodsPage() {
           ))}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       {/* Create / Edit Modal */}
       <Modal

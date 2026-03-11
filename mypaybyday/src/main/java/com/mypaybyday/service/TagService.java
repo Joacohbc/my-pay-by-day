@@ -1,11 +1,13 @@
 package com.mypaybyday.service;
 
+import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.entity.Tag;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TagRepository;
+import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -25,10 +27,18 @@ public class TagService {
     // Queries
     // -------------------------------------------------------------------------
 
-    public List<TagDto> listAll() {
-        return tagRepository.listAll().stream().map(TagDto::from).toList();
+    @Transactional
+    public PagedResponse<TagDto> listAll(int page, int size) {
+        long totalElements = tagRepository.count();
+        List<TagDto> content = tagRepository.findAll()
+                .page(Page.of(page, size))
+                .stream()
+                .map(TagDto::from)
+                .toList();
+        return PagedResponse.of(content, page, size, totalElements);
     }
 
+    @Transactional
     public TagDto findById(Long id) throws BusinessException {
         return TagDto.from(findTagEntity(id));
     }

@@ -1,11 +1,12 @@
-import type { Template, CreateTemplateDto } from '@/models';
+import type { Template, CreateTemplateDto, PagedResponse } from '@/models';
 import { api } from '@/services/api';
 
 export const templatesService = {
-  getAll: () => api.get<Template[]>('/templates'),
+  getAll: (page = 0, size = 20) =>
+    api.get<PagedResponse<Template>>(`/templates?page=${page}&size=${size}`),
   getById: (id: number) => api.get<Template>(`/templates/${id}`),
   create: (dto: CreateTemplateDto) => api.post<Template>('/templates', dto),
   update: (id: number, dto: Partial<CreateTemplateDto>) =>
-    api.put<Template>(`/templates/${id}`, dto),
+    api.patch<Template>(`/templates/${id}`, dto),
   delete: (id: number) => api.delete(`/templates/${id}`),
 };

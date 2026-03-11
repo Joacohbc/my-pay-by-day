@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNodes, useCreateNode, useArchiveNode, useDeleteNode, useNodeBalance } from '@/hooks/useNodes';
-import { formatCurrency } from '@/lib/format';
+import { useNodes, useCreateNode, useUpdateNode, useArchiveNode, useDeleteNode, useNodeBalance } from '@/hooks/useNodes';
+import { formatCurrency, formatCompactCurrency, formatCompactWitNotCurrency, getCurrency } from '@/lib/format';
 import { NodeCard } from '@/components/nodes/NodeCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { Pagination } from '@/components/ui/Pagination';
 import type { FinanceNode, FinanceNodeType } from '@/models';
 import { useForm, Controller } from 'react-hook-form';
 
@@ -24,14 +25,18 @@ function NodeBalanceBadge({ nodeId }: { nodeId: number }) {
   const { data: balance } = useNodeBalance(nodeId);
   if (balance === undefined) return null;
   return (
-    <span className={`text-xs font-mono ${balance >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
-      {balance >= 0 ? '+' : ''}
-      {formatCurrency(balance)}
+    <span className={`text-xs font-mono whitespace-nowrap ${balance >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
+      <span className="flex flex-col items-center leading-none xs:hidden">
+        <span>{formatCompactWitNotCurrency(balance)}</span>
+        <span className="mt-1">{getCurrency()}</span>
+      </span>
+      <span className="hidden xs:inline sm:hidden">{formatCompactCurrency(balance)}</span>
+      <span className="hidden sm:inline">{balance >= 0 ? '+' : ''}{formatCurrency(balance)}</span>
     </span>
   );
 }
 
-function NodeActionMenu({ node }: { node: FinanceNode }) {
+function NodeActionMenu({ node, onEdit }: { node: FinanceNode; onEdit: (node: FinanceNode) => void }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const archive = useArchiveNode();
@@ -52,6 +57,13 @@ function NodeActionMenu({ node }: { node: FinanceNode }) {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-8 z-20 bg-dn-surface border border-white/5 rounded-card shadow-xl min-w-36 overflow-hidden">
+            <button
+              onClick={() => { onEdit(node); setOpen(false); }}
+              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dn-text-main hover:bg-dn-surface-low transition-colors"
+            >
+              <Icon name="edit" className="text-base" />
+              {t('common.edit')}
+            </button>
             {!node.archived && (
               <button
                 onClick={() => { archive.mutate(node.id); setOpen(false); }}
@@ -77,10 +89,13 @@ function NodeActionMenu({ node }: { node: FinanceNode }) {
 
 export function NodesPage() {
   const { t } = useTranslation();
-  const { data: nodes, isLoading, error } = useNodes();
+  const [page, setPage] = useState(0);
+  const { data: paged, isLoading, error } = useNodes(page);
   const createNode = useCreateNode();
+  const updateNode = useUpdateNode();
   const [showModal, setShowModal] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [editingNode, setEditingNode] = useState<FinanceNode | null>(null);
 
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<NodeFormValues>({
     defaultValues: { name: '', type: 'OWN' },
@@ -89,16 +104,38 @@ export function NodesPage() {
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
 
-  const allNodes = nodes ?? [];
+  const allNodes = paged?.content ?? [];
+  const totalPages = paged?.totalPages ?? 1;
   const activeNodes = allNodes.filter((n) => !n.archived);
   const archivedNodes = allNodes.filter((n) => n.archived);
 
   const displayNodes = showArchived ? allNodes : activeNodes;
 
   const onSubmit = async (values: NodeFormValues) => {
-    await createNode.mutateAsync({ name: values.name, type: values.type });
-    reset();
+    if (editingNode) {
+      await updateNode.mutateAsync({ id: editingNode.id, dto: { name: values.name, type: values.type } });
+    } else {
+      await createNode.mutateAsync({ name: values.name, type: values.type });
+    }
+    closeModal();
+  };
+
+  const openNewModal = () => {
+    setEditingNode(null);
+    reset({ name: '', type: 'OWN' });
+    setShowModal(true);
+  };
+
+  const openEditModal = (node: FinanceNode) => {
+    setEditingNode(node);
+    reset({ name: node.name, type: node.type });
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
     setShowModal(false);
+    setEditingNode(null);
+    reset({ name: '', type: 'OWN' });
   };
 
   const nodeTypeOptions = [
@@ -111,9 +148,9 @@ export function NodesPage() {
     <div className="space-y-4">
       <PageHeader
         title={t('nodes.title')}
-        subtitle={t('nodes.activeCount', { count: activeNodes.length })}
+        subtitle={t('nodes.activeCount', { count: paged?.totalElements ?? 0 })}
         action={
-          <Button size="sm" onClick={() => setShowModal(true)}>
+          <Button size="sm" onClick={openNewModal}>
             <Icon name="add" className="text-sm" />
             {t('common.new')}
           </Button>
@@ -171,7 +208,7 @@ export function NodesPage() {
                   actions={
                     <div className="flex items-center gap-2">
                       <NodeBalanceBadge nodeId={node.id} />
-                      <NodeActionMenu node={node} />
+                      <NodeActionMenu node={node} onEdit={openEditModal} />
                     </div>
                   }
                 />
@@ -186,7 +223,7 @@ export function NodesPage() {
           title={t('nodes.noNodesYet')}
           description={t('nodes.noNodesDesc')}
           action={
-            <Button size="sm" onClick={() => setShowModal(true)}>
+            <Button size="sm" onClick={openNewModal}>
               <Icon name="add" className="text-sm" />
               {t('nodes.addNode')}
             </Button>
@@ -194,14 +231,16 @@ export function NodesPage() {
         />
       )}
 
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+
       {/* Create Modal */}
       <Modal
         open={showModal}
-        onClose={() => { setShowModal(false); reset(); }}
-        title={t('nodes.newNode')}
+        onClose={closeModal}
+        title={editingNode ? t('common.edit') : t('nodes.newNode')}
         footer={
-          <Button fullWidth onClick={handleSubmit(onSubmit)} loading={createNode.isPending}>
-            {t('nodes.createNode')}
+          <Button fullWidth onClick={handleSubmit(onSubmit)} loading={createNode.isPending || updateNode.isPending}>
+            {editingNode ? t('common.save') : t('nodes.createNode')}
           </Button>
         }
       >

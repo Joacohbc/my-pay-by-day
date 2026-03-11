@@ -14,7 +14,8 @@ interface TemplatePickerModalProps {
 
 export function TemplatePickerModal({ open, onClose, onSelect }: TemplatePickerModalProps) {
   const { t } = useTranslation();
-  const { data: templates = [], isLoading } = useTemplates();
+  const { data: paged, isLoading } = useTemplates();
+  const templates = paged?.content ?? [];
 
   return (
     <Modal open={open} onClose={onClose} title={t('templatePicker.title')}>

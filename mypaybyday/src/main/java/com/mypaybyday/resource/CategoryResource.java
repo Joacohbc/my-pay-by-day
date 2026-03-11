@@ -1,6 +1,7 @@
 package com.mypaybyday.resource;
 
 import com.mypaybyday.dto.CategoryDto;
+import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.CategoryService;
 import jakarta.inject.Inject;
@@ -25,11 +26,13 @@ public class CategoryResource {
     CategoryService categoryService;
 
     @GET
-    @Operation(summary = "List all categories")
-    @APIResponse(responseCode = "200", description = "List of categories",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class)))
-    public Response getAll() {
-        return Response.ok(categoryService.listAll()).build();
+    @Operation(summary = "List categories (paginated)")
+    @APIResponse(responseCode = "200", description = "Paginated list of categories",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
+    public Response getAll(
+            @Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
+            @Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
+        return Response.ok(categoryService.listAll(page, size)).build();
     }
 
     @GET
@@ -57,7 +60,7 @@ public class CategoryResource {
         return Response.status(Response.Status.CREATED).entity(categoryService.create(category)).build();
     }
 
-    @PUT
+    @PATCH
     @Path("/{id}")
     @Operation(summary = "Update a category")
     @APIResponses({

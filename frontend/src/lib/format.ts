@@ -48,6 +48,32 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+/**
+ * Rounds and formats large numbers for small screens (e.g., 1.2k, 1.5M).
+ */
+export function formatCompactWitNotCurrency(amount: number): string {
+  return new Intl.NumberFormat(locale(), {
+    style: undefined,
+    currency: getCurrency(),
+    notation: 'compact',
+    compactDisplay: 'short',
+    maximumFractionDigits: 1,
+  }).format(amount);
+}
+
+/**
+ * Rounds and formats large numbers for small screens (e.g., 1.2k, 1.5M).
+ */
+export function formatCompactCurrency(amount: number): string {
+  return new Intl.NumberFormat(locale(), {
+    style: 'currency',
+    currency: getCurrency(),
+    notation: 'compact',
+    compactDisplay: 'short',
+    maximumFractionDigits: 1,
+  }).format(amount);
+}
+
 export function formatCurrencyShort(amount: number): string {
   return new Intl.NumberFormat(locale(), {
     style: 'currency',
@@ -108,4 +134,9 @@ export function eventNetAmount(event: FinanceEvent): number {
 export function toLocalDateTimeString(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+export function truncate(text: string, length: number): string {
+  if (text.length <= length) return text;
+  return text.slice(0, length).trim() + '...';
 }

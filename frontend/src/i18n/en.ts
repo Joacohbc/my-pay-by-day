@@ -6,6 +6,8 @@ const en = {
     update: 'Update',
     delete: 'Delete',
     save: 'Save',
+    saved: 'Saved successfully',
+    error: 'An error occurred',
     close: 'Close',
     cancel: 'Cancel',
     edit: 'Edit',
@@ -28,6 +30,9 @@ const en = {
     confirmDeleteNamed: 'Delete "{{name}}"?',
     nameRequired: 'Name is required',
     loading: 'Loading…',
+    prevPage: 'Previous',
+    nextPage: 'Next',
+    pageOf: 'Page {{page}} of {{total}}',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────
@@ -82,6 +87,8 @@ const en = {
     updateEvent: 'Update Event',
     createEvent: 'Create Event',
     template: 'Template',
+    startDate: 'Start Date',
+    endDate: 'End Date',
   },
 
   // ─── Event Types ─────────────────────────────────────────────────────────

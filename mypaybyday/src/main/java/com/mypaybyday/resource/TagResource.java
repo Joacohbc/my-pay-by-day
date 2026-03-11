@@ -1,5 +1,6 @@
 package com.mypaybyday.resource;
 
+import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TagService;
@@ -25,11 +26,13 @@ public class TagResource {
     TagService tagService;
 
     @GET
-    @Operation(summary = "List all tags")
-    @APIResponse(responseCode = "200", description = "List of tags",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TagDto.class)))
-    public Response getAll() {
-        return Response.ok(tagService.listAll()).build();
+    @Operation(summary = "List tags (paginated)")
+    @APIResponse(responseCode = "200", description = "Paginated list of tags",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
+    public Response getAll(
+            @Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
+            @Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
+        return Response.ok(tagService.listAll(page, size)).build();
     }
 
     @GET
@@ -57,7 +60,7 @@ public class TagResource {
         return Response.status(Response.Status.CREATED).entity(tagService.create(tag)).build();
     }
 
-    @PUT
+    @PATCH
     @Path("/{id}")
     @Operation(summary = "Update a tag")
     @APIResponses({

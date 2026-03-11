@@ -44,9 +44,9 @@ function SettingRow({ to, icon, title, subtitle, count }: SettingRowProps) {
 export function SettingsPage() {
   const { t, i18n } = useTranslation();
   const [currency, _setCurrency] = useState(getCurrency);
-  const { data: categories = [] } = useCategories();
-  const { data: tags = [] } = useTags();
-  const { data: templates = [] } = useTemplates();
+  const { data: categoriesPaged } = useCategories();
+  const { data: tagsPaged } = useTags();
+  const { data: templatesPaged } = useTemplates();
 
   useEffect(() => onCurrencyChange(() => _setCurrency(getCurrency())), []);
 
@@ -128,21 +128,21 @@ export function SettingsPage() {
             icon="folder_open"
             title={t('categories.title')}
             subtitle={t('settings.categoriesDesc')}
-            count={categories.length}
+            count={categoriesPaged?.totalElements}
           />
           <SettingRow
             to="/settings/tags"
             icon="tag"
             title={t('tags.title')}
             subtitle={t('settings.tagsDesc')}
-            count={tags.length}
+            count={tagsPaged?.totalElements}
           />
           <SettingRow
             to="/settings/templates"
             icon="auto_fix_high"
             title={t('templates.title')}
             subtitle={t('settings.templatesDesc')}
-            count={templates.length}
+            count={templatesPaged?.totalElements}
           />
         </Card>
       </section>

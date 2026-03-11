@@ -1,11 +1,13 @@
 package com.mypaybyday.service;
 
 import com.mypaybyday.dto.CategoryDto;
+import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.Category;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.CategoryRepository;
+import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -25,10 +27,18 @@ public class CategoryService {
     // Queries
     // -------------------------------------------------------------------------
 
-    public List<CategoryDto> listAll() {
-        return categoryRepository.listAll().stream().map(CategoryDto::from).toList();
+    @Transactional
+    public PagedResponse<CategoryDto> listAll(int page, int size) {
+        long totalElements = categoryRepository.count();
+        List<CategoryDto> content = categoryRepository.findAll()
+                .page(Page.of(page, size))
+                .stream()
+                .map(CategoryDto::from)
+                .toList();
+        return PagedResponse.of(content, page, size, totalElements);
     }
 
+    @Transactional
     public CategoryDto findById(Long id) throws BusinessException {
         return CategoryDto.from(findEntityById(id));
     }

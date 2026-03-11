@@ -6,6 +6,8 @@ const es = {
     update: 'Actualizar',
     delete: 'Eliminar',
     save: 'Guardar',
+    saved: 'Guardado correctamente',
+    error: 'Ha ocurrido un error',
     close: 'Cerrar',
     cancel: 'Cancelar',
     edit: 'Editar',
@@ -28,6 +30,9 @@ const es = {
     confirmDeleteNamed: '¿Eliminar "{{name}}"?',
     nameRequired: 'El nombre es requerido',
     loading: 'Cargando…',
+    prevPage: 'Anterior',
+    nextPage: 'Siguiente',
+    pageOf: 'Página {{page}} de {{total}}',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────
@@ -82,6 +87,8 @@ const es = {
     updateEvent: 'Actualizar Evento',
     createEvent: 'Crear Evento',
     template: 'Plantilla',
+    startDate: 'Fecha Inicio',
+    endDate: 'Fecha Fin',
   },
 
   // ─── Event Types ─────────────────────────────────────────────────────────

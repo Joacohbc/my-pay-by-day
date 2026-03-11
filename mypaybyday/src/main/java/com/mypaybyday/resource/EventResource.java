@@ -1,6 +1,7 @@
 package com.mypaybyday.resource;
 
 import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.FinanceEvent;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.EventService;
@@ -26,11 +27,13 @@ public class EventResource {
     EventService eventService;
 
     @GET
-    @Operation(summary = "List all events", description = "Returns every FinanceEvent stored in the system, including its nested Transaction and LineItems.")
-    @APIResponse(responseCode = "200", description = "List of events",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class)))
-    public Response getAll() {
-        return Response.ok(eventService.listAll()).build();
+    @Operation(summary = "List events (paginated)", description = "Returns a paginated page of FinanceEvents. Use ?page=0&size=20 to control pagination.")
+    @APIResponse(responseCode = "200", description = "Paginated list of events",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
+    public Response getAll(
+            @Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
+            @Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
+        return Response.ok(eventService.listAll(page, size)).build();
     }
 
     @GET
@@ -61,7 +64,7 @@ public class EventResource {
         return Response.status(Response.Status.CREATED).entity(eventService.create(event)).build();
     }
 
-    @PUT
+    @PATCH
     @Path("/{id}")
     @Operation(summary = "Update an existing event",
             description = "Updates metadata, category, tags, and/or the nested Transaction. " +

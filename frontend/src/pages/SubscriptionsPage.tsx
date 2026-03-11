@@ -53,7 +53,7 @@ export function SubscriptionsPage() {
 
   if (isLoading) return <FullPageSpinner />;
 
-  const allSubs = subs ?? [];
+  const allSubs = subs?.content ?? [];
 
   const isNotImplemented =
     error instanceof Error && error.message.includes('501');

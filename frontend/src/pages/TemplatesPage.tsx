@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { useTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate } from '@/hooks/useTemplates';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { Pagination } from '@/components/ui/Pagination';
+import { truncate } from '@/lib/format';
 import type { Template, EventType, ModifierType } from '@/models';
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
@@ -56,10 +58,15 @@ const DEFAULT_FORM: FormValues = {
 
 export function TemplatesPage() {
   const { t } = useTranslation();
-  const { data: templates, isLoading, error } = useTemplates();
-  const { data: categories = [] } = useCategories();
-  const { data: tags = [] } = useTags();
-  const { data: nodes = [] } = useNodes();
+  const [page, setPage] = useState(0);
+  const { data: paged, isLoading, error } = useTemplates(page);
+  // Helper hook calls for dropdown options — always fetch page 0 with a large size
+  const { data: categoriesPaged } = useCategories(0, 200);
+  const { data: tagsPaged } = useTags(0, 200);
+  const { data: nodesPaged } = useNodes(0, 200);
+  const categories = categoriesPaged?.content ?? [];
+  const tags = tagsPaged?.content ?? [];
+  const nodes = nodesPaged?.content ?? [];
 
   const createTemplate = useCreateTemplate();
   const updateTemplate = useUpdateTemplate();
@@ -74,17 +81,17 @@ export function TemplatesPage() {
     register,
     handleSubmit,
     reset,
-    watch,
     control,
     formState: { errors },
   } = useForm<FormValues>({ defaultValues: DEFAULT_FORM });
 
-  const watchModifierType = watch('modifierType');
+  const watchModifierType = useWatch({ control, name: 'modifierType' });
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
 
-  const allTemplates = templates ?? [];
+  const allTemplates = paged?.content ?? [];
+  const totalPages = paged?.totalPages ?? 1;
 
   const openCreate = () => {
     setEditTarget(null);
@@ -145,7 +152,7 @@ export function TemplatesPage() {
       <PageHeader
         title={t('templates.title')}
         back
-        subtitle={t('templates.count', { count: allTemplates.length })}
+        subtitle={t('templates.count', { count: paged?.totalElements ?? 0 })}
         action={
           <Button size="sm" onClick={openCreate}>
             <Icon name="add" className="text-sm" />
@@ -174,7 +181,9 @@ export function TemplatesPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-base font-medium text-dn-text-main">{tpl.name}</p>
+                  <p className="text-base font-medium text-dn-text-main">
+                    {truncate(tpl.name, 40)}
+                  </p>
                   {tpl.eventType && (
                     <span
                       className={`text-xs px-2 py-0.5 rounded-pill font-medium ${EVENT_TYPE_COLORS[tpl.eventType] ?? 'text-dn-text-muted bg-dn-surface-low'}`}
@@ -184,10 +193,10 @@ export function TemplatesPage() {
                   )}
                 </div>
                 {tpl.description && (
-                  <p className="text-xs text-dn-text-muted mt-0.5 truncate">{tpl.description}</p>
+                  <p className="text-xs text-dn-text-muted mt-2">{truncate(tpl.description, 50)}</p>
                 )}
                 {(tpl.originNodeName || tpl.destinationNodeName) && (
-                  <p className="text-xs text-dn-text-muted mt-0.5">
+                  <p className="text-xs text-dn-text-muted mt-2">
                     {tpl.originNodeName}
                     {tpl.destinationNodeName && (
                       <span> → {tpl.destinationNodeName}</span>
@@ -231,6 +240,8 @@ export function TemplatesPage() {
           ))}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       <Modal
         open={showModal}

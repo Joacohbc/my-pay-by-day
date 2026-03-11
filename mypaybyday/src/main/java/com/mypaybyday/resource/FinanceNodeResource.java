@@ -1,6 +1,7 @@
 package com.mypaybyday.resource;
 
 import com.mypaybyday.dto.FinanceNodeDto;
+import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.FinanceNodeService;
 import jakarta.inject.Inject;
@@ -27,11 +28,13 @@ public class FinanceNodeResource {
     FinanceNodeService financeNodeService;
 
     @GET
-    @Operation(summary = "List all active finance nodes", description = "Returns only non-archived nodes.")
-    @APIResponse(responseCode = "200", description = "List of active nodes",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceNodeDto.class)))
-    public Response getAll() {
-        return Response.ok(financeNodeService.listAll()).build();
+    @Operation(summary = "List active finance nodes (paginated)", description = "Returns only non-archived nodes. Use ?page=0&size=20 to control pagination.")
+    @APIResponse(responseCode = "200", description = "Paginated list of active nodes",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
+    public Response getAll(
+            @Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
+            @Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
+        return Response.ok(financeNodeService.listAll(page, size)).build();
     }
 
     @GET
@@ -62,7 +65,7 @@ public class FinanceNodeResource {
         return Response.status(Response.Status.CREATED).entity(financeNodeService.create(node)).build();
     }
 
-    @PUT
+    @PATCH
     @Path("/{id}")
     @Operation(summary = "Update a finance node")
     @APIResponses({
@@ -77,7 +80,7 @@ public class FinanceNodeResource {
         return Response.ok(financeNodeService.update(id, nodeDetails)).build();
     }
 
-    @PUT
+    @PATCH
     @Path("/{id}/archive")
     @Operation(summary = "Archive a finance node",
             description = "Soft-deletes the node. Archived nodes are excluded from listings and cannot be used in new transactions. " +

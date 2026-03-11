@@ -1,6 +1,7 @@
 package com.mypaybyday.service;
 
 import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TimePeriodBalanceDto;
 import com.mypaybyday.dto.TimePeriodDto;
 import com.mypaybyday.entity.FinanceEvent;
@@ -10,6 +11,7 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TimePeriodRepository;
+import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -38,10 +40,18 @@ public class TimePeriodService {
     // Queries
     // -------------------------------------------------------------------------
 
-    public List<TimePeriodDto> listAll() {
-        return timePeriodRepository.listAll().stream().map(TimePeriodDto::from).toList();
+    @Transactional
+    public PagedResponse<TimePeriodDto> listAll(int page, int size) {
+        long totalElements = timePeriodRepository.count();
+        List<TimePeriodDto> content = timePeriodRepository.findAll()
+                .page(Page.of(page, size))
+                .stream()
+                .map(TimePeriodDto::from)
+                .toList();
+        return PagedResponse.of(content, page, size, totalElements);
     }
 
+    @Transactional
     public TimePeriodDto findById(Long id) throws BusinessException {
         return TimePeriodDto.from(findTimePeriodEntity(id));
     }

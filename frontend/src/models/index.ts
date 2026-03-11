@@ -5,6 +5,16 @@ export type FinanceNodeType = 'OWN' | 'EXTERNAL' | 'CONTACT';
 export type ModifierType = 'PERCENTAGE' | 'FIXED';
 export type RecurrenceFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
 
+// ─── Pagination ───────────────────────────────────────────────────────────────
+
+export interface PagedResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
 // ─── Base ─────────────────────────────────────────────────────────────────────
 
 export interface Identifiable {

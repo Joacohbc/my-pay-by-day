@@ -49,7 +49,7 @@ export function DashboardPage() {
   }
 
   // No default selected — onboarding / picker state
-  const allPeriods = periods ?? [];
+  const allPeriods = periods?.content ?? [];
 
   return (
     <div className="space-y-6 px-5 pt-6">

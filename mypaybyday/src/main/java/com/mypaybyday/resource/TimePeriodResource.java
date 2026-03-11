@@ -1,5 +1,6 @@
 package com.mypaybyday.resource;
 
+import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TimePeriodBalanceDto;
 import com.mypaybyday.dto.TimePeriodDto;
 import com.mypaybyday.exception.BusinessException;
@@ -26,11 +27,13 @@ public class TimePeriodResource {
     TimePeriodService timePeriodService;
 
     @GET
-    @Operation(summary = "List all time periods")
-    @APIResponse(responseCode = "200", description = "List of time periods",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriodDto.class)))
-    public Response getAll() {
-        return Response.ok(timePeriodService.listAll()).build();
+    @Operation(summary = "List time periods (paginated)")
+    @APIResponse(responseCode = "200", description = "Paginated list of time periods",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
+    public Response getAll(
+            @Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
+            @Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
+        return Response.ok(timePeriodService.listAll(page, size)).build();
     }
 
     @GET

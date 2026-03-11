@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { FinanceNode } from '@/models';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatCompactCurrency } from '@/lib/format';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
 
@@ -56,15 +56,17 @@ export function NodeCard({ node, balance, onClick, actions }: NodeCardProps) {
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="text-base font-medium text-dn-text-main truncate">{node.name}</p>
-          <Badge variant={cfg.badgeVariant}>{t(cfg.labelKey)}</Badge>
-          {node.archived && <Badge variant="default">{t('common.archived')}</Badge>}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <p className="text-base font-medium text-dn-text-main break-words">{node.name}</p>
+          <div className="flex gap-2">
+            <Badge variant={cfg.badgeVariant}>{t(cfg.labelKey)}</Badge>
+            {node.archived && <Badge variant="default">{t('common.archived')}</Badge>}
+          </div>
         </div>
         {balance !== undefined && (
           <p className={`text-sm mt-0.5 font-mono ${balance >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
-            {balance >= 0 ? '+' : ''}
-            {formatCurrency(balance)}
+            <span className="inline sm:hidden">{formatCompactCurrency(balance)}</span>
+            <span className="hidden sm:inline">{balance >= 0 ? '+' : ''}{formatCurrency(balance)}</span>
           </p>
         )}
       </div>

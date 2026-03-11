@@ -1,6 +1,10 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.entity.Subscription;
+import com.mypaybyday.dto.PagedResponse;
+import com.mypaybyday.dto.SubscriptionDto;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.service.SubscriptionService;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -18,12 +22,17 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Tag(name = "Subscriptions", description = "Recurring agreement factory: uses a Template to auto-generate Events on each billing cycle")
 public class SubscriptionResource {
 
+    @Inject
+    SubscriptionService subscriptionService;
+
     @GET
-    @Operation(summary = "List all subscriptions")
-    @APIResponse(responseCode = "200", description = "List of subscriptions",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Subscription.class)))
-    public Response getAll() {
-        throw new UnsupportedOperationException("Not implemented yet");
+    @Operation(summary = "List subscriptions (paginated)")
+    @APIResponse(responseCode = "200", description = "Paginated list of subscriptions",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
+    public Response getAll(
+            @Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
+            @Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
+        return Response.ok(subscriptionService.listAll(page, size)).build();
     }
 
     @GET
@@ -31,12 +40,13 @@ public class SubscriptionResource {
     @Operation(summary = "Get subscription by ID")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Subscription found",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Subscription.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SubscriptionDto.class))),
             @APIResponse(responseCode = "404", description = "Subscription not found")
     })
     public Response getById(
-            @Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id) {
-        throw new UnsupportedOperationException("Not implemented yet");
+            @Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id)
+            throws BusinessException {
+        return Response.ok(subscriptionService.findById(id)).build();
     }
 
     @POST
@@ -44,26 +54,28 @@ public class SubscriptionResource {
             description = "Registers a recurring agreement. A Template must be referenced to drive automatic Event generation.")
     @APIResponses({
             @APIResponse(responseCode = "201", description = "Subscription created",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Subscription.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SubscriptionDto.class))),
             @APIResponse(responseCode = "400", description = "Validation error")
     })
-    public Response create(Subscription subscription) {
-        throw new UnsupportedOperationException("Not implemented yet");
+    public Response create(SubscriptionDto subscription) throws BusinessException {
+        return Response.status(Response.Status.CREATED)
+                .entity(subscriptionService.create(subscription))
+                .build();
     }
 
-    @PUT
+    @PATCH
     @Path("/{id}")
     @Operation(summary = "Update a subscription")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Subscription updated",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = Subscription.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SubscriptionDto.class))),
             @APIResponse(responseCode = "400", description = "Validation error"),
             @APIResponse(responseCode = "404", description = "Subscription not found")
     })
     public Response update(
             @Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id,
-            Subscription subscriptionDetails) {
-        throw new UnsupportedOperationException("Not implemented yet");
+            SubscriptionDto subscriptionDetails) throws BusinessException {
+        return Response.ok(subscriptionService.update(id, subscriptionDetails)).build();
     }
 
     @DELETE
@@ -74,7 +86,9 @@ public class SubscriptionResource {
             @APIResponse(responseCode = "404", description = "Subscription not found")
     })
     public Response delete(
-            @Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id) {
-        throw new UnsupportedOperationException("Not implemented yet");
+            @Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id)
+            throws BusinessException {
+        subscriptionService.delete(id);
+        return Response.noContent().build();
     }
 }

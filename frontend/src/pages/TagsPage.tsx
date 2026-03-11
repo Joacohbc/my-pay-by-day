@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { Pagination } from '@/components/ui/Pagination';
 import type { Tag } from '@/models';
 import { useForm } from 'react-hook-form';
 
@@ -21,7 +22,8 @@ interface FormValues {
 
 export function TagsPage() {
   const { t } = useTranslation();
-  const { data: tags, isLoading, error } = useTags();
+  const [page, setPage] = useState(0);
+  const { data: paged, isLoading, error } = useTags(page);
   const createTag = useCreateTag();
   const updateTag = useUpdateTag();
   const deleteTag = useDeleteTag();
@@ -36,7 +38,8 @@ export function TagsPage() {
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
 
-  const allTags = tags ?? [];
+  const allTags = paged?.content ?? [];
+  const totalPages = paged?.totalPages ?? 1;
 
   const openCreate = () => {
     setEditTarget(null);
@@ -73,7 +76,7 @@ export function TagsPage() {
       <PageHeader
         title={t('tags.title')}
         back
-        subtitle={t('tags.count', { count: allTags.length })}
+        subtitle={t('tags.count', { count: paged?.totalElements ?? 0 })}
         action={
           <Button size="sm" onClick={openCreate}>
             <Icon name="add" className="text-sm" />
@@ -133,6 +136,8 @@ export function TagsPage() {
           ))}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       <Modal
         open={showModal}

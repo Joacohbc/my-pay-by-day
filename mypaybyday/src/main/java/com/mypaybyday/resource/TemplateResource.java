@@ -1,5 +1,6 @@
 package com.mypaybyday.resource;
 
+import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TemplateDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TemplateService;
@@ -25,11 +26,13 @@ public class TemplateResource {
     TemplateService templateService;
 
     @GET
-    @Operation(summary = "List all templates")
-    @APIResponse(responseCode = "200", description = "List of templates",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TemplateDto.class)))
-    public Response getAll() {
-        return Response.ok(templateService.listAll()).build();
+    @Operation(summary = "List templates (paginated)")
+    @APIResponse(responseCode = "200", description = "Paginated list of templates",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
+    public Response getAll(
+            @Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
+            @Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
+        return Response.ok(templateService.listAll(page, size)).build();
     }
 
     @GET
@@ -58,7 +61,7 @@ public class TemplateResource {
         return Response.status(Response.Status.CREATED).entity(templateService.create(dto)).build();
     }
 
-    @PUT
+    @PATCH
     @Path("/{id}")
     @Operation(summary = "Update a template")
     @APIResponses({
