@@ -215,44 +215,47 @@ export function TimePeriodsPage() {
         </div>
       </div>
 
-      {/* Filter tabs */}
-      <div className="px-5 flex items-center gap-2 overflow-x-auto scrollbar-none">
-        {filterTabs.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className={`shrink-0 px-3 py-1 rounded-pill text-xs font-medium transition-colors ${
-              filter === key
-                ? 'bg-dn-primary/20 text-dn-primary'
-                : 'bg-dn-surface-low text-dn-text-muted hover:text-dn-text-main'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-
-        {/* Sort controls (right-aligned) */}
-        <div className="ml-auto flex items-center gap-1 shrink-0">
-          <span className="text-xs text-dn-text-muted">{t('common.sort')}:</span>
-          {sortOptions.map(({ field, label }) => (
+      {/* Filter and Sort */}
+      <div className="px-5 flex flex-col md:flex-row md:items-center gap-3 justify-between">
+        {/* Filter tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 md:pb-0">
+          {filterTabs.map(({ key, label }) => (
             <button
-              key={field}
-              onClick={() => toggleSort(field)}
-              className={`inline-flex items-center gap-0.5 px-2 py-1 rounded-pill text-xs font-medium transition-colors ${
-                sortField === field
-                  ? 'bg-dn-surface text-dn-text-main'
-                  : 'text-dn-text-muted hover:text-dn-text-main'
-              }`}
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`shrink-0 px-3 py-1 rounded-pill text-xs font-medium transition-colors ${filter === key
+                  ? 'bg-dn-primary/20 text-dn-primary'
+                  : 'bg-dn-surface-low text-dn-text-muted hover:text-dn-text-main'
+                }`}
             >
               {label}
-              {sortField === field && (
-                <Icon
-                  name={sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward'}
-                  className="text-[12px]"
-                />
-              )}
             </button>
           ))}
+        </div>
+
+        {/* Sort controls */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none shrink-0 pb-1 md:pb-0">
+          <span className="text-xs text-dn-text-muted">{t('common.sort')}:</span>
+          <div className="flex items-center gap-1">
+            {sortOptions.map(({ field, label }) => (
+              <button
+                key={field}
+                onClick={() => toggleSort(field)}
+                className={`inline-flex items-center gap-0.5 px-2 py-1 rounded-pill text-xs font-medium transition-colors ${sortField === field
+                    ? 'bg-dn-surface text-dn-text-main'
+                    : 'text-dn-text-muted hover:text-dn-text-main'
+                  }`}
+              >
+                {label}
+                {sortField === field && (
+                  <Icon
+                    name={sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward'}
+                    className="text-[14px]! leading-none text-dn-text-main"
+                  />
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
