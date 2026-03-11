@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNodes, useCreateNode, useArchiveNode, useDeleteNode, useNodeBalance } from '@/hooks/useNodes';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatCompactCurrency } from '@/lib/format';
 import { NodeCard } from '@/components/nodes/NodeCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -24,9 +24,9 @@ function NodeBalanceBadge({ nodeId }: { nodeId: number }) {
   const { data: balance } = useNodeBalance(nodeId);
   if (balance === undefined) return null;
   return (
-    <span className={`text-xs font-mono ${balance >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
-      {balance >= 0 ? '+' : ''}
-      {formatCurrency(balance)}
+    <span className={`text-xs font-mono whitespace-nowrap ${balance >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
+      <span className="inline sm:hidden">{formatCompactCurrency(balance)}</span>
+      <span className="hidden sm:inline">{balance >= 0 ? '+' : ''}{formatCurrency(balance)}</span>
     </span>
   );
 }

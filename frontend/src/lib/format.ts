@@ -48,6 +48,27 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+/**
+ * Rounds and formats large numbers for small screens (e.g., 1.2k, 1.5M).
+ */
+export function formatCompactCurrency(amount: number): string {
+  const abs = Math.abs(amount);
+  const sign = amount < 0 ? '-' : '+';
+
+  // Use Intl.NumberFormat with notation: 'compact'
+  const formatter = new Intl.NumberFormat(locale(), {
+    style: 'currency',
+    currency: getCurrency(),
+    notation: 'compact',
+    compactDisplay: 'short',
+    maximumFractionDigits: 1,
+  });
+
+  const formatted = formatter.format(abs);
+  return `${sign}${formatted}`;
+}
+
+
 export function formatCurrencyShort(amount: number): string {
   return new Intl.NumberFormat(locale(), {
     style: 'currency',
