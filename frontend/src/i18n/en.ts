@@ -6,6 +6,8 @@ const en = {
     update: 'Update',
     delete: 'Delete',
     save: 'Save',
+    saved: 'Saved successfully',
+    error: 'An error occurred',
     close: 'Close',
     cancel: 'Cancel',
     edit: 'Edit',

@@ -3,6 +3,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { RouterProvider } from 'react-router-dom';
 import { router } from '@/router';
+import { AlertProvider } from '@/contexts/AlertContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,7 +27,9 @@ const persister = createAsyncStoragePersister({
 function App() {
   return (
     <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
-      <RouterProvider router={router} />
+      <AlertProvider>
+        <RouterProvider router={router} />
+      </AlertProvider>
     </PersistQueryClientProvider>
   );
 }
