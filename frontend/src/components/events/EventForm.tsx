@@ -87,8 +87,8 @@ export function EventForm({
       categoryId: defaultValues?.category
         ? String(defaultValues.category.id)
         : preset?.categoryId
-        ? String(preset.categoryId)
-        : '',
+          ? String(preset.categoryId)
+          : '',
       tagIds: defaultValues?.tags?.map((t) => String(t.id)) ?? preset?.tagIds ?? [],
       lineItems:
         defaultValues?.lineItems?.map((li) => ({
@@ -122,10 +122,16 @@ export function EventForm({
       type: values.type,
       transaction: {
         transactionDate: new Date(values.transactionDate).toISOString(),
-        lineItems: values.lineItems.map((li) => ({
-          financeNode: { id: Number(li.nodeId) },
-          amount: Number(li.amount),
-        })),
+        lineItems: values.lineItems.map((li, i) => {
+          let amount = Number(li.amount);
+          if (isTemplateMode) {
+            amount = i === 0 ? -Math.abs(amount) : Math.abs(amount);
+          }
+          return {
+            financeNode: { id: Number(li.nodeId) },
+            amount,
+          };
+        }),
       },
       category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
       tags: values.tagIds?.map((id) => ({ id: Number(id) })),
