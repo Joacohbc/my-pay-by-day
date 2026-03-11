@@ -61,9 +61,9 @@ export function EventForm({
   loading = false,
 }: EventFormProps) {
   const { t } = useTranslation();
-  const { data: categoriesResponse } = useCategories();
-  const { data: tagsResponse } = useTags();
-  const { data: nodesResponse } = useNodes();
+  const { data: categoriesResponse } = useCategories(0, 200);
+  const { data: tagsResponse } = useTags(0, 200);
+  const { data: nodesResponse } = useNodes(0, 200);
 
   const categories = categoriesResponse?.content ?? [];
   const tags = tagsResponse?.content ?? [];
