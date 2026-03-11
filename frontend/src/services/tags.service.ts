@@ -6,6 +6,6 @@ export const tagsService = {
   getById: (id: number) => api.get<Tag>(`/tags/${id}`),
   create: (dto: CreateTagDto) => api.post<Tag>('/tags', dto),
   update: (id: number, dto: Partial<CreateTagDto>) =>
-    api.put<Tag>(`/tags/${id}`, dto),
+    api.patch<Tag>(`/tags/${id}`, dto),
   delete: (id: number) => api.delete(`/tags/${id}`),
 };

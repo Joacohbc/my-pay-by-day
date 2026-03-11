@@ -57,7 +57,7 @@ public class CategoryResource {
         return Response.status(Response.Status.CREATED).entity(categoryService.create(category)).build();
     }
 
-    @PUT
+    @PATCH
     @Path("/{id}")
     @Operation(summary = "Update a category")
     @APIResponses({

@@ -6,6 +6,6 @@ export const eventsService = {
   getById: (id: number) => api.get<FinanceEvent>(`/events/${id}`),
   create: (dto: CreateEventDto) => api.post<FinanceEvent>('/events', dto),
   update: (id: number, dto: Partial<CreateEventDto>) =>
-    api.put<FinanceEvent>(`/events/${id}`, dto),
+    api.patch<FinanceEvent>(`/events/${id}`, dto),
   delete: (id: number) => api.delete(`/events/${id}`),
 };

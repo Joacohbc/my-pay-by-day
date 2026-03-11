@@ -51,7 +51,7 @@ public class SubscriptionResource {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    @PUT
+    @PATCH
     @Path("/{id}")
     @Operation(summary = "Update a subscription")
     @APIResponses({

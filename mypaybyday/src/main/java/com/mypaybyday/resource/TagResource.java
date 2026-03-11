@@ -57,7 +57,7 @@ public class TagResource {
         return Response.status(Response.Status.CREATED).entity(tagService.create(tag)).build();
     }
 
-    @PUT
+    @PATCH
     @Path("/{id}")
     @Operation(summary = "Update a tag")
     @APIResponses({

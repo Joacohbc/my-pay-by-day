@@ -7,7 +7,7 @@ export const nodesService = {
   getBalance: (id: number) => api.get<number>(`/finance-nodes/${id}/balance`),
   create: (dto: CreateFinanceNodeDto) => api.post<FinanceNode>('/finance-nodes', dto),
   update: (id: number, dto: Partial<CreateFinanceNodeDto>) =>
-    api.put<FinanceNode>(`/finance-nodes/${id}`, dto),
-  archive: (id: number) => api.put<void>(`/finance-nodes/${id}/archive`, {}),
+    api.patch<FinanceNode>(`/finance-nodes/${id}`, dto),
+  archive: (id: number) => api.patch<void>(`/finance-nodes/${id}/archive`, {}),
   delete: (id: number) => api.delete(`/finance-nodes/${id}`),
 };
