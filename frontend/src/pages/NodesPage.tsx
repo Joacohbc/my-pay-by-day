@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNodes, useCreateNode, useUpdateNode, useArchiveNode, useDeleteNode, useNodeBalance } from '@/hooks/useNodes';
+import { useNodes, useCreateNode, useUpdateNode, useArchiveNode, useUnarchiveNode, useDeleteNode, useNodeBalance } from '@/hooks/useNodes';
 import { formatCurrency, formatCompactCurrency, formatCompactWitNotCurrency, getCurrency } from '@/lib/format';
 import { NodeCard } from '@/components/nodes/NodeCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -37,10 +37,11 @@ function NodeBalanceBadge({ nodeId }: { nodeId: number }) {
   );
 }
 
-function NodeActionMenu({ node, onEdit, onArchive, onDelete }: {
+function NodeActionMenu({ node, onEdit, onArchive, onUnarchive, onDelete }: {
   node: FinanceNode;
   onEdit: (node: FinanceNode) => void;
   onArchive: (node: FinanceNode) => void;
+  onUnarchive: (node: FinanceNode) => void;
   onDelete: (node: FinanceNode) => void;
 }) {
   const { t } = useTranslation();
@@ -68,7 +69,15 @@ function NodeActionMenu({ node, onEdit, onArchive, onDelete }: {
               <Icon name="edit" className="text-base" />
               {t('common.edit')}
             </button>
-            {!node.archived && (
+            {node.archived ? (
+              <button
+                onClick={() => { onUnarchive(node); setOpen(false); }}
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dn-text-main hover:bg-dn-surface-low transition-colors"
+              >
+                <Icon name="unarchive" className="text-base" />
+                {t('common.active')}
+              </button>
+            ) : (
               <button
                 onClick={() => { onArchive(node); setOpen(false); }}
                 className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dn-text-main hover:bg-dn-surface-low transition-colors"
@@ -94,15 +103,16 @@ function NodeActionMenu({ node, onEdit, onArchive, onDelete }: {
 export function NodesPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(0);
-  const { data: paged, isLoading, error } = useNodes(page);
+  const [showArchived, setShowArchived] = useState(false);
+  const { data: paged, isLoading, error } = useNodes(page, 20, showArchived);
   const createNode = useCreateNode();
   const updateNode = useUpdateNode();
   const archiveNode = useArchiveNode();
+  const unarchiveNode = useUnarchiveNode();
   const deleteNode = useDeleteNode();
   const [showModal, setShowModal] = useState(false);
-  const [showArchived, setShowArchived] = useState(false);
   const [editingNode, setEditingNode] = useState<FinanceNode | null>(null);
-  const [confirmAction, setConfirmAction] = useState<{ node: FinanceNode; type: 'archive' | 'delete' } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ node: FinanceNode; type: 'archive' | 'unarchive' | 'delete' } | null>(null);
 
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<NodeFormValues>({
     defaultValues: { name: '', type: 'OWN' },
@@ -156,6 +166,8 @@ export function NodesPage() {
     const { node, type } = confirmAction;
     if (type === 'archive') {
       await archiveNode.mutateAsync(node.id);
+    } else if (type === 'unarchive') {
+      await unarchiveNode.mutateAsync(node.id);
     } else {
       await deleteNode.mutateAsync(node.id);
     }
@@ -168,16 +180,36 @@ export function NodesPage() {
         open={confirmAction !== null}
         onClose={() => setConfirmAction(null)}
         onConfirm={handleConfirmAction}
-        title={confirmAction?.type === 'archive' ? t('common.archive') : t('common.delete')}
+        title={
+          confirmAction?.type === 'archive'
+            ? t('common.archive')
+            : confirmAction?.type === 'unarchive'
+              ? t('common.active')
+              : t('common.delete')
+        }
         message={
           confirmAction?.type === 'archive'
             ? t('nodes.archiveConfirm', { name: confirmAction.node.name })
-            : confirmAction?.node
-            ? t('common.confirmDeleteNamed', { name: confirmAction.node.name })
-            : ''
+            : confirmAction?.type === 'unarchive'
+              ? t('common.active') + " " + confirmAction.node.name + "?"
+              : confirmAction?.node
+                ? t('common.confirmDeleteNamed', { name: confirmAction.node.name })
+                : ''
         }
-        confirmLabel={confirmAction?.type === 'archive' ? t('common.archive') : t('common.delete')}
-        loading={confirmAction?.type === 'archive' ? archiveNode.isPending : deleteNode.isPending}
+        confirmLabel={
+          confirmAction?.type === 'archive'
+            ? t('common.archive')
+            : confirmAction?.type === 'unarchive'
+              ? t('common.active')
+              : t('common.delete')
+        }
+        loading={
+          confirmAction?.type === 'archive'
+            ? archiveNode.isPending
+            : confirmAction?.type === 'unarchive'
+              ? unarchiveNode.isPending
+              : deleteNode.isPending
+        }
       />
 
       <PageHeader
@@ -246,6 +278,7 @@ export function NodesPage() {
                         node={node}
                         onEdit={openEditModal}
                         onArchive={(n) => setConfirmAction({ node: n, type: 'archive' })}
+                        onUnarchive={(n) => setConfirmAction({ node: n, type: 'unarchive' })}
                         onDelete={(n) => setConfirmAction({ node: n, type: 'delete' })}
                       />
                     </div>

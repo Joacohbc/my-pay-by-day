@@ -40,7 +40,7 @@ export function NodeCard({ node, balance, onClick, actions }: NodeCardProps) {
     <div
       className={[
         'flex items-center gap-4 p-4 bg-dn-surface rounded-card transition-all',
-        node.archived ? 'opacity-50' : '',
+        node.archived ? 'bg-dn-surface/50' : '',
         onClick ? 'cursor-pointer active:scale-[0.99]' : '',
       ]
         .filter(Boolean)

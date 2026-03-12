@@ -33,8 +33,9 @@ public class FinanceNodeResource {
             content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
     public Response getAll(
             @Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
-            @Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
-        return Response.ok(financeNodeService.listAll(page, size)).build();
+            @Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size,
+            @Parameter(description = "Filter by archived status") @QueryParam("archived") Boolean archived) {
+        return Response.ok(financeNodeService.listAll(page, size, archived)).build();
     }
 
     @GET
@@ -93,6 +94,21 @@ public class FinanceNodeResource {
             @Parameter(description = "ID of the finance node", required = true) @PathParam("id") Long id)
             throws BusinessException {
         financeNodeService.archive(id);
+        return Response.noContent().build();
+    }
+
+    @PATCH
+    @Path("/{id}/unarchive")
+    @Operation(summary = "Unarchive a finance node",
+            description = "Restores an archived node to active state.")
+    @APIResponses({
+            @APIResponse(responseCode = "204", description = "Node unarchived"),
+            @APIResponse(responseCode = "404", description = "Node not found")
+    })
+    public Response unarchive(
+            @Parameter(description = "ID of the finance node", required = true) @PathParam("id") Long id)
+            throws BusinessException {
+        financeNodeService.unarchive(id);
         return Response.noContent().build();
     }
 

@@ -6,10 +6,10 @@ import type { CreateFinanceNodeDto } from '@/models';
 
 export const NODES_KEY = ['financeNodes'] as const;
 
-export function useNodes(page = 0, size = 20) {
+export function useNodes(page = 0, size = 20, archived?: boolean) {
   return useQuery({
-    queryKey: [...NODES_KEY, page, size],
-    queryFn: () => nodesService.getAll(page, size),
+    queryKey: [...NODES_KEY, page, size, archived],
+    queryFn: () => nodesService.getAll(page, size, archived),
   });
 }
 
@@ -64,6 +64,20 @@ export function useArchiveNode() {
   const { t } = useTranslation();
   return useMutation({
     mutationFn: (id: number) => nodesService.archive(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: NODES_KEY  });
+      alert.success(t('common.saved'));
+    },
+    onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
+  });
+}
+
+export function useUnarchiveNode() {
+  const qc = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: (id: number) => nodesService.unarchive(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: NODES_KEY  });
       alert.success(t('common.saved'));
