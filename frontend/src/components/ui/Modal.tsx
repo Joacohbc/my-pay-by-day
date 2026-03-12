@@ -23,7 +23,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -31,7 +31,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
       />
 
       {/* Panel */}
-      <div className="relative z-10 w-full sm:max-w-md bg-dn-surface border border-white/5 rounded-t-[28px] sm:rounded-card shadow-xl flex flex-col max-h-[90vh]">
+      <div className="relative z-10 w-full sm:max-w-md bg-dn-surface border border-white/5 rounded-card shadow-xl flex flex-col max-h-[90vh]">
         {/* Header */}
         {title && (
           <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-dn-bg/30">

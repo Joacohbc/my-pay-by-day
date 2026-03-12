@@ -13,6 +13,7 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Modal } from '@/components/ui/Modal';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -61,6 +62,7 @@ export function TimePeriodsPage() {
 
   const [editTarget, setEditTarget] = useState<TimePeriod | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<TimePeriod | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterTab>('all');
   const [sortField, setSortField] = useState<SortField>('startDate');
@@ -141,10 +143,15 @@ export function TimePeriodsPage() {
     setShowModal(false);
   };
 
-  const handleDelete = async (tp: TimePeriod) => {
-    if (!confirm(`Delete "${tp.name}"?`)) return;
-    if (defaultId === tp.id) setDefaultId(null);
-    await deletePeriod.mutateAsync(tp.id);
+  const handleDelete = (tp: TimePeriod) => {
+    setConfirmDeleteTarget(tp);
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmDeleteTarget) return;
+    if (defaultId === confirmDeleteTarget.id) setDefaultId(null);
+    await deletePeriod.mutateAsync(confirmDeleteTarget.id);
+    setConfirmDeleteTarget(null);
   };
 
   const toggleSort = (field: SortField) => {
@@ -178,6 +185,16 @@ export function TimePeriodsPage() {
 
   return (
     <div className="space-y-4 pb-24">
+      <ConfirmModal
+        open={confirmDeleteTarget !== null}
+        onClose={() => setConfirmDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title={t('common.delete')}
+        message={confirmDeleteTarget ? t('common.confirmDeleteNamed', { name: confirmDeleteTarget.name }) : ''}
+        confirmLabel={t('common.delete')}
+        loading={deletePeriod.isPending}
+      />
+
       <PageHeader
         title={t('periods.title')}
         subtitle={t(paged?.totalElements !== 1 ? 'periods.count_plural' : 'periods.count', { count: paged?.totalElements ?? 0 })}

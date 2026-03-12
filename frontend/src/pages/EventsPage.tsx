@@ -18,7 +18,6 @@ import { Pagination } from '@/components/ui/Pagination';
 import { formatCurrency, eventNetAmount } from '@/lib/format';
 import type { EventType } from '@/models';
 
-
 type FilterType = 'ALL' | EventType;
 
 export function EventsPage() {
@@ -51,7 +50,7 @@ export function EventsPage() {
   const filtered = allEvents
     .filter((e) => {
       if (filter !== 'ALL' && e.type !== filter) return false;
-      
+
       const eventDate = e.transactionDate ? e.transactionDate.split('T')[0] : '';
       if (startDate && eventDate < startDate) return false;
       if (endDate && eventDate > endDate) return false;
@@ -131,19 +130,19 @@ export function EventsPage() {
       {/* Date Filters */}
       <div className="px-5 flex gap-3">
         <div className="flex-1">
-          <Input 
-            type="date" 
-            label={t('events.startDate')} 
-            value={startDate} 
-            onChange={(e) => setStartDate(e.target.value)} 
+          <Input
+            type="date"
+            label={t('events.startDate')}
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
           />
         </div>
         <div className="flex-1">
-          <Input 
-            type="date" 
-            label={t('events.endDate')} 
-            value={endDate} 
-            onChange={(e) => setEndDate(e.target.value)} 
+          <Input
+            type="date"
+            label={t('events.endDate')}
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
           />
         </div>
       </div>
