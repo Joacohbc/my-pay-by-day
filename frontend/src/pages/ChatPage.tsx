@@ -60,7 +60,7 @@ export function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-dn-bg">
+    <div className="flex flex-col h-full bg-dn-bg min-h-[calc(100vh-80px)]">
       <PageHeader
         title={t('chat.title')}
         action={
@@ -115,7 +115,7 @@ export function ChatPage() {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-dn-border bg-dn-surface">
+      <div className="p-4 border-t border-dn-border bg-dn-surface mt-auto">
         <form
           className="flex space-x-2"
           onSubmit={(e) => {
