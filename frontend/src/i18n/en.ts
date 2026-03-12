@@ -41,8 +41,20 @@ const en = {
     activity: 'Activity',
     wallet: 'Wallet',
     periods: 'Periods',
+    chat: 'Chat',
     subs: 'Subs',
     profile: 'Profile',
+  },
+
+  // ─── Chat ────────────────────────────────────────────────────────────────
+  chat: {
+    title: 'Finance Assistant',
+    placeholder: 'Ask me about your finances...',
+    newChat: 'New Chat',
+    emptyState: 'Ask me anything about your categories or periods!',
+    send: 'Send',
+    loading: 'Thinking...',
+    error: 'Failed to send message. Please try again.',
   },
 
   // ─── Greetings ───────────────────────────────────────────────────────────
