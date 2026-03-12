@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
-import type { TimePeriod } from '@/models';
+import type { TimePeriod, CreateTimePeriodDto } from '@/models';
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -150,9 +150,9 @@ export function TimePeriodsPage() {
         : undefined,
     };
     if (editTarget) {
-      await updatePeriod.mutateAsync({ id: editTarget.id, dto: dto as any });
+      await updatePeriod.mutateAsync({ id: editTarget.id, dto: dto as unknown as Partial<CreateTimePeriodDto> });
     } else {
-      await createPeriod.mutateAsync(dto as any); // Ignoring strict CreateTimePeriodDto to pass budgets
+      await createPeriod.mutateAsync(dto as unknown as CreateTimePeriodDto); // Ignoring strict CreateTimePeriodDto to pass budgets
     }
     reset();
     setShowModal(false);

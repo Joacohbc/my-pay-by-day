@@ -43,7 +43,7 @@ export function DashboardPage() {
       <>
         <div className="px-5 pt-4">
           <DynamicTimePeriodSelector
-            value={'CUSTOM' as any} // Or just manage a local state that defaults to the saved custom period
+            value={'CUSTOM' as unknown as DynamicPeriodOption} // Or just manage a local state that defaults to the saved custom period
             onChange={(val) => setDynamicPeriod(val)}
           />
         </div>
@@ -99,7 +99,7 @@ export function DashboardPage() {
 
       <div>
         <DynamicTimePeriodSelector
-          value={dynamicPeriod as any}
+          value={dynamicPeriod as unknown as DynamicPeriodOption}
           onChange={(val) => setDynamicPeriod(val)}
         />
       </div>

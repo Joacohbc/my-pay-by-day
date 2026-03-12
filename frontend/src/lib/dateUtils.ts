@@ -21,13 +21,14 @@ export function getDynamicPeriodDates(option: DynamicPeriodOption): { startDate:
       start.setDate(now.getDate() - 1);
       end.setDate(now.getDate() - 1);
       break;
-    case 'THIS_WEEK':
+    case 'THIS_WEEK': {
       // Assuming week starts on Sunday
       const dayOfWeek = now.getDay();
       start.setDate(now.getDate() - dayOfWeek);
       end.setDate(now.getDate() + (6 - dayOfWeek));
       break;
-    case 'LAST_WEEK':
+    }
+    case 'LAST_WEEK': {
       const lastWeekNow = new Date(now);
       lastWeekNow.setDate(now.getDate() - 7);
       const lwDayOfWeek = lastWeekNow.getDay();
@@ -36,6 +37,7 @@ export function getDynamicPeriodDates(option: DynamicPeriodOption): { startDate:
       start.setDate(lastWeekNow.getDate() - lwDayOfWeek);
       end.setDate(lastWeekNow.getDate() + (6 - lwDayOfWeek));
       break;
+    }
     case 'THIS_MONTH':
       start.setDate(1);
       end.setMonth(now.getMonth() + 1);
