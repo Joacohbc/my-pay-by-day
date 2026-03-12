@@ -9,7 +9,9 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { formatCurrency, formatDateTime, eventNetAmount } from '@/lib/format';
+import { useState } from 'react';
 
 const typeConfig = {
   INBOUND: {
@@ -41,6 +43,7 @@ export function EventDetailPage() {
   const navigate = useNavigate();
   const { data: event, isLoading, error } = useEvent(Number(id));
   const deleteEvent = useDeleteEvent();
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   if (isLoading) return <FullPageSpinner />;
   if (error || !event) return <ErrorState message={t('errors.eventNotFound')} />;
@@ -48,14 +51,24 @@ export function EventDetailPage() {
   const cfg = typeConfig[event.type];
   const net = eventNetAmount(event);
 
-  const handleDelete = async () => {
-    if (!confirm(t('events.deleteConfirm'))) return;
+  const confirmDelete = async () => {
     await deleteEvent.mutateAsync(event.id);
     navigate('/events', { replace: true });
   };
 
   return (
     <div className="space-y-5">
+      <ConfirmModal
+        open={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title={t('common.delete')}
+        message={t('events.deleteConfirm')}
+        confirmLabel={t('common.delete')}
+        variant="danger"
+        loading={deleteEvent.isPending}
+      />
+
       <PageHeader
         title={t('events.detail')}
         back
@@ -69,8 +82,7 @@ export function EventDetailPage() {
             <Button
               variant="danger"
               size="sm"
-              onClick={handleDelete}
-              loading={deleteEvent.isPending}
+              onClick={() => setIsConfirmOpen(true)}
             >
               <Icon name="delete" className="text-base" />
             </Button>

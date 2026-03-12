@@ -152,6 +152,7 @@ const en = {
     ownDesc: 'Your bank accounts, wallets, credit cards',
     externalDesc: 'Shops, employers, services (expenses/income)',
     contactDesc: 'Friends/family — money owed or lent',
+    archiveConfirm: 'Archive "{{name}}"? This node will be hidden but historical data remains.',
   },
 
   // ─── Node Types ──────────────────────────────────────────────────────────

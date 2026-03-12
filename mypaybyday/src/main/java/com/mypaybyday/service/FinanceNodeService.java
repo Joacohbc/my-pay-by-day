@@ -29,13 +29,26 @@ public class FinanceNodeService {
     Messages messages;
 
     @Transactional
-    public PagedResponse<FinanceNodeDto> listAll(int page, int size) {
-        long totalElements = financeNodeRepository.count("archived", false);
-        List<FinanceNodeDto> content = financeNodeRepository.find("archived", false)
-                .page(Page.of(page, size))
-                .stream()
-                .map(FinanceNodeDto::from)
-                .toList();
+    public PagedResponse<FinanceNodeDto> listAll(int page, int size, Boolean archived) {
+        long totalElements;
+        List<FinanceNodeDto> content;
+
+        if (archived == null) {
+            totalElements = financeNodeRepository.count("archived", false);
+            content = financeNodeRepository.find("archived", false)
+                    .page(Page.of(page, size))
+                    .stream()
+                    .map(FinanceNodeDto::from)
+                    .toList();
+        } else {
+            totalElements = financeNodeRepository.count();
+            content = financeNodeRepository.findAll()
+                    .page(Page.of(page, size))
+                    .stream()
+                    .map(FinanceNodeDto::from)
+                    .toList();
+        }
+
         return PagedResponse.of(content, page, size, totalElements);
     }
 
@@ -49,8 +62,10 @@ public class FinanceNodeService {
     }
 
     /**
-     * Internal method used by other services that need a managed {@link FinanceNode} entity
-     * (e.g. {@link TransactionService} when resolving node references on line items).
+     * Internal method used by other services that need a managed
+     * {@link FinanceNode} entity
+     * (e.g. {@link TransactionService} when resolving node references on line
+     * items).
      */
     FinanceNode findNodeEntity(Long id) throws BusinessException {
         FinanceNode node = financeNodeRepository.findById(id);
@@ -91,6 +106,15 @@ public class FinanceNodeService {
     }
 
     @Transactional
+    public void unarchive(Long id) throws BusinessException {
+        FinanceNode node = financeNodeRepository.findById(id);
+        if (node == null) {
+            throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
+        }
+        node.archived = false;
+    }
+
+    @Transactional
     public void delete(Long id) throws BusinessException {
         FinanceNode node = financeNodeRepository.findById(id);
         if (node == null) {
@@ -112,7 +136,8 @@ public class FinanceNodeService {
 
         // Calculate balance on-the-fly summing all amounts for this node
         // In this logic, positive amounts add to balance, negative decrease.
-        // It depends on how transactions are registered (e.g. income is +, expense is - for OWN accounts).
+        // It depends on how transactions are registered (e.g. income is +, expense is -
+        // for OWN accounts).
         BigDecimal total = lineItemRepository.find("financeNode", node)
                 .stream()
                 .map(lineItem -> lineItem.amount)

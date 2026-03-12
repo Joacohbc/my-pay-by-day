@@ -5,6 +5,7 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Modal } from '@/components/ui/Modal';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
@@ -30,6 +31,7 @@ export function TagsPage() {
 
   const [editTarget, setEditTarget] = useState<Tag | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormValues>({
     defaultValues: { name: '', description: '' },
@@ -64,15 +66,30 @@ export function TagsPage() {
     setShowModal(false);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm(t('tags.deleteConfirm'))) return;
-    await deleteTag.mutateAsync(id);
+  const handleDelete = (id: number) => {
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (confirmDeleteId === null) return;
+    await deleteTag.mutateAsync(confirmDeleteId);
+    setConfirmDeleteId(null);
   };
 
   const isSubmitting = createTag.isPending || updateTag.isPending;
 
   return (
     <div className="space-y-4">
+      <ConfirmModal
+        open={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={confirmDelete}
+        title={t('common.delete')}
+        message={t('tags.deleteConfirm')}
+        confirmLabel={t('common.delete')}
+        loading={deleteTag.isPending}
+      />
+
       <PageHeader
         title={t('tags.title')}
         back

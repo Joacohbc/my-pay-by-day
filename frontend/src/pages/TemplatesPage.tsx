@@ -9,6 +9,7 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Modal } from '@/components/ui/Modal';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
@@ -74,6 +75,7 @@ export function TemplatesPage() {
 
   const [editTarget, setEditTarget] = useState<Template | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const activeNodes = nodes.filter((n) => !n.archived);
 
@@ -138,9 +140,14 @@ export function TemplatesPage() {
     setShowModal(false);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm(t('templates.deleteConfirm'))) return;
-    await deleteTemplate.mutateAsync(id);
+  const handleDelete = (id: number) => {
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (confirmDeleteId === null) return;
+    await deleteTemplate.mutateAsync(confirmDeleteId);
+    setConfirmDeleteId(null);
   };
 
   const isSubmitting = createTemplate.isPending || updateTemplate.isPending;
@@ -149,6 +156,16 @@ export function TemplatesPage() {
 
   return (
     <div className="space-y-4">
+      <ConfirmModal
+        open={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={confirmDelete}
+        title={t('common.delete')}
+        message={t('templates.deleteConfirm')}
+        confirmLabel={t('common.delete')}
+        loading={deleteTemplate.isPending}
+      />
+
       <PageHeader
         title={t('templates.title')}
         back

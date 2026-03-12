@@ -152,6 +152,7 @@ const es = {
     ownDesc: 'Tus cuentas bancarias, billeteras, tarjetas de crédito',
     externalDesc: 'Tiendas, empleadores, servicios (gastos/ingresos)',
     contactDesc: 'Amigos/familia — dinero prestado o adeudado',
+    archiveConfirm: '¿Archivar "{{name}}"? El nodo se ocultará pero los datos históricos se mantienen.',
   },
 
   // ─── Node Types ──────────────────────────────────────────────────────────
