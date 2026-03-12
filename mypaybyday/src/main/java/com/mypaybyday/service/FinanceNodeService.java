@@ -8,6 +8,7 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.LineItemRepository;
+import com.mypaybyday.repository.TemplateRepository;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -24,6 +25,9 @@ public class FinanceNodeService {
 
     @Inject
     LineItemRepository lineItemRepository;
+
+    @Inject
+    TemplateRepository templateRepository;
 
     @Inject
     Messages messages;
@@ -101,6 +105,12 @@ public class FinanceNodeService {
         if (node == null) {
             throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
         }
+
+        long templateCount = templateRepository.count("originNode = ?1 or destinationNode = ?1", node);
+        if (templateCount > 0) {
+            throw new BusinessException(messages.get(MsgKey.NODE_IN_TEMPLATE));
+        }
+
         // It's always allowed to archive, we just don't physically delete
         node.archived = true;
     }
@@ -120,6 +130,12 @@ public class FinanceNodeService {
         if (node == null) {
             throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
         }
+
+        long templateCount = templateRepository.count("originNode = ?1 or destinationNode = ?1", node);
+        if (templateCount > 0) {
+            throw new BusinessException(messages.get(MsgKey.NODE_IN_TEMPLATE));
+        }
+
         long txCount = lineItemRepository.count("financeNode", node);
         if (txCount > 0) {
             throw new BusinessException(messages.get(MsgKey.NODE_HAS_TRANSACTIONS));
