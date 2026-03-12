@@ -31,6 +31,7 @@ public enum MsgKey {
     NODE_NOT_FOUND_ARCHIVED_GENERIC("error.node.not_found_archived_generic"),
     NODE_HAS_TRANSACTIONS("error.node.has_transactions"),
     NODE_ARCHIVED_IN_USE("error.node.archived_in_use"),
+    NODE_IN_TEMPLATE("error.node.in_template"),
 
     // ── Template ──────────────────────────────────────────
     TEMPLATE_NOT_FOUND("error.template.not_found"),
