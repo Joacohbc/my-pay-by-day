@@ -10,11 +10,11 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import type { Subscription } from '@/models';
 
-function SubscriptionCard({ sub }: { sub: Subscription }) {
+function SubscriptionCard({ sub, onDelete }: { sub: Subscription; onDelete: (sub: Subscription) => void }) {
   const { t } = useTranslation();
-  const del = useDeleteSubscription();
   const nextDate = formatDateFromParts(sub.nextExecutionDate.slice(0, 10));
 
   return (
@@ -36,8 +36,7 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
         )}
       </div>
       <button
-        onClick={() => del.mutate(sub.id)}
-        disabled={del.isPending}
+        onClick={() => onDelete(sub)}
         className="shrink-0 p-2 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors disabled:opacity-50"
       >
         <Icon name="delete" className="text-lg" />
@@ -49,7 +48,16 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
 export function SubscriptionsPage() {
   const { t } = useTranslation();
   const { data: subs, isLoading, error } = useSubscriptions();
+  const deleteSub = useDeleteSubscription();
   const [showInfo, setShowInfo] = useState(false);
+  const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<Subscription | null>(null);
+
+  const handleConfirmDelete = async () => {
+    if (confirmDeleteTarget) {
+      await deleteSub.mutateAsync(confirmDeleteTarget.id);
+      setConfirmDeleteTarget(null);
+    }
+  };
 
   if (isLoading) return <FullPageSpinner />;
 
@@ -60,6 +68,16 @@ export function SubscriptionsPage() {
 
   return (
     <div className="space-y-4">
+      <ConfirmModal
+        open={confirmDeleteTarget !== null}
+        onClose={() => setConfirmDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title={t('common.delete')}
+        message={confirmDeleteTarget ? t('common.confirmDeleteNamed', { name: confirmDeleteTarget.name }) : ''}
+        confirmLabel={t('common.delete')}
+        loading={deleteSub.isPending}
+      />
+
       <PageHeader
         title={t('subscriptions.title')}
         subtitle={t('subscriptions.subtitle')}
@@ -108,14 +126,14 @@ export function SubscriptionsPage() {
           action={
             <Button size="sm" onClick={() => setShowInfo(true)}>
               <Icon name="add" className="text-sm" />
-                {t('subscriptions.addSubscription')}
+              {t('subscriptions.addSubscription')}
             </Button>
           }
         />
       ) : (
         <div className="px-5 space-y-3">
           {allSubs.map((sub) => (
-            <SubscriptionCard key={sub.id} sub={sub} />
+            <SubscriptionCard key={sub.id} sub={sub} onDelete={setConfirmDeleteTarget} />
           ))}
         </div>
       )}

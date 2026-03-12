@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Pagination } from '@/components/ui/Pagination';
 import type { FinanceNode, FinanceNodeType } from '@/models';
 import { useForm, Controller } from 'react-hook-form';
@@ -36,11 +37,14 @@ function NodeBalanceBadge({ nodeId }: { nodeId: number }) {
   );
 }
 
-function NodeActionMenu({ node, onEdit }: { node: FinanceNode; onEdit: (node: FinanceNode) => void }) {
+function NodeActionMenu({ node, onEdit, onArchive, onDelete }: {
+  node: FinanceNode;
+  onEdit: (node: FinanceNode) => void;
+  onArchive: (node: FinanceNode) => void;
+  onDelete: (node: FinanceNode) => void;
+}) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const archive = useArchiveNode();
-  const del = useDeleteNode();
 
   return (
     <div className="relative">
@@ -66,7 +70,7 @@ function NodeActionMenu({ node, onEdit }: { node: FinanceNode; onEdit: (node: Fi
             </button>
             {!node.archived && (
               <button
-                onClick={() => { archive.mutate(node.id); setOpen(false); }}
+                onClick={() => { onArchive(node); setOpen(false); }}
                 className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dn-text-main hover:bg-dn-surface-low transition-colors"
               >
                 <Icon name="archive" className="text-base" />
@@ -74,11 +78,11 @@ function NodeActionMenu({ node, onEdit }: { node: FinanceNode; onEdit: (node: Fi
               </button>
             )}
             <button
-              onClick={() => { del.mutate(node.id); setOpen(false); }}
+              onClick={() => { onDelete(node); setOpen(false); }}
               className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dn-error hover:bg-dn-error/10 transition-colors"
             >
               <Icon name="delete" className="text-base" />
-              Delete
+              {t('common.delete')}
             </button>
           </div>
         </>
@@ -93,9 +97,12 @@ export function NodesPage() {
   const { data: paged, isLoading, error } = useNodes(page);
   const createNode = useCreateNode();
   const updateNode = useUpdateNode();
+  const archiveNode = useArchiveNode();
+  const deleteNode = useDeleteNode();
   const [showModal, setShowModal] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [editingNode, setEditingNode] = useState<FinanceNode | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ node: FinanceNode; type: 'archive' | 'delete' } | null>(null);
 
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<NodeFormValues>({
     defaultValues: { name: '', type: 'OWN' },
@@ -144,8 +151,35 @@ export function NodesPage() {
     { value: 'CONTACT', label: t('nodes.contactType') },
   ];
 
+  const handleConfirmAction = async () => {
+    if (!confirmAction) return;
+    const { node, type } = confirmAction;
+    if (type === 'archive') {
+      await archiveNode.mutateAsync(node.id);
+    } else {
+      await deleteNode.mutateAsync(node.id);
+    }
+    setConfirmAction(null);
+  };
+
   return (
     <div className="space-y-4">
+      <ConfirmModal
+        open={confirmAction !== null}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={handleConfirmAction}
+        title={confirmAction?.type === 'archive' ? t('common.archive') : t('common.delete')}
+        message={
+          confirmAction?.type === 'archive'
+            ? t('nodes.archiveConfirm', { name: confirmAction.node.name })
+            : confirmAction?.node
+            ? t('common.confirmDeleteNamed', { name: confirmAction.node.name })
+            : ''
+        }
+        confirmLabel={confirmAction?.type === 'archive' ? t('common.archive') : t('common.delete')}
+        loading={confirmAction?.type === 'archive' ? archiveNode.isPending : deleteNode.isPending}
+      />
+
       <PageHeader
         title={t('nodes.title')}
         subtitle={t('nodes.activeCount', { count: paged?.totalElements ?? 0 })}
@@ -208,7 +242,12 @@ export function NodesPage() {
                   actions={
                     <div className="flex items-center gap-2">
                       <NodeBalanceBadge nodeId={node.id} />
-                      <NodeActionMenu node={node} onEdit={openEditModal} />
+                      <NodeActionMenu
+                        node={node}
+                        onEdit={openEditModal}
+                        onArchive={(n) => setConfirmAction({ node: n, type: 'archive' })}
+                        onDelete={(n) => setConfirmAction({ node: n, type: 'delete' })}
+                      />
                     </div>
                   }
                 />
