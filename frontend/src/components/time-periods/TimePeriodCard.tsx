@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTimePeriodBalance } from '@/hooks/useTimePeriods';
 import { useDefaultTimePeriod } from '@/hooks/useDefaultTimePeriod';
-import { formatDateFromParts, formatCurrency, formatCurrencyShort } from '@/lib/format';
+import { formatDateFromParts, formatCurrencyShort } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
@@ -57,7 +57,6 @@ export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardP
             <div className="flex items-center gap-2 flex-wrap min-w-0">
               <p className="text-base font-semibold text-dn-text-main truncate">{tp.name}</p>
               {isDefault && <Badge variant="indigo">{t('nav.home')}</Badge>}
-              {tp.category && <Badge variant="gray">{tp.category.name}</Badge>}
             </div>
             {/* Star */}
             <button
@@ -98,13 +97,11 @@ export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardP
           )}
 
           {/* Budget / savings */}
-          {(tp.budgetedAmount != null || tp.savingsPercentageGoal != null) && (
-            <div className="flex items-center gap-4 mt-1.5 flex-wrap">
-              {tp.budgetedAmount != null && (
+          {((tp.budgets && tp.budgets.length > 0) || tp.savingsPercentageGoal != null) && (
+            <div className="flex flex-col gap-1 mt-1.5">
+              {tp.budgets && tp.budgets.length > 0 && (
                 <p className="text-xs text-dn-text-muted">
-                  {t('periods.budgetLabel')}: <span className="text-dn-text-main">
-                    {formatCurrency(tp.budgetedAmount)}
-                  </span>
+                  {t('periods.budgetsCount', { count: tp.budgets.length })}
                 </p>
               )}
               {tp.savingsPercentageGoal != null && (

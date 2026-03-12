@@ -2,6 +2,7 @@ package com.mypaybyday.resource;
 
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TimePeriodBalanceDto;
+import com.mypaybyday.dto.DynamicTimePeriodBalanceDto;
 import com.mypaybyday.dto.TimePeriodDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TimePeriodService;
@@ -64,6 +65,22 @@ public class TimePeriodResource {
             @Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id)
             throws BusinessException {
         return Response.ok(timePeriodService.getBalance(id)).build();
+    }
+
+    @GET
+    @Path("/dynamic-balance")
+    @Operation(summary = "Get balance summary for a custom date range",
+            description = "Returns the total income, outbound amounts, and the list of Events dynamically associated to the provided date range.")
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "Balance summary",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = DynamicTimePeriodBalanceDto.class))),
+            @APIResponse(responseCode = "400", description = "Validation error")
+    })
+    public Response getDynamicBalance(
+            @Parameter(description = "Start date (YYYY-MM-DD)", required = true) @QueryParam("startDate") java.time.LocalDate startDate,
+            @Parameter(description = "End date (YYYY-MM-DD)", required = true) @QueryParam("endDate") java.time.LocalDate endDate)
+            throws BusinessException {
+        return Response.ok(timePeriodService.getDynamicBalance(startDate, endDate)).build();
     }
 
     @POST

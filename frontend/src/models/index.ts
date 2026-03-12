@@ -145,21 +145,38 @@ export type CreateSubscriptionDto = Omit<Subscription, 'id' | 'template'> & {
 
 // ─── TimePeriod ───────────────────────────────────────────────────────────────
 
+export interface TimePeriodBudgetDto extends Identifiable {
+  category?: Category;
+  budgetedAmount: number;
+}
+
+export interface CategoryBudgetSummaryDto {
+  category: Category;
+  budgetedAmount: number;
+  spentAmount: number;
+}
+
 export interface TimePeriod extends Identifiable {
   name: string;
   startDate: string;
   endDate: string;
-  category?: Category;
-  budgetedAmount?: number;
+  budgets?: TimePeriodBudgetDto[];
   savingsPercentageGoal?: number;
 }
 
-export type CreateTimePeriodDto = Omit<TimePeriod, 'id' | 'category'> & {
-  category?: { id: number };
-};
+export type CreateTimePeriodDto = Omit<TimePeriod, 'id'>;
 
 export interface TimePeriodBalance {
   timePeriod: TimePeriod;
+  income: number;
+  outbound: number;
+  categoryBudgets: CategoryBudgetSummaryDto[];
+  events: FinanceEvent[];
+}
+
+export interface DynamicTimePeriodBalance {
+  startDate: string;
+  endDate: string;
   income: number;
   outbound: number;
   events: FinanceEvent[];

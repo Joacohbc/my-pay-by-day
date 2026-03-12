@@ -4,6 +4,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDefaultTimePeriod } from '@/hooks/useDefaultTimePeriod';
 import { useTimePeriods } from '@/hooks/useTimePeriods';
 import { TimePeriodDashboard } from '@/components/time-periods/TimePeriodDashboard';
+import { DynamicTimePeriodDashboard } from '@/components/time-periods/DynamicTimePeriodDashboard';
+import { DynamicTimePeriodSelector, type DynamicPeriodOption } from '@/components/time-periods/DynamicTimePeriodSelector';
+import { getDynamicPeriodDates } from '@/lib/dateUtils';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -17,6 +20,7 @@ export function DashboardPage() {
   const { data: periods, isLoading } = useTimePeriods();
   const navigate = useNavigate();
   const [showPicker, setShowPicker] = useState(false);
+  const [dynamicPeriod, setDynamicPeriod] = useState<DynamicPeriodOption | null>(null);
 
   const handlePickTemplate = (template: Template | null) => {
     setShowPicker(false);
@@ -34,13 +38,47 @@ export function DashboardPage() {
   if (isLoading) return <FullPageSpinner />;
 
   // Default period is set — show its dashboard
-  if (defaultId !== null) {
+  if (defaultId !== null && dynamicPeriod === null) {
     return (
       <>
+        <div className="px-5 pt-4">
+          <DynamicTimePeriodSelector
+            value={'CUSTOM' as any} // Or just manage a local state that defaults to the saved custom period
+            onChange={(val) => setDynamicPeriod(val)}
+          />
+        </div>
         <TimePeriodDashboard
           timePeriodId={defaultId}
           showGreeting
           onChangePeriod={() => navigate('/periods')}
+          onNewEvent={() => setShowPicker(true)}
+        />
+        <TemplatePickerModal open={showPicker} onSelect={handlePickTemplate} onClose={() => setShowPicker(false)} />
+      </>
+    );
+  }
+
+  if (dynamicPeriod !== null) {
+    const dates = getDynamicPeriodDates(dynamicPeriod);
+    return (
+      <>
+        <div className="px-5 pt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <button
+              className="text-xs text-dn-primary flex items-center gap-1"
+              onClick={() => setDynamicPeriod(null)}
+            >
+              <Icon name="arrow_back" className="text-sm" /> {defaultId !== null ? t('periods.backToDefault', 'Back to Default') : t('common.back', 'Back')}
+            </button>
+          </div>
+          <DynamicTimePeriodSelector
+            value={dynamicPeriod}
+            onChange={(val) => setDynamicPeriod(val)}
+          />
+        </div>
+        <DynamicTimePeriodDashboard
+          startDate={dates.startDate}
+          endDate={dates.endDate}
           onNewEvent={() => setShowPicker(true)}
         />
         <TemplatePickerModal open={showPicker} onSelect={handlePickTemplate} onClose={() => setShowPicker(false)} />
@@ -57,6 +95,13 @@ export function DashboardPage() {
       <div>
         <p className="text-sm text-dn-text-muted">{greeting}</p>
         <h1 className="text-2xl font-semibold text-dn-text-main tracking-tight">{t('dashboard.myFinances')}</h1>
+      </div>
+
+      <div>
+        <DynamicTimePeriodSelector
+          value={dynamicPeriod as any}
+          onChange={(val) => setDynamicPeriod(val)}
+        />
       </div>
 
       <Card>

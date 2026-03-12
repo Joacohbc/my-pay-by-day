@@ -25,10 +25,12 @@ public record TimePeriodBalanceDto(
 		TimePeriodDto timePeriod,
 		BigDecimal income,
 		BigDecimal outbound,
+		List<CategoryBudgetSummaryDto> categoryBudgets,
 		List<FinanceEventDto> events) {
 
 	public TimePeriodBalanceDto(TimePeriod tp, BigDecimal income, BigDecimal outbound,
+			List<CategoryBudgetSummaryDto> categoryBudgets,
 			List<FinanceEventDto> events) {
-		this(TimePeriodDto.from(tp), income, outbound, events);
+		this(TimePeriodDto.from(tp), income, outbound, categoryBudgets, events);
 	}
 }

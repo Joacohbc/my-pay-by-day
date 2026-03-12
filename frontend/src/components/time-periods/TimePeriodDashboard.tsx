@@ -44,11 +44,6 @@ export function TimePeriodDashboard({
   const greeting =
     now.getHours() < 12 ? t('greeting.morning') : now.getHours() < 18 ? t('greeting.afternoon') : t('greeting.evening');
 
-  const budgetUsedPct =
-    timePeriod.budgetedAmount && timePeriod.budgetedAmount > 0
-      ? Math.min(100, Math.round((outbound / timePeriod.budgetedAmount) * 100))
-      : null;
-
   return (
     <div className="space-y-6 px-5 pt-6">
       {/* Header */}
@@ -109,24 +104,38 @@ export function TimePeriodDashboard({
         </Card>
       </div>
 
-      {/* Budget progress */}
-      {timePeriod.budgetedAmount != null && (
-        <Card>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-dn-text-muted uppercase tracking-wider">{t('periods.budget')}</p>
-            <p className="text-xs text-dn-text-muted">
-              {formatCurrency(outbound)} / {formatCurrency(timePeriod.budgetedAmount)}
-            </p>
-          </div>
-          <div className="h-2 rounded-full bg-dn-surface-low overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${
-                (budgetUsedPct ?? 0) >= 100 ? 'bg-dn-error' : (budgetUsedPct ?? 0) >= 80 ? 'bg-dn-warning' : 'bg-dn-success'
-              }`}
-              style={{ width: `${budgetUsedPct ?? 0}%` }}
-            />
-          </div>
-          <p className="text-xs text-dn-text-muted mt-1">{t('periods.budgetUsed', { pct: budgetUsedPct })}</p>
+      {/* Budget progress list */}
+      {balance.categoryBudgets && balance.categoryBudgets.length > 0 && (
+        <Card className="space-y-4">
+          <p className="text-xs text-dn-text-muted uppercase tracking-wider mb-2">{t('periods.budgetsTitle', 'Budgets')}</p>
+          {balance.categoryBudgets.map((b) => {
+            const usedPct = b.budgetedAmount > 0 ? Math.min(100, Math.round((b.spentAmount / b.budgetedAmount) * 100)) : 0;
+            const isOver = b.spentAmount > b.budgetedAmount;
+            const isWarning = usedPct >= 80 && !isOver;
+            const statusIcon = isOver ? 'cancel' : isWarning ? 'warning' : 'check_circle';
+            const statusColor = isOver ? 'text-dn-error' : isWarning ? 'text-dn-warning' : 'text-dn-success';
+            const barColor = isOver ? 'bg-dn-error' : isWarning ? 'bg-dn-warning' : 'bg-dn-success';
+
+            return (
+              <div key={b.category.id} className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Icon name={statusIcon} className={`text-[16px] ${statusColor}`} />
+                    <p className="text-sm font-medium text-dn-text-main">{b.category.name}</p>
+                  </div>
+                  <p className="text-xs text-dn-text-muted">
+                    {formatCurrency(b.spentAmount)} / {formatCurrency(b.budgetedAmount)}
+                  </p>
+                </div>
+                <div className="h-1.5 rounded-full bg-dn-surface-low overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${barColor}`}
+                    style={{ width: `${usedPct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </Card>
       )}
 
