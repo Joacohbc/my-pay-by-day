@@ -43,9 +43,17 @@ public class TimePeriod extends BaseEntity {
     public BigDecimal savingsPercentageGoal;
     @Override
     public String toRagContent() {
-        return String.format("The time period '%s' spans from %s to %s. It targets the category '%s' with a budgeted amount of %s.",
-                name, startDate, endDate, 
-                category != null ? category.name : "All",
-                budgetedAmount != null ? budgetedAmount : "zero (no budget set)");
+        String budgetsInfo = "no specific category budgets set";
+        if (budgets != null && !budgets.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            for (TimePeriodBudget b : budgets) {
+                sb.append(String.format("category '%s' has budget %s, ",
+                        b.category != null ? b.category.name : "unknown",
+                        b.budgetedAmount));
+            }
+            budgetsInfo = "with " + sb.toString();
+        }
+        return String.format("The time period '%s' spans from %s to %s. It is configured %s.",
+                name, startDate, endDate, budgetsInfo);
     }
 }

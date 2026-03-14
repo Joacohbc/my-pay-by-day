@@ -34,4 +34,12 @@ public class TimePeriodBudget extends BaseEntity {
 
     @NotNull
     public BigDecimal budgetedAmount;
+
+    @Override
+    public String toRagContent() {
+        return String.format("A budget of %s is set for category '%s' in time period '%s'.",
+                budgetedAmount,
+                category != null ? category.name : "unknown",
+                timePeriod != null ? timePeriod.name : "unknown");
+    }
 }
