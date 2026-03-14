@@ -104,6 +104,11 @@ export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardP
                   {t('periods.budgetsCount', { count: tp.budgets.length })}
                 </p>
               )}
+              {tp.budgetLimit != null && (
+                <p className="text-xs text-dn-text-muted">
+                  {t('periods.budgetLabel')}: <span className="text-dn-text-main">{formatCurrencyShort(tp.budgetLimit)}</span>
+                </p>
+              )}
               {tp.savingsPercentageGoal != null && (
                 <p className="text-xs text-dn-text-muted">
                   {t('periods.savingsLabel')}: <span className="text-dn-text-main">{tp.savingsPercentageGoal}%</span>

@@ -139,6 +139,39 @@ export function TimePeriodDashboard({
         </Card>
       )}
 
+      {/* Global Budget Goal */}
+      {timePeriod.budgetLimit != null && (
+        <Card>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-warning/10 text-dn-warning shrink-0">
+              <Icon name="account_balance_wallet" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-dn-text-muted uppercase tracking-wider">{t('periods.budgetLabel')}</p>
+                <p className="text-xs text-dn-text-muted">
+                  {formatCurrency(outbound)} / {formatCurrency(timePeriod.budgetLimit)}
+                </p>
+              </div>
+              <div className="h-2 rounded-full bg-dn-surface-low overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    outbound > timePeriod.budgetLimit ? 'bg-dn-error' : 'bg-dn-warning'
+                  }`}
+                  style={{ width: `${Math.min(100, (outbound / timePeriod.budgetLimit) * 100)}%` }}
+                />
+              </div>
+              {outbound > timePeriod.budgetLimit && (
+                <p className="text-[10px] text-dn-error mt-1 flex items-center gap-1">
+                  <Icon name="warning" className="text-[12px]" />
+                  {t('periods.budgetUsed', { pct: Math.round((outbound / timePeriod.budgetLimit) * 100) })}
+                </p>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Savings goal */}
       {timePeriod.savingsPercentageGoal != null && income > 0 && (
         <Card>

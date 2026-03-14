@@ -1,6 +1,5 @@
 package com.mypaybyday.entity;
 
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.FetchType;
@@ -41,19 +40,27 @@ public class TimePeriod extends BaseEntity {
     public List<TimePeriodBudget> budgets = new ArrayList<>();
 
     public BigDecimal savingsPercentageGoal;
+
+    public BigDecimal budgetLimit;
+
     @Override
     public String toRagContent() {
-        String budgetsInfo = "no specific category budgets set";
-        if (budgets != null && !budgets.isEmpty()) {
-            StringBuilder sb = new StringBuilder();
-            for (TimePeriodBudget b : budgets) {
-                sb.append(String.format("category '%s' has budget %s, ",
-                        b.category != null ? b.category.name : "unknown",
-                        b.budgetedAmount));
-            }
-            budgetsInfo = "with " + sb.toString();
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("The time period '%s' spans from %s to %s.", name, startDate, endDate));
+        if (budgetLimit != null) {
+            sb.append(String.format(" It has a global budget limit of %s.", budgetLimit));
         }
-        return String.format("The time period '%s' spans from %s to %s. It is configured %s.",
-                name, startDate, endDate, budgetsInfo);
+        if (budgets != null && !budgets.isEmpty()) {
+            sb.append(" It has the following budgets: ");
+            for (TimePeriodBudget budget : budgets) {
+                sb.append(String.format(" %s: %s,", budget.category != null ? budget.category.name : "Unknown",
+                        budget.budgetedAmount));
+            }
+            sb.setLength(sb.length() - 1); // remove last comma
+            sb.append(".");
+        } else {
+            sb.append(" It has no budgets defined.");
+        }
+        return sb.toString();
     }
 }

@@ -31,6 +31,7 @@ interface FormValues {
   endDate: string;
   budgets: { categoryId: string; budgetedAmount: string }[];
   savingsPercentageGoal: string;
+  budgetLimit: string;
 }
 
 type FilterTab = 'all' | 'active' | 'past' | 'future';
@@ -79,7 +80,7 @@ export function TimePeriodsPage() {
     control,
     formState: { errors },
   } = useForm<FormValues>({
-    defaultValues: { name: '', startDate: '', endDate: '', budgets: [], savingsPercentageGoal: '' },
+    defaultValues: { name: '', startDate: '', endDate: '', budgets: [], savingsPercentageGoal: '', budgetLimit: '' },
   });
 
   const { fields: budgetFields, append: appendBudget, remove: removeBudget } = useFieldArray({
@@ -119,7 +120,7 @@ export function TimePeriodsPage() {
 
   const openCreate = () => {
     setEditTarget(null);
-    reset({ name: '', startDate: '', endDate: '', budgets: [], savingsPercentageGoal: '' });
+    reset({ name: '', startDate: '', endDate: '', budgets: [], savingsPercentageGoal: '', budgetLimit: '' });
     setShowModal(true);
   };
 
@@ -133,6 +134,7 @@ export function TimePeriodsPage() {
       budgetedAmount: String(b.budgetedAmount)
     })) || []);
     setValue('savingsPercentageGoal', tp.savingsPercentageGoal != null ? String(tp.savingsPercentageGoal) : '');
+    setValue('budgetLimit', tp.budgetLimit != null ? String(tp.budgetLimit) : '');
     setShowModal(true);
   };
 
@@ -147,6 +149,9 @@ export function TimePeriodsPage() {
       })),
       savingsPercentageGoal: values.savingsPercentageGoal
         ? parseFloat(values.savingsPercentageGoal)
+        : undefined,
+      budgetLimit: values.budgetLimit
+        ? parseFloat(values.budgetLimit)
         : undefined,
     };
     if (editTarget) {
@@ -416,6 +421,15 @@ export function TimePeriodsPage() {
             max="100"
             step="1"
             {...register('savingsPercentageGoal')}
+          />
+
+          <Input
+            label={t('periods.budgetLimit')}
+            type="number"
+            placeholder={t('periods.budgetLimitPlaceholder')}
+            min="0"
+            step="0.01"
+            {...register('budgetLimit')}
           />
         </form>
       </Modal>

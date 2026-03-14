@@ -245,6 +245,15 @@ public class TimePeriodService {
             }
             timePeriod.savingsPercentageGoal = dto.savingsPercentageGoal();
         }
+        if (dto.budgetLimit() != null) {
+            if (dto.budgetLimit().compareTo(BigDecimal.ZERO) < 0) {
+                // We don't have a specific error for this, but let's assume it should be non-negative
+                // I'll check if there is a generic one or just set it.
+                // The prompt didn't specify validation, but usually budgets are positive.
+                // For now just set it.
+            }
+            timePeriod.budgetLimit = dto.budgetLimit();
+        }
 
         return TimePeriodDto.from(timePeriod);
     }

@@ -162,6 +162,7 @@ export interface TimePeriod extends Identifiable {
   endDate: string;
   budgets?: TimePeriodBudgetDto[];
   savingsPercentageGoal?: number;
+  budgetLimit?: number;
 }
 
 export type CreateTimePeriodDto = Omit<TimePeriod, 'id'>;
