@@ -32,6 +32,10 @@ function withLang(path: string): string {
 let configTimezone: string | null = null;
 let configFetchPromise: Promise<string | null> | null = null;
 
+export function getConfigTimezone(): string | undefined {
+  return configTimezone || undefined;
+}
+
 async function fetchConfigTimezone(): Promise<string | null> {
   if (configTimezone !== null) {
     return configTimezone;
@@ -49,6 +53,7 @@ async function fetchConfigTimezone(): Promise<string | null> {
       })
       .catch((err) => {
         console.error('Error fetching config:', err);
+        configFetchPromise = null;
         return null;
       });
   }

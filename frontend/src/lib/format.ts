@@ -1,5 +1,6 @@
 import i18n from '@/i18n';
 import type { FinanceEvent } from '@/models';
+import { getConfigTimezone } from '@/services/api';
 
 const LOCALE_MAP: Record<string, string> = {
   en: 'en-US',
@@ -87,15 +88,20 @@ export function formatDate(isoString: string): string {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
+    timeZone: getConfigTimezone(),
   }).format(new Date(isoString));
 }
 
 export function formatDateFromParts(dateOnly: string): string {
+  // A date-only string like "YYYY-MM-DD" inherently belongs to no timezone.
+  // Instead of shifting it using a timezone formatter, we simply parse and output it manually
+  // or use UTC to ensure it isn't shifted by the user's local browser timezone.
   return new Intl.DateTimeFormat(locale(), {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date(dateOnly + 'T00:00:00'));
+    timeZone: 'UTC',
+  }).format(new Date(dateOnly + 'T00:00:00Z'));
 }
 
 export function formatDateTime(isoString: string): string {
@@ -105,6 +111,7 @@ export function formatDateTime(isoString: string): string {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: getConfigTimezone(),
   }).format(new Date(isoString));
 }
 
