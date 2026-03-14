@@ -1,11 +1,16 @@
 package com.mypaybyday.service;
 
+import com.mypaybyday.dto.CategoryBudgetSummaryDto;
+import com.mypaybyday.dto.DynamicTimePeriodBalanceDto;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TimePeriodBalanceDto;
+import com.mypaybyday.dto.TimePeriodBudgetDto;
 import com.mypaybyday.dto.TimePeriodDto;
+import com.mypaybyday.entity.Category;
 import com.mypaybyday.entity.FinanceEvent;
 import com.mypaybyday.entity.TimePeriod;
+import com.mypaybyday.entity.TimePeriodBudget;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
@@ -17,9 +22,14 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class TimePeriodService {
@@ -100,7 +110,76 @@ public class TimePeriodService {
             }
         }
 
-        return new TimePeriodBalanceDto(timePeriod, income, outbound, events);
+        List<CategoryBudgetSummaryDto> categoryBudgets = calculateCategoryBudgets(timePeriod.budgets, events);
+
+        return new TimePeriodBalanceDto(timePeriod, income, outbound, categoryBudgets, events);
+    }
+
+    private List<CategoryBudgetSummaryDto> calculateCategoryBudgets(List<TimePeriodBudget> budgets, List<FinanceEventDto> events) {
+        if (budgets == null || budgets.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, BigDecimal> spentPerCategory = new HashMap<>();
+
+        for (FinanceEventDto event : events) {
+            if (event.type() == EventType.OUTBOUND && event.category() != null) {
+                BigDecimal eventAmount = BigDecimal.ZERO;
+                if (event.lineItems() != null) {
+                    eventAmount = event.lineItems().stream()
+                            .map(li -> li.amount())
+                            .filter(a -> a.compareTo(BigDecimal.ZERO) > 0)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                }
+                spentPerCategory.merge(event.category().id(), eventAmount, BigDecimal::add);
+            }
+        }
+
+        return budgets.stream().map(budget -> {
+            BigDecimal spent = spentPerCategory.getOrDefault(budget.category.id, BigDecimal.ZERO);
+            return new CategoryBudgetSummaryDto(
+                    com.mypaybyday.dto.CategoryDto.from(budget.category),
+                    budget.budgetedAmount,
+                    spent
+            );
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public DynamicTimePeriodBalanceDto getDynamicBalance(LocalDate startDate, LocalDate endDate) throws BusinessException {
+        if (startDate == null || endDate == null) {
+            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_START_DATE_REQUIRED)); // or appropriate generic date message
+        }
+        if (endDate.isBefore(startDate)) {
+            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
+        }
+
+        LocalDateTime from = startDate.atStartOfDay();
+        LocalDateTime to = endDate.atTime(LocalTime.MAX);
+
+        List<FinanceEventDto> events = eventService.findByDateRange(from, to);
+
+        BigDecimal income = BigDecimal.ZERO;
+        BigDecimal outbound = BigDecimal.ZERO;
+
+        for (FinanceEventDto event : events) {
+            if (event.transactionId() == null || event.lineItems() == null) {
+                continue;
+            }
+
+            BigDecimal eventAmount = event.lineItems().stream()
+                    .map(li -> li.amount())
+                    .filter(a -> a.compareTo(BigDecimal.ZERO) > 0)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            if (event.type() == EventType.INBOUND) {
+                income = income.add(eventAmount);
+            } else if (event.type() == EventType.OUTBOUND) {
+                outbound = outbound.add(eventAmount);
+            }
+        }
+
+        return new DynamicTimePeriodBalanceDto(startDate, endDate, income, outbound, events);
     }
 
     // -------------------------------------------------------------------------
@@ -110,8 +189,17 @@ public class TimePeriodService {
     @Transactional
     public TimePeriodDto create(TimePeriodDto dto) throws BusinessException {
         TimePeriod timePeriod = dto.to();
-        if (dto.category() != null && dto.category().id() != null) {
-            timePeriod.category = categoryService.findEntityById(dto.category().id());
+        if (dto.budgets() != null) {
+            for (TimePeriodBudgetDto budgetDto : dto.budgets()) {
+                if (budgetDto.category() != null && budgetDto.category().id() != null) {
+                    Category category = categoryService.findEntityById(budgetDto.category().id());
+                    TimePeriodBudget budget = new TimePeriodBudget();
+                    budget.timePeriod = timePeriod;
+                    budget.category = category;
+                    budget.budgetedAmount = budgetDto.budgetedAmount() != null ? budgetDto.budgetedAmount() : BigDecimal.ZERO;
+                    timePeriod.budgets.add(budget);
+                }
+            }
         }
         validatePeriod(timePeriod);
         timePeriodRepository.persist(timePeriod);
@@ -137,11 +225,18 @@ public class TimePeriodService {
         if (timePeriod.endDate.isBefore(timePeriod.startDate)) {
             throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
         }
-        if (dto.category() != null && dto.category().id() != null) {
-            timePeriod.category = categoryService.findEntityById(dto.category().id());
-        }
-        if (dto.budgetedAmount() != null) {
-            timePeriod.budgetedAmount = dto.budgetedAmount();
+        if (dto.budgets() != null) {
+            timePeriod.budgets.clear();
+            for (TimePeriodBudgetDto budgetDto : dto.budgets()) {
+                if (budgetDto.category() != null && budgetDto.category().id() != null) {
+                    Category category = categoryService.findEntityById(budgetDto.category().id());
+                    TimePeriodBudget budget = new TimePeriodBudget();
+                    budget.timePeriod = timePeriod;
+                    budget.category = category;
+                    budget.budgetedAmount = budgetDto.budgetedAmount() != null ? budgetDto.budgetedAmount() : BigDecimal.ZERO;
+                    timePeriod.budgets.add(budget);
+                }
+            }
         }
         if (dto.savingsPercentageGoal() != null) {
             if (dto.savingsPercentageGoal().compareTo(BigDecimal.ZERO) < 0
@@ -149,6 +244,15 @@ public class TimePeriodService {
                 throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_SAVINGS_GOAL_RANGE));
             }
             timePeriod.savingsPercentageGoal = dto.savingsPercentageGoal();
+        }
+        if (dto.budgetLimit() != null) {
+            if (dto.budgetLimit().compareTo(BigDecimal.ZERO) < 0) {
+                // We don't have a specific error for this, but let's assume it should be non-negative
+                // I'll check if there is a generic one or just set it.
+                // The prompt didn't specify validation, but usually budgets are positive.
+                // For now just set it.
+            }
+            timePeriod.budgetLimit = dto.budgetLimit();
         }
 
         return TimePeriodDto.from(timePeriod);

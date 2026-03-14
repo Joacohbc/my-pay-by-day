@@ -1,15 +1,16 @@
 package com.mypaybyday.entity;
 
-
 import jakarta.persistence.Entity;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -34,18 +35,32 @@ public class TimePeriod extends BaseEntity {
     @NotNull
     public LocalDate endDate;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "category_id")
-    public Category category;
-
-    public BigDecimal budgetedAmount;
+    @OneToMany(mappedBy = "timePeriod", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @Builder.Default
+    public List<TimePeriodBudget> budgets = new ArrayList<>();
 
     public BigDecimal savingsPercentageGoal;
+
+    public BigDecimal budgetLimit;
+
     @Override
     public String toRagContent() {
-        return String.format("The time period '%s' spans from %s to %s. It targets the category '%s' with a budgeted amount of %s.",
-                name, startDate, endDate, 
-                category != null ? category.name : "All",
-                budgetedAmount != null ? budgetedAmount : "zero (no budget set)");
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("The time period '%s' spans from %s to %s.", name, startDate, endDate));
+        if (budgetLimit != null) {
+            sb.append(String.format(" It has a global budget limit of %s.", budgetLimit));
+        }
+        if (budgets != null && !budgets.isEmpty()) {
+            sb.append(" It has the following budgets: ");
+            for (TimePeriodBudget budget : budgets) {
+                sb.append(String.format(" %s: %s,", budget.category != null ? budget.category.name : "Unknown",
+                        budget.budgetedAmount));
+            }
+            sb.setLength(sb.length() - 1); // remove last comma
+            sb.append(".");
+        } else {
+            sb.append(" It has no budgets defined.");
+        }
+        return sb.toString();
     }
 }

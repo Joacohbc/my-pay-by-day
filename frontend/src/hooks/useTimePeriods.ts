@@ -21,6 +21,14 @@ export function useTimePeriodBalance(id: number | null) {
   });
 }
 
+export function useDynamicTimePeriodBalance(startDate: string | null, endDate: string | null) {
+  return useQuery({
+    queryKey: [...TIME_PERIODS_KEY, 'dynamic', startDate, endDate] as const,
+    queryFn: () => timePeriodsService.getDynamicBalance(startDate!, endDate!),
+    enabled: startDate !== null && endDate !== null,
+  });
+}
+
 export function useCreateTimePeriod() {
   const qc = useQueryClient();
   const alert = useAlert();

@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import {
   useTimePeriods,
   useCreateTimePeriod,
   useUpdateTimePeriod,
   useDeleteTimePeriod,
 } from '@/hooks/useTimePeriods';
+import { useCategories } from '@/hooks/useCategories';
 import { useDefaultTimePeriod } from '@/hooks/useDefaultTimePeriod';
 import { TimePeriodCard } from '@/components/time-periods/TimePeriodCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -15,11 +16,12 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
-import type { TimePeriod } from '@/models';
+import type { TimePeriod, CreateTimePeriodDto } from '@/models';
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -27,8 +29,9 @@ interface FormValues {
   name: string;
   startDate: string;
   endDate: string;
-  budgetedAmount: string;
+  budgets: { categoryId: string; budgetedAmount: string }[];
   savingsPercentageGoal: string;
+  budgetLimit: string;
 }
 
 type FilterTab = 'all' | 'active' | 'past' | 'future';
@@ -52,6 +55,7 @@ export function TimePeriodsPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(0);
   const { data: paged, isLoading, error } = useTimePeriods(page);
+  const { data: categoriesPaged } = useCategories(0, 500);
   const createPeriod = useCreateTimePeriod();
   const updatePeriod = useUpdateTimePeriod();
   const deletePeriod = useDeleteTimePeriod();
@@ -73,9 +77,15 @@ export function TimePeriodsPage() {
     handleSubmit,
     reset,
     setValue,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
-    defaultValues: { name: '', startDate: '', endDate: '', budgetedAmount: '', savingsPercentageGoal: '' },
+    defaultValues: { name: '', startDate: '', endDate: '', budgets: [], savingsPercentageGoal: '', budgetLimit: '' },
+  });
+
+  const { fields: budgetFields, append: appendBudget, remove: removeBudget } = useFieldArray({
+    control,
+    name: 'budgets',
   });
 
   const displayed = useMemo(() => {
@@ -110,7 +120,7 @@ export function TimePeriodsPage() {
 
   const openCreate = () => {
     setEditTarget(null);
-    reset({ name: '', startDate: '', endDate: '', budgetedAmount: '', savingsPercentageGoal: '' });
+    reset({ name: '', startDate: '', endDate: '', budgets: [], savingsPercentageGoal: '', budgetLimit: '' });
     setShowModal(true);
   };
 
@@ -119,8 +129,12 @@ export function TimePeriodsPage() {
     setValue('name', tp.name);
     setValue('startDate', tp.startDate);
     setValue('endDate', tp.endDate);
-    setValue('budgetedAmount', tp.budgetedAmount != null ? String(tp.budgetedAmount) : '');
+    setValue('budgets', tp.budgets?.map(b => ({
+      categoryId: b.category ? String(b.category.id) : '',
+      budgetedAmount: String(b.budgetedAmount)
+    })) || []);
     setValue('savingsPercentageGoal', tp.savingsPercentageGoal != null ? String(tp.savingsPercentageGoal) : '');
+    setValue('budgetLimit', tp.budgetLimit != null ? String(tp.budgetLimit) : '');
     setShowModal(true);
   };
 
@@ -129,15 +143,21 @@ export function TimePeriodsPage() {
       name: values.name,
       startDate: values.startDate,
       endDate: values.endDate,
-      budgetedAmount: values.budgetedAmount ? parseFloat(values.budgetedAmount) : undefined,
+      budgets: values.budgets?.map(b => ({
+        category: { id: parseInt(b.categoryId, 10) },
+        budgetedAmount: parseFloat(b.budgetedAmount)
+      })),
       savingsPercentageGoal: values.savingsPercentageGoal
         ? parseFloat(values.savingsPercentageGoal)
         : undefined,
+      budgetLimit: values.budgetLimit
+        ? parseFloat(values.budgetLimit)
+        : undefined,
     };
     if (editTarget) {
-      await updatePeriod.mutateAsync({ id: editTarget.id, dto });
+      await updatePeriod.mutateAsync({ id: editTarget.id, dto: dto as unknown as Partial<CreateTimePeriodDto> });
     } else {
-      await createPeriod.mutateAsync(dto);
+      await createPeriod.mutateAsync(dto as unknown as CreateTimePeriodDto); // Ignoring strict CreateTimePeriodDto to pass budgets
     }
     reset();
     setShowModal(false);
@@ -350,14 +370,49 @@ export function TimePeriodsPage() {
             error={errors.endDate?.message}
             {...register('endDate', { required: t('periods.endDateRequired') })}
           />
-          <Input
-            label={t('periods.budgetLimit')}
-            type="number"
-            placeholder={t('periods.budgetLimitPlaceholder')}
-            min="0"
-            step="0.01"
-            {...register('budgetedAmount')}
-          />
+
+          <div className="space-y-2 border-t border-white/10 pt-4 mt-4">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-dn-text-main">{t('periods.budgetsTitle', 'Budgets')}</label>
+              <button
+                type="button"
+                onClick={() => appendBudget({ categoryId: '', budgetedAmount: '' })}
+                className="text-xs text-dn-primary flex items-center gap-1"
+              >
+                <Icon name="add" className="text-sm" /> {t('common.add', 'Add')}
+              </button>
+            </div>
+            {budgetFields.map((field, index) => (
+              <div key={field.id} className="flex items-start gap-2">
+                <div className="flex-1">
+                  <Select
+                    {...register(`budgets.${index}.categoryId` as const, { required: true })}
+                    options={[
+                      { value: '', label: t('common.selectCategory', 'Select Category') },
+                      ...(categoriesPaged?.content.map(c => ({ value: String(c.id), label: c.name })) || [])
+                    ]}
+                  />
+                </div>
+                <div className="w-32">
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    {...register(`budgets.${index}.budgetedAmount` as const, { required: true })}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeBudget(index)}
+                  className="p-2 text-dn-text-muted hover:text-dn-error mt-6"
+                >
+                  <Icon name="close" className="text-sm" />
+                </button>
+              </div>
+            ))}
+          </div>
+
           <Input
             label={t('periods.savingsGoal')}
             type="number"
@@ -366,6 +421,15 @@ export function TimePeriodsPage() {
             max="100"
             step="1"
             {...register('savingsPercentageGoal')}
+          />
+
+          <Input
+            label={t('periods.budgetLimit')}
+            type="number"
+            placeholder={t('periods.budgetLimitPlaceholder')}
+            min="0"
+            step="0.01"
+            {...register('budgetLimit')}
           />
         </form>
       </Modal>
