@@ -6,7 +6,7 @@ import dev.langchain4j.service.UserMessage;
 import io.quarkiverse.langchain4j.RegisterAiService;
 import jakarta.enterprise.context.ApplicationScoped;
 
-@RegisterAiService(tools = FinanceAssistantTools.class)
+@RegisterAiService(retrievalAugmentor = FinanceRetrievalAugmentor.class)
 @ApplicationScoped
 public interface FinanceAssistant {
 

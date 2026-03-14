@@ -46,9 +46,7 @@ public class ChatResource {
         String systemPrompt = messages.get(
                 MsgKey.AI_SYSTEM_PROMPT,
                 LocalDateTime.now().toString(),
-                languageContext.getLang(),
-                messages.get(MsgKey.AI_TOOL_LIST_CATEGORIES),
-                messages.get(MsgKey.AI_TOOL_GET_CATEGORY_BALANCE));
+                languageContext.getLang());
 
         String aiResponse = financeAssistant.chat(
                 request.getChatId(),
