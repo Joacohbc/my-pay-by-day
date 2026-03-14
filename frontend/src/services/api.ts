@@ -29,6 +29,41 @@ function withLang(path: string): string {
   return `${path}${sep}lang=${lang}`;
 }
 
+let configTimezone: string | null = null;
+let configFetchPromise: Promise<string | null> | null = null;
+
+async function fetchConfigTimezone(): Promise<string | null> {
+  if (configTimezone !== null) {
+    return configTimezone;
+  }
+
+  if (!configFetchPromise) {
+    configFetchPromise = fetch(`${BASE_URL}/config`)
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch config');
+        }
+        const data = await res.json();
+        configTimezone = data.timezone ?? null;
+        return configTimezone;
+      })
+      .catch((err) => {
+        console.error('Error fetching config:', err);
+        return null;
+      });
+  }
+  return configFetchPromise;
+}
+
+async function getHeaders(baseHeaders: Record<string, string> = {}): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { ...baseHeaders, Accept: 'application/json' };
+  const tz = await fetchConfigTimezone();
+  if (tz) {
+    headers['X-Timezone'] = tz;
+  }
+  return headers;
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let message = `HTTP ${res.status}`;
@@ -45,34 +80,42 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export const api = {
-  get: <T>(path: string): Promise<T> =>
-    fetch(`${BASE_URL}${withLang(path)}`, { headers: { Accept: 'application/json' } }).then(
-      (r) => handleResponse<T>(r)
-    ),
+  get: async <T>(path: string): Promise<T> => {
+    const headers = await getHeaders();
+    return fetch(`${BASE_URL}${withLang(path)}`, { headers }).then((r) => handleResponse<T>(r));
+  },
 
-  post: <T>(path: string, body: unknown): Promise<T> =>
-    fetch(`${BASE_URL}${withLang(path)}`, {
+  post: async <T>(path: string, body: unknown): Promise<T> => {
+    const headers = await getHeaders({ 'Content-Type': 'application/json' });
+    return fetch(`${BASE_URL}${withLang(path)}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers,
       body: JSON.stringify(body),
-    }).then((r) => handleResponse<T>(r)),
+    }).then((r) => handleResponse<T>(r));
+  },
 
-  put: <T>(path: string, body: unknown): Promise<T> =>
-    fetch(`${BASE_URL}${withLang(path)}`, {
+  put: async <T>(path: string, body: unknown): Promise<T> => {
+    const headers = await getHeaders({ 'Content-Type': 'application/json' });
+    return fetch(`${BASE_URL}${withLang(path)}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers,
       body: JSON.stringify(body),
-    }).then((r) => handleResponse<T>(r)),
+    }).then((r) => handleResponse<T>(r));
+  },
 
-  patch: <T>(path: string, body: unknown): Promise<T> =>
-    fetch(`${BASE_URL}${withLang(path)}`, {
+  patch: async <T>(path: string, body: unknown): Promise<T> => {
+    const headers = await getHeaders({ 'Content-Type': 'application/json' });
+    return fetch(`${BASE_URL}${withLang(path)}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers,
       body: JSON.stringify(body),
-    }).then((r) => handleResponse<T>(r)),
+    }).then((r) => handleResponse<T>(r));
+  },
 
-  delete: (path: string): Promise<void> =>
-    fetch(`${BASE_URL}${withLang(path)}`, { method: 'DELETE' }).then((r) =>
+  delete: async (path: string): Promise<void> => {
+    const headers = await getHeaders();
+    return fetch(`${BASE_URL}${withLang(path)}`, { method: 'DELETE', headers }).then((r) =>
       handleResponse<void>(r)
-    ),
+    );
+  },
 };
