@@ -3,9 +3,12 @@ package com.mypaybyday.service;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.FinanceEvent;
+import com.mypaybyday.dto.CategoryBalanceDto;
+import com.mypaybyday.entity.Category;
 import com.mypaybyday.entity.FinanceLineItem;
 import com.mypaybyday.entity.Tag;
 import com.mypaybyday.entity.FinanceTransaction;
+import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
@@ -15,6 +18,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,6 +81,38 @@ public class EventService {
     @Transactional
     public List<FinanceEventDto> findByDateRange(LocalDateTime from, LocalDateTime to) throws BusinessException {
         return findEventEntitiesByDateRange(from, to).stream().map(FinanceEventDto::from).toList();
+    }
+
+    /**
+     * Calculates the balance for a given category within a specified date range.
+     * This ensures the AI does not perform the calculation itself.
+     */
+    @Transactional
+    public CategoryBalanceDto getCategoryBalance(Long categoryId, LocalDateTime from, LocalDateTime to) throws BusinessException {
+        Category category = categoryService.findEntityById(categoryId);
+        List<FinanceEvent> events = findEventEntitiesByDateRangeAndCategory(categoryId, from, to);
+
+        BigDecimal income = BigDecimal.ZERO;
+        BigDecimal outbound = BigDecimal.ZERO;
+
+        for (FinanceEvent event : events) {
+            if (event.transaction == null || event.transaction.lineItems == null) {
+                continue;
+            }
+
+            BigDecimal eventAmount = event.transaction.lineItems.stream()
+                    .map(li -> li.amount)
+                    .filter(a -> a.compareTo(BigDecimal.ZERO) > 0)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            if (event.type == EventType.INBOUND) {
+                income = income.add(eventAmount);
+            } else if (event.type == EventType.OUTBOUND) {
+                outbound = outbound.add(eventAmount);
+            }
+        }
+
+        return new CategoryBalanceDto(category.id, category.name, income, outbound);
     }
 
     // -------------------------------------------------------------------------
@@ -199,6 +235,18 @@ public class EventService {
         return eventRepository.list(
                 "transaction.transactionDate >= ?1 and transaction.transactionDate <= ?2",
                 from, to);
+    }
+
+    private List<FinanceEvent> findEventEntitiesByDateRangeAndCategory(Long categoryId, LocalDateTime from, LocalDateTime to) throws BusinessException {
+        if (from == null || to == null) {
+            throw new BusinessException(messages.get(MsgKey.EVENT_DATE_RANGE_NULL));
+        }
+        if (from.isAfter(to)) {
+            throw new BusinessException(messages.get(MsgKey.EVENT_DATE_RANGE_INVALID));
+        }
+        return eventRepository.list(
+                "category.id = ?1 and transaction.transactionDate >= ?2 and transaction.transactionDate <= ?3",
+                categoryId, from, to);
     }
 
     /**

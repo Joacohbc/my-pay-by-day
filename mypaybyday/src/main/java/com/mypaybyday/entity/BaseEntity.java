@@ -1,5 +1,7 @@
 package com.mypaybyday.entity;
 
+import com.mypaybyday.ai.RagObject;
+import dev.langchain4j.data.document.Metadata;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -15,9 +17,17 @@ import jakarta.persistence.MappedSuperclass;
  * with a single-connection pool configured for SQLite.
  */
 @MappedSuperclass
-public abstract class BaseEntity extends PanacheEntityBase {
+public abstract class BaseEntity extends PanacheEntityBase implements RagObject {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     public Long id;
+
+    @Override
+    public Metadata toRagMetadata() {
+        Metadata metadata = new Metadata();
+        metadata.put("id", id != null ? id.toString() : "unknown");
+        metadata.put("type", this.getClass().getSimpleName().toLowerCase());
+        return metadata;
+    }
 }
