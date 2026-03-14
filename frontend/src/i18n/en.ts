@@ -305,6 +305,16 @@ const en = {
     budgetLabel: 'Budget',
     budgetTotalLabel: 'Global',
     savingsLabel: 'Savings',
+    // Dynamic period selector
+    dynamic: {
+      today: 'Today',
+      yesterday: 'Yesterday',
+      thisWeek: 'This Week',
+      lastWeek: 'Last Week',
+      thisMonth: 'This Month',
+      lastMonth: 'Last Month',
+      thisYear: 'This Year',
+    },
   },
 
   // ─── Settings ────────────────────────────────────────────────────────────
