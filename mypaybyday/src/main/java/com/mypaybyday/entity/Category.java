@@ -1,6 +1,5 @@
 package com.mypaybyday.entity;
 
-
 import jakarta.persistence.Entity;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -21,4 +20,10 @@ public class Category extends BaseEntity {
     public String name;
 
     public String description;
+
+    @Override
+    public String toRagContent() {
+        return String.format("There is a category named '%s'%s.",
+                name, description != null ? " described as: " + description : "");
+    }
 }

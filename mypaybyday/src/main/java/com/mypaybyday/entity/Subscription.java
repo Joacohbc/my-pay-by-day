@@ -39,4 +39,12 @@ public class Subscription extends BaseEntity {
 
     @NotNull
     public LocalDate nextExecutionDate;
+
+    @Override
+    public String toRagContent() {
+        return String.format(
+                "A recurring subscription named '%s' is scheduled with %s frequency. The next execution is planned for %s using the template '%s'.",
+                name, recurrence, nextExecutionDate,
+                template != null ? template.name : "unknown template");
+    }
 }

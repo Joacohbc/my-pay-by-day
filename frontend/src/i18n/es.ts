@@ -41,8 +41,20 @@ const es = {
     activity: 'Actividad',
     wallet: 'Billetera',
     periods: 'Períodos',
+    chat: 'Chat',
     subs: 'Suscrip.',
     profile: 'Perfil',
+  },
+
+  // ─── Chat ────────────────────────────────────────────────────────────────
+  chat: {
+    title: 'Asistente Financiero',
+    placeholder: 'Pregúntame sobre tus finanzas...',
+    newChat: 'Nuevo Chat',
+    emptyState: '¡Pregúntame cualquier cosa sobre tus categorías o períodos!',
+    send: 'Enviar',
+    loading: 'Pensando...',
+    error: 'Error al enviar el mensaje. Por favor, inténtalo de nuevo.',
   },
 
   // ─── Greetings ───────────────────────────────────────────────────────────

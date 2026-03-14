@@ -16,6 +16,8 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import dev.langchain4j.data.document.Metadata;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -129,4 +131,62 @@ public class FinanceEvent extends BaseEntity {
     @JoinTable(name = "event_tag", joinColumns = @JoinColumn(name = "event_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
     @Builder.Default
     public List<Tag> tags = new ArrayList<>();
+
+    @Override
+    public String toRagContent() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("A finance event called '%s' (ID: %s) occurred on %s. ",
+                name, id != null ? id : "NEW",
+                transaction != null ? transaction.transactionDate : "an unknown date"));
+        sb.append(String.format("It is an %s event categorized as %s. ",
+                type, category != null ? category.name : "Uncategorized"));
+
+        if (tags != null && !tags.isEmpty()) {
+            sb.append("Tags: ").append(tags.stream().map(t -> t.name).collect(Collectors.joining(", "))).append(". ");
+        }
+
+        if (transaction != null && transaction.lineItems != null && !transaction.lineItems.isEmpty()) {
+            sb.append("Line items: ");
+            String items = transaction.lineItems.stream()
+                    .map(li -> String.format("%s %s for %s (ID: %s)",
+                            li.amount != null ? li.amount : "0",
+                            li.amount != null && li.amount.compareTo(java.math.BigDecimal.ZERO) >= 0 ? "received"
+                                    : "paid",
+                            li.financeNode != null ? li.financeNode.name : "unknown",
+                            li.financeNode != null && li.financeNode.id != null ? li.financeNode.id : "unknown"))
+                    .collect(Collectors.joining(", "));
+            sb.append(items).append(". ");
+        }
+
+        if (description != null && !description.isBlank()) {
+            sb.append("Additional details: ").append(description);
+        } else {
+            sb.append("No further details available.");
+        }
+
+        return sb.toString();
+    }
+
+    @Override
+    public Metadata toRagMetadata() {
+        Metadata metadata = super.toRagMetadata();
+        if (category != null) {
+            metadata.put("category_id", category.id != null ? category.id.toString() : "unknown");
+            metadata.put("category_name", category.name);
+        }
+
+        if (tags != null && !tags.isEmpty()) {
+            metadata.put("tags", tags.stream().map(t -> t.name).collect(Collectors.joining(",")));
+        }
+
+        if (transaction != null && transaction.lineItems != null) {
+            metadata.put("node_ids", transaction.lineItems.stream()
+                    .map(li -> li.financeNode != null && li.financeNode.id != null ? li.financeNode.id.toString()
+                            : "unknown")
+                    .distinct()
+                    .collect(Collectors.joining(",")));
+        }
+
+        return metadata;
+    }
 }

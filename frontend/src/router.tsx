@@ -13,6 +13,7 @@ import { TagsPage } from '@/pages/TagsPage';
 import { TemplatesPage } from '@/pages/TemplatesPage';
 import { TimePeriodsPage } from '@/pages/TimePeriodsPage';
 import { TimePeriodDetailPage } from '@/pages/TimePeriodDetailPage';
+import { ChatPage } from '@/pages/ChatPage';
 
 export const router = createBrowserRouter([
   {
@@ -32,6 +33,9 @@ export const router = createBrowserRouter([
 
       // Subscriptions
       { path: 'subscriptions', element: <SubscriptionsPage /> },
+
+      // Chat
+      { path: 'chat', element: <ChatPage /> },
 
       // Time Periods
       { path: 'periods', element: <TimePeriodsPage /> },
