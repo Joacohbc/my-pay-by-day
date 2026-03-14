@@ -3,8 +3,10 @@ package com.mypaybyday.i18n;
 /**
  * Type-safe enumeration of every i18n message key used in the application.
  * <p>
- * Each constant maps to a property key in {@code i18n/messages_<lang>.properties}.
- * Pass these constants to {@link Messages#get(MsgKey, Object...)} instead of raw
+ * Each constant maps to a property key in
+ * {@code i18n/messages_<lang>.properties}.
+ * Pass these constants to {@link Messages#get(MsgKey, Object...)} instead of
+ * raw
  * strings so that typos are caught at compile time.
  */
 public enum MsgKey {
@@ -59,9 +61,7 @@ public enum MsgKey {
     SUBSCRIPTION_TEMPLATE_REQUIRED("error.subscription.template_required"),
 
     // ── AI ───────────────────────────────────────────────
-    AI_SYSTEM_PROMPT("ai.system.prompt"),
-    AI_TOOL_LIST_CATEGORIES("ai.tool.list_categories"),
-    AI_TOOL_GET_CATEGORY_BALANCE("ai.tool.get_category_balance");
+    AI_SYSTEM_PROMPT("ai.system.prompt");
 
     /** The property key used to look up this message in the resource bundle. */
     public final String key;
