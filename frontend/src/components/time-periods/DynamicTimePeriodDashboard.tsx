@@ -71,18 +71,18 @@ export function DynamicTimePeriodDashboard({
       {/* Income / Expense Summary */}
       <div className="grid grid-cols-2 gap-3">
         <Card>
-          <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-success/10 text-dn-success mb-3">
-            <Icon name="trending_up" />
+          <div className="w-8 h-8 flex items-center justify-center rounded-xl bg-dn-success/10 text-dn-success mb-2">
+            <Icon name="trending_up" className="text-[18px]" />
           </div>
-          <p className="text-xs text-dn-text-muted mb-0.5">{t('events.income')}</p>
-          <p className="text-lg font-mono font-semibold text-dn-success">{formatCurrency(income ?? 0)}</p>
+          <p className="text-[11px] text-dn-text-muted mb-0.5">{t('events.income')}</p>
+          <p className="text-base font-mono font-semibold text-dn-success">{formatCurrency(income ?? 0)}</p>
         </Card>
         <Card>
-          <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-error/10 text-dn-error mb-3">
-            <Icon name="trending_down" />
+          <div className="w-8 h-8 flex items-center justify-center rounded-xl bg-dn-error/10 text-dn-error mb-2">
+            <Icon name="trending_down" className="text-[18px]" />
           </div>
-          <p className="text-xs text-dn-text-muted mb-0.5">{t('events.expenses')}</p>
-          <p className="text-lg font-mono font-semibold text-dn-text-main">{formatCurrency(outbound ?? 0)}</p>
+          <p className="text-[11px] text-dn-text-muted mb-0.5">{t('events.expenses')}</p>
+          <p className="text-base font-mono font-semibold text-dn-text-main">{formatCurrency(outbound ?? 0)}</p>
         </Card>
       </div>
 

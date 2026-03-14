@@ -106,12 +106,12 @@ export function DashboardPage() {
 
       <Card>
         <div className="flex flex-col items-center text-center gap-4 py-4">
-          <div className="w-16 h-16 flex items-center justify-center rounded-3xl bg-dn-primary/10 text-dn-primary">
-            <Icon name="calendar_month" className="text-3xl" />
+          <div className="w-12 h-12 flex items-center justify-center rounded-2xl bg-dn-primary/10 text-dn-primary">
+            <Icon name="calendar_month" className="text-2xl" />
           </div>
           <div>
             <p className="text-base font-semibold text-dn-text-main">{t('dashboard.noDefaultPeriod')}</p>
-            <p className="text-sm text-dn-text-muted mt-1 leading-relaxed">
+            <p className="text-[13px] text-dn-text-muted mt-1 leading-relaxed px-2">
               {t('dashboard.noDefaultPeriodDesc')}
             </p>
           </div>

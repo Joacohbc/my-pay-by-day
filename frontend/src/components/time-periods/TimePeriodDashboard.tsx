@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTimePeriodBalance } from '@/hooks/useTimePeriods';
 import { EventCard } from '@/components/events/EventCard';
+import { BudgetsItemList } from '@/components/time-periods/BudgetsItemList';
 import { Card } from '@/components/ui/Card';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -89,105 +90,37 @@ export function TimePeriodDashboard({
       {/* Income / Expense Summary */}
       <div className="grid grid-cols-2 gap-3">
         <Card>
-          <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-success/10 text-dn-success mb-3">
-            <Icon name="trending_up" />
+          <div className="w-8 h-8 flex items-center justify-center rounded-xl bg-dn-success/10 text-dn-success mb-2">
+            <Icon name="trending_up" className="text-[18px]" />
           </div>
-          <p className="text-xs text-dn-text-muted mb-0.5">{t('events.income')}</p>
-          <p className="text-lg font-mono font-semibold text-dn-success">{formatCurrency(income ?? 0)}</p>
+          <p className="text-[11px] text-dn-text-muted mb-0.5">{t('events.income')}</p>
+          <p className="text-base font-mono font-semibold text-dn-success">{formatCurrency(income ?? 0)}</p>
         </Card>
         <Card>
-          <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-error/10 text-dn-error mb-3">
-            <Icon name="trending_down" />
+          <div className="w-8 h-8 flex items-center justify-center rounded-xl bg-dn-error/10 text-dn-error mb-2">
+            <Icon name="trending_down" className="text-[18px]" />
           </div>
-          <p className="text-xs text-dn-text-muted mb-0.5">{t('events.expenses')}</p>
-          <p className="text-lg font-mono font-semibold text-dn-text-main">{formatCurrency(outbound ?? 0)}</p>
+          <p className="text-[11px] text-dn-text-muted mb-0.5">{t('events.expenses')}</p>
+          <p className="text-base font-mono font-semibold text-dn-text-main">{formatCurrency(outbound ?? 0)}</p>
         </Card>
       </div>
-
-      {/* Budget progress list */}
-      {balance.categoryBudgets && balance.categoryBudgets.length > 0 && (
-        <Card className="space-y-4">
-          <p className="text-xs text-dn-text-muted uppercase tracking-wider mb-2">{t('periods.budgetsTitle', 'Budgets')}</p>
-          {balance.categoryBudgets.map((b) => {
-            const usedPct = b.budgetedAmount > 0 ? Math.min(100, Math.round((b.spentAmount / b.budgetedAmount) * 100)) : 0;
-            const isOver = b.spentAmount > b.budgetedAmount;
-            const isWarning = usedPct >= 80 && !isOver;
-            const statusIcon = isOver ? 'cancel' : isWarning ? 'warning' : 'check_circle';
-            const statusColor = isOver ? 'text-dn-error' : isWarning ? 'text-dn-warning' : 'text-dn-success';
-            const barColor = isOver ? 'bg-dn-error' : isWarning ? 'bg-dn-warning' : 'bg-dn-success';
-
-            return (
-              <div key={b.category.id} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Icon name={statusIcon} className={`text-[16px] ${statusColor}`} />
-                    <p className="text-sm font-medium text-dn-text-main">{b.category.name}</p>
-                  </div>
-                  <p className="text-xs text-dn-text-muted">
-                    {formatCurrency(b.spentAmount)} / {formatCurrency(b.budgetedAmount)}
-                  </p>
-                </div>
-                <div className="h-1.5 rounded-full bg-dn-surface-low overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${barColor}`}
-                    style={{ width: `${usedPct}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </Card>
-      )}
-
-      {/* Global Budget Goal */}
-      {timePeriod.budgetLimit != null && (
-        <Card>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-warning/10 text-dn-warning shrink-0">
-              <Icon name="account_balance_wallet" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-xs text-dn-text-muted uppercase tracking-wider">{t('periods.budgetLabel')}</p>
-                <p className="text-xs text-dn-text-muted">
-                  {formatCurrency(outbound)} / {formatCurrency(timePeriod.budgetLimit)}
-                </p>
-              </div>
-              <div className="h-2 rounded-full bg-dn-surface-low overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    outbound > timePeriod.budgetLimit ? 'bg-dn-error' : 'bg-dn-warning'
-                  }`}
-                  style={{ width: `${Math.min(100, (outbound / timePeriod.budgetLimit) * 100)}%` }}
-                />
-              </div>
-              {outbound > timePeriod.budgetLimit && (
-                <p className="text-[10px] text-dn-error mt-1 flex items-center gap-1">
-                  <Icon name="warning" className="text-[12px]" />
-                  {t('periods.budgetUsed', { pct: Math.round((outbound / timePeriod.budgetLimit) * 100) })}
-                </p>
-              )}
-            </div>
-          </div>
-        </Card>
-      )}
 
       {/* Savings goal */}
       {timePeriod.savingsPercentageGoal != null && income > 0 && (
         <Card>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-primary/10 text-dn-primary shrink-0">
-              <Icon name="savings" />
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 flex items-center justify-center rounded-xl bg-dn-primary/10 text-dn-primary shrink-0 mt-0.5">
+              <Icon name="savings" className="text-[18px]" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-dn-text-muted uppercase tracking-wider">{t('periods.savingsGoalLabel')}</p>
-              <p className="text-sm font-medium text-dn-text-main">
+              <p className="text-sm font-medium text-dn-text-main mt-0.5">
                 {timePeriod.savingsPercentageGoal}% ={' '}
                 <span className="text-dn-primary">
                   {formatCurrency((income * timePeriod.savingsPercentageGoal) / 100)}
                 </span>
               </p>
-              <p className="text-xs text-dn-text-muted">
+              <p className="text-[11px] text-dn-text-muted mt-1">
                 {t('periods.actualSavings')}: {formatCurrency(netBalance)} (
                 {income > 0 ? Math.round((netBalance / income) * 100) : 0}%)
               </p>
@@ -195,6 +128,33 @@ export function TimePeriodDashboard({
           </div>
         </Card>
       )}
+
+      { timePeriod.budgetLimit != null &&
+      <Card className="space-y-4">
+        <p className="text-sm text-dn-text-muted uppercase tracking-wider mb-3">
+          {t('periods.budgetLabel', 'Budgets')}
+        </p>
+
+        <BudgetsItemList
+          name={t('periods.budgetTotalLabel')}
+          spentAmount={outbound}
+          budgetedAmount={timePeriod.budgetLimit}
+        /> 
+        
+        <div className="border-t border-white/5" />
+        
+        {balance.categoryBudgets.map((b, i) => (
+          <>
+            <BudgetsItemList
+              key={b.category.id}
+              name={b.category.name}
+              spentAmount={b.spentAmount}
+              budgetedAmount={b.budgetedAmount}
+            />
+            { i < balance.categoryBudgets.length - 1 && <div className="border-t border-white/5" /> }
+          </>
+        ))}
+      </Card>}
 
       {/* Recent Activity */}
       <section>

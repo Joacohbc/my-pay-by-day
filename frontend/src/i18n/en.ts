@@ -303,6 +303,7 @@ const en = {
     change: 'Change',
     viewBalance: 'View balance',
     budgetLabel: 'Budget',
+    budgetTotalLabel: 'Global',
     savingsLabel: 'Savings',
   },
 

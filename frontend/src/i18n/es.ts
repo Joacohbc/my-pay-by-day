@@ -303,6 +303,7 @@ const es = {
     change: 'Cambiar',
     viewBalance: 'Ver balance',
     budgetLabel: 'Presupuesto',
+    budgetTotalLabel: 'Global',
     savingsLabel: 'Ahorro',
   },
 
