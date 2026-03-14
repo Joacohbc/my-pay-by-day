@@ -5,7 +5,6 @@ import { Icon } from '@/components/ui/Icon';
 const navItems = [
   { to: '/', labelKey: 'nav.home', icon: 'home', end: true },
   { to: '/events', labelKey: 'nav.activity', icon: 'pie_chart' },
-  { to: '/nodes', labelKey: 'nav.wallet', icon: 'account_balance_wallet' },
   { to: '/chat', labelKey: 'nav.chat', icon: 'chat' },
   { to: '/periods', labelKey: 'nav.periods', icon: 'calendar_month' },
   { to: '/settings', labelKey: 'nav.profile', icon: 'person' },
