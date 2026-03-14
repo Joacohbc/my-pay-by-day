@@ -41,4 +41,11 @@ public class TimePeriod extends BaseEntity {
     public List<TimePeriodBudget> budgets = new ArrayList<>();
 
     public BigDecimal savingsPercentageGoal;
+    @Override
+    public String toRagContent() {
+        return String.format("The time period '%s' spans from %s to %s. It targets the category '%s' with a budgeted amount of %s.",
+                name, startDate, endDate, 
+                category != null ? category.name : "All",
+                budgetedAmount != null ? budgetedAmount : "zero (no budget set)");
+    }
 }

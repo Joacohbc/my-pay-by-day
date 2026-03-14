@@ -26,7 +26,8 @@ public class FinanceNode extends BaseEntity {
     /**
      * Display name of this node (e.g., "BBVA cuenta sueldo", "Visa 4567").
      *
-     * <p><b>Encrypted at rest</b> via AES-256-GCM. Cannot be used in JPQL/SQL
+     * <p>
+     * <b>Encrypted at rest</b> via AES-256-GCM. Cannot be used in JPQL/SQL
      * {@code WHERE}, {@code LIKE}, or {@code ORDER BY} clauses — filter or sort
      * in memory after loading.
      */
@@ -40,4 +41,10 @@ public class FinanceNode extends BaseEntity {
 
     @Builder.Default
     public boolean archived = false;
+
+    @Override
+    public String toRagContent() {
+        return String.format("A finance node named '%s' (ID: %s) is defined as a %s. Its current status is %s.",
+                name, id != null ? id : "NEW", type, archived ? "archived" : "active");
+    }
 }

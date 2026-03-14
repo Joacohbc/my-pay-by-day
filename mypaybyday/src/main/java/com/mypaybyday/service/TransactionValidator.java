@@ -11,6 +11,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -75,5 +76,17 @@ public class TransactionValidator {
             .ifPresent(node -> {
                 throw new BusinessException(messages.get(MsgKey.NODE_ARCHIVED_IN_USE, node.id));
             });
+    }
+
+    /**
+     * Validates that the transaction date is not in the future.
+     * The comparison uses the globally configured TimeZone implicitly via LocalDateTime.now().
+     *
+     * @throws BusinessException if the transaction date is in the future
+     */
+    public void validateDateNotInFuture(FinanceTransaction transaction) throws BusinessException {
+        if (transaction.transactionDate != null && transaction.transactionDate.isAfter(LocalDateTime.now())) {
+            throw new BusinessException(messages.get(MsgKey.TRANSACTION_DATE_IN_FUTURE));
+        }
     }
 }

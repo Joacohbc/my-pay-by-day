@@ -35,11 +35,7 @@ public class Template extends BaseEntity {
     public Category category;
 
     @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-        name = "template_tag",
-        joinColumns = @JoinColumn(name = "template_id"),
-        inverseJoinColumns = @JoinColumn(name = "tag_id")
-    )
+    @JoinTable(name = "template_tag", joinColumns = @JoinColumn(name = "template_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
     @Builder.Default
     public List<Tag> tags = new ArrayList<>();
 
@@ -50,4 +46,14 @@ public class Template extends BaseEntity {
     public ModifierType modifierType;
 
     public BigDecimal modifierValue;
+
+    @Override
+    public String toRagContent() {
+        return String.format(
+                "A template named '%s' is configured for %s events in the category '%s'. It moves value from node '%s' to node '%s'.",
+                name, eventType,
+                category != null ? category.name : "Uncategorized",
+                originNode != null ? originNode.name : "unknown origin",
+                destinationNode != null ? destinationNode.name : "unknown destination");
+    }
 }
