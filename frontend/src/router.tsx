@@ -28,9 +28,6 @@ export const router = createBrowserRouter([
       { path: 'events/:id', element: <EventDetailPage /> },
       { path: 'events/:id/edit', element: <EventEditPage /> },
 
-      // Finance Nodes
-      { path: 'nodes', element: <NodesPage /> },
-
       // Subscriptions
       { path: 'subscriptions', element: <SubscriptionsPage /> },
 
@@ -46,6 +43,7 @@ export const router = createBrowserRouter([
       { path: 'settings/categories', element: <CategoriesPage /> },
       { path: 'settings/tags', element: <TagsPage /> },
       { path: 'settings/templates', element: <TemplatesPage /> },
+      { path: 'settings/nodes', element: <NodesPage /> },
 
       // Fallback
       { path: '*', element: <Navigate to="/" replace /> },
