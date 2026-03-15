@@ -334,6 +334,9 @@ const es = {
     languageDesc: 'Idioma de la aplicación',
     currency: 'Moneda',
     currencyDesc: 'Moneda utilizada para formatear montos',
+    timezone: 'Zona Horaria',
+    timezoneDesc: 'Zona horaria para fechas y horas',
+    timezoneBrowserDefault: 'Predeterminada del Navegador',
     preferences: 'Preferencias',
   },
 

@@ -1,12 +1,9 @@
 package com.mypaybyday.entity;
 
 import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
@@ -53,16 +50,6 @@ public class FinanceTransaction extends BaseEntity {
     public LocalDateTime transactionDate;
 
     /**
-     * Timestamp set once when this record is first persisted. Never updated
-     * afterwards.
-     */
-    @Column(updatable = false)
-    public LocalDateTime createdAt;
-
-    /** Timestamp updated every time this record is modified. */
-    public LocalDateTime updatedAt;
-
-    /**
      * The atomic movements of value that make up this transaction.
      *
      * <p>
@@ -73,17 +60,6 @@ public class FinanceTransaction extends BaseEntity {
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     public List<FinanceLineItem> lineItems = new ArrayList<>();
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 
     @Override
     public String toRagContent() {

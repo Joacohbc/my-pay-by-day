@@ -4,7 +4,7 @@ import { useFieldArray, useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { useCategories } from '@/hooks/useCategories';
@@ -12,7 +12,7 @@ import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
 import { Icon } from '@/components/ui/Icon';
 import type { CreateEventDto, EventType, FinanceEvent } from '@/models';
-import { toLocalDateTimeString } from '@/lib/format';
+import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
@@ -84,9 +84,10 @@ export function EventForm({
       description: defaultValues?.description ?? '',
       receiptUrl: defaultValues?.receiptUrl ?? '',
       type: defaultValues?.type ?? preset?.type ?? 'OUTBOUND',
+      // Convert current date to the user's localized time before putting it into the datetime-local input
       transactionDate: defaultValues?.transactionDate
-        ? toLocalDateTimeString(new Date(defaultValues.transactionDate))
-        : toLocalDateTimeString(new Date()),
+        ? toLocalDateTimeString(defaultValues.transactionDate) // defaultValues are already properly formatted to local time by interceptor
+        : toLocalDateTimeString(getLocalizedNow()),
       categoryId: defaultValues?.category
         ? String(defaultValues.category.id)
         : preset?.categoryId
@@ -124,7 +125,8 @@ export function EventForm({
       receiptUrl: values.receiptUrl || undefined,
       type: values.type,
       transaction: {
-        transactionDate: new Date(values.transactionDate).toISOString(),
+        // Form input datetime-local returns "YYYY-MM-DDTHH:mm". We append the seconds so it's parsed as expected locally before interceptors make it UTC.
+        transactionDate: values.transactionDate.includes(':00.000') ? values.transactionDate : `${values.transactionDate}:00.000`,
         lineItems: values.lineItems.map((li, i) => {
           let amount = Number(li.amount);
           if (isTemplateMode) {
@@ -165,7 +167,7 @@ export function EventForm({
           name="type"
           control={control}
           render={({ field }) => (
-            <Select
+            <SearchableSelect
               label={t('eventForm.type')}
               error={errors.type?.message}
               options={[
@@ -192,7 +194,7 @@ export function EventForm({
           name="categoryId"
           control={control}
           render={({ field }) => (
-            <Select
+            <SearchableSelect
               label={t('eventForm.category')}
               placeholder={t('common.none')}
               options={categories.map((c) => ({ value: String(c.id), label: c.name }))}
@@ -274,7 +276,7 @@ export function EventForm({
                       name={`lineItems.${i}.nodeId`}
                       control={control}
                       render={({ field: f }) => (
-                        <Select
+                        <SearchableSelect
                           placeholder={t('eventForm.selectNode')}
                           options={nodeOptions}
                           error={errors.lineItems?.[i]?.nodeId?.message}
@@ -305,7 +307,7 @@ export function EventForm({
                     name={`lineItems.${i}.nodeId`}
                     control={control}
                     render={({ field: f }) => (
-                      <Select
+                      <SearchableSelect
                         placeholder={t('eventForm.selectNode')}
                         options={nodeOptions}
                         error={errors.lineItems?.[i]?.nodeId?.message}

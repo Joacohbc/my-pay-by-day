@@ -5,6 +5,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 
 @ApplicationScoped
 public class StartupLogger {
@@ -29,6 +32,10 @@ public class StartupLogger {
     @ConfigProperty(name = "quarkus.langchain4j.ollama.chat-model.model-id")
     String ollamaModel;
 
+    @ConfigProperty(name = "mypaybyday.timezone")
+    String timezone;
+
+
     void onStart(@Observes StartupEvent event) {
         LOG.info("\n" +
                 "  __  __         _____             ____        _____              \n" +
@@ -46,6 +53,9 @@ public class StartupLogger {
         LOG.infof("  Ollama URL        : %s", ollamaUrl);
         LOG.infof("  Ollama Model      : %s", ollamaModel);
         LOG.infof("  Encryption key set: %b", encryptionKey != null && !encryptionKey.isBlank());
+        LOG.infof("  Timezone          : %s", timezone);
+        LOG.infof("  Server Time       : %s", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
         LOG.info("=============================");
+
     }
 }

@@ -1,4 +1,5 @@
 import i18n from '@/i18n';
+import { fromServerDate, toServerDate, transformDates } from '@/utils/dateUtils';
 
 // In production (Docker) VITE_API_BASE_URL is injected at container startup
 // via /env.js into window.__env__. In dev, Vite exposes it through import.meta.env.
@@ -41,38 +42,50 @@ async function handleResponse<T>(res: Response): Promise<T> {
     throw new Error(message);
   }
   if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
+  const data = await res.json();
+  // Transform all UTC date strings from the server to the user's timezone
+  return transformDates(data, fromServerDate) as T;
 }
 
 export const api = {
   get: <T>(path: string): Promise<T> =>
-    fetch(`${BASE_URL}${withLang(path)}`, { headers: { Accept: 'application/json' } }).then(
-      (r) => handleResponse<T>(r)
-    ),
-
-  post: <T>(path: string, body: unknown): Promise<T> =>
     fetch(`${BASE_URL}${withLang(path)}`, {
+      headers: { Accept: 'application/json', 'X-Timezone': 'UTC' }
+    }).then((r) => handleResponse<T>(r)),
+
+  post: <T>(path: string, body: unknown): Promise<T> => {
+    // Transform all local date strings to UTC before sending to the server
+    const transformedBody = transformDates(body, toServerDate);
+    return fetch(`${BASE_URL}${withLang(path)}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(body),
-    }).then((r) => handleResponse<T>(r)),
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Timezone': 'UTC' },
+      body: JSON.stringify(transformedBody),
+    }).then((r) => handleResponse<T>(r));
+  },
 
-  put: <T>(path: string, body: unknown): Promise<T> =>
-    fetch(`${BASE_URL}${withLang(path)}`, {
+  put: <T>(path: string, body: unknown): Promise<T> => {
+    // Transform all local date strings to UTC before sending to the server
+    const transformedBody = transformDates(body, toServerDate);
+    return fetch(`${BASE_URL}${withLang(path)}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(body),
-    }).then((r) => handleResponse<T>(r)),
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Timezone': 'UTC' },
+      body: JSON.stringify(transformedBody),
+    }).then((r) => handleResponse<T>(r));
+  },
 
-  patch: <T>(path: string, body: unknown): Promise<T> =>
-    fetch(`${BASE_URL}${withLang(path)}`, {
+  patch: <T>(path: string, body: unknown): Promise<T> => {
+    // Transform all local date strings to UTC before sending to the server
+    const transformedBody = transformDates(body, toServerDate);
+    return fetch(`${BASE_URL}${withLang(path)}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(body),
-    }).then((r) => handleResponse<T>(r)),
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Timezone': 'UTC' },
+      body: JSON.stringify(transformedBody),
+    }).then((r) => handleResponse<T>(r));
+  },
 
   delete: (path: string): Promise<void> =>
-    fetch(`${BASE_URL}${withLang(path)}`, { method: 'DELETE' }).then((r) =>
-      handleResponse<void>(r)
-    ),
+    fetch(`${BASE_URL}${withLang(path)}`, {
+      method: 'DELETE',
+      headers: { 'X-Timezone': 'UTC' }
+    }).then((r) => handleResponse<void>(r)),
 };

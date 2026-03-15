@@ -7,6 +7,7 @@ import { TimePeriodDashboard } from '@/components/time-periods/TimePeriodDashboa
 import { DynamicTimePeriodDashboard } from '@/components/time-periods/DynamicTimePeriodDashboard';
 import { DynamicTimePeriodSelector, type DynamicPeriodOption } from '@/components/time-periods/DynamicTimePeriodSelector';
 import { getDynamicPeriodDates } from '@/lib/dateUtils';
+import { getLocalizedNow } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -31,7 +32,7 @@ export function DashboardPage() {
     }
   };
 
-  const now = new Date();
+  const now = getLocalizedNow();
   const greeting =
     now.getHours() < 12 ? t('greeting.morning') : now.getHours() < 18 ? t('greeting.afternoon') : t('greeting.evening');
 

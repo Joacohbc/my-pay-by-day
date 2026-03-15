@@ -198,7 +198,26 @@ Every endpoint **must** return the appropriate HTTP status code:
 
 ---
 
-## 12. Backend Internationalisation (i18n)
+## 12. Date and Timezone Handling
+
+To avoid "Day Boundary" and "Traveller's Dilemma" issues, the application strictly adheres to a hybrid date/time strategy across the stack.
+
+### 12.1 Backend Strategy
+1. **Centralized Audit (Exact Moments):** The `BaseEntity` defines `createdAt` and `updatedAt` as `java.time.Instant`. These represent absolute points in time (always UTC) and are never affected by server or user timezones.
+2. **Business Dates (Wall-clock Time):** Domain entities use `java.time.LocalDateTime` (e.g., `transactionDate`) or `java.time.LocalDate` (e.g., `startDate`, `endDate`). These represent "calendar" or "wall-clock" concepts independent of where they occur. They are stored and processed on the server without any timezone adjustment.
+
+### 12.2 Frontend Strategy
+The frontend acts as the translator between the user's local context and the server's absolute context.
+1. **Server Timezone:** The frontend queries `/api/config` on load to determine the server's timezone (always `UTC`) and persists it in memory (`useConfigStore`).
+2. **User Timezone:** The user selects their preferred timezone in Settings, which is stored in `localStorage` under `user-timezone` (defaulting to the browser's timezone).
+3. **Payload Interceptors (`api.ts`):**
+    * **Outbound (to Backend):** The `api.ts` service automatically intercepts all payloads. Any string matching a local date-time format (e.g., `"YYYY-MM-DDTHH:mm:ss"`) is converted from the user's localized timezone to the server's timezone (`UTC`) before being sent.
+    * **Inbound (from Backend):** Responses are intercepted, and any `UTC` date-time string received from the server is automatically converted back to the user's localized timezone before being handed to the application state.
+4. **UI Components:** All UI components that display or accept dates must rely on the interceptor's transformations. Components should read/write dates as if they were in the user's local time (because `api.ts` handles the translation transparently). For display formatting, always use the functions provided in `@/lib/format` (which internally use `getUserTimezone()`).
+
+---
+
+## 13. Backend Internationalisation (i18n)
 
 Error messages returned to the client are localised based on a `?lang=` query parameter sent by the frontend on every request.
 
@@ -246,7 +265,7 @@ Resource bundle files live at `src/main/resources/i18n/`:
 
 # Part III — Frontend
 
-## 13. Tech Stack
+## 14. Tech Stack
 
 * **Framework:** React + TypeScript
 * **Build Tool:** Vite
@@ -254,7 +273,7 @@ Resource bundle files live at `src/main/resources/i18n/`:
 
 ---
 
-## 14. Icon Conventions
+## 15. Icon Conventions
 
 * **Icon library:** All icons **must** use the **Material Symbols Outlined** set. Never use raw `<span>` tags with `material-symbols-outlined` directly in components — always go through the `Icon` component.
 * **Icon component:** Use `<Icon name="..." />` from `@/components/ui/Icon` for every icon render. This is the single source of truth for icon rendering.
@@ -264,7 +283,7 @@ Resource bundle files live at `src/main/resources/i18n/`:
 
 ---
 
-## 15. Internationalisation (i18n)
+## 16. Internationalisation (i18n)
 
 * **Library:** `react-i18next` with `i18next`. The setup lives in `src/i18n/index.ts`.
 * **Supported languages:** English (`en`) and Spanish (`es`). Translation files are `src/i18n/en.ts` and `src/i18n/es.ts`.
@@ -274,7 +293,7 @@ Resource bundle files live at `src/main/resources/i18n/`:
 
 ---
 
-## 16. Coding Conventions
+## 17. Coding Conventions
 
 1. **Absolute Imports:** The frontend project is configured to use path aliases (`@/` mapping to `src/`). You **must** use absolute imports for all internal modules instead of relative paths.
    * **Do:** `import Button from '@/components/ui/Button'`
