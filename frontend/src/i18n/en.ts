@@ -39,7 +39,6 @@ const en = {
   nav: {
     home: 'Home',
     activity: 'Activity',
-    wallet: 'Wallet',
     periods: 'Periods',
     chat: 'Chat',
     subs: 'Subs',

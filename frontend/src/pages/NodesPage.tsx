@@ -214,6 +214,7 @@ export function NodesPage() {
 
       <PageHeader
         title={t('nodes.title')}
+        back
         subtitle={t('nodes.activeCount', { count: paged?.totalElements ?? 0 })}
         action={
           <Button size="sm" onClick={openNewModal}>
