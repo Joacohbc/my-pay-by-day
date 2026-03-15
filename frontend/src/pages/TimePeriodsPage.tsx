@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import {
   useTimePeriods,
   useCreateTimePeriod,
@@ -16,7 +16,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
@@ -385,12 +385,19 @@ export function TimePeriodsPage() {
             {budgetFields.map((field, index) => (
               <div key={field.id} className="flex items-start gap-2">
                 <div className="flex-1">
-                  <Select
-                    {...register(`budgets.${index}.categoryId` as const, { required: true })}
-                    options={[
-                      { value: '', label: t('common.selectCategory', 'Select Category') },
-                      ...(categoriesPaged?.content.map(c => ({ value: String(c.id), label: c.name })) || [])
-                    ]}
+                  <Controller
+                    name={`budgets.${index}.categoryId` as const}
+                    control={control}
+                    rules={{ required: true }}
+                    render={({ field: f }) => (
+                      <SearchableSelect
+                        options={[
+                          { value: '', label: t('common.selectCategory', 'Select Category') },
+                          ...(categoriesPaged?.content.map(c => ({ value: String(c.id), label: c.name })) || [])
+                        ]}
+                        {...f}
+                      />
+                    )}
                   />
                 </div>
                 <div className="w-32">

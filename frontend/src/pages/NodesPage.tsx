@@ -9,7 +9,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -328,7 +328,7 @@ export function NodesPage() {
             name="type"
             control={control}
             render={({ field }) => (
-              <Select
+              <SearchableSelect
                 label={t('common.type')}
                 options={nodeTypeOptions}
                 {...field}

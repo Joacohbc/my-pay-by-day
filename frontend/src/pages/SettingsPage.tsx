@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useTemplates } from '@/hooks/useTemplates';
@@ -90,16 +91,15 @@ export function SettingsPage() {
               <p className="text-sm font-medium text-dn-text-main">{t('settings.language')}</p>
               <p className="text-xs text-dn-text-muted">{t('settings.languageDesc')}</p>
             </div>
-            <div className="relative shrink-0">
-              <select
+            <div className="relative shrink-0 w-32">
+              <SearchableSelect
                 value={i18n.language}
-                onChange={(e) => changeLanguage(e.target.value)}
-                className="appearance-none text-sm bg-dn-surface-low text-dn-text-main border border-white/10 rounded-input pl-3 pr-8 py-2 focus:outline-none focus:ring-1 focus:ring-dn-primary"
-              >
-                <option value="en">English</option>
-                <option value="es">Español</option>
-              </select>
-              <Icon name="expand_more" className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-base text-dn-text-muted" />
+                onChange={(val) => changeLanguage(String(val))}
+                options={[
+                  { value: 'en', label: 'English' },
+                  { value: 'es', label: 'Español' },
+                ]}
+              />
             </div>
           </div>
           <div className="flex items-center gap-4 px-4 py-3.5">
@@ -110,18 +110,15 @@ export function SettingsPage() {
               <p className="text-sm font-medium text-dn-text-main">{t('settings.timezone')}</p>
               <p className="text-xs text-dn-text-muted">{t('settings.timezoneDesc')}</p>
             </div>
-            <div className="relative shrink-0">
-              <select
+            <div className="relative shrink-0 w-48">
+              <SearchableSelect
                 value={timezone}
-                onChange={(e) => handleTimezoneChange(e.target.value)}
-                className="appearance-none text-sm bg-dn-surface-low text-dn-text-main border border-white/10 rounded-input pl-3 pr-8 py-2 focus:outline-none focus:ring-1 focus:ring-dn-primary max-w-[150px] truncate"
-              >
-                <option value="">{t('settings.timezoneBrowserDefault')} ({getUserTimezone()})</option>
-                {commonTimezones.map(tz => (
-                  <option key={tz} value={tz}>{tz}</option>
-                ))}
-              </select>
-              <Icon name="expand_more" className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-base text-dn-text-muted" />
+                onChange={(val) => handleTimezoneChange(String(val))}
+                options={[
+                  { value: '', label: `${t('settings.timezoneBrowserDefault')} (${getUserTimezone()})` },
+                  ...commonTimezones.map(tz => ({ value: tz, label: tz }))
+                ]}
+              />
             </div>
           </div>
           <div className="flex items-center gap-4 px-4 py-3.5">
@@ -132,19 +129,12 @@ export function SettingsPage() {
               <p className="text-sm font-medium text-dn-text-main">{t('settings.currency')}</p>
               <p className="text-xs text-dn-text-muted">{t('settings.currencyDesc')}</p>
             </div>
-            <div className="relative shrink-0">
-              <select
+            <div className="relative shrink-0 w-32">
+              <SearchableSelect
                 value={currency}
-                onChange={(e) => handleCurrencyChange(e.target.value)}
-                className="appearance-none text-sm bg-dn-surface-low text-dn-text-main border border-white/10 rounded-input pl-3 pr-8 py-2 focus:outline-none focus:ring-1 focus:ring-dn-primary"
-              >
-                {currenciesList.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-              <Icon name="expand_more" className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-base text-dn-text-muted" />
+                onChange={(val) => handleCurrencyChange(String(val))}
+                options={currenciesList.map(c => ({ value: c.code, label: c.label }))}
+              />
             </div>
           </div>
         </Card>

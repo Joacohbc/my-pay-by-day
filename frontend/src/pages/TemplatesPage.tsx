@@ -12,7 +12,7 @@ import { Modal } from '@/components/ui/Modal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
-import { Select } from '@/components/ui/Select';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -291,7 +291,7 @@ export function TemplatesPage() {
             name="eventType"
             control={control}
             render={({ field }) => (
-              <Select
+              <SearchableSelect
                 label={t('templates.eventType')}
                 placeholder={t('common.none')}
                 options={[
@@ -309,7 +309,7 @@ export function TemplatesPage() {
               name="originNodeId"
               control={control}
               render={({ field }) => (
-                <Select
+                <SearchableSelect
                   label={t('templates.originNode')}
                   placeholder={t('common.none')}
                   options={nodeOptions}
@@ -321,7 +321,7 @@ export function TemplatesPage() {
               name="destinationNodeId"
               control={control}
               render={({ field }) => (
-                <Select
+                <SearchableSelect
                   label={t('templates.destinationNode')}
                   placeholder={t('common.none')}
                   options={nodeOptions}
@@ -335,7 +335,7 @@ export function TemplatesPage() {
             name="categoryId"
             control={control}
             render={({ field }) => (
-              <Select
+              <SearchableSelect
                 label={t('eventForm.category')}
                 placeholder={t('common.none')}
                 options={categories.map((c) => ({ value: String(c.id), label: c.name }))}
@@ -392,7 +392,7 @@ export function TemplatesPage() {
               name="modifierType"
               control={control}
               render={({ field }) => (
-                <Select
+                <SearchableSelect
                   label={t('templates.modifierType')}
                   placeholder={t('common.none')}
                   options={[
