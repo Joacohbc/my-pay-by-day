@@ -335,6 +335,9 @@ const en = {
     languageDesc: 'App display language',
     currency: 'Currency',
     currencyDesc: 'Currency used for formatting amounts',
+    timezone: 'Timezone',
+    timezoneDesc: 'Timezone for dates and times',
+    timezoneBrowserDefault: 'Browser Default',
     preferences: 'Preferences',
   },
 

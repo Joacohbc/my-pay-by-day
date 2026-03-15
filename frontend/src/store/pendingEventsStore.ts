@@ -26,7 +26,7 @@ export const usePendingEventsStore = create<PendingEventsState>()(
             {
               localId: crypto.randomUUID(),
               dto,
-              createdAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(), // pending local state, can remain standard ISO
             },
           ],
         })),

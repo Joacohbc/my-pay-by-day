@@ -9,6 +9,8 @@ import { useTags } from '@/hooks/useTags';
 import { useTemplates } from '@/hooks/useTemplates';
 import { changeLanguage } from '@/i18n';
 import { getCurrency, setCurrency, onCurrencyChange } from '@/lib/format';
+import { commonTimezones } from '@/utils/timezones';
+import { getUserTimezone } from '@/utils/dateUtils';
 
 interface SettingRowProps {
   to: string;
@@ -44,6 +46,7 @@ function SettingRow({ to, icon, title, subtitle, count }: SettingRowProps) {
 export function SettingsPage() {
   const { t, i18n } = useTranslation();
   const [currency, _setCurrency] = useState(getCurrency);
+  const [timezone, _setTimezone] = useState(() => localStorage.getItem('user-timezone') || '');
   const { data: categoriesPaged } = useCategories();
   const { data: tagsPaged } = useTags();
   const { data: templatesPaged } = useTemplates();
@@ -53,6 +56,17 @@ export function SettingsPage() {
   const handleCurrencyChange = (code: string) => {
     setCurrency(code);
     _setCurrency(code);
+  };
+
+  const handleTimezoneChange = (tz: string) => {
+    if (tz === '') {
+      localStorage.removeItem('user-timezone');
+    } else {
+      localStorage.setItem('user-timezone', tz);
+    }
+    _setTimezone(tz);
+    // Force a reload to quickly apply timezone to all cached date-fns-tz computations across the app
+    window.location.reload();
   };
 
   return (
@@ -81,6 +95,28 @@ export function SettingsPage() {
               >
                 <option value="en">English</option>
                 <option value="es">Español</option>
+              </select>
+              <Icon name="expand_more" className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-base text-dn-text-muted" />
+            </div>
+          </div>
+          <div className="flex items-center gap-4 px-4 py-3.5">
+            <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-surface-low text-dn-text-muted shrink-0">
+              <Icon name="schedule" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dn-text-main">{t('settings.timezone')}</p>
+              <p className="text-xs text-dn-text-muted">{t('settings.timezoneDesc')}</p>
+            </div>
+            <div className="relative shrink-0">
+              <select
+                value={timezone}
+                onChange={(e) => handleTimezoneChange(e.target.value)}
+                className="appearance-none text-sm bg-dn-surface-low text-dn-text-main border border-white/10 rounded-input pl-3 pr-8 py-2 focus:outline-none focus:ring-1 focus:ring-dn-primary max-w-[150px] truncate"
+              >
+                <option value="">{t('settings.timezoneBrowserDefault')} ({getUserTimezone()})</option>
+                {commonTimezones.map(tz => (
+                  <option key={tz} value={tz}>{tz}</option>
+                ))}
               </select>
               <Icon name="expand_more" className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-base text-dn-text-muted" />
             </div>

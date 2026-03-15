@@ -82,20 +82,26 @@ export function formatCurrencyShort(amount: number): string {
   }).format(amount);
 }
 
+import { getUserTimezone } from '@/utils/dateUtils';
+
 export function formatDate(isoString: string): string {
   return new Intl.DateTimeFormat(locale(), {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
+    timeZone: getUserTimezone(),
   }).format(new Date(isoString));
 }
 
 export function formatDateFromParts(dateOnly: string): string {
+  // Always evaluate "just a date" using UTC internally so it doesn't drift,
+  // as LocalDate on the server has no timezone.
   return new Intl.DateTimeFormat(locale(), {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date(dateOnly + 'T00:00:00'));
+    timeZone: 'UTC',
+  }).format(new Date(dateOnly + 'T00:00:00Z'));
 }
 
 export function formatDateTime(isoString: string): string {
@@ -105,6 +111,7 @@ export function formatDateTime(isoString: string): string {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: getUserTimezone(),
   }).format(new Date(isoString));
 }
 

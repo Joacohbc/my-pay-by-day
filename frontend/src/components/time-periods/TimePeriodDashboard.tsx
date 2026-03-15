@@ -10,6 +10,7 @@ import { PeriodRecentActivity } from '@/components/time-periods/PeriodRecentActi
 import { formatCurrency, formatDateFromParts } from '@/lib/format';
 import { Icon } from '@/components/ui/Icon';
 import type { FinanceEvent, TimePeriod } from '@/models';
+import { getUserTimezone } from '@/utils/dateUtils';
 
 interface TimePeriodDashboardProps {
   timePeriodId: number;
@@ -41,7 +42,9 @@ export function TimePeriodDashboard({
     .slice(0, 8);
 
   const dateLabel = formatPeriodLabel(timePeriod);
-  const now = new Date();
+
+  const nowIso = new Date().toLocaleString('en-US', { timeZone: getUserTimezone() });
+  const now = new Date(nowIso);
   const greeting =
     now.getHours() < 12 ? t('greeting.morning') : now.getHours() < 18 ? t('greeting.afternoon') : t('greeting.evening');
 

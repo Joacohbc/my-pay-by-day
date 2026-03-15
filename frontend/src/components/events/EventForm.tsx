@@ -13,6 +13,7 @@ import { useNodes } from '@/hooks/useNodes';
 import { Icon } from '@/components/ui/Icon';
 import type { CreateEventDto, EventType, FinanceEvent } from '@/models';
 import { toLocalDateTimeString } from '@/lib/format';
+import { getUserTimezone } from '@/utils/dateUtils';
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
@@ -84,9 +85,10 @@ export function EventForm({
       description: defaultValues?.description ?? '',
       receiptUrl: defaultValues?.receiptUrl ?? '',
       type: defaultValues?.type ?? preset?.type ?? 'OUTBOUND',
+      // Convert current date to the user's localized time before putting it into the datetime-local input
       transactionDate: defaultValues?.transactionDate
-        ? toLocalDateTimeString(new Date(defaultValues.transactionDate))
-        : toLocalDateTimeString(new Date()),
+        ? toLocalDateTimeString(new Date(defaultValues.transactionDate)) // defaultValues are already properly formatted to local time by interceptor
+        : toLocalDateTimeString(new Date(new Date().toLocaleString('en-US', { timeZone: getUserTimezone() }))),
       categoryId: defaultValues?.category
         ? String(defaultValues.category.id)
         : preset?.categoryId
@@ -124,7 +126,8 @@ export function EventForm({
       receiptUrl: values.receiptUrl || undefined,
       type: values.type,
       transaction: {
-        transactionDate: new Date(values.transactionDate).toISOString(),
+        // Form input datetime-local returns "YYYY-MM-DDTHH:mm". We append the seconds so it's parsed as expected locally before interceptors make it UTC.
+        transactionDate: values.transactionDate.includes(':00.000') ? values.transactionDate : `${values.transactionDate}:00.000`,
         lineItems: values.lineItems.map((li, i) => {
           let amount = Number(li.amount);
           if (isTemplateMode) {

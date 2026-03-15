@@ -40,7 +40,16 @@ type SortDir = 'asc' | 'desc';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-const today = () => new Date().toISOString().slice(0, 10);
+import { getUserTimezone } from '@/utils/dateUtils';
+
+// Uses the user's localized timezone string to determine the current "today"
+const today = () => {
+  const now = new Date();
+  const yyyy = new Intl.DateTimeFormat('en-CA', { year: 'numeric', timeZone: getUserTimezone() }).format(now);
+  const mm = new Intl.DateTimeFormat('en-CA', { month: '2-digit', timeZone: getUserTimezone() }).format(now);
+  const dd = new Intl.DateTimeFormat('en-CA', { day: '2-digit', timeZone: getUserTimezone() }).format(now);
+  return `${yyyy}-${mm}-${dd}`;
+};
 
 function getPeriodStatus(tp: TimePeriod): FilterTab {
   const t = today();

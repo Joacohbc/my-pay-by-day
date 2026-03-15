@@ -13,6 +13,7 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { Icon } from '@/components/ui/Icon';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import type { Template } from '@/models';
+import { getUserTimezone } from '@/utils/dateUtils';
 
 export function DashboardPage() {
   const { t } = useTranslation();
@@ -31,7 +32,8 @@ export function DashboardPage() {
     }
   };
 
-  const now = new Date();
+  const nowIso = new Date().toLocaleString('en-US', { timeZone: getUserTimezone() });
+  const now = new Date(nowIso);
   const greeting =
     now.getHours() < 12 ? t('greeting.morning') : now.getHours() < 18 ? t('greeting.afternoon') : t('greeting.evening');
 
