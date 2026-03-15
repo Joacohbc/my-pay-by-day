@@ -9,7 +9,6 @@ import com.mypaybyday.entity.FinanceEvent;
 import com.mypaybyday.entity.FinanceLineItem;
 import com.mypaybyday.entity.FinanceNode;
 import com.mypaybyday.entity.FinanceTransaction;
-import com.mypaybyday.entity.Tag;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.LanguageContext;
 import com.mypaybyday.i18n.Messages;
@@ -41,13 +40,19 @@ public class IntelligentEventService {
 
     public FinanceEventDto createFromText(RawTextEventRequestDto request) throws BusinessException {
         // Construct the AI context
-        String systemPrompt = messages.get(MsgKey.AI_SYSTEM_PROMPT, LocalDateTime.now().toString(), languageContext.getLang());
+        String systemPrompt = messages.get(MsgKey.AI_SYSTEM_PROMPT, LocalDateTime.now().toString(),
+                languageContext.getLang());
         String extractionPrompt = systemPrompt + "\n\n" +
-            "TASK:\n" +
-            "Extract a structured finance event from the provided raw text using ONLY the categories, tags, and nodes available in the RAG context.\n" +
-            "- If the text mentions an entity that perfectly matches one in the context, use its ID.\n" +
-            "- Always ensure the line items adhere to the zero-sum rule (their amounts must sum to 0).\n" +
-            "- Provide sensible defaults for missing information where possible, based on your knowledge base.";
+                "TASK:\n" +
+                "Extract the transaction details using ONLY the IDs provided in the context.\n" +
+                "RULES:\n" +
+                "- Extract the absolute positive amount.\n" +
+                "- Identify the sourceNodeId (who pays) and destinationNodeId (who receives).\n\n" +
+                "EXAMPLE:\n" +
+                "Context: Nodes: [id: 1, name: Wallet], [id: 2, name: Supermarket]. Categories: [id: 5, name: Food].\n" +
+                "Text: Spent 50 in the supermarket from my wallet.\n" +
+                "Output: { \"name\": \"Supermarket\", \"amount\": 50.00, \"sourceNodeId\": 1, \"destinationNodeId\": 2, \"categoryId\": 5 }\n\n" +
+                "Now process the user request.";
 
         // Call the Langchain4j structured output extraction
         FinanceEventExtractionDto extraction = financeExtractor.extractEvent(request.getText(), extractionPrompt);
@@ -55,25 +60,14 @@ public class IntelligentEventService {
         // Map the extracted DTO to the entities
         FinanceEvent event = new FinanceEvent();
         event.name = extraction.getName();
-        event.description = extraction.getDescription() != null ? extraction.getDescription() : "Created intelligently from: " + request.getText();
-        event.type = extraction.getType() != null ? extraction.getType() : com.mypaybyday.enums.EventType.OUTBOUND;
+        event.description = "Created intelligently from: " + request.getText();
+        event.type = com.mypaybyday.enums.EventType.OUTBOUND;
 
         // Map Category
         if (extraction.getCategoryId() != null) {
             Category category = new Category();
             category.id = extraction.getCategoryId();
             event.category = category;
-        }
-
-        // Map Tags
-        if (extraction.getTagIds() != null && !extraction.getTagIds().isEmpty()) {
-            List<Tag> tags = new ArrayList<>();
-            for (Long tagId : extraction.getTagIds()) {
-                Tag tag = new Tag();
-                tag.id = tagId;
-                tags.add(tag);
-            }
-            event.tags = tags;
         }
 
         // Map Transaction and Line Items
@@ -84,7 +78,8 @@ public class IntelligentEventService {
         if (extraction.getTransactionDate() != null) {
             try {
                 // Assuming format YYYY-MM-DD from AI extraction prompt, default to start of day
-                transactionDate = LocalDate.parse(extraction.getTransactionDate(), DateTimeFormatter.ISO_LOCAL_DATE).atStartOfDay();
+                transactionDate = LocalDate.parse(extraction.getTransactionDate(), DateTimeFormatter.ISO_LOCAL_DATE)
+                        .atStartOfDay();
             } catch (Exception e) {
                 // If parsing fails, stick with current time
             }
@@ -92,22 +87,35 @@ public class IntelligentEventService {
         transaction.transactionDate = transactionDate;
 
         List<FinanceLineItem> lineItems = new ArrayList<>();
-        if (extraction.getLineItems() != null) {
-            for (FinanceEventExtractionDto.LineItemExtractionDto liExtraction : extraction.getLineItems()) {
-                if (liExtraction.getNodeId() != null && liExtraction.getAmount() != null) {
-                    FinanceLineItem item = new FinanceLineItem();
-                    item.amount = liExtraction.getAmount();
-                    FinanceNode node = new FinanceNode();
-                    node.id = liExtraction.getNodeId();
-                    item.financeNode = node;
-                    item.transaction = transaction;
-                    lineItems.add(item);
-                }
+        java.math.BigDecimal amount = extraction.getAmount();
+
+        if (amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            // Nodo de origen (resta)
+            if (extraction.getSourceNodeId() != null) {
+                FinanceLineItem sourceItem = new FinanceLineItem();
+                sourceItem.amount = amount.negate(); // Java hace la matemática
+                FinanceNode sourceNode = new FinanceNode();
+                sourceNode.id = extraction.getSourceNodeId();
+                sourceItem.financeNode = sourceNode;
+                sourceItem.transaction = transaction;
+                lineItems.add(sourceItem);
+            }
+
+            // Nodo de destino (suma)
+            if (extraction.getDestinationNodeId() != null) {
+                FinanceLineItem destItem = new FinanceLineItem();
+                destItem.amount = amount; // Positivo
+                FinanceNode destNode = new FinanceNode();
+                destNode.id = extraction.getDestinationNodeId();
+                destItem.financeNode = destNode;
+                destItem.transaction = transaction;
+                lineItems.add(destItem);
             }
         }
 
         if (lineItems.isEmpty()) {
-            throw new BusinessException("AI could not extract sufficient transaction line items from the provided text.");
+            throw new BusinessException(
+                    "AI could not extract sufficient transaction line items from the provided text.");
         }
 
         transaction.lineItems = lineItems;
