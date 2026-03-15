@@ -1,12 +1,10 @@
 import type { DynamicPeriodOption } from '@/components/time-periods/DynamicTimePeriodSelector';
 
-import { getUserTimezone } from '@/utils/dateUtils';
+import { getLocalizedNow } from '@/lib/format';
 
 export function getDynamicPeriodDates(option: DynamicPeriodOption): { startDate: string; endDate: string } {
   // Use the user's timezone to determine what "today" means
-  const userTz = getUserTimezone();
-  const nowIso = new Date().toLocaleString('en-US', { timeZone: userTz });
-  const now = new Date(nowIso);
+  const now = getLocalizedNow();
 
   const formatDate = (date: Date) => {
     const yyyy = date.getFullYear();

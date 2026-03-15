@@ -84,13 +84,14 @@ export function formatCurrencyShort(amount: number): string {
 
 import { getUserTimezone } from '@/utils/dateUtils';
 
-export function formatDate(isoString: string): string {
+export function formatDate(input: string | Date): string {
+  const date = typeof input === 'string' ? new Date(input) : input;
   return new Intl.DateTimeFormat(locale(), {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
     timeZone: getUserTimezone(),
-  }).format(new Date(isoString));
+  }).format(date);
 }
 
 export function formatDateFromParts(dateOnly: string): string {
@@ -104,7 +105,8 @@ export function formatDateFromParts(dateOnly: string): string {
   }).format(new Date(dateOnly + 'T00:00:00Z'));
 }
 
-export function formatDateTime(isoString: string): string {
+export function formatDateTime(input: string | Date): string {
+  const date = typeof input === 'string' ? new Date(input) : input;
   return new Intl.DateTimeFormat(locale(), {
     month: 'short',
     day: 'numeric',
@@ -112,12 +114,31 @@ export function formatDateTime(isoString: string): string {
     hour: '2-digit',
     minute: '2-digit',
     timeZone: getUserTimezone(),
-  }).format(new Date(isoString));
+  }).format(date);
 }
 
 export function formatDateInput(isoString: string): string {
   // Returns YYYY-MM-DDTHH:mm for datetime-local inputs
   return isoString.slice(0, 16);
+}
+
+/**
+ * Returns a new Date object representing "now" evaluated in the user's localized timezone.
+ */
+export function getLocalizedNow(): Date {
+  const nowIso = new Date().toLocaleString('en-US', { timeZone: getUserTimezone() });
+  return new Date(nowIso);
+}
+
+/**
+ * Returns the localized "today" as a YYYY-MM-DD string.
+ */
+export function getLocalizedTodayString(): string {
+  const now = new Date();
+  const yyyy = new Intl.DateTimeFormat('en-CA', { year: 'numeric', timeZone: getUserTimezone() }).format(now);
+  const mm = new Intl.DateTimeFormat('en-CA', { month: '2-digit', timeZone: getUserTimezone() }).format(now);
+  const dd = new Intl.DateTimeFormat('en-CA', { day: '2-digit', timeZone: getUserTimezone() }).format(now);
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 /**
@@ -138,7 +159,8 @@ export function eventNetAmount(event: FinanceEvent): number {
   return items.reduce((s, li) => s + Number(li.amount), 0);
 }
 
-export function toLocalDateTimeString(date: Date): string {
+export function toLocalDateTimeString(input: string | Date): string {
+  const date = typeof input === 'string' ? new Date(input) : input;
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }

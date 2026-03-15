@@ -12,8 +12,7 @@ import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
 import { Icon } from '@/components/ui/Icon';
 import type { CreateEventDto, EventType, FinanceEvent } from '@/models';
-import { toLocalDateTimeString } from '@/lib/format';
-import { getUserTimezone } from '@/utils/dateUtils';
+import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
@@ -87,8 +86,8 @@ export function EventForm({
       type: defaultValues?.type ?? preset?.type ?? 'OUTBOUND',
       // Convert current date to the user's localized time before putting it into the datetime-local input
       transactionDate: defaultValues?.transactionDate
-        ? toLocalDateTimeString(new Date(defaultValues.transactionDate)) // defaultValues are already properly formatted to local time by interceptor
-        : toLocalDateTimeString(new Date(new Date().toLocaleString('en-US', { timeZone: getUserTimezone() }))),
+        ? toLocalDateTimeString(defaultValues.transactionDate) // defaultValues are already properly formatted to local time by interceptor
+        : toLocalDateTimeString(getLocalizedNow()),
       categoryId: defaultValues?.category
         ? String(defaultValues.category.id)
         : preset?.categoryId

@@ -7,13 +7,13 @@ import { TimePeriodDashboard } from '@/components/time-periods/TimePeriodDashboa
 import { DynamicTimePeriodDashboard } from '@/components/time-periods/DynamicTimePeriodDashboard';
 import { DynamicTimePeriodSelector, type DynamicPeriodOption } from '@/components/time-periods/DynamicTimePeriodSelector';
 import { getDynamicPeriodDates } from '@/lib/dateUtils';
+import { getLocalizedNow } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { Icon } from '@/components/ui/Icon';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import type { Template } from '@/models';
-import { getUserTimezone } from '@/utils/dateUtils';
 
 export function DashboardPage() {
   const { t } = useTranslation();
@@ -32,8 +32,7 @@ export function DashboardPage() {
     }
   };
 
-  const nowIso = new Date().toLocaleString('en-US', { timeZone: getUserTimezone() });
-  const now = new Date(nowIso);
+  const now = getLocalizedNow();
   const greeting =
     now.getHours() < 12 ? t('greeting.morning') : now.getHours() < 18 ? t('greeting.afternoon') : t('greeting.evening');
 

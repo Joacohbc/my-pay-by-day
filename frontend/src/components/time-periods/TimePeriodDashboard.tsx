@@ -7,10 +7,9 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { NewEventFab } from '@/components/time-periods/NewEventFab';
 import { PeriodBalanceSummary } from '@/components/time-periods/PeriodBalanceSummary';
 import { PeriodRecentActivity } from '@/components/time-periods/PeriodRecentActivity';
-import { formatCurrency, formatDateFromParts } from '@/lib/format';
+import { formatCurrency, formatDateFromParts, getLocalizedNow } from '@/lib/format';
 import { Icon } from '@/components/ui/Icon';
 import type { FinanceEvent, TimePeriod } from '@/models';
-import { getUserTimezone } from '@/utils/dateUtils';
 
 interface TimePeriodDashboardProps {
   timePeriodId: number;
@@ -43,8 +42,7 @@ export function TimePeriodDashboard({
 
   const dateLabel = formatPeriodLabel(timePeriod);
 
-  const nowIso = new Date().toLocaleString('en-US', { timeZone: getUserTimezone() });
-  const now = new Date(nowIso);
+  const now = getLocalizedNow();
   const greeting =
     now.getHours() < 12 ? t('greeting.morning') : now.getHours() < 18 ? t('greeting.afternoon') : t('greeting.evening');
 
