@@ -68,12 +68,7 @@ public class RagIngestionService {
         List<TextSegment> segments = new ArrayList<>();
 
         ingestEntities(eventRepository.listAll(), segments);
-        ingestEntities(categoryRepository.listAll(), segments);
-        ingestEntities(tagRepository.listAll(), segments);
-        ingestEntities(nodeRepository.listAll(), segments);
-        ingestEntities(timePeriodRepository.listAll(), segments);
-        ingestEntities(subscriptionRepository.listAll(), segments);
-
+        
         if (!segments.isEmpty()) {
             LOG.info("Embedding and storing " + segments.size() + " segments...");
             for (TextSegment segment : segments) {
