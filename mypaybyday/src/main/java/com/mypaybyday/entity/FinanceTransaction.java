@@ -5,11 +5,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -50,17 +48,7 @@ public class FinanceTransaction extends BaseEntity {
 
     /** The date and time at which the financial movement occurred. */
     @NotNull
-    public LocalDateTime transactionDate;
-
-    /**
-     * Timestamp set once when this record is first persisted. Never updated
-     * afterwards.
-     */
-    @Column(updatable = false)
-    public LocalDateTime createdAt;
-
-    /** Timestamp updated every time this record is modified. */
-    public LocalDateTime updatedAt;
+    public LocalDate transactionDate;
 
     /**
      * The atomic movements of value that make up this transaction.
@@ -73,17 +61,6 @@ public class FinanceTransaction extends BaseEntity {
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     public List<FinanceLineItem> lineItems = new ArrayList<>();
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 
     @Override
     public String toRagContent() {

@@ -23,8 +23,6 @@ import jakarta.transaction.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -83,10 +81,7 @@ public class TimePeriodService {
     public TimePeriodBalanceDto getBalance(Long id) throws BusinessException {
         TimePeriod timePeriod = findTimePeriodEntity(id);
 
-        LocalDateTime from = timePeriod.startDate.atStartOfDay();
-        LocalDateTime to   = timePeriod.endDate.atTime(LocalTime.MAX);
-
-        List<FinanceEventDto> events = eventService.findByDateRange(from, to);
+        List<FinanceEventDto> events = eventService.findByDateRange(timePeriod.startDate, timePeriod.endDate);
 
         BigDecimal income   = BigDecimal.ZERO;
         BigDecimal outbound = BigDecimal.ZERO;
@@ -154,10 +149,7 @@ public class TimePeriodService {
             throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
         }
 
-        LocalDateTime from = startDate.atStartOfDay();
-        LocalDateTime to = endDate.atTime(LocalTime.MAX);
-
-        List<FinanceEventDto> events = eventService.findByDateRange(from, to);
+        List<FinanceEventDto> events = eventService.findByDateRange(startDate, endDate);
 
         BigDecimal income = BigDecimal.ZERO;
         BigDecimal outbound = BigDecimal.ZERO;

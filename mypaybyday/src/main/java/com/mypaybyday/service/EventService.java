@@ -19,7 +19,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -79,7 +79,7 @@ public class EventService {
      * determined dynamically at query time, never via a hard foreign-key.
      */
     @Transactional
-    public List<FinanceEventDto> findByDateRange(LocalDateTime from, LocalDateTime to) throws BusinessException {
+    public List<FinanceEventDto> findByDateRange(LocalDate from, LocalDate to) throws BusinessException {
         return findEventEntitiesByDateRange(from, to).stream().map(FinanceEventDto::from).toList();
     }
 
@@ -88,7 +88,7 @@ public class EventService {
      * This ensures the AI does not perform the calculation itself.
      */
     @Transactional
-    public CategoryBalanceDto getCategoryBalance(Long categoryId, LocalDateTime from, LocalDateTime to) throws BusinessException {
+    public CategoryBalanceDto getCategoryBalance(Long categoryId, LocalDate from, LocalDate to) throws BusinessException {
         Category category = categoryService.findEntityById(categoryId);
         List<FinanceEvent> events = findEventEntitiesByDateRangeAndCategory(categoryId, from, to);
 
@@ -225,7 +225,7 @@ public class EventService {
      * Internal method used by other services that need managed {@link FinanceEvent} entities
      * with their full graph loaded (e.g. {@link TimePeriodService} for balance calculations).
      */
-    private List<FinanceEvent> findEventEntitiesByDateRange(LocalDateTime from, LocalDateTime to) throws BusinessException {
+    private List<FinanceEvent> findEventEntitiesByDateRange(LocalDate from, LocalDate to) throws BusinessException {
         if (from == null || to == null) {
             throw new BusinessException(messages.get(MsgKey.EVENT_DATE_RANGE_NULL));
         }
@@ -237,7 +237,7 @@ public class EventService {
                 from, to);
     }
 
-    private List<FinanceEvent> findEventEntitiesByDateRangeAndCategory(Long categoryId, LocalDateTime from, LocalDateTime to) throws BusinessException {
+    private List<FinanceEvent> findEventEntitiesByDateRangeAndCategory(Long categoryId, LocalDate from, LocalDate to) throws BusinessException {
         if (from == null || to == null) {
             throw new BusinessException(messages.get(MsgKey.EVENT_DATE_RANGE_NULL));
         }

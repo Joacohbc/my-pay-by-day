@@ -4,7 +4,7 @@ import com.mypaybyday.entity.FinanceEvent;
 import com.mypaybyday.enums.EventType;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -28,7 +28,7 @@ public record FinanceEventDto(
     EventType type,
     BigDecimal amount,
     Long transactionId,
-    LocalDateTime transactionDate,
+    LocalDate transactionDate,
     List<FinanceLineItemDto> lineItems,
     CategoryDto category,
     List<TagDto> tags
@@ -37,7 +37,7 @@ public record FinanceEventDto(
     public static FinanceEventDto from(FinanceEvent event) {
         // Flatten transaction details if present
         Long txId = null;
-        LocalDateTime txDate = null;
+        LocalDate txDate = null;
         List<FinanceLineItemDto> items = null;
         BigDecimal calculatedAmount = BigDecimal.ZERO;
 

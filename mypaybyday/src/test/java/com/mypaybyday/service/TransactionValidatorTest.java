@@ -7,7 +7,7 @@ import com.mypaybyday.i18n.MsgKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -30,7 +30,7 @@ class TransactionValidatorTest {
     @Test
     void validateDateNotInFuture_ThrowsException_WhenDateIsFuture() {
         FinanceTransaction transaction = new FinanceTransaction();
-        transaction.transactionDate = LocalDateTime.now().plusDays(1);
+        transaction.transactionDate = LocalDate.now().plusDays(1);
 
         assertThrows(BusinessException.class, () -> validator.validateDateNotInFuture(transaction));
     }
@@ -38,7 +38,7 @@ class TransactionValidatorTest {
     @Test
     void validateDateNotInFuture_DoesNotThrowException_WhenDateIsPast() {
         FinanceTransaction transaction = new FinanceTransaction();
-        transaction.transactionDate = LocalDateTime.now().minusDays(1);
+        transaction.transactionDate = LocalDate.now().minusDays(1);
 
         assertDoesNotThrow(() -> validator.validateDateNotInFuture(transaction));
     }

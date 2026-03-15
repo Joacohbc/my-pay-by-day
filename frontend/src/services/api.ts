@@ -36,6 +36,10 @@ export function getConfigTimezone(): string | undefined {
   return configTimezone || undefined;
 }
 
+export async function initApiConfig(): Promise<void> {
+  await fetchConfigTimezone();
+}
+
 async function fetchConfigTimezone(): Promise<string | null> {
   if (configTimezone !== null) {
     return configTimezone;
