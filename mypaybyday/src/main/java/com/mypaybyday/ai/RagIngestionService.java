@@ -9,16 +9,12 @@ import com.mypaybyday.repository.TimePeriodRepository;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -54,9 +50,6 @@ public class RagIngestionService {
     @Inject
     EmbeddingModel embeddingModel;
 
-    @ConfigProperty(name = "rag.storage.path", defaultValue = "rag-vectors.json")
-    String storagePath;
-
     // After the application starts, ingest the data
     public void onStart(@Observes StartupEvent ev) {
         ingestData();
@@ -75,13 +68,6 @@ public class RagIngestionService {
                 embeddingStore.add(embeddingModel.embed(segment).content(), segment);
             }
             LOG.info("Ingested " + segments.size() + " segments into the RAG system.");
-
-            // Persist the store to file
-            if (embeddingStore instanceof InMemoryEmbeddingStore) {
-                Path path = Paths.get(storagePath);
-                ((InMemoryEmbeddingStore<TextSegment>) embeddingStore).serializeToFile(path);
-                LOG.info("Persisted RAG embeddings to " + storagePath);
-            }
         } else {
             LOG.info("No data found to ingest.");
         }

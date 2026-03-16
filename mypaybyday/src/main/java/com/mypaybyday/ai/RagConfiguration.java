@@ -19,11 +19,7 @@ import com.mypaybyday.repository.TagRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -32,9 +28,6 @@ import java.util.logging.Logger;
 public class RagConfiguration {
 
     private static final Logger LOG = Logger.getLogger(RagIngestionService.class.getName());
-
-    @ConfigProperty(name = "rag.storage.path", defaultValue = "rag-vectors.json")
-    String storagePath;
 
     @Inject
     FinanceNodeRepository financeNodeRepository;
@@ -48,16 +41,6 @@ public class RagConfiguration {
     @Produces
     @ApplicationScoped
     public EmbeddingStore<TextSegment> embeddingStore() {
-        Path path = Paths.get(storagePath);
-        if (Files.exists(path) && Files.isRegularFile(path)) {
-            try {
-                if (Files.size(path) > 0) {
-                    return InMemoryEmbeddingStore.fromFile(path);
-                }
-            } catch (Exception e) {
-                LOG.warning("Error loading RAG embeddings from file (it might be corrupted): " + e.getMessage());
-            }
-        }
         return new InMemoryEmbeddingStore<>();
     }
 
