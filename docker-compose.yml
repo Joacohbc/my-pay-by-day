@@ -39,7 +39,7 @@ services:
       - QUARKUS_DATASOURCE_JDBC_URL=${QUARKUS_DATASOURCE_JDBC_URL}
       - TZ=${TZ:-UTC}
     volumes:
-      - db_data:/work/data
+      - db_data:/work
     depends_on:
       4y-ollama:
         condition: service_healthy
