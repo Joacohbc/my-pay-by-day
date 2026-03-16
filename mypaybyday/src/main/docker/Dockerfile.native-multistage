@@ -38,7 +38,7 @@ COPY --chown=quarkus:quarkus src /code/src
 # microarchitecture. Without this, binaries built in CI (GitHub Actions) may
 # use CPU extensions not present on the deployment host and crash at startup
 # with "Failed to create the main Isolate (code 24)" or illegal-instruction errors.
-RUN ./mvnw package -B -DskipTests -Dnative \
+RUN ./mvnw clean package -B -DskipTests -Dnative \
     -Dquarkus.native.container-build=false \
     -Dquarkus.native.march=compatibility \
     -Dquarkus.native.additional-build-args="-H:PageSize=65536"
