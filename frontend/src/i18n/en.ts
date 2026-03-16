@@ -134,6 +134,8 @@ const en = {
     nodeRequired: 'Required',
     amountNonZero: 'Must be a non-zero number',
     atLeastOneLine: 'At least one line item required',
+    manualMode: 'Manual mode',
+    simplifiedMode: 'Simplified mode',
   },
 
   // ─── Template Picker ────────────────────────────────────────────────────
@@ -352,6 +354,13 @@ const en = {
     savedLocally: 'Not sent',
     queuedFeedback: 'Saved offline — confirm sync when you reconnect',
     noConnectionToSend: 'No connection — reconnect to send',
+  },
+
+  // ─── Icon Picker ─────────────────────────────────────────────────────────
+  iconPicker: {
+    searchPlaceholder: 'Search icons…',
+    noResults: 'No icons found',
+    showingCount: 'Showing {{count}} of {{total}} icons — search to find more',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

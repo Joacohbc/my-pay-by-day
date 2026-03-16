@@ -134,6 +134,8 @@ const es = {
     nodeRequired: 'Requerido',
     amountNonZero: 'Debe ser un número distinto de cero',
     atLeastOneLine: 'Se requiere al menos una partida',
+    manualMode: 'Modo manual',
+    simplifiedMode: 'Modo simplificado',
   },
 
   // ─── Template Picker ────────────────────────────────────────────────────
@@ -352,6 +354,13 @@ const es = {
     savedLocally: 'No enviado',
     queuedFeedback: 'Guardado sin conexión — confirmá el envío al reconectarte',
     noConnectionToSend: 'Sin conexión — reconectáte para enviar',
+  },
+
+  // ─── Icon Picker ─────────────────────────────────────────────────────────
+  iconPicker: {
+    searchPlaceholder: 'Buscar íconos…',
+    noResults: 'No se encontraron íconos',
+    showingCount: 'Mostrando {{count}} de {{total}} íconos — buscá para ver más',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────
