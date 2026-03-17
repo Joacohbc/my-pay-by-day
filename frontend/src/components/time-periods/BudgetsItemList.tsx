@@ -1,13 +1,10 @@
 import { Icon } from '@/components/ui/Icon';
-import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency } from '@/lib/format';
-import type { Category } from '@/models';
 
 interface BudgetsItemListProps {
   name: string;
   spentAmount: number;
   budgetedAmount: number;
-  category?: Category;
 }
 
 interface BudgetStatus {
@@ -34,7 +31,7 @@ function calculateBudgetStatus(spent: number, budgeted: number): BudgetStatus {
   };
 }
 
-export function BudgetsItemList({ name, spentAmount, budgetedAmount, category }: BudgetsItemListProps) {
+export function BudgetsItemList({ name, spentAmount, budgetedAmount }: BudgetsItemListProps) {
   const { usedPct, statusIcon, statusColor, barColor } = calculateBudgetStatus(
     spentAmount,
     budgetedAmount
@@ -44,11 +41,7 @@ export function BudgetsItemList({ name, spentAmount, budgetedAmount, category }:
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {category ? (
-            <CategoryIcon category={category} size="sm" shape="rounded-full" />
-          ) : (
-            <Icon name={statusIcon} className={`text-[24px] ${statusColor}`} />
-          )}
+          <Icon name={statusIcon} className={`text-[24px] ${statusColor}`} />
           <p className="text-base font-medium text-dn-text-main">{name}</p>
         </div>
         <p className="text-sm text-dn-text-muted">

@@ -6,7 +6,7 @@ import { eventsService } from '@/services/events.service';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { formatCurrency, formatDateTime } from '@/lib/format';
-import { EventPickerModal } from './EventPickerModal';
+import { EventPickerModal } from '@/components/events/EventPickerModal';
 
 interface RelatedEventsManagerProps {
   event: FinanceEvent;

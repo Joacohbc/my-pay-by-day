@@ -11,7 +11,6 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { RelatedEventsManager } from '@/components/events/RelatedEventsManager';
-import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatDateTime, eventNetAmount } from '@/lib/format';
 import { useState } from 'react';
 
@@ -110,12 +109,7 @@ export function EventDetailPage() {
 
         <div className="flex flex-wrap justify-center gap-2 mt-3">
           <Badge variant={cfg.badgeVariant}>{t(cfg.labelKey)}</Badge>
-          {event.category && (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-pill bg-dn-surface text-dn-text-main text-xs font-medium">
-              <CategoryIcon category={event.category} size="sm" />
-              {event.category.name}
-            </div>
-          )}
+          {event.category && <Badge variant="default">{event.category.name}</Badge>}
           {event.tags.map((tag) => (
             <Badge key={tag.id} variant="indigo">#{tag.name}</Badge>
           ))}
@@ -128,10 +122,7 @@ export function EventDetailPage() {
           {event.category && (
             <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
               <span className="text-sm text-dn-text-muted">{t('events.category')}</span>
-              <div className="flex items-center gap-2">
-                <CategoryIcon category={event.category} size="sm" />
-                <span className="text-sm text-dn-text-main">{event.category.name}</span>
-              </div>
+              <span className="text-sm text-dn-text-main">{event.category.name}</span>
             </div>
           )}
           {event.transactionDate && (

@@ -47,7 +47,6 @@ public enum MsgKey {
     TIME_PERIOD_END_DATE_REQUIRED("error.time_period.end_date_required"),
     TIME_PERIOD_END_BEFORE_START("error.time_period.end_before_start"),
     TIME_PERIOD_SAVINGS_GOAL_RANGE("error.time_period.savings_goal_range"),
-    TIME_PERIOD_BUDGET_LIMIT_MINIMUM("error.time_period.budget_limit_minimum"),
 
     // ── Transaction ───────────────────────────────────────
     TRANSACTION_NOT_FOUND("error.transaction.not_found"),

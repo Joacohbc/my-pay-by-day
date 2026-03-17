@@ -38,9 +38,9 @@ export function EventPickerModal({ currentEventId, existingRelatedIds, onClose }
     },
   });
 
-  const allEvents = pagedResponse?.content || [];
-
   const filteredEvents = useMemo(() => {
+    const allEvents = pagedResponse?.content || [];
+
     return allEvents.filter((event: FinanceEvent) => {
       // Exclude current event and already related events
       if (event.id === currentEventId || existingRelatedIds.includes(event.id)) {
@@ -53,7 +53,7 @@ export function EventPickerModal({ currentEventId, existingRelatedIds, onClose }
       const matchCategory = event.category?.name?.toLowerCase().includes(search);
       return matchName || matchType || matchCategory;
     }).sort((a: FinanceEvent, b: FinanceEvent) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime());
-  }, [allEvents, searchTerm, currentEventId, existingRelatedIds]);
+  }, [pagedResponse, searchTerm, currentEventId, existingRelatedIds]);
 
   const toggleSelection = (id: number) => {
     const newSelection = new Set(selectedIds);

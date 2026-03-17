@@ -67,7 +67,6 @@ public class CategoryService {
         Category category = new Category();
         category.name = dto.name();
         category.description = dto.description();
-        category.icon = dto.icon();
         categoryRepository.persist(category);
         return CategoryDto.from(category);
     }
@@ -80,7 +79,6 @@ public class CategoryService {
         }
         category.name = dto.name();
         category.description = dto.description();
-        category.icon = dto.icon();
         return CategoryDto.from(category);
     }
 

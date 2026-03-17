@@ -12,16 +12,13 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
-import { IconPicker } from '@/components/ui/IconPicker';
-import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { Pagination } from '@/components/ui/Pagination';
 import type { Category } from '@/models';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 
 interface FormValues {
   name: string;
   description: string;
-  icon: string;
 }
 
 export function CategoriesPage() {
@@ -36,8 +33,8 @@ export function CategoriesPage() {
   const [showModal, setShowModal] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
-  const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { name: '', description: '', icon: '' },
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormValues>({
+    defaultValues: { name: '', description: '' },
   });
 
   if (isLoading) return <FullPageSpinner />;
@@ -48,7 +45,7 @@ export function CategoriesPage() {
 
   const openCreate = () => {
     setEditTarget(null);
-    reset({ name: '', description: '', icon: '' });
+    reset({ name: '', description: '' });
     setShowModal(true);
   };
 
@@ -56,7 +53,6 @@ export function CategoriesPage() {
     setEditTarget(cat);
     setValue('name', cat.name);
     setValue('description', cat.description ?? '');
-    setValue('icon', cat.icon ?? '');
     setShowModal(true);
   };
 
@@ -121,7 +117,9 @@ export function CategoriesPage() {
         <div className="px-5 space-y-3">
           {allCategories.map((cat) => (
             <Card key={cat.id} className="flex items-center gap-4">
-              <CategoryIcon category={cat} size="lg" />
+              <div className="w-12 h-12 flex items-center justify-center rounded-full bg-dn-primary/10 text-dn-primary shrink-0 font-bold text-base">
+                {cat.name[0].toUpperCase()}
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-base font-medium text-dn-text-main">{cat.name}</p>
                 {cat.description && (
@@ -171,17 +169,6 @@ export function CategoriesPage() {
             label={t('common.description')}
             placeholder={t('categories.descriptionPlaceholder')}
             {...register('description')}
-          />
-          <Controller
-            name="icon"
-            control={control}
-            render={({ field }) => (
-              <IconPicker
-                label={t('categories.iconLabel')}
-                value={field.value}
-                onChange={field.onChange}
-              />
-            )}
           />
         </form>
       </Modal>
