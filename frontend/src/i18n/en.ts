@@ -33,6 +33,7 @@ const en = {
     prevPage: 'Previous',
     nextPage: 'Next',
     pageOf: 'Page {{page}} of {{total}}',
+    selectCategory: 'Select Category',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────
@@ -275,8 +276,15 @@ const en = {
     endDate: 'End Date',
     budgetLimit: 'Budget Limit (optional)',
     budgetLimitPlaceholder: 'e.g. 3000',
+    budgetLimitModeLabel: 'Limit type',
+    budgetLimitModeAuto: 'Automatic',
+    budgetLimitModeFixed: 'Fixed value',
+    budgetLimitAutoHelp: 'It is calculated automatically from the sum of category budgets.',
+    budgetLimitReadOnlyAuto: 'Automatic mode is enabled: this field is read-only.',
     savingsGoal: 'Savings Goal % (optional)',
     savingsGoalPlaceholder: 'e.g. 20',
+    budgetsTitle: 'Budgets',
+    budgetLimitMinimum: 'The limit must be greater than categories sum ({{min}})',
     startDateRequired: 'Start date is required',
     endDateRequired: 'End date is required',
     namePlaceholder: 'e.g. March 2026, Q1 Budget',

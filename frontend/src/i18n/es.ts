@@ -33,6 +33,7 @@ const es = {
     prevPage: 'Anterior',
     nextPage: 'Siguiente',
     pageOf: 'Página {{page}} de {{total}}',
+    selectCategory: 'Seleccionar Categoría',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────
@@ -275,8 +276,15 @@ const es = {
     endDate: 'Fecha de Fin',
     budgetLimit: 'Límite de Presupuesto (opcional)',
     budgetLimitPlaceholder: 'ej. 3000',
+    budgetLimitModeLabel: 'Tipo de límite',
+    budgetLimitModeAuto: 'Automático',
+    budgetLimitModeFixed: 'Valor fijo',
+    budgetLimitAutoHelp: 'Se calcula automáticamente con la suma de presupuestos por categoría.',
+    budgetLimitReadOnlyAuto: 'Modo automático activo: este campo es de solo lectura.',
     savingsGoal: 'Meta de Ahorro % (opcional)',
     savingsGoalPlaceholder: 'ej. 20',
+    budgetsTitle: 'Presupuestos',
+    budgetLimitMinimum: 'El límite debe ser mayor a la sumatoria por categoría ({{min}})',
     startDateRequired: 'La fecha de inicio es requerida',
     endDateRequired: 'La fecha de fin es requerida',
     namePlaceholder: 'ej. Marzo 2026, Presupuesto Q1',
