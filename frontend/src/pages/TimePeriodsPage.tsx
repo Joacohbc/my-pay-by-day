@@ -31,6 +31,8 @@ interface FormValues {
   endDate: string;
   budgets: { categoryId: string; budgetedAmount: string }[];
   savingsPercentageGoal: string;
+
+  // auto: derived from category budget sum, fixed: user-entered explicit value.
   budgetLimitMode: 'auto' | 'fixed';
   budgetLimit: string;
 }
@@ -102,8 +104,10 @@ export function TimePeriodsPage() {
   }, [budgets]);
 
   useEffect(() => {
+    // In fixed mode (so different from auto), user manages the limit value directly, so we don't override it.
     if (budgetLimitMode !== 'auto') return;
-
+    
+    // In auto mode, the limit always mirrors the current sum of category budgets.
     if (sumOfCategoryBudgets > 0) {
       setValue('budgetLimit', String(sumOfCategoryBudgets), { shouldValidate: true, shouldDirty: false });
       return;
@@ -169,12 +173,17 @@ export function TimePeriodsPage() {
       budgetedAmount: String(b.budgetedAmount),
     })) || [];
 
+    // Full sum of category budgets for this period, used to determine if stored limit matches sum (auto) or differs (fixed).
     const tpBudgetSum = tpBudgets.reduce((acc, b) => {
       const val = parseFloat(String(b.budgetedAmount || '0'));
       return acc + (isNaN(val) ? 0 : val);
     }, 0);
 
+    // The limit value stored in the backend for this period, used to determine if it matches sum (auto) or differs (fixed).
     const tpBudgetLimit = tp.budgetLimit != null ? Number(tp.budgetLimit) : NaN;
+
+    // If persisted limit matches category sum, treat it as auto-managed.
+    // If it differs, open in fixed mode to preserve the explicit stored value.
     const isAutoMode =
       tp.budgetLimit == null ||
       (!isNaN(tpBudgetLimit) && Math.abs(tpBudgetLimit - tpBudgetSum) < 0.0001);
@@ -203,6 +212,7 @@ export function TimePeriodsPage() {
       ? parseFloat(values.budgetLimit)
       : undefined;
 
+    // Auto: persist computed sum. Fixed: persist user-entered numeric value.
     const effectiveBudgetLimit = values.budgetLimitMode === 'auto'
       ? (computedBudgetSum > 0 ? computedBudgetSum : undefined)
       : (parsedBudgetLimit != null && !isNaN(parsedBudgetLimit) ? parsedBudgetLimit : undefined);
