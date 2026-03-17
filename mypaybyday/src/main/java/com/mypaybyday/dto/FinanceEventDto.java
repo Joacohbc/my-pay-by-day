@@ -31,7 +31,8 @@ public record FinanceEventDto(
     LocalDateTime transactionDate,
     List<FinanceLineItemDto> lineItems,
     CategoryDto category,
-    List<TagDto> tags
+    List<TagDto> tags,
+    List<RelatedEventDto> relatedEvents
 ) {
 
     public static FinanceEventDto from(FinanceEvent event) {
@@ -71,6 +72,9 @@ public record FinanceEventDto(
             event.category != null ? CategoryDto.from(event.category) : null,
             event.tags != null
                 ? event.tags.stream().map(TagDto::from).toList()
+                : List.of(),
+            event.relatedEvents != null
+                ? event.relatedEvents.stream().map(RelatedEventDto::from).toList()
                 : List.of()
         );
     }

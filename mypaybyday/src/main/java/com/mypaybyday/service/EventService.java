@@ -21,6 +21,7 @@ import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 /**
@@ -70,6 +71,7 @@ public class EventService {
         if (event == null) {
             throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
         }
+
         return FinanceEventDto.from(event);
     }
 
@@ -265,5 +267,76 @@ public class EventService {
             resolved.add(tagService.findTagEntity(stub.id));
         }
         return resolved;
+    }
+
+    @Transactional
+    public FinanceEventDto addRelations(Long eventId, List<Long> relatedIds) throws BusinessException {
+        FinanceEvent event = eventRepository.findById(eventId);
+        if (event == null) throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
+
+        List<FinanceEvent> existingRelated = validateAndFetchRelatedEvents(relatedIds);
+
+        for (FinanceEvent fe : existingRelated) {
+            if (fe.id.equals(eventId)) continue;
+            if (!event.relatedEvents.contains(fe)) event.relatedEvents.add(fe);
+            if (!fe.relatedEvents.contains(event)) fe.relatedEvents.add(event);
+        }
+
+        existingRelated.add(event);
+        eventRepository.persist(existingRelated);
+        return FinanceEventDto.from(event);
+    }
+
+    @Transactional
+    public FinanceEventDto removeRelations(Long eventId, List<Long> relatedIds) throws BusinessException {
+        FinanceEvent event = eventRepository.findById(eventId);
+        if (event == null) {
+            throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
+        }
+
+        List<FinanceEvent> existingRelated = validateAndFetchRelatedEvents(relatedIds);
+
+        for (FinanceEvent relEvent : existingRelated) {
+            if (relEvent.id.equals(eventId)) {
+                continue;
+            }
+
+            event.relatedEvents.removeIf(e -> e.id.equals(relEvent.id));
+            relEvent.relatedEvents.removeIf(e -> e.id.equals(eventId));
+        }
+
+        existingRelated.add(event);
+        eventRepository.persist(existingRelated);
+
+        return FinanceEventDto.from(event);
+    }
+
+    @Transactional
+    public FinanceEventDto removeRelation(Long eventId, Long relatedId) throws BusinessException {
+        return removeRelations(eventId, List.of(relatedId));
+    }
+
+    private List<FinanceEvent> validateAndFetchRelatedEvents(List<Long> relatedIds) throws BusinessException {
+        List<FinanceEvent> fetchedRelated = eventRepository.findByIds(relatedIds);
+
+        // The default method findByIds return nulls for missing IDs, so we need to check which ones were not found
+        List<FinanceEvent> existingRelated = new ArrayList<>(relatedIds.size());
+        List<Long> missingIds = new ArrayList<>();
+
+        for (int i = 0; i < relatedIds.size(); i++) {
+            FinanceEvent related = i < fetchedRelated.size() ? fetchedRelated.get(i) : null;
+            if (related == null) {
+                missingIds.add(relatedIds.get(i));
+                continue;
+            }
+            existingRelated.add(related);
+        }
+
+        if (!missingIds.isEmpty()) {
+            throw new BusinessException(
+                    messages.get(MsgKey.EVENT_RELATED_NOT_FOUND, new LinkedHashSet<>(missingIds).toString()));
+        }
+
+        return existingRelated;
     }
 }
