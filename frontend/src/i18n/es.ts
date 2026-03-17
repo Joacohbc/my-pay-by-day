@@ -33,6 +33,7 @@ const es = {
     prevPage: 'Anterior',
     nextPage: 'Siguiente',
     pageOf: 'Página {{page}} de {{total}}',
+    selectCategory: 'Seleccionar Categoría',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────
@@ -134,6 +135,8 @@ const es = {
     nodeRequired: 'Requerido',
     amountNonZero: 'Debe ser un número distinto de cero',
     atLeastOneLine: 'Se requiere al menos una partida',
+    manualMode: 'Modo manual',
+    simplifiedMode: 'Modo simplificado',
   },
 
   // ─── Template Picker ────────────────────────────────────────────────────
@@ -185,6 +188,7 @@ const es = {
     namePlaceholder: 'ej. Comida, Transporte, Servicios',
     descriptionPlaceholder: 'Descripción opcional',
     deleteConfirm: '¿Eliminar esta categoría?',
+    iconLabel: 'Ícono',
   },
 
   // ─── Tags ────────────────────────────────────────────────────────────────
@@ -272,8 +276,15 @@ const es = {
     endDate: 'Fecha de Fin',
     budgetLimit: 'Límite de Presupuesto (opcional)',
     budgetLimitPlaceholder: 'ej. 3000',
+    budgetLimitModeLabel: 'Tipo de límite',
+    budgetLimitModeAuto: 'Automático',
+    budgetLimitModeFixed: 'Valor fijo',
+    budgetLimitAutoHelp: 'Se calcula automáticamente con la suma de presupuestos por categoría.',
+    budgetLimitReadOnlyAuto: 'Modo automático activo: este campo es de solo lectura.',
     savingsGoal: 'Meta de Ahorro % (opcional)',
     savingsGoalPlaceholder: 'ej. 20',
+    budgetsTitle: 'Presupuestos',
+    budgetLimitMinimum: 'El límite debe ser mayor a la sumatoria por categoría ({{min}})',
     startDateRequired: 'La fecha de inicio es requerida',
     endDateRequired: 'La fecha de fin es requerida',
     namePlaceholder: 'ej. Marzo 2026, Presupuesto Q1',
@@ -352,6 +363,15 @@ const es = {
     savedLocally: 'No enviado',
     queuedFeedback: 'Guardado sin conexión — confirmá el envío al reconectarte',
     noConnectionToSend: 'Sin conexión — reconectáte para enviar',
+  },
+
+  // ─── Icon Picker ─────────────────────────────────────────────────────────
+  iconPicker: {
+    searchPlaceholder: 'Buscar íconos…',
+    noResults: 'No se encontraron íconos',
+    showingCount: 'Mostrando {{count}} de {{total}} íconos — buscá para ver más',
+    browseAll: 'Ver todos',
+    allIconsTitle: 'Todos los Íconos',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────
