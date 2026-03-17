@@ -214,7 +214,54 @@ public class EventService {
         if (event == null) {
             throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
         }
+
+        // Clean up bidirectional relations before deleting
+        if (event.relatedEvents != null) {
+            for (FinanceEvent related : new ArrayList<>(event.relatedEvents)) {
+                related.relatedEvents.remove(event);
+            }
+            event.relatedEvents.clear();
+        }
+
         eventRepository.delete(event);
+    }
+
+    @Transactional
+    public FinanceEventDto addRelatedEvent(Long id, Long relatedId) throws BusinessException {
+        if (id.equals(relatedId)) {
+            throw new BusinessException("Cannot relate an event to itself");
+        }
+
+        FinanceEvent event1 = eventRepository.findById(id);
+        FinanceEvent event2 = eventRepository.findById(relatedId);
+
+        if (event1 == null || event2 == null) {
+            throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
+        }
+
+        if (!event1.relatedEvents.contains(event2)) {
+            event1.relatedEvents.add(event2);
+        }
+        if (!event2.relatedEvents.contains(event1)) {
+            event2.relatedEvents.add(event1);
+        }
+
+        return FinanceEventDto.from(event1);
+    }
+
+    @Transactional
+    public FinanceEventDto removeRelatedEvent(Long id, Long relatedId) throws BusinessException {
+        FinanceEvent event1 = eventRepository.findById(id);
+        FinanceEvent event2 = eventRepository.findById(relatedId);
+
+        if (event1 == null || event2 == null) {
+            throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
+        }
+
+        event1.relatedEvents.remove(event2);
+        event2.relatedEvents.remove(event1);
+
+        return FinanceEventDto.from(event1);
     }
 
     // -------------------------------------------------------------------------

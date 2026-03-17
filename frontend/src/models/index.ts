@@ -80,6 +80,13 @@ export interface CreateTransactionDto {
 // ─── FinanceEvent ─────────────────────────────────────────────────────────────
 
 /** Read model — matches the flat FinanceEventDto from the backend */
+export interface RelatedEvent extends Identifiable {
+  name: string;
+  type: EventType;
+  amount: number;
+  transactionDate: string; // ISO-8601 date-time
+}
+
 export interface FinanceEvent extends Identifiable {
   transactionId: number;
   name: string;
@@ -90,6 +97,7 @@ export interface FinanceEvent extends Identifiable {
   lineItems: FinanceLineItem[];
   category?: Category;
   tags: Tag[];
+  relatedEvents?: RelatedEvent[];
 }
 
 export interface CreateEventDto {

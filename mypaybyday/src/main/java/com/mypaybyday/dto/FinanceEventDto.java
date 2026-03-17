@@ -20,6 +20,7 @@ import java.util.List;
  * @param lineItems       list of line items involved in the transaction
  * @param category        assigned category, or {@code null} if uncategorised
  * @param tags            tags applied to this event
+ * @param relatedEvents   list of minimal DTOs representing related events
  */
 public record FinanceEventDto(
     Long id,
@@ -31,7 +32,8 @@ public record FinanceEventDto(
     LocalDateTime transactionDate,
     List<FinanceLineItemDto> lineItems,
     CategoryDto category,
-    List<TagDto> tags
+    List<TagDto> tags,
+    List<RelatedEventDto> relatedEvents
 ) {
 
     public static FinanceEventDto from(FinanceEvent event) {
@@ -71,6 +73,9 @@ public record FinanceEventDto(
             event.category != null ? CategoryDto.from(event.category) : null,
             event.tags != null
                 ? event.tags.stream().map(TagDto::from).toList()
+                : List.of(),
+            event.relatedEvents != null
+                ? event.relatedEvents.stream().map(RelatedEventDto::from).toList()
                 : List.of()
         );
     }

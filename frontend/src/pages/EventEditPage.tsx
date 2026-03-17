@@ -4,6 +4,7 @@ import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { useEvent, useUpdateEvent } from '@/hooks/useEvents';
+import { RelatedEventsManager } from '@/components/events/RelatedEventsManager';
 import type { CreateEventDto } from '@/models';
 
 export function EventEditPage() {
@@ -31,6 +32,10 @@ export function EventEditPage() {
           submitLabel={t('events.updateEvent')}
           loading={updateEvent.isPending}
         />
+
+        <div className="mt-8 border-t border-white/10 pt-8">
+          <RelatedEventsManager event={event} />
+        </div>
       </div>
     </div>
   );

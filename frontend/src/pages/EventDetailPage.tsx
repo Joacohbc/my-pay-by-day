@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { RelatedEventsManager } from '@/components/events/RelatedEventsManager';
 import { formatCurrency, formatDateTime, eventNetAmount } from '@/lib/format';
 import { useState } from 'react';
 
@@ -147,6 +148,11 @@ export function EventDetailPage() {
             </div>
           )}
         </Card>
+      </div>
+
+      {/* Related Events */}
+      <div className="px-5">
+        <RelatedEventsManager event={event} />
       </div>
 
       {/* Line Items */}

@@ -132,6 +132,21 @@ public class FinanceEvent extends BaseEntity {
     @Builder.Default
     public List<Tag> tags = new ArrayList<>();
 
+    /**
+     * Events related to this event.
+     * <p>
+     * Used for grouping payments, installments, or arbitrary links.
+     * Managed bidirectionally by the service layer (A adds B, and B adds A).
+     */
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "event_relation",
+        joinColumns = @JoinColumn(name = "event_id"),
+        inverseJoinColumns = @JoinColumn(name = "related_event_id")
+    )
+    @Builder.Default
+    public List<FinanceEvent> relatedEvents = new ArrayList<>();
+
     @Override
     public String toRagContent() {
         StringBuilder sb = new StringBuilder();

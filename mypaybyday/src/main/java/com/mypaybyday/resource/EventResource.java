@@ -94,4 +94,34 @@ public class EventResource {
         eventService.delete(id);
         return Response.noContent().build();
     }
+
+    @POST
+    @Path("/{id}/related/{relatedId}")
+    @Operation(summary = "Add a related event", description = "Bidirectionally links two events together.")
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "Relation added",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
+            @APIResponse(responseCode = "404", description = "One or both events not found")
+    })
+    public Response addRelation(
+            @Parameter(description = "ID of the primary event", required = true) @PathParam("id") Long id,
+            @Parameter(description = "ID of the event to relate", required = true) @PathParam("relatedId") Long relatedId)
+            throws BusinessException {
+        return Response.ok(eventService.addRelatedEvent(id, relatedId)).build();
+    }
+
+    @DELETE
+    @Path("/{id}/related/{relatedId}")
+    @Operation(summary = "Remove a related event", description = "Bidirectionally unlinks two events.")
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "Relation removed",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
+            @APIResponse(responseCode = "404", description = "One or both events not found")
+    })
+    public Response removeRelation(
+            @Parameter(description = "ID of the primary event", required = true) @PathParam("id") Long id,
+            @Parameter(description = "ID of the related event to remove", required = true) @PathParam("relatedId") Long relatedId)
+            throws BusinessException {
+        return Response.ok(eventService.removeRelatedEvent(id, relatedId)).build();
+    }
 }

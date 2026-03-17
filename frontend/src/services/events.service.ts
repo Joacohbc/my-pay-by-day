@@ -9,4 +9,8 @@ export const eventsService = {
   update: (id: number, dto: Partial<CreateEventDto>) =>
     api.patch<FinanceEvent>(`/events/${id}`, dto),
   delete: (id: number) => api.delete(`/events/${id}`),
+  addRelation: (id: number, relatedId: number) =>
+    api.post<FinanceEvent>(`/events/${id}/related/${relatedId}`, {}),
+  removeRelation: (id: number, relatedId: number) =>
+    api.delete(`/events/${id}/related/${relatedId}`),
 };
