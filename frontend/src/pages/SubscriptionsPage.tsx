@@ -108,7 +108,7 @@ function SubscriptionCard({
             <Icon name="calendar_today" className="text-xs" />
             {t('subscriptions.next')}: {nextDate}
           </span>
-          <Badge variant={isActive ? 'success' : 'error'}>{t(`subscriptions.status.${sub.status}`)}</Badge>
+          <Badge variant={isActive ? 'income' : 'expense'}>{t(`subscriptions.status.${sub.status}`)}</Badge>
         </div>
 
         {(sub.originNodeName || sub.destinationNodeName) && (
