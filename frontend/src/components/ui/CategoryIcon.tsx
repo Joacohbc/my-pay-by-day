@@ -1,10 +1,12 @@
 import { Icon } from '@/components/ui/Icon';
 import type { Category } from '@/models';
 
+import { twMerge } from 'tailwind-merge';
+
 interface CategoryIconProps {
   category: Category;
   size?: 'sm' | 'md' | 'lg';
-  shape?: string;
+  shape?: 'rounded' | 'rounded-md' | 'rounded-lg' | 'rounded-xl' | 'rounded-2xl' | 'rounded-full' | 'rounded-none';
   /** Tailwind color classes applied to the container. Defaults to primary tint. */
   colorClass?: string;
   className?: string;
@@ -27,7 +29,11 @@ export function CategoryIcon({
 
   return (
     <div
-      className={`${container} flex items-center justify-center ${shape} shrink-0 font-bold ${textSize} ${colorClass} ${className}`}
+      className={twMerge(
+        `${container} flex items-center justify-center ${shape} shrink-0 font-bold ${textSize}`,
+        colorClass,
+        className
+      )}
     >
       {category.icon ? (
         <Icon name={category.icon} className={iconSize} />
