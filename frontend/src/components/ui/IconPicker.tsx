@@ -31,14 +31,14 @@ function BrowseModal({ currentValue, onSelect, onClose }: BrowseModalProps) {
   const searchRef = useRef<HTMLInputElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setVisibleCount(CHUNK_SIZE);
+  };
+
   const filteredIcons = useMemo(() => {
     const q = search.trim().toLowerCase();
     return q ? ALL_ICONS.filter((name) => name.includes(q)) : ALL_ICONS;
-  }, [search]);
-
-  // Reset visible count when search changes
-  useEffect(() => {
-    setVisibleCount(CHUNK_SIZE);
   }, [search]);
 
   // Lazy-load more icons when the sentinel enters the viewport
@@ -105,14 +105,14 @@ function BrowseModal({ currentValue, onSelect, onClose }: BrowseModalProps) {
           ref={searchRef}
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           placeholder={t('iconPicker.searchPlaceholder')}
           className="flex-1 bg-transparent text-sm text-dn-text-main placeholder-dn-text-muted/50 focus:outline-none"
         />
         {search && (
           <button
             type="button"
-            onClick={() => setSearch('')}
+            onClick={() => handleSearchChange('')}
             className="text-dn-text-muted hover:text-dn-text-main transition-colors"
           >
             <Icon name="close" className="text-base" />
