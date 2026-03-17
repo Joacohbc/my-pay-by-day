@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFieldArray, useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,30 +11,33 @@ import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
 import { Icon } from '@/components/ui/Icon';
+import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import type { CreateEventDto, EventType, FinanceEvent } from '@/models';
 import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
-const lineItemSchema = z.object({
-  nodeId: z.string().min(1, 'Required'),
-  amount: z.string().refine((v) => !isNaN(Number(v)) && Number(v) !== 0, {
-    message: 'Must be a non-zero number',
-  }),
-});
+function buildSchema(t: (key: string) => string) {
+  const lineItemSchema = z.object({
+    nodeId: z.string().min(1, t('eventForm.nodeRequired')),
+    amount: z.string().refine((v) => !isNaN(Number(v)) && Number(v) !== 0, {
+      message: t('eventForm.amountNonZero'),
+    }),
+  });
 
-const schema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  description: z.string().optional(),
-  receiptUrl: z.string().optional(),
-  type: z.enum(['INBOUND', 'OUTBOUND', 'OTHER']),
-  transactionDate: z.string().min(1, 'Date is required'),
-  categoryId: z.string().optional(),
-  tagIds: z.array(z.string()).optional(),
-  lineItems: z.array(lineItemSchema).min(1, 'At least one line item required'),
-});
+  return z.object({
+    name: z.string().min(1, t('eventForm.nameRequired')),
+    description: z.string().optional(),
+    receiptUrl: z.string().optional(),
+    type: z.enum(['INBOUND', 'OUTBOUND', 'OTHER']),
+    transactionDate: z.string().min(1, t('eventForm.dateRequired')),
+    categoryId: z.string().optional(),
+    tagIds: z.array(z.string()).optional(),
+    lineItems: z.array(lineItemSchema).min(1, t('eventForm.atLeastOneLine')),
+  });
+}
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<ReturnType<typeof buildSchema>>;
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -61,6 +64,7 @@ export function EventForm({
   loading = false,
 }: EventFormProps) {
   const { t } = useTranslation();
+  const schema = useMemo(() => buildSchema(t), [t]);
   const { data: categoriesResponse } = useCategories(0, 200);
   const { data: tagsResponse } = useTags(0, 200);
   const { data: nodesResponse } = useNodes(0, 200);
@@ -101,22 +105,24 @@ export function EventForm({
         })) ??
         (preset?.lineNodeIds?.length
           ? preset.lineNodeIds.map((id) => ({ nodeId: String(id), amount: '' }))
-          : [{ nodeId: '', amount: '' }]),
+          : [{ nodeId: '', amount: '' }, { nodeId: '', amount: '' }]),
     },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'lineItems' });
 
-  const isTemplateMode = !!(preset?.lineNodeIds && preset.lineNodeIds.length >= 2);
+  const [isSimplifiedMode, setIsSimplifiedMode] = useState(
+    !!(preset?.lineNodeIds?.length) || !defaultValues,
+  );
   const firstAmount = useWatch({ control, name: 'lineItems.0.amount' });
 
   useEffect(() => {
-    if (!isTemplateMode) return;
+    if (!isSimplifiedMode) return;
     for (let i = 1; i < fields.length; i++) {
       setValue(`lineItems.${i}.amount`, firstAmount ?? '');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firstAmount, isTemplateMode, fields.length]);
+  }, [firstAmount, isSimplifiedMode, fields.length]);
 
   const handleFormSubmit = async (values: FormValues) => {
     const dto: CreateEventDto = {
@@ -129,7 +135,7 @@ export function EventForm({
         transactionDate: values.transactionDate.includes(':00.000') ? values.transactionDate : `${values.transactionDate}:00.000`,
         lineItems: values.lineItems.map((li, i) => {
           let amount = Number(li.amount);
-          if (isTemplateMode) {
+          if (isSimplifiedMode) {
             amount = i === 0 ? -Math.abs(amount) : Math.abs(amount);
           }
           return {
@@ -162,22 +168,53 @@ export function EventForm({
         {...register('description')}
       />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-3">
         <Controller
           name="type"
           control={control}
-          render={({ field }) => (
-            <SearchableSelect
-              label={t('eventForm.type')}
-              error={errors.type?.message}
-              options={[
-                { value: 'INBOUND', label: t('eventType.INBOUND') },
-                { value: 'OUTBOUND', label: t('eventType.OUTBOUND') },
-                { value: 'OTHER', label: t('eventType.OTHER') },
-              ]}
-              {...field}
-            />
-          )}
+          render={({ field }) => {
+            const typeStyles = {
+              OUTBOUND: {
+                active: 'bg-dn-error/15 text-dn-error',
+                inactive: 'text-dn-text-muted hover:text-dn-error',
+              },
+              INBOUND: {
+                active: 'bg-dn-success/15 text-dn-success',
+                inactive: 'text-dn-text-muted hover:text-dn-success',
+              },
+              OTHER: {
+                active: 'bg-dn-info/15 text-dn-info',
+                inactive: 'text-dn-text-muted hover:text-dn-info',
+              },
+            } as const;
+
+            return (
+              <div>
+                <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2">
+                  {t('eventForm.type')}
+                </p>
+                <div className="flex rounded-pill bg-dn-surface-low p-1 gap-1">
+                  {(['OUTBOUND', 'INBOUND', 'OTHER'] as const).map((opt) => {
+                    const styles = typeStyles[opt];
+                    const isActive = field.value === opt;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => field.onChange(opt)}
+                        className={[
+                          'flex-1 py-2 rounded-pill text-sm font-semibold transition-all',
+                          isActive ? styles.active : styles.inactive,
+                        ].join(' ')}
+                      >
+                        {t(`eventType.${opt}`)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          }}
         />
 
         <Input
@@ -189,20 +226,47 @@ export function EventForm({
       </div>
 
       {/* Category & Tags */}
-      <div className="grid grid-cols-2 gap-3">
-        <Controller
-          name="categoryId"
-          control={control}
-          render={({ field }) => (
-            <SearchableSelect
-              label={t('eventForm.category')}
-              placeholder={t('common.none')}
-              options={categories.map((c) => ({ value: String(c.id), label: c.name }))}
-              {...field}
-            />
-          )}
-        />
-      </div>
+      {categories.length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">
+            {t('eventForm.category')}
+          </p>
+          <Controller
+            name="categoryId"
+            control={control}
+            render={({ field }) => (
+              <div className="grid grid-cols-4 gap-x-3 gap-y-4">
+                {categories.map((cat) => {
+                  const selected = field.value === String(cat.id);
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => field.onChange(selected ? '' : String(cat.id))}
+                      className="flex flex-col items-center gap-2"
+                    >
+                      <CategoryIcon
+                        category={cat}
+                        size="lg"
+                        colorClass={selected ? 'bg-dn-primary text-dn-bg' : 'bg-dn-surface text-dn-text-muted'}
+                        className="transition-all active:scale-95"
+                      />
+                      <span
+                        className={[
+                          'text-xs text-center font-medium leading-tight',
+                          selected ? 'text-dn-primary' : 'text-dn-text-muted',
+                        ].join(' ')}
+                      >
+                        {cat.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          />
+        </div>
+      )}
 
       {/* Tags */}
       {tags.length > 0 && (
@@ -250,27 +314,51 @@ export function EventForm({
       <div>
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">{t('eventForm.lineItems')}</p>
-          {!isTemplateMode && (
+          <div className="flex items-center gap-3">
+            {!isSimplifiedMode && (
+              <button
+                type="button"
+                onClick={() => append({ nodeId: '', amount: '' })}
+                className="flex items-center gap-1 text-xs text-dn-primary hover:brightness-110 transition-all"
+              >
+                <Icon name="add" className="text-sm" />
+                {t('eventForm.addLineItem')}
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => append({ nodeId: '', amount: '' })}
-              className="flex items-center gap-1 text-xs text-dn-primary hover:brightness-110 transition-all"
+              onClick={() => {
+                if (!isSimplifiedMode) {
+                  setIsSimplifiedMode(true);
+                } else {
+                  const num = parseFloat(firstAmount ?? '') || 0;
+                  if (num !== 0) {
+                    fields.forEach((_, i) => {
+                      setValue(`lineItems.${i}.amount`, String(i === 0 ? -Math.abs(num) : Math.abs(num)));
+                    });
+                  }
+                  setIsSimplifiedMode(false);
+                }
+              }}
+              className="text-xs text-dn-text-muted hover:text-dn-primary transition-colors"
             >
-              <Icon name="add" className="text-sm" />
-              {t('eventForm.addLineItem')}
+              {isSimplifiedMode ? t('eventForm.manualMode') : t('eventForm.simplifiedMode')}
             </button>
-          )}
+          </div>
         </div>
         {errors.lineItems?.root?.message && (
           <p className="text-xs text-dn-error mb-2">{errors.lineItems.root.message}</p>
         )}
 
-        {isTemplateMode ? (
-          /* Template mode: node rows with sign badge + single shared amount input */
+        {isSimplifiedMode ? (
+          /* Simplified mode: sign badge + node row + single shared amount */
           <div className="space-y-3">
             <div className="space-y-2">
               {fields.map((field, i) => (
                 <div key={field.id} className="flex items-center gap-3 px-3 py-2 rounded-input bg-dn-surface-low">
+                  <span className={`text-sm font-bold w-4 shrink-0 ${i === 0 ? 'text-dn-error' : 'text-dn-success'}`}>
+                    {i === 0 ? '−' : '+'}
+                  </span>
                   <div className="flex-1">
                     <Controller
                       name={`lineItems.${i}.nodeId`}
@@ -298,7 +386,7 @@ export function EventForm({
             />
           </div>
         ) : (
-          /* Normal mode: per-row node + amount */
+          /* Manual mode: per-row node + amount */
           <div className="space-y-2">
             {fields.map((field, i) => (
               <div key={field.id} className="flex gap-2 items-center">
@@ -342,7 +430,7 @@ export function EventForm({
         )}
 
         <p className="text-xs text-dn-text-muted mt-2">
-          {t('eventForm.manualAmountHint')}
+          {isSimplifiedMode ? t('eventForm.signedAmountHint') : t('eventForm.manualAmountHint')}
         </p>
       </div>
 

@@ -33,6 +33,7 @@ const en = {
     prevPage: 'Previous',
     nextPage: 'Next',
     pageOf: 'Page {{page}} of {{total}}',
+    selectCategory: 'Select Category',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────
@@ -134,6 +135,8 @@ const en = {
     nodeRequired: 'Required',
     amountNonZero: 'Must be a non-zero number',
     atLeastOneLine: 'At least one line item required',
+    manualMode: 'Manual mode',
+    simplifiedMode: 'Simplified mode',
   },
 
   // ─── Template Picker ────────────────────────────────────────────────────
@@ -185,6 +188,7 @@ const en = {
     namePlaceholder: 'e.g. Food, Transport, Utilities',
     descriptionPlaceholder: 'Optional description',
     deleteConfirm: 'Delete this category?',
+    iconLabel: 'Icon',
   },
 
   // ─── Tags ────────────────────────────────────────────────────────────────
@@ -272,8 +276,15 @@ const en = {
     endDate: 'End Date',
     budgetLimit: 'Budget Limit (optional)',
     budgetLimitPlaceholder: 'e.g. 3000',
+    budgetLimitModeLabel: 'Limit type',
+    budgetLimitModeAuto: 'Automatic',
+    budgetLimitModeFixed: 'Fixed value',
+    budgetLimitAutoHelp: 'It is calculated automatically from the sum of category budgets.',
+    budgetLimitReadOnlyAuto: 'Automatic mode is enabled: this field is read-only.',
     savingsGoal: 'Savings Goal % (optional)',
     savingsGoalPlaceholder: 'e.g. 20',
+    budgetsTitle: 'Budgets',
+    budgetLimitMinimum: 'The limit must be greater than categories sum ({{min}})',
     startDateRequired: 'Start date is required',
     endDateRequired: 'End date is required',
     namePlaceholder: 'e.g. March 2026, Q1 Budget',
@@ -352,6 +363,15 @@ const en = {
     savedLocally: 'Not sent',
     queuedFeedback: 'Saved offline — confirm sync when you reconnect',
     noConnectionToSend: 'No connection — reconnect to send',
+  },
+
+  // ─── Icon Picker ─────────────────────────────────────────────────────────
+  iconPicker: {
+    searchPlaceholder: 'Search icons…',
+    noResults: 'No icons found',
+    showingCount: 'Showing {{count}} of {{total}} icons — search to find more',
+    browseAll: 'Browse all',
+    allIconsTitle: 'All Icons',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

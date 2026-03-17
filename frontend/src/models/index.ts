@@ -26,6 +26,7 @@ export interface Identifiable {
 export interface Category extends Identifiable {
   name: string;
   description?: string;
+  icon?: string;
 }
 
 export type CreateCategoryDto = Omit<Category, 'id'>;
