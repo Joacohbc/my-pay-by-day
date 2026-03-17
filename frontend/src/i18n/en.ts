@@ -187,6 +187,7 @@ const en = {
     namePlaceholder: 'e.g. Food, Transport, Utilities',
     descriptionPlaceholder: 'Optional description',
     deleteConfirm: 'Delete this category?',
+    iconLabel: 'Icon',
   },
 
   // ─── Tags ────────────────────────────────────────────────────────────────
@@ -361,6 +362,8 @@ const en = {
     searchPlaceholder: 'Search icons…',
     noResults: 'No icons found',
     showingCount: 'Showing {{count}} of {{total}} icons — search to find more',
+    browseAll: 'Browse all',
+    allIconsTitle: 'All Icons',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

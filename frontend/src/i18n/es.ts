@@ -187,6 +187,7 @@ const es = {
     namePlaceholder: 'ej. Comida, Transporte, Servicios',
     descriptionPlaceholder: 'Descripción opcional',
     deleteConfirm: '¿Eliminar esta categoría?',
+    iconLabel: 'Ícono',
   },
 
   // ─── Tags ────────────────────────────────────────────────────────────────
@@ -361,6 +362,8 @@ const es = {
     searchPlaceholder: 'Buscar íconos…',
     noResults: 'No se encontraron íconos',
     showingCount: 'Mostrando {{count}} de {{total}} íconos — buscá para ver más',
+    browseAll: 'Ver todos',
+    allIconsTitle: 'Todos los Íconos',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────
