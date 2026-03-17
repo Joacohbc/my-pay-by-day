@@ -118,6 +118,7 @@ export function TimePeriodDashboard({
               name={b.category.name}
               spentAmount={b.spentAmount}
               budgetedAmount={b.budgetedAmount}
+              category={b.category}
             />
             { i < balance.categoryBudgets.length - 1 && <div className="border-t border-white/5" /> }
           </>

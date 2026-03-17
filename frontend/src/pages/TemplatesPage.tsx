@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { Pagination } from '@/components/ui/Pagination';
 import { truncate } from '@/lib/format';
 import type { Template, EventType, ModifierType } from '@/models';
@@ -222,7 +223,10 @@ export function TemplatesPage() {
                 )}
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {tpl.category && (
-                    <span className="text-xs text-dn-text-muted">{tpl.category.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <CategoryIcon category={tpl.category} size="sm" />
+                      <span className="text-xs text-dn-text-muted">{tpl.category.name}</span>
+                    </div>
                   )}
                   {tpl.tags.map((tag) => (
                     <span key={tag.id} className="text-xs text-dn-text-muted/70">

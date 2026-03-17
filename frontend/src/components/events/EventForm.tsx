@@ -11,6 +11,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
 import { Icon } from '@/components/ui/Icon';
+import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import type { CreateEventDto, EventType, FinanceEvent } from '@/models';
 import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
 
@@ -244,16 +245,12 @@ export function EventForm({
                       onClick={() => field.onChange(selected ? '' : String(cat.id))}
                       className="flex flex-col items-center gap-2"
                     >
-                      <div
-                        className={[
-                          'w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold transition-all active:scale-95',
-                          selected
-                            ? 'bg-dn-primary text-dn-bg'
-                            : 'bg-dn-surface text-dn-text-muted',
-                        ].join(' ')}
-                      >
-                        {cat.name.slice(0, 1).toUpperCase()}
-                      </div>
+                      <CategoryIcon
+                        category={cat}
+                        size="lg"
+                        colorClass={selected ? 'bg-dn-primary text-dn-bg' : 'bg-dn-surface text-dn-text-muted'}
+                        className="transition-all active:scale-95"
+                      />
                       <span
                         className={[
                           'text-xs text-center font-medium leading-tight',
