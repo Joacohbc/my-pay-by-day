@@ -9,6 +9,8 @@ import { EventCard } from '@/components/events/EventCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Pagination } from '@/components/ui/Pagination';
 
+type SortOption = 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc' | 'category-asc' | 'category-desc';
+
 export function EventSelectorModal({
   open,
   onClose,
@@ -23,6 +25,7 @@ export function EventSelectorModal({
   const { t } = useTranslation();
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   
   const { data: paged, isLoading, error } = useEvents(page);
   const addRelation = useAddEventRelations();
@@ -35,28 +38,60 @@ export function EventSelectorModal({
   };
 
   const allEvents = paged?.content || [];
-  const filtered = allEvents.filter((e) => {
-    if (e.id === baseEventId) return false;
-    if (existingRelatedIds.includes(e.id)) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      return e.name.toLowerCase().includes(q) || e.description?.toLowerCase().includes(q);
-    }
-    return true;
-  });
+  const filteredAndSorted = allEvents
+    .filter((e) => {
+      if (e.id === baseEventId) return false;
+      if (existingRelatedIds.includes(e.id)) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        const matchesName = e.name.toLowerCase().includes(q) || e.description?.toLowerCase().includes(q);
+        const matchesCategory = e.category?.name.toLowerCase().includes(q);
+        const matchesDate = e.transactionDate?.includes(q);
+        return matchesName || matchesCategory || matchesDate;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy.startsWith('date')) {
+        const val = new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime();
+        return sortBy === 'date-asc' ? val : -val;
+      } else if (sortBy.startsWith('name')) {
+        const val = a.name.localeCompare(b.name);
+        return sortBy === 'name-asc' ? val : -val;
+      } else {
+        const catA = a.category?.name || '';
+        const catB = b.category?.name || '';
+        const val = catA.localeCompare(catB);
+        return sortBy === 'category-asc' ? val : -val;
+      }
+    });
 
   return (
     <Modal open={open} onClose={onClose} title={t('events.selectRelatedEvent')}>
       <div className="space-y-4">
-        {/* Search */}
-        <div className="relative">
-          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-xl" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('events.searchPlaceholder')}
-            className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 [color-scheme:dark]"
-          />
+        {/* Search & Sort */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-xl" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('events.searchPlaceholder')}
+              className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 [color-scheme:dark]"
+            />
+          </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="bg-dn-surface-low rounded-input px-3 py-3 text-sm text-dn-text-main focus:outline-none focus:ring-2 focus:ring-dn-primary/30"
+          >
+            <option value="date-desc">{t('events.date')} ↓</option>
+            <option value="date-asc">{t('events.date')} ↑</option>
+            <option value="name-asc">{t('common.name')} ↑</option>
+            <option value="name-desc">{t('common.name')} ↓</option>
+            <option value="category-asc">{t('events.category')} ↑</option>
+            <option value="category-desc">{t('events.category')} ↓</option>
+          </select>
         </div>
 
         {/* List */}
@@ -64,13 +99,13 @@ export function EventSelectorModal({
           {isLoading && <div className="py-4 text-center"><Spinner /></div>}
           {error && <div className="py-2 text-center text-dn-error text-sm">{String(error)}</div>}
           
-          {!isLoading && !error && filtered.length === 0 && (
+          {!isLoading && !error && filteredAndSorted.length === 0 && (
             <div className="py-4">
               <EmptyState title={search ? t('events.noEventsFoundSearch') : t('events.noEventsFound')} />
             </div>
           )}
 
-          {filtered.map((evt) => (
+          {filteredAndSorted.map((evt) => (
             <div
               key={evt.id}
               onClick={() => handleSelect(evt.id)}
