@@ -97,31 +97,34 @@ export function TimePeriodDashboard({
         </Card>
       )}
 
-      { timePeriod.budgetLimit != null &&
+      { (timePeriod.budgetLimit != null || (balance.categoryBudgets && balance.categoryBudgets.length > 0)) &&
       <Card className="space-y-4">
         <p className="text-sm text-dn-text-muted uppercase tracking-wider mb-3">
           {t('periods.budgetLabel', 'Budgets')}
         </p>
 
-        <BudgetsItemList
-          name={t('periods.budgetTotalLabel')}
-          spentAmount={outbound}
-          budgetedAmount={timePeriod.budgetLimit}
-        /> 
+        {timePeriod.budgetLimit != null && (
+          <BudgetsItemList
+            name={t('periods.budgetTotalLabel')}
+            spentAmount={outbound}
+            budgetedAmount={timePeriod.budgetLimit}
+          />
+        )}
         
-        <div className="border-t border-white/5" />
+        {timePeriod.budgetLimit != null && balance.categoryBudgets && balance.categoryBudgets.length > 0 && (
+          <div className="border-t border-white/5" />
+        )}
         
-        {balance.categoryBudgets.map((b, i) => (
-          <>
+        {balance.categoryBudgets && balance.categoryBudgets.map((b, i) => (
+          <div key={b.category.id} className="space-y-4">
             <BudgetsItemList
-              key={b.category.id}
               name={b.category.name}
               spentAmount={b.spentAmount}
               budgetedAmount={b.budgetedAmount}
               category={b.category}
             />
             { i < balance.categoryBudgets.length - 1 && <div className="border-t border-white/5" /> }
-          </>
+          </div>
         ))}
       </Card>}
 
