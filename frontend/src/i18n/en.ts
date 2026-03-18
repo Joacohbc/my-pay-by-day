@@ -269,6 +269,12 @@ const en = {
       MONTHLY: 'Monthly',
       YEARLY: 'Yearly',
     },
+    expenseDetails: 'Expense Details',
+    amountToPay: 'Amount to Pay',
+    frequency: 'Frequency',
+    nextPayment: 'Next Payment',
+    destination: 'Destination',
+    paymentMethod: 'Payment Method',
   },
 
   // ─── Time Periods ───────────────────────────────────────────────────────

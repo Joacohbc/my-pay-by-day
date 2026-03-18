@@ -154,7 +154,6 @@ export interface Subscription extends Identifiable {
   category?: Category;
   tags: Tag[];
   eventType?: EventType;
-  modifierType?: ModifierType;
   modifierValue?: number;
   recurrence: RecurrenceFrequency;
   nextExecutionDate: string; // ISO-8601 date
@@ -169,7 +168,6 @@ export interface CreateSubscriptionDto {
   category?: { id: number };
   tags?: { id: number }[];
   eventType?: EventType;
-  modifierType?: ModifierType;
   modifierValue?: number;
   recurrence: RecurrenceFrequency;
   nextExecutionDate: string;

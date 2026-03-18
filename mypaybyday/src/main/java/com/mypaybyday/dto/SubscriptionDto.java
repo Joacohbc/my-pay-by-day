@@ -2,7 +2,6 @@ package com.mypaybyday.dto;
 
 import com.mypaybyday.entity.Subscription;
 import com.mypaybyday.enums.EventType;
-import com.mypaybyday.enums.ModifierType;
 import com.mypaybyday.enums.RecurrenceFrequency;
 import com.mypaybyday.enums.SubscriptionStatus;
 import java.math.BigDecimal;
@@ -20,7 +19,6 @@ public record SubscriptionDto(
         CategoryDto category,
         List<TagDto> tags,
         EventType eventType,
-        ModifierType modifierType,
         BigDecimal modifierValue,
         RecurrenceFrequency recurrence,
         LocalDate nextExecutionDate,
@@ -37,7 +35,6 @@ public record SubscriptionDto(
                 s.category != null ? CategoryDto.from(s.category) : null,
                 s.tags.stream().map(TagDto::from).toList(),
                 s.eventType,
-                null, // modifierType missing on Entity
                 s.modifierValue,
                 s.recurrence,
                 s.nextExecutionDate,
