@@ -2,9 +2,11 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FinanceEvent } from '@/models';
 import { Icon } from '@/components/ui/Icon';
+import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatDate, eventNetAmount } from '@/lib/format';
 
 interface EventCardProps {
+  disableLink?: boolean;
   event: FinanceEvent;
 }
 
@@ -29,22 +31,23 @@ const typeConfig = {
   },
 };
 
-export function EventCard({ event }: EventCardProps) {
+export function EventCard({ event, disableLink }: EventCardProps) {
   const { t } = useTranslation();
   const cfg = typeConfig[event.type];
   const net = eventNetAmount(event);
   const date = event.transactionDate;
 
-  return (
-    <Link
-      to={`/events/${event.id}`}
-      className="flex items-center justify-between group active:scale-[0.99] transition-transform py-1"
-    >
+  const content = (
+    <>
       <div className="flex items-center gap-4">
         {/* Icon */}
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${cfg.iconBg}`}>
-          <Icon name={cfg.icon} />
-        </div>
+        {event.category ? (
+          <CategoryIcon category={event.category} size="lg" shape="rounded-full" />
+        ) : (
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${cfg.iconBg}`}>
+            <Icon name={cfg.icon} />
+          </div>
+        )}
 
         {/* Info */}
         <div className="flex flex-col">
@@ -63,6 +66,18 @@ export function EventCard({ event }: EventCardProps) {
         {event.type === 'INBOUND' ? '+' : event.type === 'OUTBOUND' ? '-' : ''}
         {formatCurrency(Math.abs(net))}
       </span>
+    </>
+  );
+
+  const containerClass = "flex items-center w-full justify-between group active:scale-[0.99] transition-transform py-1";
+
+  if (disableLink) {
+    return <div className={containerClass}>{content}</div>;
+  }
+
+  return (
+    <Link to={`/events/${event.id}`} className={containerClass}>
+      {content}
     </Link>
   );
 }

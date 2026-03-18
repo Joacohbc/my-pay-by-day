@@ -246,14 +246,10 @@ public class TimePeriodService {
             timePeriod.savingsPercentageGoal = dto.savingsPercentageGoal();
         }
         if (dto.budgetLimit() != null) {
-            if (dto.budgetLimit().compareTo(BigDecimal.ZERO) < 0) {
-                // We don't have a specific error for this, but let's assume it should be non-negative
-                // I'll check if there is a generic one or just set it.
-                // The prompt didn't specify validation, but usually budgets are positive.
-                // For now just set it.
-            }
             timePeriod.budgetLimit = dto.budgetLimit();
         }
+
+        validatePeriod(timePeriod);
 
         return TimePeriodDto.from(timePeriod);
     }
@@ -293,6 +289,16 @@ public class TimePeriodService {
                 && (tp.savingsPercentageGoal.compareTo(BigDecimal.ZERO) < 0
                     || tp.savingsPercentageGoal.compareTo(new BigDecimal("100")) > 0)) {
                 throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_SAVINGS_GOAL_RANGE));
+        }
+
+        BigDecimal sumOfCategoryBudgets = tp.budgets.stream()
+                .map(b -> b.budgetedAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (tp.budgetLimit == null) {
+            tp.budgetLimit = sumOfCategoryBudgets;
+        } else if (tp.budgetLimit.compareTo(sumOfCategoryBudgets) < 0) {
+            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_BUDGET_LIMIT_MINIMUM, sumOfCategoryBudgets));
         }
     }
 }

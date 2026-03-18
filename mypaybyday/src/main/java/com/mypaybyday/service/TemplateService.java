@@ -79,6 +79,10 @@ public class TemplateService {
         if (dto.name() == null || dto.name().isBlank()) {
             throw new BusinessException(messages.get(MsgKey.TEMPLATE_NAME_REQUIRED));
         }
+        if ((dto.modifierType() != null && dto.modifierValue() == null) ||
+            (dto.modifierType() == null && dto.modifierValue() != null)) {
+            throw new BusinessException(messages.get(MsgKey.TEMPLATE_MODIFIER_VALIDATION));
+        }
         Template template = new Template();
         applyDto(template, dto);
         templateRepository.persist(template);
@@ -90,6 +94,10 @@ public class TemplateService {
         Template template = findEntityById(id);
         if (dto.name() == null || dto.name().isBlank()) {
             throw new BusinessException(messages.get(MsgKey.TEMPLATE_NAME_REQUIRED));
+        }
+        if ((dto.modifierType() != null && dto.modifierValue() == null) ||
+            (dto.modifierType() == null && dto.modifierValue() != null)) {
+            throw new BusinessException(messages.get(MsgKey.TEMPLATE_MODIFIER_VALIDATION));
         }
         applyDto(template, dto);
         return TemplateDto.from(template);

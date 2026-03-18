@@ -10,10 +10,12 @@ import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatDateTime, eventNetAmount } from '@/lib/format';
 import { useState } from 'react';
+import { RelatedEventsSection } from '@/components/events/RelatedEventsSection';
 
-const typeConfig = {
+const eventTypeConfig = {
   INBOUND: {
     icon: 'arrow_downward',
     iconBg: 'bg-dn-success/10 text-dn-success',
@@ -48,7 +50,7 @@ export function EventDetailPage() {
   if (isLoading) return <FullPageSpinner />;
   if (error || !event) return <ErrorState message={t('errors.eventNotFound')} />;
 
-  const cfg = typeConfig[event.type];
+  const cfg = eventTypeConfig[event.type];
   const net = eventNetAmount(event);
 
   const confirmDelete = async () => {
@@ -108,7 +110,12 @@ export function EventDetailPage() {
 
         <div className="flex flex-wrap justify-center gap-2 mt-3">
           <Badge variant={cfg.badgeVariant}>{t(cfg.labelKey)}</Badge>
-          {event.category && <Badge variant="default">{event.category.name}</Badge>}
+          {event.category && (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-pill bg-dn-surface text-dn-text-main text-xs font-medium">
+              <CategoryIcon category={event.category} size="sm" />
+              {event.category.name}
+            </div>
+          )}
           {event.tags.map((tag) => (
             <Badge key={tag.id} variant="indigo">#{tag.name}</Badge>
           ))}
@@ -121,7 +128,10 @@ export function EventDetailPage() {
           {event.category && (
             <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
               <span className="text-sm text-dn-text-muted">{t('events.category')}</span>
-              <span className="text-sm text-dn-text-main">{event.category.name}</span>
+              <div className="flex items-center gap-2">
+                <CategoryIcon category={event.category} size="sm" />
+                <span className="text-sm text-dn-text-main">{event.category.name}</span>
+              </div>
             </div>
           )}
           {event.transactionDate && (
@@ -170,6 +180,9 @@ export function EventDetailPage() {
           <EmptyState title={t('events.noLineItems')} />
         )}
       </div>
+
+      {/* Related Events */}
+      <RelatedEventsSection event={event} />
     </div>
   );
 }

@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { Pagination } from '@/components/ui/Pagination';
 import { truncate } from '@/lib/format';
 import type { Template, EventType, ModifierType } from '@/models';
@@ -83,6 +84,7 @@ export function TemplatesPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
     control,
     formState: { errors },
   } = useForm<FormValues>({ defaultValues: DEFAULT_FORM });
@@ -222,7 +224,10 @@ export function TemplatesPage() {
                 )}
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {tpl.category && (
-                    <span className="text-xs text-dn-text-muted">{tpl.category.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <CategoryIcon category={tpl.category} size="sm" />
+                      <span className="text-xs text-dn-text-muted">{tpl.category.name}</span>
+                    </div>
                   )}
                   {tpl.tags.map((tag) => (
                     <span key={tag.id} className="text-xs text-dn-text-muted/70">
@@ -396,14 +401,21 @@ export function TemplatesPage() {
                   label={t('templates.modifierType')}
                   placeholder={t('common.none')}
                   options={[
+                    { value: '', label: t('common.none') },
                     { value: 'PERCENTAGE', label: t('templates.percentage') },
                     { value: 'FIXED', label: t('templates.fixed') },
                   ]}
                   {...field}
+                  onChange={(val) => {
+                    field.onChange(val);
+                    if (!val) {
+                      setValue('modifierValue', '');
+                    }
+                  }}
                 />
               )}
             />
-            {watchModifierType && (
+            {watchModifierType && watchModifierType !== '' && (
               <Input
                 label={t('templates.modifierValue')}
                 placeholder={watchModifierType === 'PERCENTAGE' ? 'e.g. 10' : 'e.g. 5.00'}

@@ -82,13 +82,13 @@ export function TimePeriodDashboard({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-dn-text-muted uppercase tracking-wider">{t('periods.savingsGoalLabel')}</p>
-              <p className="text-sm font-medium text-dn-text-main mt-0.5">
+              <p className="text-sm font-medium text-dn-text-main mt-0.5 break-all">
                 {timePeriod.savingsPercentageGoal}% ={' '}
                 <span className="text-dn-primary">
                   {formatCurrency((income * timePeriod.savingsPercentageGoal) / 100)}
                 </span>
               </p>
-              <p className="text-[11px] text-dn-text-muted mt-1">
+              <p className="text-[11px] text-dn-text-muted mt-1 break-all">
                 {t('periods.actualSavings')}: {formatCurrency(netBalance)} (
                 {income > 0 ? Math.round((netBalance / income) * 100) : 0}%)
               </p>
@@ -97,30 +97,29 @@ export function TimePeriodDashboard({
         </Card>
       )}
 
-      { timePeriod.budgetLimit != null &&
+      { (timePeriod.budgetLimit != null || (balance.categoryBudgets && balance.categoryBudgets.length > 0)) &&
       <Card className="space-y-4">
         <p className="text-sm text-dn-text-muted uppercase tracking-wider mb-3">
           {t('periods.budgetLabel', 'Budgets')}
         </p>
 
-        <BudgetsItemList
-          name={t('periods.budgetTotalLabel')}
-          spentAmount={outbound}
-          budgetedAmount={timePeriod.budgetLimit}
-        /> 
+        {timePeriod.budgetLimit != null && (
+          <BudgetsItemList
+            name={t('periods.budgetTotalLabel')}
+            spentAmount={outbound}
+            budgetedAmount={timePeriod.budgetLimit}
+          />
+        )}
         
-        <div className="border-t border-white/5" />
-        
-        {balance.categoryBudgets.map((b, i) => (
-          <>
+        {balance.categoryBudgets && balance.categoryBudgets.map((b) => (
+          <div key={b.category.id} className="space-y-4 mt-7">
             <BudgetsItemList
-              key={b.category.id}
               name={b.category.name}
               spentAmount={b.spentAmount}
               budgetedAmount={b.budgetedAmount}
+              category={b.category}
             />
-            { i < balance.categoryBudgets.length - 1 && <div className="border-t border-white/5" /> }
-          </>
+          </div>
         ))}
       </Card>}
 

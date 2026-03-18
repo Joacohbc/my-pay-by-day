@@ -94,4 +94,34 @@ public class EventResource {
         eventService.delete(id);
         return Response.noContent().build();
     }
+
+    @POST
+    @Path("/{id}/relations")
+    @Operation(summary = "Add bidirectional relations to other events")
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "Relations added successfully",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
+            @APIResponse(responseCode = "404", description = "Event not found")
+    })
+    public Response addRelations(
+            @Parameter(description = "ID of the event", required = true) @PathParam("id") Long id,
+            @Parameter(description = "List of related event IDs", required = true) java.util.List<Long> relatedIds) 
+            throws BusinessException {
+        return Response.ok(eventService.addRelations(id, relatedIds)).build();
+    }
+
+    @DELETE
+    @Path("/{id}/relations")
+    @Operation(summary = "Remove bidirectional relations to multiple events")
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "Relations removed successfully",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
+            @APIResponse(responseCode = "404", description = "Event not found")
+    })
+    public Response removeRelations(
+            @Parameter(description = "ID of the event", required = true) @PathParam("id") Long id,
+            @Parameter(description = "List of related event IDs to remove", required = true) java.util.List<Long> relatedIds)
+            throws BusinessException {
+        return Response.ok(eventService.removeRelations(id, relatedIds)).build();
+    }
 }

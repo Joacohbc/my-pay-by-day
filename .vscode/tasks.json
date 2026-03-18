@@ -4,7 +4,7 @@
     {
       "label": "quarkus:dev",
       "type": "shell",
-      "command": "./mvnw quarkus:dev",
+      "command": "set -a; [ -f ../.env ] && . ../.env; [ -f ./.env ] && . ./.env; set +a; ./mvnw quarkus:dev",
       "options": {
         "cwd": "${workspaceFolder}/mypaybyday"
       },

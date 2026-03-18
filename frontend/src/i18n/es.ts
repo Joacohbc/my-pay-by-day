@@ -33,6 +33,7 @@ const es = {
     prevPage: 'Anterior',
     nextPage: 'Siguiente',
     pageOf: 'Página {{page}} de {{total}}',
+    selectCategory: 'Seleccionar Categoría',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────
@@ -88,6 +89,12 @@ const es = {
     newEvent: 'Nuevo Evento',
     detail: 'Detalle',
     deleteConfirm: '¿Eliminar este evento permanentemente?',
+    relatedEvents: 'Eventos Relacionados',
+    addRelatedEvent: 'Añadir Relación',
+    removeRelation: 'Eliminar',
+    noRelatedEvents: 'No hay eventos relacionados',
+    selectRelatedEvent: 'Selecciona un evento para relacionar',
+    confirmRemoveRelation: '¿Eliminar la relación con este evento?',
     category: 'Categoría',
     date: 'Fecha',
     receipt: 'Recibo',
@@ -134,6 +141,8 @@ const es = {
     nodeRequired: 'Requerido',
     amountNonZero: 'Debe ser un número distinto de cero',
     atLeastOneLine: 'Se requiere al menos una partida',
+    manualMode: 'Modo manual',
+    simplifiedMode: 'Modo simplificado',
   },
 
   // ─── Template Picker ────────────────────────────────────────────────────
@@ -185,6 +194,7 @@ const es = {
     namePlaceholder: 'ej. Comida, Transporte, Servicios',
     descriptionPlaceholder: 'Descripción opcional',
     deleteConfirm: '¿Eliminar esta categoría?',
+    iconLabel: 'Ícono',
   },
 
   // ─── Tags ────────────────────────────────────────────────────────────────
@@ -246,12 +256,25 @@ const es = {
     infoModalSubtext:
       'Las plantillas definen los nodos origen/destino predeterminados, categoría, etiquetas y modificadores opcionales de monto (ej. agregar 10% de propina automáticamente).',
     next: 'Próximo',
+    deleteConfirm: '¿Eliminar esta suscripción?',
+    editSubscription: 'Editar Suscripción',
+    recurrenceLabel: 'Recurrencia',
+    status: {
+      ACTIVE: 'Activa',
+      CANCELLED: 'Cancelada',
+    },
     recurrence: {
       DAILY: 'Diaria',
       WEEKLY: 'Semanal',
       MONTHLY: 'Mensual',
       YEARLY: 'Anual',
     },
+    expenseDetails: 'Detalles de Gasto',
+    amountToPay: 'Monto a Pagar',
+    frequency: 'Frecuencia',
+    nextPayment: 'Próximo Pago',
+    destination: 'Destino',
+    paymentMethod: 'Método de Pago',
   },
 
   // ─── Time Periods ───────────────────────────────────────────────────────
@@ -272,8 +295,15 @@ const es = {
     endDate: 'Fecha de Fin',
     budgetLimit: 'Límite de Presupuesto (opcional)',
     budgetLimitPlaceholder: 'ej. 3000',
+    budgetLimitModeLabel: 'Tipo de límite',
+    budgetLimitModeAuto: 'Automático',
+    budgetLimitModeFixed: 'Valor fijo',
+    budgetLimitAutoHelp: 'Se calcula automáticamente con la suma de presupuestos por categoría.',
+    budgetLimitReadOnlyAuto: 'Modo automático activo: este campo es de solo lectura.',
     savingsGoal: 'Meta de Ahorro % (opcional)',
     savingsGoalPlaceholder: 'ej. 20',
+    budgetsTitle: 'Presupuestos',
+    budgetLimitMinimum: 'El límite debe ser mayor a la sumatoria por categoría ({{min}})',
     startDateRequired: 'La fecha de inicio es requerida',
     endDateRequired: 'La fecha de fin es requerida',
     namePlaceholder: 'ej. Marzo 2026, Presupuesto Q1',
@@ -352,6 +382,15 @@ const es = {
     savedLocally: 'No enviado',
     queuedFeedback: 'Guardado sin conexión — confirmá el envío al reconectarte',
     noConnectionToSend: 'Sin conexión — reconectáte para enviar',
+  },
+
+  // ─── Icon Picker ─────────────────────────────────────────────────────────
+  iconPicker: {
+    searchPlaceholder: 'Buscar íconos…',
+    noResults: 'No se encontraron íconos',
+    showingCount: 'Mostrando {{count}} de {{total}} íconos — buscá para ver más',
+    browseAll: 'Ver todos',
+    allIconsTitle: 'Todos los Íconos',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────
