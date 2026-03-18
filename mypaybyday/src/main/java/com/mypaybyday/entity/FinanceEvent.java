@@ -144,6 +144,13 @@ public class FinanceEvent extends BaseEntity {
     @Builder.Default
     public List<FinanceEvent> relatedEvents = new ArrayList<>();
 
+    /**
+     * Optional link to the subscription that generated this event or is associated with it.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subscription_id")
+    public Subscription subscription;
+
     @Override
     public String toRagContent() {
         StringBuilder sb = new StringBuilder();

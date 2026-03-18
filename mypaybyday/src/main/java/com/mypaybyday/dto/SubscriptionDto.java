@@ -37,7 +37,7 @@ public record SubscriptionDto(
                 s.category != null ? CategoryDto.from(s.category) : null,
                 s.tags.stream().map(TagDto::from).toList(),
                 s.eventType,
-                s.modifierType,
+                null, // modifierType missing on Entity
                 s.modifierValue,
                 s.recurrence,
                 s.nextExecutionDate,

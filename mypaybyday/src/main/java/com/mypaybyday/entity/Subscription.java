@@ -50,9 +50,6 @@ public class Subscription extends BaseEntity {
     @Enumerated(EnumType.STRING)
     public EventType eventType;
 
-    @Enumerated(EnumType.STRING)
-    public ModifierType modifierType;
-
     public BigDecimal modifierValue;
 
     @NotNull
@@ -70,11 +67,11 @@ public class Subscription extends BaseEntity {
     @Override
     public String toRagContent() {
         return String.format(
-                "A recurring subscription named '%s' is scheduled with %s frequency. The next execution is planned for %s. It is configured for %s events in the category '%s'. It moves value from node '%s' to node '%s'. Its status is %s.",
-                name, recurrence, nextExecutionDate, eventType,
-                category != null ? category.name : "Uncategorized",
-                originNode != null ? originNode.name : "unknown origin",
-                destinationNode != null ? destinationNode.name : "unknown destination",
-                status);
+            "A recurring subscription named '%s' is scheduled with %s frequency. The next execution is planned for %s. It is configured for %s events in the category '%s'. It moves value from node '%s' to node '%s'. Its status is %s.",
+            name, recurrence, nextExecutionDate, eventType,
+            category != null ? category.name : "Uncategorized",
+            originNode != null ? originNode.name : "unknown origin",
+            destinationNode != null ? destinationNode.name : "unknown destination",
+            status);
     }
 }
