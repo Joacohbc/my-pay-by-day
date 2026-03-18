@@ -83,9 +83,10 @@ export const api = {
     }).then((r) => handleResponse<T>(r));
   },
 
-  delete: (path: string): Promise<void> =>
+  delete: <T = void>(path: string, body?: unknown): Promise<T> =>
     fetch(`${BASE_URL}${withLang(path)}`, {
       method: 'DELETE',
-      headers: { 'X-Timezone': 'UTC' }
-    }).then((r) => handleResponse<void>(r)),
+      headers: { 'Content-Type': 'application/json', 'X-Timezone': 'UTC' },
+      body: body ? JSON.stringify(body) : undefined,
+    }).then((r) => handleResponse<T>(r)),
 };

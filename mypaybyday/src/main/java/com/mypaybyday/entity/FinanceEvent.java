@@ -132,6 +132,18 @@ public class FinanceEvent extends BaseEntity {
     @Builder.Default
     public List<Tag> tags = new ArrayList<>();
 
+    /**
+     * Bidirectional relationship to other FinanceEvents.
+     */
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "event_relation",
+        joinColumns = @JoinColumn(name = "event_id"),
+        inverseJoinColumns = @JoinColumn(name = "related_event_id")
+    )
+    @Builder.Default
+    public List<FinanceEvent> relatedEvents = new ArrayList<>();
+
     @Override
     public String toRagContent() {
         StringBuilder sb = new StringBuilder();
