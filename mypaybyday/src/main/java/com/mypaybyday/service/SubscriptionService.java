@@ -290,10 +290,12 @@ public class SubscriptionService {
 
         switch (sub.eventType) {
             case INBOUND -> {
-                lineItems.add(new FinanceLineItemDto(null, sub.originNode.id, sub.originNode.name, sub.modifierValue));
+                lineItems.add(new FinanceLineItemDto(null, sub.originNode.id, sub.originNode.name, sub.modifierValue.negate()));
+                lineItems.add(new FinanceLineItemDto(null, sub.destinationNode.id, sub.destinationNode.name, sub.modifierValue));
             }
             case OUTBOUND -> {
                 lineItems.add(new FinanceLineItemDto(null, sub.originNode.id, sub.originNode.name, sub.modifierValue.negate()));
+                lineItems.add(new FinanceLineItemDto(null, sub.destinationNode.id, sub.destinationNode.name, sub.modifierValue));
             }
             case OTHER -> {
                 if (sub.destinationNode != null) {
