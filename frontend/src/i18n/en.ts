@@ -256,12 +256,25 @@ const en = {
     infoModalSubtext:
       'Templates define the default origin/destination nodes, category, tags, and optional amount modifiers (e.g. auto-add 10% tip).',
     next: 'Next',
+    deleteConfirm: 'Delete this subscription?',
+    editSubscription: 'Edit Subscription',
+    recurrenceLabel: 'Recurrence',
+    status: {
+      ACTIVE: 'Active',
+      CANCELLED: 'Cancelled',
+    },
     recurrence: {
       DAILY: 'Daily',
       WEEKLY: 'Weekly',
       MONTHLY: 'Monthly',
       YEARLY: 'Yearly',
     },
+    expenseDetails: 'Expense Details',
+    amountToPay: 'Amount to Pay',
+    frequency: 'Frequency',
+    nextPayment: 'Next Payment',
+    destination: 'Destination',
+    paymentMethod: 'Payment Method',
   },
 
   // ─── Time Periods ───────────────────────────────────────────────────────

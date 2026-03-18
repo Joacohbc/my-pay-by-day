@@ -256,12 +256,25 @@ const es = {
     infoModalSubtext:
       'Las plantillas definen los nodos origen/destino predeterminados, categoría, etiquetas y modificadores opcionales de monto (ej. agregar 10% de propina automáticamente).',
     next: 'Próximo',
+    deleteConfirm: '¿Eliminar esta suscripción?',
+    editSubscription: 'Editar Suscripción',
+    recurrenceLabel: 'Recurrencia',
+    status: {
+      ACTIVE: 'Activa',
+      CANCELLED: 'Cancelada',
+    },
     recurrence: {
       DAILY: 'Diaria',
       WEEKLY: 'Semanal',
       MONTHLY: 'Mensual',
       YEARLY: 'Anual',
     },
+    expenseDetails: 'Detalles de Gasto',
+    amountToPay: 'Monto a Pagar',
+    frequency: 'Frecuencia',
+    nextPayment: 'Próximo Pago',
+    destination: 'Destino',
+    paymentMethod: 'Método de Pago',
   },
 
   // ─── Time Periods ───────────────────────────────────────────────────────

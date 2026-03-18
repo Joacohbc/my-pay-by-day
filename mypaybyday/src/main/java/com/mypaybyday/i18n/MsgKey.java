@@ -62,6 +62,8 @@ public enum MsgKey {
     SUBSCRIPTION_NOT_FOUND("error.subscription.not_found"),
     SUBSCRIPTION_NAME_REQUIRED("error.subscription.name_required"),
     SUBSCRIPTION_TEMPLATE_REQUIRED("error.subscription.template_required"),
+    SUBSCRIPTION_NEXT_EXECUTION_DATE_REQUIRED("error.subscription.next_execution_date_required"),
+    SUBSCRIPTION_RECURRENCE_REQUIRED("error.subscription.recurrence_required"),
 
     // ── AI ───────────────────────────────────────────────
     AI_SYSTEM_PROMPT("ai.system.prompt");

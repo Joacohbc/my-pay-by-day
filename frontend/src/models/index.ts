@@ -142,16 +142,37 @@ export interface CreateTemplateDto {
 
 // ─── Subscription ─────────────────────────────────────────────────────────────
 
+export type SubscriptionStatus = 'ACTIVE' | 'CANCELLED';
+
 export interface Subscription extends Identifiable {
   name: string;
-  template: Template;
+  description?: string;
+  originNodeId?: number;
+  originNodeName?: string;
+  destinationNodeId?: number;
+  destinationNodeName?: string;
+  category?: Category;
+  tags: Tag[];
+  eventType?: EventType;
+  modifierValue?: number;
   recurrence: RecurrenceFrequency;
   nextExecutionDate: string; // ISO-8601 date
+  status: SubscriptionStatus;
 }
 
-export type CreateSubscriptionDto = Omit<Subscription, 'id' | 'template'> & {
-  template: { id: number };
-};
+export interface CreateSubscriptionDto {
+  name: string;
+  description?: string;
+  originNodeId?: number;
+  destinationNodeId?: number;
+  category?: { id: number };
+  tags?: { id: number }[];
+  eventType?: EventType;
+  modifierValue?: number;
+  recurrence: RecurrenceFrequency;
+  nextExecutionDate: string;
+  status?: SubscriptionStatus;
+}
 
 // ─── TimePeriod ───────────────────────────────────────────────────────────────
 
