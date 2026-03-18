@@ -87,51 +87,51 @@ function SubscriptionCard({
   const isActive = sub.status === 'ACTIVE';
 
   return (
-    <Card className={`flex items-start gap-4 transition-opacity ${isActive ? '' : 'opacity-60 grayscale'}`}>
-      <div className={`w-12 h-12 flex items-center justify-center rounded-2xl shrink-0 mt-0.5 ${isActive ? 'bg-dn-primary/10 text-dn-primary' : 'bg-dn-surface-low text-dn-text-muted'}`}>
-        <Icon name="sync" />
+    <Card className={`flex items-start gap-5 transition-opacity ${isActive ? '' : 'opacity-60 grayscale'}`}>
+      <div className={`w-14 h-14 flex items-center justify-center rounded-2xl shrink-0 mt-0.5 ${isActive ? 'bg-dn-primary/10 text-dn-primary' : 'bg-dn-surface-low text-dn-text-muted'}`}>
+        <Icon name="sync" className="text-3xl" />
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-base font-medium text-dn-text-main truncate">{truncate(sub.name, 40)}</p>
+      <div className="flex-1 min-w-0 flex flex-col gap-2">
+        <div className="flex items-center gap-3 flex-wrap">
+          <p className="text-lg font-semibold text-dn-text-main truncate">{truncate(sub.name, 40)}</p>
           {sub.eventType && (
             <span
-              className={`text-xs px-2 py-0.5 rounded-pill font-medium ${EVENT_TYPE_COLORS[sub.eventType] ?? 'text-dn-text-muted bg-dn-surface-low'}`}
+              className={`text-xs px-2.5 py-1 rounded-pill font-medium ${EVENT_TYPE_COLORS[sub.eventType] ?? 'text-dn-text-muted bg-dn-surface-low'}`}
             >
               {EVENT_TYPE_LABELS[sub.eventType]}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-3">
           <Badge variant={isActive ? 'indigo' : 'gray'}>{t(`subscriptions.recurrence.${sub.recurrence}`)}</Badge>
-          <span className="text-xs text-dn-text-muted flex items-center gap-1">
-            <Icon name="calendar_today" className="text-xs" />
+          <span className="text-sm text-dn-text-muted flex items-center gap-1.5">
+            <Icon name="calendar_today" className="text-sm" />
             {t('subscriptions.next')}: {nextDate}
           </span>
           <Badge variant={isActive ? 'income' : 'expense'}>{t(`subscriptions.status.${sub.status}`)}</Badge>
         </div>
 
         {(sub.originNodeName || sub.destinationNodeName) && (
-          <p className="text-xs text-dn-text-muted mt-2">
+          <p className="text-sm text-dn-text-muted">
             {sub.originNodeName}
             {sub.destinationNodeName && <span> → {sub.destinationNodeName}</span>}
           </p>
         )}
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
           {sub.category && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <CategoryIcon category={sub.category} size="sm" />
-              <span className="text-xs text-dn-text-muted">{sub.category.name}</span>
+              <span className="text-sm font-medium text-dn-text-muted">{sub.category.name}</span>
             </div>
           )}
           {sub.tags &&
             sub.tags.map((tag) => (
-              <span key={tag.id} className="text-xs text-dn-text-muted/70">
+              <span key={tag.id} className="text-sm font-medium text-dn-text-muted/70 bg-dn-surface-low px-2.5 py-1 rounded-lg">
                 #{tag.name}
               </span>
             ))}
           {sub.modifierType && sub.modifierValue !== undefined && (
-            <span className="text-xs font-semibold text-dn-primary/80">
+            <span className="text-sm font-semibold text-dn-primary/80 bg-dn-primary/10 px-2.5 py-1 rounded-lg">
               {sub.modifierType === 'PERCENTAGE'
                 ? `${sub.modifierValue}% modifier`
                 : `$${sub.modifierValue}`}
@@ -139,25 +139,25 @@ function SubscriptionCard({
           )}
         </div>
       </div>
-      <div className="flex flex-col items-center gap-2 shrink-0">
+      <div className="flex flex-col items-center gap-3 shrink-0 self-center">
         <button
           title={isActive ? t('common.archive') : t('common.active')}
           onClick={() => onToggleStatus(sub)}
-          className="p-2 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
+          className="p-2.5 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
         >
-          <Icon name={isActive ? 'pause' : 'play_arrow'} className="text-base" />
+          <Icon name={isActive ? 'pause' : 'play_arrow'} className="text-xl" />
         </button>
         <button
           onClick={() => onEdit(sub)}
-          className="p-2 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
+          className="p-2.5 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
         >
-          <Icon name="edit" className="text-base" />
+          <Icon name="edit" className="text-xl" />
         </button>
         <button
           onClick={() => onDelete(sub)}
-          className="p-2 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors"
+          className="p-2.5 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors"
         >
-          <Icon name="delete" className="text-base" />
+          <Icon name="delete" className="text-xl" />
         </button>
       </div>
     </Card>
