@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -65,7 +64,7 @@ export function RelatedEventsSection({ event }: { event: FinanceEvent }) {
 					/>
 
 					{event.relatedEvents && event.relatedEvents.length > 0 ? (
-						<Card className="divide-y divide-white/5">
+						<div className="space-y-2">
 							{event.relatedEvents.map((related) => {
 								// Fake FinanceEvent to reuse EventCard
 								const fakeEvent = {
@@ -82,13 +81,13 @@ export function RelatedEventsSection({ event }: { event: FinanceEvent }) {
 								return (
 									<div
 										key={related.id}
-										className="flex items-center justify-between gap-5"
+										className="group p-2 border border-transparent hover:border-dn-primary/50 transition-colors rounded-2xl flex items-center justify-between gap-5"
 									>
 										<EventCard event={fakeEvent} />
 										<button
 											type="button"
 											onClick={() => setToRemove(related)}
-											className="bg-dn-surface rounded-full p-2 text-dn-error hover:bg-dn-error/10 transition-colors"
+											className="flex items-center justify-center rounded-full p-2 text-dn-error hover:bg-dn-error/10 transition-colors"
 											title={t("events.removeRelation")}
 										>
 											<Icon name="link_off" className="text-xl" />
@@ -96,7 +95,7 @@ export function RelatedEventsSection({ event }: { event: FinanceEvent }) {
 									</div>
 								);
 							})}
-						</Card>
+						</div>
 					) : (
 						<EmptyState title={t("events.noRelatedEvents")} />
 					)}
