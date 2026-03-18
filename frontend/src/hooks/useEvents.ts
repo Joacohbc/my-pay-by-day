@@ -77,3 +77,35 @@ export function useDeleteEvent() {
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
   });
 }
+
+
+export function useAddEventRelations() {
+  const qc = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: ({ id, relatedIds }: { id: number; relatedIds: number[] }) =>
+      eventsService.addRelations(id, relatedIds),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: EVENTS_KEY });
+      alert.success(t('common.saved'));
+    },
+    onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
+  });
+}
+
+export function useRemoveEventRelations() {
+  const qc = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: ({ id, relatedIds }: { id: number; relatedIds: number[] }) =>
+      eventsService.removeRelations(id, relatedIds),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: EVENTS_KEY });
+      alert.success(t('common.saved'));
+    },
+    onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
+  });
+}
+

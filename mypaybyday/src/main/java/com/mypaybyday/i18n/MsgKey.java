@@ -26,6 +26,7 @@ public enum MsgKey {
     EVENT_TAGS_ID_REQUIRED("error.event.tags_id_required"),
     EVENT_DATE_RANGE_NULL("error.event.date_range_null"),
     EVENT_DATE_RANGE_INVALID("error.event.date_range_invalid"),
+    EVENT_RELATED_NOT_FOUND("error.event.related_not_found"),
 
     // ── Finance Node ──────────────────────────────────────
     NODE_NOT_FOUND("error.node.not_found"),
