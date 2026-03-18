@@ -6,6 +6,7 @@ import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatDate, eventNetAmount } from '@/lib/format';
 
 interface EventCardProps {
+  disableLink?: boolean;
   event: FinanceEvent;
 }
 
@@ -30,17 +31,14 @@ const typeConfig = {
   },
 };
 
-export function EventCard({ event }: EventCardProps) {
+export function EventCard({ event, disableLink }: EventCardProps) {
   const { t } = useTranslation();
   const cfg = typeConfig[event.type];
   const net = eventNetAmount(event);
   const date = event.transactionDate;
 
-  return (
-    <Link
-      to={`/events/${event.id}`}
-      className="flex items-center justify-between group active:scale-[0.99] transition-transform py-1"
-    >
+  const content = (
+    <>
       <div className="flex items-center gap-4">
         {/* Icon */}
         {event.category ? (
@@ -68,6 +66,18 @@ export function EventCard({ event }: EventCardProps) {
         {event.type === 'INBOUND' ? '+' : event.type === 'OUTBOUND' ? '-' : ''}
         {formatCurrency(Math.abs(net))}
       </span>
+    </>
+  );
+
+  const containerClass = "flex items-center w-full justify-between group active:scale-[0.99] transition-transform py-1";
+
+  if (disableLink) {
+    return <div className={containerClass}>{content}</div>;
+  }
+
+  return (
+    <Link to={`/events/${event.id}`} className={containerClass}>
+      {content}
     </Link>
   );
 }

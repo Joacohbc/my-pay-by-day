@@ -13,8 +13,9 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatDateTime, eventNetAmount } from '@/lib/format';
 import { useState } from 'react';
+import { RelatedEventsSection } from '@/components/events/RelatedEventsSection';
 
-const typeConfig = {
+const eventTypeConfig = {
   INBOUND: {
     icon: 'arrow_downward',
     iconBg: 'bg-dn-success/10 text-dn-success',
@@ -49,7 +50,7 @@ export function EventDetailPage() {
   if (isLoading) return <FullPageSpinner />;
   if (error || !event) return <ErrorState message={t('errors.eventNotFound')} />;
 
-  const cfg = typeConfig[event.type];
+  const cfg = eventTypeConfig[event.type];
   const net = eventNetAmount(event);
 
   const confirmDelete = async () => {
@@ -179,6 +180,9 @@ export function EventDetailPage() {
           <EmptyState title={t('events.noLineItems')} />
         )}
       </div>
+
+      {/* Related Events */}
+      <RelatedEventsSection event={event} />
     </div>
   );
 }

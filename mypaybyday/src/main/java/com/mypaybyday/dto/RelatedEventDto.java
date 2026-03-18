@@ -2,6 +2,7 @@ package com.mypaybyday.dto;
 
 import com.mypaybyday.entity.FinanceEvent;
 import com.mypaybyday.entity.FinanceLineItem;
+import com.mypaybyday.enums.EventType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -10,7 +11,9 @@ public record RelatedEventDto(
         Long id,
         String name,
         LocalDateTime date,
-        BigDecimal amount
+        BigDecimal amount,
+        EventType type,
+        CategoryDto category
 ) {
     public static RelatedEventDto from(FinanceEvent event) {
         LocalDateTime txDate = null;
@@ -26,6 +29,13 @@ public record RelatedEventDto(
             }
         }
 
-        return new RelatedEventDto(event.id, event.name, txDate, calculatedAmount);
+        return new RelatedEventDto(
+                event.id, 
+                event.name, 
+                txDate, 
+                calculatedAmount,
+                event.type,
+                event.category != null ? CategoryDto.from(event.category) : null
+        );
     }
 }
