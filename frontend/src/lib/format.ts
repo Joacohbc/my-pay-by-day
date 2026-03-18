@@ -78,6 +78,7 @@ export function formatCurrencyShort(amount: number): string {
   return new Intl.NumberFormat(locale(), {
     style: 'currency',
     currency: getCurrency(),
+    compactDisplay: 'short',
     maximumFractionDigits: 0,
   }).format(amount);
 }

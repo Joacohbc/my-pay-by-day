@@ -82,13 +82,13 @@ export function TimePeriodDashboard({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-dn-text-muted uppercase tracking-wider">{t('periods.savingsGoalLabel')}</p>
-              <p className="text-sm font-medium text-dn-text-main mt-0.5">
+              <p className="text-sm font-medium text-dn-text-main mt-0.5 break-all">
                 {timePeriod.savingsPercentageGoal}% ={' '}
                 <span className="text-dn-primary">
                   {formatCurrency((income * timePeriod.savingsPercentageGoal) / 100)}
                 </span>
               </p>
-              <p className="text-[11px] text-dn-text-muted mt-1">
+              <p className="text-[11px] text-dn-text-muted mt-1 break-all">
                 {t('periods.actualSavings')}: {formatCurrency(netBalance)} (
                 {income > 0 ? Math.round((netBalance / income) * 100) : 0}%)
               </p>
@@ -111,19 +111,14 @@ export function TimePeriodDashboard({
           />
         )}
         
-        {timePeriod.budgetLimit != null && balance.categoryBudgets && balance.categoryBudgets.length > 0 && (
-          <div className="border-t border-white/5" />
-        )}
-        
-        {balance.categoryBudgets && balance.categoryBudgets.map((b, i) => (
-          <div key={b.category.id} className="space-y-4">
+        {balance.categoryBudgets && balance.categoryBudgets.map((b) => (
+          <div key={b.category.id} className="space-y-4 mt-7">
             <BudgetsItemList
               name={b.category.name}
               spentAmount={b.spentAmount}
               budgetedAmount={b.budgetedAmount}
               category={b.category}
             />
-            { i < balance.categoryBudgets.length - 1 && <div className="border-t border-white/5" /> }
           </div>
         ))}
       </Card>}
