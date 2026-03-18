@@ -11,13 +11,17 @@ import com.mypaybyday.entity.FinanceLineItem;
 import com.mypaybyday.entity.FinanceNode;
 import com.mypaybyday.entity.FinanceTransaction;
 import com.mypaybyday.entity.Subscription;
+import com.mypaybyday.entity.SystemJob;
 import com.mypaybyday.entity.Tag;
+import com.mypaybyday.enums.JobCategory;
+import com.mypaybyday.enums.JobStatus;
 import com.mypaybyday.enums.SubscriptionStatus;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.repository.SubscriptionRepository;
+import com.mypaybyday.repository.SystemJobRepository;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -55,6 +59,9 @@ public class SubscriptionService {
 
     @Inject
     EventService eventService;
+
+    @Inject
+    SystemJobRepository systemJobRepository;
 
     @Transactional
     public PagedResponse<SubscriptionDto> listAll(int page, int size) {
@@ -119,6 +126,14 @@ public class SubscriptionService {
         }
 
         subscriptionRepository.persist(subscription);
+        
+        SystemJob job = new SystemJob();
+        job.jobCategory = JobCategory.SUBSCRIPTION_PROCESSOR;
+        job.status = JobStatus.PENDING;
+        job.nextExecutionDate = subscription.nextExecutionDate;
+        job.entityId = String.valueOf(subscription.id);
+        systemJobRepository.persist(job);
+
         return SubscriptionDto.from(subscription);
     }
 
@@ -186,6 +201,26 @@ public class SubscriptionService {
             }
         }
 
+        SystemJob pendingJob = systemJobRepository.findPendingJobByEntityId(JobCategory.SUBSCRIPTION_PROCESSOR, String.valueOf(subscription.id));
+        if (pendingJob != null) {
+            if (subscription.status != SubscriptionStatus.ACTIVE) {
+                pendingJob.status = JobStatus.COMPLETED;
+                pendingJob.message = "Subscription deactivated/paused";
+                systemJobRepository.persist(pendingJob);
+            } else {
+                pendingJob.nextExecutionDate = subscription.nextExecutionDate;
+                systemJobRepository.persist(pendingJob);
+            }
+        } else if (subscription.status == SubscriptionStatus.ACTIVE) {
+            // Re-activate or recreate if didn't exist
+            SystemJob job = new SystemJob();
+            job.jobCategory = JobCategory.SUBSCRIPTION_PROCESSOR;
+            job.status = JobStatus.PENDING;
+            job.nextExecutionDate = subscription.nextExecutionDate;
+            job.entityId = String.valueOf(subscription.id);
+            systemJobRepository.persist(job);
+        }
+
         return SubscriptionDto.from(subscription);
     }
 
@@ -195,33 +230,53 @@ public class SubscriptionService {
         if (subscription == null) {
             throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NOT_FOUND, id));
         }
+        
+        SystemJob pendingJob = systemJobRepository.findPendingJobByEntityId(JobCategory.SUBSCRIPTION_PROCESSOR, String.valueOf(subscription.id));
+        if (pendingJob != null) {
+            pendingJob.status = JobStatus.COMPLETED;
+            pendingJob.message = "Subscription deleted";
+            systemJobRepository.persist(pendingJob);
+        }
+        
         subscriptionRepository.delete(subscription);
     }
 
     @Transactional
-    public int processDueSubscriptions() {
-        LocalDate today = LocalDate.now();
-        List<Subscription> dueSubscriptions = subscriptionRepository.find("status = ?1 and nextExecutionDate <= ?2", SubscriptionStatus.ACTIVE, today).list();
-
-        int count = 0;
-        for (Subscription sub : dueSubscriptions) {
-            try {
-                // Generate the event
-                createEventFromSubscription(sub);
-
-                // Update next execution date based on recurrence
-                switch (sub.recurrence) {
-                    case DAILY -> sub.nextExecutionDate = sub.nextExecutionDate.plusDays(1);
-                    case WEEKLY -> sub.nextExecutionDate = sub.nextExecutionDate.plusWeeks(1);
-                    case MONTHLY -> sub.nextExecutionDate = sub.nextExecutionDate.plusMonths(1);
-                    case YEARLY -> sub.nextExecutionDate = sub.nextExecutionDate.plusYears(1);
-                }
-                count++;
-            } catch (Exception e) {
-                LOG.errorf(e, "Failed to process subscription ID: %d", sub.id);
-            }
+    public void processSubscription(Long subscriptionId) throws BusinessException {
+        Subscription sub = subscriptionRepository.findById(subscriptionId);
+        if (sub == null) {
+            throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NOT_FOUND, subscriptionId));
         }
-        return count;
+
+        if (sub.status != SubscriptionStatus.ACTIVE) {
+            LOG.warnf("Subscription %d is not active, skipping execution.", sub.id);
+            return;
+        }
+
+        try {
+            // Generate the event
+            createEventFromSubscription(sub);
+
+            // Update next execution date based on recurrence
+            switch (sub.recurrence) {
+                case DAILY -> sub.nextExecutionDate = sub.nextExecutionDate.plusDays(1);
+                case WEEKLY -> sub.nextExecutionDate = sub.nextExecutionDate.plusWeeks(1);
+                case MONTHLY -> sub.nextExecutionDate = sub.nextExecutionDate.plusMonths(1);
+                case YEARLY -> sub.nextExecutionDate = sub.nextExecutionDate.plusYears(1);
+            }
+            subscriptionRepository.persist(sub);
+
+            SystemJob nextJob = new SystemJob();
+            nextJob.jobCategory = JobCategory.SUBSCRIPTION_PROCESSOR;
+            nextJob.status = JobStatus.PENDING;
+            nextJob.nextExecutionDate = sub.nextExecutionDate;
+            nextJob.entityId = String.valueOf(sub.id);
+            systemJobRepository.persist(nextJob);
+            
+        } catch (Exception e) {
+            LOG.errorf(e, "Failed to process subscription ID: %d", sub.id);
+            throw new BusinessException("Failed to process subscription: " + e.getMessage());
+        }
     }
 
     private void createEventFromSubscription(Subscription sub) {
@@ -265,7 +320,7 @@ public class SubscriptionService {
             transaction.lineItems.add(item);
         }
 
-        FinanceEvent previousEvent = eventRepository.find("subscription.id = ?1 order by id descending", sub.id).firstResult();
+        FinanceEvent previousEvent = eventRepository.find("subscription.id = ?1 order by id DESC", sub.id).firstResult();
 
         FinanceEvent event = new FinanceEvent();
         event.name = "[Sub] " + sub.name;

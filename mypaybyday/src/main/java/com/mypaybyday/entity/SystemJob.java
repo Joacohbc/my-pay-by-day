@@ -32,6 +32,8 @@ public class SystemJob extends BaseEntity {
     @NotNull
     public LocalDate nextExecutionDate;
 
+    public String entityId;
+
     public String message;
 
     @Override

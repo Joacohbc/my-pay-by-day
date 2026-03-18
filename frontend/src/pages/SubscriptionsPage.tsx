@@ -85,16 +85,14 @@ function SubscriptionCard({
 
   return (
     <Card className={`flex p-0 overflow-hidden transition-opacity ${isActive ? '' : 'opacity-60 grayscale'}`}>
-      <div className="flex-1 p-3 lg:p-4 flex flex-col gap-4">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 flex items-center justify-center shrink-0">
-              <Icon name="sync" className="text-2xl text-dn-text-muted" />
-            </div>
-            <h2 className="text-lg font-bold text-dn-text-main truncate shrink">{sub.name}</h2>
+      <div className="flex-1 min-w-0 p-3 lg:p-4 flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-3 overflow-hidden">
+          <div className="flex items-center gap-2 min-w-0">
+            <Icon name="sync" className="text-2xl text-dn-text-muted" />
+            <h2 className="text-lg font-bold text-dn-text-main truncate">{sub.name}</h2>
           </div>
           
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
             {sub.eventType && (
               <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${EVENT_TYPE_COLORS[sub.eventType] ?? 'text-dn-text-muted bg-dn-surface-low'}`}>
                 <Icon name={sub.eventType === 'OUTBOUND' ? 'upload' : sub.eventType === 'INBOUND' ? 'download' : 'sync_alt'} className="text-[13px]" />
@@ -116,7 +114,7 @@ function SubscriptionCard({
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Details */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 min-w-0">
             <h3 className="text-xs font-bold text-dn-text-main uppercase tracking-wider">{t('subscriptions.expenseDetails', 'Detalles de Gasto')}</h3>
             
             {sub.category && (
@@ -153,11 +151,11 @@ function SubscriptionCard({
           </div>
 
           {/* Amount */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 min-w-0">
             <h3 className="text-xs font-bold text-dn-text-main uppercase tracking-wider">{t('subscriptions.amountToPay', 'Monto a Pagar')}</h3>
             
             {sub.modifierValue !== undefined && (
-              <div className="text-xl font-bold text-[#e1a5e3] tracking-tight">
+              <div className="text-xl font-bold text-[#e1a5e3] tracking-tight break-all">
                 {formatCurrency(sub.modifierValue)}
               </div>
             )}
