@@ -84,6 +84,7 @@ export function TemplatesPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
     control,
     formState: { errors },
   } = useForm<FormValues>({ defaultValues: DEFAULT_FORM });
@@ -400,14 +401,21 @@ export function TemplatesPage() {
                   label={t('templates.modifierType')}
                   placeholder={t('common.none')}
                   options={[
+                    { value: '', label: t('common.none') },
                     { value: 'PERCENTAGE', label: t('templates.percentage') },
                     { value: 'FIXED', label: t('templates.fixed') },
                   ]}
                   {...field}
+                  onChange={(val) => {
+                    field.onChange(val);
+                    if (!val) {
+                      setValue('modifierValue', '');
+                    }
+                  }}
                 />
               )}
             />
-            {watchModifierType && (
+            {watchModifierType && watchModifierType !== '' && (
               <Input
                 label={t('templates.modifierValue')}
                 placeholder={watchModifierType === 'PERCENTAGE' ? 'e.g. 10' : 'e.g. 5.00'}

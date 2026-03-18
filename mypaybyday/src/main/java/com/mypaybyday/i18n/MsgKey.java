@@ -40,6 +40,7 @@ public enum MsgKey {
     TEMPLATE_NOT_FOUND("error.template.not_found"),
     TEMPLATE_NAME_REQUIRED("error.template.name_required"),
     TEMPLATE_IN_USE("error.template.in_use"),
+    TEMPLATE_MODIFIER_VALIDATION("error.template.modifier_validation"),
 
     // ── Time Period ───────────────────────────────────────
     TIME_PERIOD_NOT_FOUND("error.time_period.not_found"),
