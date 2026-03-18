@@ -87,10 +87,12 @@ function SubscriptionCard({
     <Card className={`flex p-0 overflow-hidden transition-opacity ${isActive ? '' : 'opacity-60 grayscale'}`}>
       <div className="flex-1 p-3 lg:p-4 flex flex-col gap-4">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-10 h-10 flex items-center justify-center rounded-xl shrink-0 bg-dn-surface-low text-dn-text-muted">
-            <Icon name="sync" className="text-xl" />
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="w-8 h-8 flex items-center justify-center shrink-0">
+              <Icon name="sync" className="text-2xl text-dn-text-muted" />
+            </div>
+            <h2 className="text-lg font-bold text-dn-text-main truncate shrink">{sub.name}</h2>
           </div>
-          <h2 className="text-lg font-bold text-dn-text-main truncate shrink">{sub.name}</h2>
           
           <div className="flex items-center gap-2 shrink-0">
             {sub.eventType && (
