@@ -7,6 +7,7 @@ const navItems = [
   { to: '/events', labelKey: 'nav.activity', icon: 'pie_chart' },
   { to: '/chat', labelKey: 'nav.chat', icon: 'chat' },
   { to: '/periods', labelKey: 'nav.periods', icon: 'calendar_month' },
+  { to: '/subscriptions', labelKey: 'nav.subs', icon: 'repeat' },
   { to: '/settings', labelKey: 'nav.profile', icon: 'person' },
 ];
 
