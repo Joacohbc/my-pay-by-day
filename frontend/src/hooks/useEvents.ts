@@ -1,16 +1,16 @@
 import { useAlert } from '@/contexts/AlertContext';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { eventsService } from '@/services/events.service';
+import { eventsService, type EventFilters } from '@/services/events.service';
 import { usePendingEventsStore } from '@/store/pendingEventsStore';
 import type { CreateEventDto, FinanceEvent } from '@/models';
 
 export const EVENTS_KEY = ['events'] as const;
 
-export function useEvents(page = 0, size = 20) {
+export function useEvents(filters: EventFilters = {}) {
   return useQuery({
-    queryKey: [...EVENTS_KEY, page, size],
-    queryFn: () => eventsService.getAll(page, size),
+    queryKey: [...EVENTS_KEY, filters],
+    queryFn: () => eventsService.getAll(filters),
   });
 }
 

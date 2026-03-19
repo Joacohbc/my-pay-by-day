@@ -27,13 +27,20 @@ public class EventResource {
     EventService eventService;
 
     @GET
-    @Operation(summary = "List events (paginated)", description = "Returns a paginated page of FinanceEvents. Use ?page=0&size=20 to control pagination.")
+    @Operation(summary = "List events (paginated)", description = "Returns a paginated page of FinanceEvents with optional filtering.")
     @APIResponse(responseCode = "200", description = "Paginated list of events",
             content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
     public Response getAll(
             @Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
-            @Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
-        return Response.ok(eventService.listAll(page, size)).build();
+            @Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size,
+            @Parameter(description = "Filter by text in name or description") @QueryParam("search") String search,
+            @Parameter(description = "Filter by start date (YYYY-MM-DD)") @QueryParam("startDate") String startDate,
+            @Parameter(description = "Filter by end date (YYYY-MM-DD)") @QueryParam("endDate") String endDate,
+            @Parameter(description = "Filter by event type") @QueryParam("type") com.mypaybyday.enums.EventType type,
+            @Parameter(description = "Filter by category ID") @QueryParam("categoryId") Long categoryId,
+            @Parameter(description = "Filter by tag ID") @QueryParam("tagId") Long tagId) {
+
+        return Response.ok(eventService.listAll(page, size, search, startDate, endDate, type, categoryId, tagId)).build();
     }
 
     @GET

@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useEvents } from '@/hooks/useEvents';
+import { useCategories } from '@/hooks/useCategories';
+import { useTags } from '@/hooks/useTags';
+import { useDebounce } from '@/hooks/useDebounce';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import { PendingEventsSync } from '@/components/events/PendingEventsSync';
 import type { Template } from '@/models';
@@ -15,6 +18,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Input } from '@/components/ui/Input';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { formatCurrency, eventNetAmount } from '@/lib/format';
 import type { EventType } from '@/models';
 
@@ -24,12 +28,30 @@ export function EventsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [page, setPage] = useState(0);
-  const { data: paged, isLoading, error } = useEvents(page);
+
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
+
   const [filter, setFilter] = useState<FilterType>('ALL');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [categoryId, setCategoryId] = useState<number | undefined>();
+  const [tagId, setTagId] = useState<number | undefined>();
   const [showPicker, setShowPicker] = useState(false);
+
+  const { data: paged, isLoading, error } = useEvents({
+    page,
+    size: 20,
+    search: debouncedSearch,
+    startDate,
+    endDate,
+    type: filter !== 'ALL' ? filter : undefined,
+    categoryId,
+    tagId,
+  });
+
+  const { data: categories = [] } = useCategories();
+  const { data: tags = [] } = useTags();
 
   const handlePickTemplate = (template: Template | null) => {
     setShowPicker(false);
@@ -40,38 +62,11 @@ export function EventsPage() {
     }
   };
 
-  if (isLoading) return <FullPageSpinner />;
-  if (error) return <ErrorState message={String(error)} />;
-
   const allEvents = paged?.content ?? [];
   const totalPages = paged?.totalPages ?? 1;
   const totalElements = paged?.totalElements ?? 0;
 
-  const filtered = allEvents
-    .filter((e) => {
-      if (filter !== 'ALL' && e.type !== filter) return false;
-
-      const eventDate = e.transactionDate ? e.transactionDate.split('T')[0] : '';
-      if (startDate && eventDate < startDate) return false;
-      if (endDate && eventDate > endDate) return false;
-
-      if (search) {
-        const q = search.toLowerCase();
-        return (
-          e.name.toLowerCase().includes(q) ||
-          e.description?.toLowerCase().includes(q) ||
-          e.category?.name.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    })
-    .sort((a, b) => {
-      const da = a.transactionDate ?? '';
-      const db = b.transactionDate ?? '';
-      return db.localeCompare(da);
-    });
-
-  // Summary stats
+  // Summary stats (for the current page)
   const totalIncome = allEvents
     .filter((e) => e.type === 'INBOUND')
     .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0);
@@ -85,6 +80,9 @@ export function EventsPage() {
     { label: t('events.expenses'), value: 'OUTBOUND' },
     { label: t('events.transfers'), value: 'OTHER' },
   ];
+
+  if (isLoading && !allEvents.length) return <FullPageSpinner />;
+  if (error) return <ErrorState message={String(error)} />;
 
   return (
     <div className="space-y-4">
@@ -127,23 +125,52 @@ export function EventsPage() {
         </div>
       </div>
 
-      {/* Date Filters */}
-      <div className="px-5 flex gap-3">
-        <div className="flex-1">
-          <Input
-            type="date"
-            label={t('events.startDate')}
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
+      {/* Filters (Dates, Categories, Tags) */}
+      <div className="px-5 space-y-3">
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <Input
+              type="date"
+              label={t('events.startDate')}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div className="flex-1">
+            <Input
+              type="date"
+              label={t('events.endDate')}
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
         </div>
-        <div className="flex-1">
-          <Input
-            type="date"
-            label={t('events.endDate')}
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
+
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <SearchableSelect
+              label={t('common.category')}
+              value={categoryId}
+              options={[
+                { value: '', label: t('common.all') },
+                ...categories.map(c => ({ value: c.id, label: c.name }))
+              ]}
+              onChange={(val) => setCategoryId(val ? Number(val) : undefined)}
+              placeholder={t('common.category')}
+            />
+          </div>
+          <div className="flex-1">
+            <SearchableSelect
+              label={t('common.tag')}
+              value={tagId}
+              options={[
+                { value: '', label: t('common.all') },
+                ...tags.map(t => ({ value: t.id, label: t.name }))
+              ]}
+              onChange={(val) => setTagId(val ? Number(val) : undefined)}
+              placeholder={t('common.tag')}
+            />
+          </div>
         </div>
       </div>
 
@@ -167,7 +194,7 @@ export function EventsPage() {
 
       {/* Event list */}
       <div className="px-5">
-        {filtered.length === 0 ? (
+        {allEvents.length === 0 ? (
           <EmptyState
             title={t('events.noEventsFound')}
             description={search ? t('events.noEventsFoundSearch') : t('events.noEventsFoundCreate')}
@@ -180,7 +207,7 @@ export function EventsPage() {
           />
         ) : (
           <Card className="divide-y divide-white/5">
-            {filtered.map((event) => (
+            {allEvents.map((event) => (
               <div key={event.id} className="py-3 first:pt-0 last:pb-0">
                 <EventCard event={event} />
               </div>
