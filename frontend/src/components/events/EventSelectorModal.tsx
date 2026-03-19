@@ -27,7 +27,7 @@ export function EventSelectorModal({
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   
-  const { data: paged, isLoading, error } = useEvents(page);
+  const { data: paged, isLoading, error } = useEvents({ page });
   const addRelation = useAddEventRelations();
 
   if (!open) return null;

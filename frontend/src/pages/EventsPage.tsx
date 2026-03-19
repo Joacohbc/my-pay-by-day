@@ -50,8 +50,11 @@ export function EventsPage() {
     tagId,
   });
 
-  const { data: categories = [] } = useCategories();
-  const { data: tags = [] } = useTags();
+  const { data: categoriesResponse } = useCategories();
+  const categories = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.content || []);
+
+  const { data: tagsResponse } = useTags();
+  const tags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse?.content || []);
 
   const handlePickTemplate = (template: Template | null) => {
     setShowPicker(false);
