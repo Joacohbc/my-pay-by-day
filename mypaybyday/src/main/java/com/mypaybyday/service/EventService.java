@@ -19,10 +19,16 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import io.quarkus.hibernate.orm.panache.PanacheQuery;
 
 /**
  * Service responsible for managing {@link FinanceEvent} lifecycle.
@@ -55,14 +61,75 @@ public class EventService {
     // -------------------------------------------------------------------------
 
     @Transactional
-    public PagedResponse<FinanceEventDto> listAll(int page, int size) {
-        long totalElements = eventRepository.count();
-        List<FinanceEventDto> content = eventRepository.findAll()
-                .page(Page.of(page, size))
-                .stream()
-                .map(FinanceEventDto::from)
-                .toList();
-        return PagedResponse.of(content, page, size, totalElements);
+    public PagedResponse<FinanceEventDto> listAll(int page, int size, String search, String startDate, String endDate, EventType type, Long categoryId, Long tagId) {
+        StringBuilder query = new StringBuilder("1=1");
+        Map<String, Object> params = new HashMap<>();
+
+        if (startDate != null && !startDate.isBlank()) {
+            query.append(" and transaction.transactionDate >= :startDate");
+            params.put("startDate", LocalDate.parse(startDate).atStartOfDay());
+        }
+
+        if (endDate != null && !endDate.isBlank()) {
+            query.append(" and transaction.transactionDate <= :endDate");
+            params.put("endDate", LocalDate.parse(endDate).atTime(LocalTime.MAX));
+        }
+
+        if (type != null) {
+            query.append(" and type = :type");
+            params.put("type", type);
+        }
+
+        if (categoryId != null) {
+            query.append(" and category.id = :categoryId");
+            params.put("categoryId", categoryId);
+        }
+
+        if (tagId != null) {
+            query.append(" and exists (select t from Tag t where t.id = :tagId and t member of tags)");
+            params.put("tagId", tagId);
+        }
+
+        query.append(" ORDER BY transaction.transactionDate DESC");
+
+        PanacheQuery<FinanceEvent> panacheQuery = eventRepository.find(query.toString(), params);
+
+        List<FinanceEvent> events;
+
+        // If we have an in-memory search, we have to fetch all matches from DB and filter manually
+        if (search != null && !search.isBlank()) {
+            String q = search.toLowerCase();
+            events = panacheQuery.stream()
+                    .filter(e -> {
+                        boolean matchName = e.name != null && e.name.toLowerCase().contains(q);
+                        boolean matchDesc = e.description != null && e.description.toLowerCase().contains(q);
+                        boolean matchCat = e.category != null && e.category.name != null && e.category.name.toLowerCase().contains(q);
+                        return matchName || matchDesc || matchCat;
+                    })
+                    .collect(Collectors.toList());
+
+            int totalElements = events.size();
+
+            int start = Math.min(page * size, totalElements);
+            int end = Math.min(start + size, totalElements);
+
+            List<FinanceEventDto> content = events.subList(start, end)
+                    .stream()
+                    .map(FinanceEventDto::from)
+                    .toList();
+
+            return PagedResponse.of(content, page, size, totalElements);
+
+        } else {
+            // Efficient DB pagination
+            long totalElements = panacheQuery.count();
+            List<FinanceEventDto> content = panacheQuery
+                    .page(Page.of(page, size))
+                    .stream()
+                    .map(FinanceEventDto::from)
+                    .toList();
+            return PagedResponse.of(content, page, size, totalElements);
+        }
     }
 
     @Transactional
