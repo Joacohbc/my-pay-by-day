@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/Input';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
-import { formatCurrency, eventNetAmount } from '@/lib/format';
+import { formatCurrencyShort, eventNetAmount } from '@/lib/format';
 import type { EventType } from '@/models';
 
 type FilterType = 'ALL' | EventType;
@@ -85,7 +85,8 @@ export function EventsPage() {
   const totalIncome = allEvents
     .filter((e) => e.type === 'INBOUND')
     .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0);
-  const totalExpenses = allEvents
+  
+    const totalExpenses = allEvents
     .filter((e) => e.type === 'OUTBOUND')
     .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0);
 
@@ -123,11 +124,11 @@ export function EventsPage() {
       <div className="grid grid-cols-2 gap-3 px-5">
         <Card className="text-center">
           <p className="text-xs text-dn-text-muted mb-1">{t('events.income')}</p>
-          <p className="text-lg font-mono font-semibold text-dn-success">{formatCurrency(totalIncome)}</p>
+          <p className="text-lg font-mono font-semibold text-dn-success">{formatCurrencyShort(totalIncome)}</p>
         </Card>
         <Card className="text-center">
           <p className="text-xs text-dn-text-muted mb-1">{t('events.expenses')}</p>
-          <p className="text-lg font-mono font-semibold text-dn-text-main">{formatCurrency(totalExpenses)}</p>
+          <p className="text-lg font-mono font-semibold text-dn-text-main">{formatCurrencyShort(totalExpenses)}</p>
         </Card>
       </div>
 
