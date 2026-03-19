@@ -33,9 +33,9 @@ services:
     image: ghcr.io/joacohbc/my-pay-by-day/backend
     environment:
       - DB_FIELD_ENCRYPTION_KEY=${DB_FIELD_ENCRYPTION_KEY}
-      - OLLAMA_BASE_URL=http://4y-ollama:11434
-      - OLLAMA_MODEL_ID=${OLLAMA_MODEL_ID}
-      - OLLAMA_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL}
+      - QUARKUS_LANGCHAIN4J_OLLAMA_BASE_URL=http://4y-ollama:11434
+      - QUARKUS_LANGCHAIN4J_OLLAMA_CHAT_MODEL_MODEL_ID=${QUARKUS_LANGCHAIN4J_OLLAMA_CHAT_MODEL_MODEL_ID}
+      - QUARKUS_LANGCHAIN4J_OLLAMA_EMBEDDING_MODEL_MODEL_ID=${QUARKUS_LANGCHAIN4J_OLLAMA_EMBEDDING_MODEL_MODEL_ID}
       - QUARKUS_DATASOURCE_JDBC_URL=${QUARKUS_DATASOURCE_JDBC_URL}
       - TZ=${TZ:-UTC}
     volumes:
@@ -52,7 +52,7 @@ services:
       - ollama_data:/root/.ollama
     
     # A lightweight command to ensure the models are pulled right after startup
-    entrypoint: [ "/bin/sh", "-c", "ollama serve & sleep 5 && ollama pull ${OLLAMA_MODEL_ID} && ollama pull ${OLLAMA_EMBEDDING_MODEL} && wait" ]
+    entrypoint: [ "/bin/sh", "-c", "ollama serve & sleep 5 && ollama pull ${QUARKUS_LANGCHAIN4J_OLLAMA_CHAT_MODEL_MODEL_ID} && ollama pull ${QUARKUS_LANGCHAIN4J_OLLAMA_EMBEDDING_MODEL_MODEL_ID} && wait" ]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:11434"]
       interval: 1m
