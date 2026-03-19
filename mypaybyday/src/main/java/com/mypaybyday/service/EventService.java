@@ -86,7 +86,7 @@ public class EventService {
         }
 
         if (tagId != null) {
-            query.append(" and :tagId in elements(tags)");
+            query.append(" and exists (select t from Tag t where t.id = :tagId and t member of tags)");
             params.put("tagId", tagId);
         }
 
