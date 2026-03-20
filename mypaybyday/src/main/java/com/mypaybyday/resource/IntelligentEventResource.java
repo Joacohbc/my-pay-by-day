@@ -29,10 +29,23 @@ public class IntelligentEventResource {
     IntelligentEventService intelligentEventService;
 
     @POST
-    @Operation(summary = "Create an event from raw text", description = "Uses the AI model and RAG to interpret raw text and automatically create the corresponding FinanceEvent.")
+    @Operation(summary = "Create an event from raw text (JSON)", description = "Uses the AI model and RAG to interpret raw text and automatically create the corresponding FinanceEvent.")
     @APIResponse(responseCode = "201", description = "Event successfully created", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class)))
     @APIResponse(responseCode = "400", description = "Invalid text or generated event validation failed")
+    @Consumes(MediaType.APPLICATION_JSON)
     public Response createFromText(@Valid RawTextEventRequestDto request) throws BusinessException {
+        FinanceEventDto createdEvent = intelligentEventService.createFromText(request);
+        return Response.status(Response.Status.CREATED).entity(createdEvent).build();
+    }
+
+    @POST
+    @Path("/plain")
+    @Operation(summary = "Create an event from raw text (plain text)", description = "Uses the AI model and RAG to interpret raw text and automatically create the corresponding FinanceEvent.")
+    @APIResponse(responseCode = "201", description = "Event successfully created", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class)))
+    @APIResponse(responseCode = "400", description = "Invalid text or generated event validation failed")
+    @Consumes(MediaType.TEXT_PLAIN)
+    public Response createFromPlainText(String text) throws BusinessException {
+        RawTextEventRequestDto request = new RawTextEventRequestDto(text);
         FinanceEventDto createdEvent = intelligentEventService.createFromText(request);
         return Response.status(Response.Status.CREATED).entity(createdEvent).build();
     }

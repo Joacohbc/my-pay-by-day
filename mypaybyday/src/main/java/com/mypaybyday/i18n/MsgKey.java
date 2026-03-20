@@ -67,7 +67,10 @@ public enum MsgKey {
     SUBSCRIPTION_RECURRENCE_REQUIRED("error.subscription.recurrence_required"),
 
     // ── AI ───────────────────────────────────────────────
-    AI_SYSTEM_PROMPT("ai.system.prompt");
+    AI_SYSTEM_PROMPT("ai.system.prompt"),
+    AI_EXTRACTION_BASIC_PROMPT("ai.extraction.basic_prompt"),
+    AI_EXTRACTION_RESOLVE_PROMPT("ai.extraction.resolve_prompt"),
+    AI_EXTRACTION_FAILED("ai.extraction.failed");
 
     /** The property key used to look up this message in the resource bundle. */
     public final String key;

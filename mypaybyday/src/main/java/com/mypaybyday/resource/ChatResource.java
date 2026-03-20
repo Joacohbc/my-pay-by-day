@@ -7,6 +7,10 @@ import com.mypaybyday.i18n.LanguageContext;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 
+import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.TextContent;
+import dev.langchain4j.data.message.UserMessage;
+
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
@@ -48,9 +52,32 @@ public class ChatResource {
                 LocalDateTime.now().toString(),
                 languageContext.getLang());
 
+        UserMessage userMessage;
+        
+        if (request.getImage() != null && !request.getImage().isEmpty()) {
+            String base64Image = request.getImage();
+            String mimeType = "image/jpeg"; // default
+            
+            // Extract mime type if it's a data URL
+            if (base64Image.startsWith("data:")) {
+                int commaIndex = base64Image.indexOf(',');
+                if (commaIndex > 5) {
+                    mimeType = base64Image.substring(5, base64Image.indexOf(';'));
+                    base64Image = base64Image.substring(commaIndex + 1);
+                }
+            }
+            
+            userMessage = UserMessage.from(
+                TextContent.from(request.getMessage()),
+                ImageContent.from(base64Image, mimeType)
+            );
+        } else {
+            userMessage = UserMessage.from(request.getMessage());
+        }
+
         String aiResponse = financeAssistant.chat(
                 request.getChatId(),
-                request.getMessage(),
+                userMessage,
                 systemPrompt);
         return Response.ok(new ChatResponseDto(aiResponse)).build();
     }

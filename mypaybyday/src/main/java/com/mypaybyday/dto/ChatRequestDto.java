@@ -14,4 +14,6 @@ public class ChatRequestDto {
 
     @NotBlank
     private String message;
+
+    private String image; // Contains base64 data url like data:image/jpeg;base64,...
 }
