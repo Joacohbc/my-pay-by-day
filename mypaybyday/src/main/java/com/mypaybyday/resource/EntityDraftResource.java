@@ -65,8 +65,8 @@ public class EntityDraftResource {
     @Path("/finance-events")
     @Operation(summary = "List all finance event drafts")
     @APIResponse(responseCode = "200", description = "List of finance event drafts")
-    public List<EntityDraft> listFinanceEventDrafts() {
-        return draftService.listByEntityType(EntityType.FINANCE_EVENT);
+    public List<FinanceEventDto> listFinanceEventDrafts() {
+        return draftService.listFinanceEventDrafts();
     }
 
     @POST

@@ -38,6 +38,13 @@ public class EntityDraftService {
         return draftRepository.find("entityType", type).list();
     }
 
+    public List<FinanceEventDto> listFinanceEventDrafts() {
+        return listByEntityType(EntityType.FINANCE_EVENT).stream()
+            .map(this::mapToFinanceEventDto)
+            .toList();
+    }
+
+
     public EntityDraft findById(Long id) throws BusinessException {
         return findEntityById(id);
     }
@@ -94,6 +101,15 @@ public class EntityDraftService {
             throw new BusinessException(messages.get(MsgKey.DRAFT_NOT_FOUND, id));
         }
         return entity;
+    }
+
+    private FinanceEventDto mapToFinanceEventDto(EntityDraft entity) {
+        try {
+            FinanceEventDto dto = objectMapper.readValue(entity.getRawPayloadJson(), FinanceEventDto.class);
+            return dto.fromDraft(entity.getOriginalEntityId(), entity.id);
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(messages.get(MsgKey.DRAFT_INVALID_PAYLOAD));
+        }
     }
 
     /**

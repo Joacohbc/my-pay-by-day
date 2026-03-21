@@ -20,6 +20,9 @@ import java.util.List;
  * @param lineItems       list of line items involved in the transaction
  * @param category        assigned category, or {@code null} if uncategorised
  * @param tags            tags applied to this event
+ * @param relatedEvents   list of related events
+ * @param subscriptionId  identifier of the subscription
+ * @param draftId         identifier of the draft event
  */
 public record FinanceEventDto(
     Long id,
@@ -33,9 +36,26 @@ public record FinanceEventDto(
     CategoryDto category,
     List<TagDto> tags,
     List<RelatedEventDto> relatedEvents,
-    Long subscriptionId
+    Long subscriptionId,
+    Long draftId
 ) {
-
+    public FinanceEventDto fromDraft(Long id, Long draftId) {
+        return new FinanceEventDto(
+            id,
+            this.name,
+            this.description,
+            this.type,
+            this.amount,
+            this.transactionId,
+            this.transactionDate,
+            this.lineItems,
+            this.category,
+            this.tags,
+            this.relatedEvents,
+            this.subscriptionId,
+            draftId
+        );
+    }
     public static FinanceEventDto from(FinanceEvent event) {
         // Flatten transaction details if present
         Long txId = null;
@@ -50,7 +70,7 @@ public record FinanceEventDto(
                 items = event.transaction.lineItems.stream()
                         .map(FinanceLineItemDto::from)
                         .toList();
-                
+
                 // Calculate amount: sum of positive line items
                 calculatedAmount = items.stream()
                         .map(FinanceLineItemDto::amount)
@@ -71,13 +91,18 @@ public record FinanceEventDto(
             txDate,
             items,
             event.category != null ? CategoryDto.from(event.category) : null,
+
             event.tags != null
                 ? event.tags.stream().map(TagDto::from).toList()
                 : List.of(),
+
             event.relatedEvents != null
                 ? event.relatedEvents.stream().map(RelatedEventDto::from).toList()
                 : List.of(),
-            event.subscription != null ? event.subscription.id : null
+
+            event.subscription != null ? event.subscription.id : null,
+
+            null
         );
     }
 }
