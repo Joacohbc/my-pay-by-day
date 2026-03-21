@@ -100,6 +100,8 @@ export interface FinanceEvent extends Identifiable {
   category?: Category;
   tags: Tag[];
   relatedEvents?: RelatedEvent[];
+  isDraft?: boolean;
+  draftId?: number;
 }
 
 export interface CreateEventDto {
@@ -213,3 +215,5 @@ export interface DynamicTimePeriodBalance {
   outbound: number;
   events: FinanceEvent[];
 }
+
+export * from './drafts';

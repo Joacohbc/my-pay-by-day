@@ -52,6 +52,7 @@ interface EventFormProps {
   defaultValues?: Partial<FinanceEvent>;
   preset?: EventFormPreset;
   onSubmit: (dto: CreateEventDto) => Promise<void>;
+  onSaveDraft?: (dto: Partial<CreateEventDto>) => Promise<void>;
   submitLabel?: string;
   loading?: boolean;
 }
@@ -60,6 +61,7 @@ export function EventForm({
   defaultValues,
   preset,
   onSubmit,
+  onSaveDraft,
   submitLabel,
   loading = false,
 }: EventFormProps) {
@@ -80,6 +82,7 @@ export function EventForm({
     handleSubmit,
     control,
     setValue,
+    getValues,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -148,6 +151,48 @@ export function EventForm({
       tags: values.tagIds?.map((id) => ({ id: Number(id) })),
     };
     await onSubmit(dto);
+  };
+
+  const [savingDraft, setSavingDraft] = useState(false);
+
+  const handleSaveDraft = async () => {
+    if (!onSaveDraft) return;
+    setSavingDraft(true);
+    try {
+      const values = getValues();
+      const dto: Partial<CreateEventDto> = {
+        name: values.name || t('drafts.untitledDraft', { defaultValue: 'Borrador sin título' }),
+        description: values.description || undefined,
+        receiptUrl: values.receiptUrl || undefined,
+        type: values.type,
+      };
+
+      const transactionDate = values.transactionDate
+        ? (values.transactionDate.includes(':00.000') ? values.transactionDate : `${values.transactionDate}:00.000`)
+        : undefined;
+
+      dto.transaction = {
+        transactionDate: transactionDate || `${toLocalDateTimeString(getLocalizedNow())}:00.000`,
+        lineItems: values.lineItems.map((li, i) => {
+          const amountStr = li.amount;
+          let amount = amountStr ? Number(amountStr) : 0;
+          if (isSimplifiedMode) {
+            amount = i === 0 ? -Math.abs(amount) : Math.abs(amount);
+          }
+          return {
+            financeNode: li.nodeId ? { id: Number(li.nodeId) } : undefined as unknown as { id: number },
+            amount,
+          };
+        }).filter(li => li.financeNode || li.amount !== 0),
+      };
+
+      if (values.categoryId) dto.category = { id: Number(values.categoryId) };
+      if (values.tagIds?.length) dto.tags = values.tagIds.map(id => ({ id: Number(id) }));
+
+      await onSaveDraft(dto);
+    } finally {
+      setSavingDraft(false);
+    }
   };
 
   const nodeOptions = activeNodes.map((n) => ({ value: String(n.id), label: n.name }));
@@ -442,9 +487,16 @@ export function EventForm({
         {...register('receiptUrl')}
       />
 
-      <Button type="submit" fullWidth loading={loading}>
-        {submitLabel ?? t('common.save')}
-      </Button>
+      <div className="flex gap-3">
+        {onSaveDraft && (
+          <Button type="button" variant="secondary" onClick={handleSaveDraft} loading={savingDraft} className="flex-1">
+            {t('drafts.save')}
+          </Button>
+        )}
+        <Button type="submit" loading={loading} className="flex-1">
+          {submitLabel ?? t('common.save')}
+        </Button>
+      </div>
     </form>
   );
 }

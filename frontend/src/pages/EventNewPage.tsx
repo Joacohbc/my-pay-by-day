@@ -3,15 +3,22 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useCreateEvent } from '@/hooks/useEvents';
-import type { CreateEventDto, Template } from '@/models';
+import { useCreateFinanceEventDraft, useDeleteDraft } from '@/hooks/useDrafts';
+import type { CreateEventDto, Template, FinanceEvent } from '@/models';
 
 export function EventNewPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const createEvent = useCreateEvent();
+  const createDraft = useCreateFinanceEventDraft();
+  const deleteDraft = useDeleteDraft();
 
-  const template = (location.state as { template?: Template } | null)?.template;
+  const state = location.state as { template?: Template, draft?: FinanceEvent } | null;
+  console.log(state);
+  
+  const template = state?.template;
+  const draft = state?.draft;
 
   const preset = template
     ? {
@@ -28,11 +35,19 @@ export function EventNewPage() {
   const handleSubmit = async (dto: CreateEventDto) => {
     const created = await createEvent.saveAsync(dto);
     if (created) {
+      if (draft?.draftId) {
+        await deleteDraft.mutateAsync(draft.draftId);
+      }
       navigate(`/events/${created.id}`, { replace: true });
     } else {
       // Queued offline — go back to event list
       navigate('/events', { replace: true });
     }
+  };
+
+  const handleSaveDraft = async (dto: Partial<CreateEventDto>) => {
+    await createDraft.mutateAsync(dto);
+    navigate('/events', { replace: true });
   };
 
   return (
@@ -49,9 +64,11 @@ export function EventNewPage() {
       <div className="px-5 pb-6">
         <EventForm
           preset={preset}
+          defaultValues={draft as unknown as FinanceEvent}
           onSubmit={handleSubmit}
+          onSaveDraft={handleSaveDraft}
           submitLabel={t('events.createEvent')}
-          loading={createEvent.isPending}
+          loading={createEvent.isPending || createDraft.isPending || deleteDraft.isPending}
         />
       </div>
     </div>

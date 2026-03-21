@@ -38,7 +38,7 @@ export function CategoryIcon({
       {category.icon ? (
         <Icon name={category.icon} className={iconSize} />
       ) : (
-        category.name[0].toUpperCase()
+        <Icon name="question_mark" className={iconSize} />
       )}
     </div>
   );

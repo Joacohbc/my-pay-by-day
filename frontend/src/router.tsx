@@ -14,6 +14,7 @@ import { TemplatesPage } from '@/pages/TemplatesPage';
 import { TimePeriodsPage } from '@/pages/TimePeriodsPage';
 import { TimePeriodDetailPage } from '@/pages/TimePeriodDetailPage';
 import { ChatPage } from '@/pages/ChatPage';
+import { DraftCompletePage } from '@/pages/DraftCompletePage';
 
 export const router = createBrowserRouter([
   {
@@ -27,6 +28,9 @@ export const router = createBrowserRouter([
       { path: 'events/new', element: <EventNewPage /> },
       { path: 'events/:id', element: <EventDetailPage /> },
       { path: 'events/:id/edit', element: <EventEditPage /> },
+
+      // Drafts
+      { path: 'drafts/:id/complete', element: <DraftCompletePage /> },
 
       // Subscriptions
       { path: 'subscriptions', element: <SubscriptionsPage /> },

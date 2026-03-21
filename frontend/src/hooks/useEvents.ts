@@ -7,10 +7,11 @@ import type { CreateEventDto, FinanceEvent } from '@/models';
 
 export const EVENTS_KEY = ['events'] as const;
 
-export function useEvents(filters: EventFilters = {}) {
+export function useEvents(filters: EventFilters = {}, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...EVENTS_KEY, filters],
     queryFn: () => eventsService.getAll(filters),
+    enabled: options?.enabled,
   });
 }
 

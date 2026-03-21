@@ -5,9 +5,10 @@ import { useEvents } from '@/hooks/useEvents';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useFinanceEventDrafts } from '@/hooks/useDrafts';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import { PendingEventsSync } from '@/components/events/PendingEventsSync';
-import type { Template } from '@/models';
+import type { Template, EventType } from '@/models';
 import { EventCard } from '@/components/events/EventCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -20,9 +21,8 @@ import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { formatCurrencyShort, eventNetAmount } from '@/lib/format';
-import type { EventType } from '@/models';
 
-type FilterType = 'ALL' | EventType;
+type FilterType = 'ALL' | EventType | 'DRAFT';
 
 export function EventsPage() {
   const { t } = useTranslation();
@@ -51,16 +51,20 @@ export function EventsPage() {
 
   const hasActiveFilters = Boolean(search || filter !== 'ALL' || startDate || endDate || categoryId || tagId);
 
-  const { data: paged, isLoading, error } = useEvents({
+  const { data: paged, isLoading: isEventsLoading, error: eventsError } = useEvents({
     page,
     size: 20,
     search: debouncedSearch,
     startDate,
     endDate,
-    type: filter !== 'ALL' ? filter : undefined,
+    type: filter !== 'ALL' && filter !== 'DRAFT' ? (filter as EventType) : undefined,
     categoryId,
     tagId,
+  }, {
+    enabled: filter !== 'DRAFT',
   });
+
+  const { data: draftEvents, isLoading: isDraftsLoading, error: draftsError } = useFinanceEventDrafts();
 
   const { data: categoriesResponse } = useCategories();
   const categories = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.content || []);
@@ -77,15 +81,27 @@ export function EventsPage() {
     }
   };
 
-  const allEvents = paged?.content ?? [];
-  const totalPages = paged?.totalPages ?? 1;
-  const totalElements = paged?.totalElements ?? 0;
+  const isDraftFilter = filter === 'DRAFT';
+
+  const filteredDrafts = isDraftFilter && draftEvents
+    ? draftEvents.filter(d =>
+        !debouncedSearch ||
+        d.description?.toLowerCase().includes(debouncedSearch.toLowerCase())
+      )
+    : [];
+
+  const allEvents = isDraftFilter ? filteredDrafts : (paged?.content ?? []);
+  const totalPages = isDraftFilter ? 1 : (paged?.totalPages ?? 1);
+  const totalElements = isDraftFilter ? filteredDrafts.length : (paged?.totalElements ?? 0);
+
+  const isLoading = isDraftFilter ? isDraftsLoading : isEventsLoading;
+  const error = isDraftFilter ? draftsError : eventsError;
 
   // Summary stats (for the current page)
   const totalIncome = allEvents
     .filter((e) => e.type === 'INBOUND')
     .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0);
-  
+
     const totalExpenses = allEvents
     .filter((e) => e.type === 'OUTBOUND')
     .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0);
@@ -95,6 +111,7 @@ export function EventsPage() {
     { label: t('events.income'), value: 'INBOUND' },
     { label: t('events.expenses'), value: 'OUTBOUND' },
     { label: t('events.transfers'), value: 'OTHER' },
+    { label: t('drafts.title'), value: 'DRAFT' },
   ];
 
   const toggleFilter = () => {
@@ -146,7 +163,7 @@ export function EventsPage() {
             className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 [color-scheme:dark]"
           />
         </div>
-        <Button 
+        <Button
           variant={showFilters ? 'primary' : 'secondary'}
           className="shrink-0 aspect-square p-0 w-4 flex items-center justify-center rounded-input"
           onClick={toggleFilter}
@@ -163,7 +180,7 @@ export function EventsPage() {
           <div className="flex items-center justify-between px-1">
             <span className="text-sm font-medium text-dn-text-main">{t('common.filters')}</span>
             {hasActiveFilters && (
-              <button 
+              <button
                 onClick={clearFilters}
                 className="text-xs text-dn-primary font-medium hover:text-dn-primary/80"
               >
@@ -217,25 +234,25 @@ export function EventsPage() {
                   placeholder={t('common.tag')}
                 />
               </div>
+              </div>
             </div>
-          </div>
 
-          {/* Filter pills */}
-          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-            {filterBtns.map(({ label, value }) => (
-              <button
-                key={value}
-                onClick={() => setFilter(value)}
-                className={[
-                  'shrink-0 px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer',
-                  filter === value
-                    ? 'bg-dn-primary/20 text-dn-primary'
-                    : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
-                ].join(' ')}
-              >
-                {label}
-              </button>
-            ))}
+            {/* Filter pills */}
+            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+              {filterBtns.map(({ label, value }) => (
+                <button
+                  key={value}
+                  onClick={() => setFilter(value)}
+                  className={[
+                    'shrink-0 px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer',
+                    filter === value
+                      ? 'bg-dn-primary/20 text-dn-primary'
+                      : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
+                  ].join(' ')}
+                >
+                  {label}
+                </button>
+              ))}
           </div>
         </div>
       )}
