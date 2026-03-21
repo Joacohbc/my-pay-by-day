@@ -16,11 +16,12 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mypaybyday.dto.IntelligentEventResponseDto;
-import com.mypaybyday.dto.FinanceEventDraftDto;
-
+import com.mypaybyday.entity.EntityDraft;
+import com.mypaybyday.enums.EntityType;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -36,21 +37,18 @@ public class IntelligentEventService {
 
     private final FinanceExtractor financeExtractor;
     private final EventService eventService;
-    private final FinanceEventDraftService draftService;
+    private final EntityDraftService draftService;
     private final LanguageContext languageContext;
     private final Messages messages;
-    private final ObjectMapper objectMapper;
 
     @Inject
     public IntelligentEventService(FinanceExtractor financeExtractor, EventService eventService,
-            FinanceEventDraftService draftService, LanguageContext languageContext, Messages messages,
-            ObjectMapper objectMapper) {
+            EntityDraftService draftService, LanguageContext languageContext, Messages messages) {
         this.financeExtractor = financeExtractor;
         this.eventService = eventService;
         this.draftService = draftService;
         this.languageContext = languageContext;
         this.messages = messages;
-        this.objectMapper = objectMapper;
     }
 
     public IntelligentEventResponseDto createFromText(RawTextEventRequestDto request) throws BusinessException {
@@ -80,10 +78,15 @@ public class IntelligentEventService {
         // Call the Langchain4j structured output extraction
         FinanceEventExtractionDto extraction = financeExtractor.extractEvent(request.getText(), extractionPrompt);
 
-        log.infof(
-                "AI extracted event from text: '%s'. Result: name=%s, amount=%s, sourceNodeId=%s, destinationNodeId=%s, categoryId=%s, date=%s",
-                request.getText(), extraction.getName(), extraction.getAmount(), extraction.getSourceNodeId(),
-                extraction.getDestinationNodeId(), extraction.getCategoryId(), extraction.getTransactionDate());
+        log.infof("AI extracted event from text: '%s'. Result: name=%s, amount=%s, sourceNodeId=%s, destinationNodeId=%s, categoryId=%s, date=%s",
+            request.getText(),
+            extraction.getName(),
+            extraction.getAmount(),
+            extraction.getSourceNodeId(),
+            extraction.getDestinationNodeId(),
+            extraction.getCategoryId(),
+            extraction.getTransactionDate()
+        );
 
         // Map the extracted DTO to the entities
         FinanceEvent event = new FinanceEvent();
@@ -106,44 +109,50 @@ public class IntelligentEventService {
         if (extraction.getTransactionDate() != null) {
             try {
                 // Assuming format YYYY-MM-DD from AI extraction prompt, default to start of day
-                transactionDate = LocalDate.parse(extraction.getTransactionDate(), DateTimeFormatter.ISO_LOCAL_DATE)
-                        .atStartOfDay();
+                transactionDate = LocalDate.parse(
+                    extraction.getTransactionDate(),
+                    DateTimeFormatter.ISO_LOCAL_DATE
+                ).atStartOfDay();
             } catch (Exception e) {
                 // If parsing fails, stick with current time
             }
         }
         transaction.transactionDate = transactionDate;
+        event.transaction = transaction;
 
         List<FinanceLineItem> lineItems = new ArrayList<>();
-        java.math.BigDecimal amount = extraction.getAmount();
+        BigDecimal amount = extraction.getAmount();
+        boolean amountOk = amount != null && amount.compareTo(BigDecimal.ZERO) > 0;
 
-        if (amount == null || amount.compareTo(java.math.BigDecimal.ZERO) <= 0
-                || extraction.getSourceNodeId() == null || extraction.getDestinationNodeId() == null) {
-            log.infof("AI extraction was incomplete for text: '%s'. Falling back to draft.", request.getText());
-            return createDraftFallback(extraction);
+        if(extraction.getSourceNodeId() != null) {
+            FinanceLineItem sourceItem = new FinanceLineItem();
+
+            if(amountOk) {
+                sourceItem.setAmount(amount.negate());
+            }
+
+            FinanceNode sourceNode = new FinanceNode();
+            sourceNode.id = extraction.getSourceNodeId();
+            sourceItem.financeNode = sourceNode;
+            sourceItem.transaction = transaction;
+            lineItems.add(sourceItem);
         }
 
-        // Nodo de origen (resta)
-        FinanceLineItem sourceItem = new FinanceLineItem();
-        sourceItem.amount = amount.negate();
+        if(extraction.getDestinationNodeId() != null) {
+            FinanceLineItem destItem = new FinanceLineItem();
 
-        FinanceNode sourceNode = new FinanceNode();
-        sourceNode.id = extraction.getSourceNodeId();
-        sourceItem.financeNode = sourceNode;
-        sourceItem.transaction = transaction;
-        lineItems.add(sourceItem);
+            if(amountOk) {
+                destItem.setAmount(amount);
+            }
 
-        // Nodo de destino (suma)
-        FinanceLineItem destItem = new FinanceLineItem();
-        destItem.amount = amount;
-        FinanceNode destNode = new FinanceNode();
-        destNode.id = extraction.getDestinationNodeId();
-        destItem.financeNode = destNode;
-        destItem.transaction = transaction;
-        lineItems.add(destItem);
+            FinanceNode destNode = new FinanceNode();
+            destNode.id = extraction.getDestinationNodeId();
+            destItem.financeNode = destNode;
+            destItem.transaction = transaction;
+            lineItems.add(destItem);
+        }
 
         transaction.lineItems = lineItems;
-        event.transaction = transaction;
 
         // Delegate persistence and validation to the existing service
         try {
@@ -154,21 +163,17 @@ public class IntelligentEventService {
                     .build();
         } catch (Exception e) {
             log.warnf("Intelligent event creation failed, falling back to draft. Error: %s", e.getMessage());
-            return createDraftFallback(extraction);
+            return createDraftFallback(FinanceEventDto.from(event));
         }
     }
 
-    private IntelligentEventResponseDto createDraftFallback(FinanceEventExtractionDto extraction) {
+    private IntelligentEventResponseDto createDraftFallback(FinanceEventDto dto) {
         try {
-            String payloadJson = objectMapper.writeValueAsString(extraction);
-
-            FinanceEventDraftDto draftDto = draftService.create(FinanceEventDraftDto.builder()
-                    .rawPayloadJson(payloadJson)
-                    .build());
+            draftService.create(EntityType.FINANCE_EVENT, dto);
 
             return IntelligentEventResponseDto.builder()
                     .type(IntelligentEventResponseDto.ResponseType.DRAFT)
-                    .draft(draftDto)
+                    .event(dto)
                     .build();
         } catch (Exception e) {
             log.error("Critical failure: Could not even create a draft for the intelligent event", e);

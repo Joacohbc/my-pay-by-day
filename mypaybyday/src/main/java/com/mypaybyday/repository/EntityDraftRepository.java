@@ -1,9 +1,9 @@
 package com.mypaybyday.repository;
 
-import com.mypaybyday.entity.FinanceEventDraft;
+import com.mypaybyday.entity.EntityDraft;
 import io.quarkus.hibernate.orm.panache.PanacheRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
-public class FinanceEventDraftRepository implements PanacheRepository<FinanceEventDraft> {
+public class EntityDraftRepository implements PanacheRepository<EntityDraft> {
 }

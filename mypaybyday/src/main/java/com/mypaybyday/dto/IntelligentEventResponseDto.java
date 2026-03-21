@@ -21,7 +21,4 @@ public class IntelligentEventResponseDto {
 
     @Schema(description = "The created event (if type is EVENT)")
     private FinanceEventDto event;
-
-    @Schema(description = "The created draft (if type is DRAFT)")
-    private FinanceEventDraftDto draft;
 }
