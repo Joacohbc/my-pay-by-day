@@ -108,10 +108,10 @@ export function EventsPage() {
 
   const filterBtns: { label: string; value: FilterType }[] = [
     { label: t('common.all'), value: 'ALL' },
+    { label: t('drafts.title'), value: 'DRAFT' },
     { label: t('events.income'), value: 'INBOUND' },
     { label: t('events.expenses'), value: 'OUTBOUND' },
     { label: t('events.transfers'), value: 'OTHER' },
-    { label: t('drafts.title'), value: 'DRAFT' },
   ];
 
   const toggleFilter = () => {
@@ -247,13 +247,18 @@ export function EventsPage() {
             key={value}
             onClick={() => setFilter(value)}
             className={[
-              'shrink-0 px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer',
+              'shrink-0 px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5',
               filter === value
                 ? 'bg-dn-primary/20 text-dn-primary'
                 : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
             ].join(' ')}
           >
             {label}
+            {value === 'DRAFT' && draftEvents && draftEvents.length > 0 && (
+              <span className="bg-dn-error text-white text-[10px] leading-tight font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center inline-block animate-pulse">
+                {draftEvents.length}
+              </span>
+            )}
           </button>
           ))}
         </div>
