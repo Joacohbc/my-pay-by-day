@@ -399,13 +399,7 @@ const es = {
   // ─── Drafts ──────────────────────────────────────────────────────────────
   drafts: {
     title: 'Borradores',
-    nav: 'Borradores',
     save: 'Guardar como Borrador',
-    complete: 'Completar',
-    completeTitle: 'Completar Borrador',
-    empty: 'No hay borradores guardados',
-    emptyDesc: 'Empieza a crear eventos y guárdalos para terminarlos más tarde.',
-    notFound: 'Borrador no encontrado',
     untitledDraft: 'Borrador sin título',
     delete: 'Eliminar borrador',
   },

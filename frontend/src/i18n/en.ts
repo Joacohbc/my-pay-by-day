@@ -399,13 +399,7 @@ const en = {
   // ─── Drafts ──────────────────────────────────────────────────────────────
   drafts: {
     title: 'Drafts',
-    nav: 'Drafts',
     save: 'Save as Draft',
-    complete: 'Complete',
-    completeTitle: 'Complete Draft',
-    empty: 'No drafts saved',
-    emptyDesc: 'Start creating events and save them to finish later.',
-    notFound: 'Draft not found',
     untitledDraft: 'Untitled Draft',
     delete: 'Delete Draft',
   },
