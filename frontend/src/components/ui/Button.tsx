@@ -13,13 +13,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    'bg-dn-primary text-dn-surface-low hover:brightness-110 active:scale-[0.98] disabled:opacity-50',
+    'bg-dn-primary text-dn-surface-low hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 disabled:hover:brightness-100',
   secondary:
-    'bg-dn-surface text-dn-text-main border border-white/5 hover:bg-dn-surface-low disabled:opacity-50',
+    'bg-dn-surface text-dn-text-main border border-white/5 hover:bg-dn-surface-low disabled:opacity-50 disabled:hover:bg-dn-surface',
   ghost:
-    'bg-transparent text-dn-text-muted hover:bg-dn-surface hover:text-dn-text-main disabled:opacity-50',
+    'bg-transparent text-dn-text-muted hover:bg-dn-surface hover:text-dn-text-main disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-dn-text-muted disabled:active:scale-100',
   danger:
-    'bg-dn-error/10 text-dn-error border border-dn-error/30 hover:bg-dn-error/20 active:scale-[0.98] disabled:opacity-50',
+    'bg-dn-error/10 text-dn-error border border-dn-error/30 hover:bg-dn-error/20 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 disabled:hover:bg-dn-error/10',
 };
 
 const sizeClasses: Record<Size, string> = {
@@ -47,7 +47,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled ?? loading}
         className={[
-          'inline-flex items-center justify-center gap-2 font-medium transition-all cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dn-primary/50',
+          'inline-flex items-center justify-center gap-2 font-medium transition-all cursor-pointer disabled:cursor-not-allowed select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dn-primary/50',
           variantClasses[variant],
           sizeClasses[size],
           fullWidth ? 'w-full' : '',
