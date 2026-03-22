@@ -523,7 +523,6 @@ export function EventForm({
     setSavingDraft(true);
     try {
       const values = getValues();
-      console.log('values', values);
       const draftDto: Partial<FinanceEvent> = {
         name: values.name || t('drafts.untitledDraft'),
         description: values.description || undefined,
@@ -558,7 +557,6 @@ export function EventForm({
       draftDto.isDraft = true;
       draftDto.draftId = values.draftId;
 
-      console.log('DTO', draftDto);
       const resultId = await onSaveDraft(draftDto);
       if (typeof resultId === 'number') {
         setValue('draftId', resultId);

@@ -77,17 +77,13 @@ public class EntityDraftService {
 
         if (payload != null) {
             Class<?> entityClass = resolvePayloadClass(entity.getEntityType());
-            Log.info("Entity class: " + entityClass);
             Long extractedId = extractId(payload, entityClass);
-            Log.info("Extracted ID: " + extractedId);
             if (extractedId != null) {
                 entity.setOriginalEntityId(extractedId);
             }
             try {
-                Log.info("Payload: " + payload);
                 entity.setRawPayloadJson(objectMapper.writeValueAsString(payload));
                 draftRepository.persist(entity);
-                Log.info("Draft updated successfully: " + entity.getRawPayloadJson());
             } catch (JsonProcessingException e) {
                 throw new BusinessException(messages.get(MsgKey.DRAFT_INVALID_PAYLOAD));
             }
