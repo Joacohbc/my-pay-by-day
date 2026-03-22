@@ -407,6 +407,7 @@ const en = {
     emptyDesc: 'Start creating events and save them to finish later.',
     notFound: 'Draft not found',
     untitledDraft: 'Untitled Draft',
+    delete: 'Delete Draft',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

@@ -28,10 +28,15 @@ export function DraftCompletePage() {
     }
   };
 
-  const handleSaveDraft = async (dto: Partial<CreateEventDto>) => {
+  const handleSaveDraft = async (dto: Partial<FinanceEvent>) => {
     // Save over the same draft
     await updateDraft.mutateAsync({ id: draftId, dto });
-    navigate('/drafts', { replace: true });
+    return draftId;
+  };
+
+  const handleDeleteDraft = async () => {
+    await deleteDraft.mutateAsync(draftId);
+    navigate('/events', { replace: true });
   };
 
   if (isLoading) {
@@ -54,7 +59,7 @@ export function DraftCompletePage() {
   }
 
   // Pre-fill default values from the draft payload
-  const defaultValues = draft.payload as unknown as Partial<FinanceEvent>;
+  const defaultValues = JSON.parse(draft.rawPayloadJson) as Partial<FinanceEvent>;
 
   return (
     <div className="space-y-4">
@@ -65,6 +70,7 @@ export function DraftCompletePage() {
           defaultValues={defaultValues}
           onSubmit={handleSubmit}
           onSaveDraft={handleSaveDraft}
+          onDeleteDraft={handleDeleteDraft}
           submitLabel={t('events.createEvent')}
           loading={createEvent.isPending || updateDraft.isPending || deleteDraft.isPending}
         />

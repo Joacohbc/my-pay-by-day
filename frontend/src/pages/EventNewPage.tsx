@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useCreateEvent } from '@/hooks/useEvents';
-import { useCreateFinanceEventDraft, useDeleteDraft } from '@/hooks/useDrafts';
+import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft } from '@/hooks/useDrafts';
 import type { CreateEventDto, Template, FinanceEvent } from '@/models';
 
 export function EventNewPage() {
@@ -12,10 +12,10 @@ export function EventNewPage() {
   const location = useLocation();
   const createEvent = useCreateEvent();
   const createDraft = useCreateFinanceEventDraft();
+  const updateDraft = useUpdateFinanceEventDraft();
   const deleteDraft = useDeleteDraft();
 
   const state = location.state as { template?: Template, draft?: FinanceEvent } | null;
-  console.log(state);
   
   const template = state?.template;
   const draft = state?.draft;
@@ -45,8 +45,20 @@ export function EventNewPage() {
     }
   };
 
-  const handleSaveDraft = async (dto: Partial<CreateEventDto>) => {
-    await createDraft.mutateAsync(dto);
+  const handleSaveDraft = async (dto: Partial<FinanceEvent>) => {
+    if (dto.isDraft && dto.draftId) {
+      await updateDraft.mutateAsync({ id: dto.draftId, dto });
+      return dto.draftId;
+    } else {
+      const created = await createDraft.mutateAsync(dto);
+      return created.id;
+    }
+  };
+
+  const handleDeleteDraft = async () => {
+    if (draft?.draftId) {
+      await deleteDraft.mutateAsync(draft.draftId);
+    }
     navigate('/events', { replace: true });
   };
 
@@ -67,6 +79,7 @@ export function EventNewPage() {
           defaultValues={draft as unknown as FinanceEvent}
           onSubmit={handleSubmit}
           onSaveDraft={handleSaveDraft}
+          onDeleteDraft={handleDeleteDraft}
           submitLabel={t('events.createEvent')}
           loading={createEvent.isPending || createDraft.isPending || deleteDraft.isPending}
         />

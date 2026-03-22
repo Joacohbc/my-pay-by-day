@@ -112,6 +112,8 @@ export interface CreateEventDto {
   transaction: CreateTransactionDto;
   category?: { id: number };
   tags?: { id: number }[];
+  isDraft?: boolean;
+  draftId?: number;
 }
 
 // ─── Template ─────────────────────────────────────────────────────────────────

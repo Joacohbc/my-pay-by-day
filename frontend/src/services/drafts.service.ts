@@ -1,4 +1,4 @@
-import type { CreateEventDto, EntityDraft, FinanceEvent } from '@/models';
+import type { EntityDraft, FinanceEvent } from '@/models';
 import { api } from '@/services/api';
 
 export const draftsService = {
@@ -6,10 +6,10 @@ export const draftsService = {
 
   getById: (id: number) => api.get<EntityDraft>(`/entity-drafts/${id}`),
 
-  createFinanceEventDraft: (dto: Partial<CreateEventDto>) => 
+  createFinanceEventDraft: (dto: Partial<FinanceEvent>) => 
     api.post<EntityDraft>('/entity-drafts/finance-events', dto),
 
-  updateFinanceEventDraft: (id: number, dto: Partial<CreateEventDto>) =>
+  updateFinanceEventDraft: (id: number, dto: Partial<FinanceEvent>) =>
     api.patch<EntityDraft>(`/entity-drafts/finance-events/${id}`, dto),
 
   delete: (id: number) => api.delete(`/entity-drafts/${id}`),

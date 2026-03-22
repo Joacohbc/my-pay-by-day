@@ -407,6 +407,7 @@ const es = {
     emptyDesc: 'Empieza a crear eventos y guárdalos para terminarlos más tarde.',
     notFound: 'Borrador no encontrado',
     untitledDraft: 'Borrador sin título',
+    delete: 'Eliminar borrador',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

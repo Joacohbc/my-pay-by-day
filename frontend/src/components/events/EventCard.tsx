@@ -55,11 +55,6 @@ export function EventCard({ event, disableLink }: EventCardProps) {
         <div className="flex flex-col">
           <span className="text-base font-medium text-dn-text-main flex items-center gap-2">
             <span className="truncate max-w-[200px]">{event.name || t('drafts.untitledDraft')}</span>
-            {event.isDraft && (
-              <span className="text-[10px] uppercase font-bold text-dn-text-muted bg-white/5 px-2 py-0.5 rounded-full">
-                {t('drafts.nav')}
-              </span>
-            )}
           </span>
           <span className="text-xs text-dn-text-muted">
             {event.category?.name ?? t(cfg.labelKey)}
@@ -87,11 +82,9 @@ export function EventCard({ event, disableLink }: EventCardProps) {
 
   // If the event is a draft, the route is /events/:id/edit or /events/new
   if (event.isDraft) {
-    console.log('draft event', event);
     finalTo = event.id ? `/events/${event.id}/edit` : '/events/new';
   }
 
-  console.log('data', event);
   return (
     <Link to={finalTo} state={{ draft: event}} className={containerClass}>
       {content}
