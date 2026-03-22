@@ -234,28 +234,30 @@ export function EventsPage() {
                   placeholder={t('common.tag')}
                 />
               </div>
-              </div>
             </div>
-
-            {/* Filter pills */}
-            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-              {filterBtns.map(({ label, value }) => (
-                <button
-                  key={value}
-                  onClick={() => setFilter(value)}
-                  className={[
-                    'shrink-0 px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer',
-                    filter === value
-                      ? 'bg-dn-primary/20 text-dn-primary'
-                      : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
-                  ].join(' ')}
-                >
-                  {label}
-                </button>
-              ))}
           </div>
         </div>
       )}
+
+      {/* Filter pills */}
+      <div className="px-5">
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {filterBtns.map(({ label, value }) => (
+          <button
+            key={value}
+            onClick={() => setFilter(value)}
+            className={[
+              'shrink-0 px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer',
+              filter === value
+                ? 'bg-dn-primary/20 text-dn-primary'
+                : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
+            ].join(' ')}
+          >
+            {label}
+          </button>
+          ))}
+        </div>
+      </div>
 
       {/* Event list */}
       <div className="px-5">
