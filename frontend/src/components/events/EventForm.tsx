@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFieldArray, useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -407,9 +407,9 @@ interface EventFormPreset {
 interface EventFormProps {
   defaultValues?: Partial<FinanceEvent>;
   preset?: EventFormPreset;
-  onSubmit: (dto: CreateEventDto) => Promise<void>;
+  onSubmit: (dto: CreateEventDto, draftId?: number) => Promise<void>;
   onSaveDraft?: (dto: Partial<FinanceEvent>) => Promise<number | void>;
-  onDeleteDraft?: () => Promise<void>;
+  onDeleteDraft?: (draftId?: number) => Promise<void>;
   submitLabel?: string;
   loading?: boolean;
 }
@@ -442,7 +442,8 @@ export function EventForm({
     control,
     setValue,
     getValues,
-    formState: { errors },
+    watch,
+    formState: { errors, isDirty },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -512,7 +513,7 @@ export function EventForm({
       category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
       tags: values.tagIds?.map((id) => ({ id: Number(id) })),
     };
-    await onSubmit(dto);
+    await onSubmit(dto, values.draftId);
   };
 
   const [savingDraft, setSavingDraft] = useState(false);
@@ -567,11 +568,41 @@ export function EventForm({
     }
   };
 
+  const handleSaveDraftRef = useRef(handleSaveDraft);
+  useEffect(() => {
+    handleSaveDraftRef.current = handleSaveDraft;
+  });
+
+  const saveDraftTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+
+  useEffect(() => {
+    if (!onSaveDraft) return;
+
+    const subscription = watch((_, { name }) => {
+      if (name === 'draftId' || name === 'isDraft') return;
+
+      if (saveDraftTimeout.current) {
+        clearTimeout(saveDraftTimeout.current);
+      }
+      saveDraftTimeout.current = setTimeout(() => {
+        handleSaveDraftRef.current();
+      }, 2000);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      if (saveDraftTimeout.current) {
+        clearTimeout(saveDraftTimeout.current);
+      }
+    };
+  }, [watch, onSaveDraft]);
+
   const handleDeleteDraft = async () => {
     if (!onDeleteDraft) return;
     setDeletingDraft(true);
     try {
-      await onDeleteDraft();
+      const values = getValues();
+      await onDeleteDraft(values.draftId);
     } finally {
       setDeletingDraft(false);
     }
@@ -616,12 +647,13 @@ export function EventForm({
           <div className="flex gap-3">
             <Button
               type="button"
-              variant="secondary"
+              variant="ghost"
               size="sm"
               onClick={handleSaveDraft}
               loading={savingDraft}
               className="flex-1"
             >
+              <Icon name="save" className="mr-2" />
               {t('drafts.save')}
             </Button>
             {onDeleteDraft && (
@@ -639,7 +671,13 @@ export function EventForm({
             )}
           </div>
         )}
-        <Button type="submit" size="sm" loading={loading} className="w-full">
+        <Button
+          type="submit"
+          size="sm"
+          loading={loading}
+          disabled={!isDirty && !!defaultValues?.id && !defaultValues?.isDraft}
+          className="w-full"
+        >
           {submitLabel ?? t('common.save')}
         </Button>
       </div>

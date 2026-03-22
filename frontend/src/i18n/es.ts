@@ -7,6 +7,7 @@ const es = {
     delete: 'Eliminar',
     save: 'Guardar',
     saved: 'Guardado correctamente',
+    deleted: 'Eliminado correctamente',
     error: 'Ha ocurrido un error',
     close: 'Cerrar',
     cancel: 'Cancelar',
@@ -402,6 +403,7 @@ const es = {
     save: 'Guardar como Borrador',
     untitledDraft: 'Borrador sin título',
     delete: 'Eliminar borrador',
+    editingDraft: 'Editando borrador guardado',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

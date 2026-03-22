@@ -7,6 +7,7 @@ const en = {
     delete: 'Delete',
     save: 'Save',
     saved: 'Saved successfully',
+    deleted: 'Deleted successfully',
     error: 'An error occurred',
     close: 'Close',
     cancel: 'Cancel',
@@ -402,6 +403,7 @@ const en = {
     save: 'Save as Draft',
     untitledDraft: 'Untitled Draft',
     delete: 'Delete Draft',
+    editingDraft: 'Editing Draft',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

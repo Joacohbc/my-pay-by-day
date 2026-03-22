@@ -32,11 +32,12 @@ export function EventNewPage() {
       }
     : undefined;
 
-  const handleSubmit = async (dto: CreateEventDto) => {
+  const handleSubmit = async (dto: CreateEventDto, formDraftId?: number) => {
     const created = await createEvent.saveAsync(dto);
     if (created) {
-      if (draft?.draftId) {
-        await deleteDraft.mutateAsync(draft.draftId);
+      const idToDelete = formDraftId || draft?.draftId;
+      if (idToDelete) {
+        await deleteDraft.mutateAsync(idToDelete);
       }
       navigate(`/events/${created.id}`, { replace: true });
     } else {
@@ -55,9 +56,10 @@ export function EventNewPage() {
     }
   };
 
-  const handleDeleteDraft = async () => {
-    if (draft?.draftId) {
-      await deleteDraft.mutateAsync(draft.draftId);
+  const handleDeleteDraft = async (formDraftId?: number) => {
+    const idToDelete = formDraftId || draft?.draftId;
+    if (idToDelete) {
+      await deleteDraft.mutateAsync(idToDelete);
     }
     navigate('/events', { replace: true });
   };

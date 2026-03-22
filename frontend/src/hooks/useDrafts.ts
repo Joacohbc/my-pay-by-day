@@ -37,10 +37,7 @@ export function useCreateFinanceEventDraft() {
 
   return useMutation({
     mutationFn: (dto: Partial<FinanceEvent>) => draftsService.createFinanceEventDraft(dto),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: DRAFTS_KEY });
-      alert.success(t('common.saved'));
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: DRAFTS_KEY }),
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
   });
 }
@@ -53,10 +50,7 @@ export function useUpdateFinanceEventDraft() {
   return useMutation({
     mutationFn: ({ id, dto }: { id: number; dto: Partial<FinanceEvent> }) =>
       draftsService.updateFinanceEventDraft(id, dto),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: DRAFTS_KEY });
-      alert.success(t('common.saved'));
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: DRAFTS_KEY }),
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
   });
 }
@@ -68,10 +62,7 @@ export function useDeleteDraft() {
 
   return useMutation({
     mutationFn: (id: number) => draftsService.delete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: DRAFTS_KEY });
-      alert.success(t('common.deleted') || t('common.saved'));
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: DRAFTS_KEY }),
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
   });
 }
