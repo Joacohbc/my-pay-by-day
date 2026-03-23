@@ -411,6 +411,7 @@ interface EventFormProps {
   onSubmit: (dto: CreateEventDto, draftId?: number) => Promise<void>;
   onSaveDraft?: (dto: Partial<FinanceEvent>) => Promise<number | void>;
   onDeleteDraft?: (draftId?: number) => Promise<void>;
+  isDraft?: boolean;
   submitLabel?: string;
   loading?: boolean;
 }
@@ -421,6 +422,7 @@ export function EventForm({
   onSubmit,
   onSaveDraft,
   onDeleteDraft,
+  isDraft,
   submitLabel,
   loading = false,
 }: EventFormProps) {
@@ -643,7 +645,7 @@ export function EventForm({
               <Icon name="save" className="mr-2" />
               {t('drafts.save')}
             </Button>
-            {onDeleteDraft && (
+            {isDraft && onDeleteDraft && (
               <Button
                 type="button"
                 variant="ghost"
@@ -658,7 +660,6 @@ export function EventForm({
             )}
           </div>
         )}
-        
         <Button
           type="submit"
           size="sm"

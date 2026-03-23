@@ -56,6 +56,7 @@ export function EventEditPage() {
     }
     navigate('/events', { replace: true });
   };
+
   return (
     <div className="space-y-4">
       <PageHeader title={t('events.editEvent')} back />
@@ -70,6 +71,7 @@ export function EventEditPage() {
       <div className="px-5 pb-6">
         <EventForm
           defaultValues={(draft || event) as unknown as FinanceEvent}
+          isDraft={!!draft}
           onSubmit={handleSubmit}
           onSaveDraft={handleSaveDraft}
           onDeleteDraft={handleDeleteDraft}
