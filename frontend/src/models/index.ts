@@ -100,6 +100,8 @@ export interface FinanceEvent extends Identifiable {
   category?: Category;
   tags: Tag[];
   relatedEvents?: RelatedEvent[];
+  isDraft?: boolean;
+  draftId?: number;
 }
 
 export interface CreateEventDto {
@@ -110,6 +112,8 @@ export interface CreateEventDto {
   transaction: CreateTransactionDto;
   category?: { id: number };
   tags?: { id: number }[];
+  isDraft?: boolean;
+  draftId?: number;
 }
 
 // ─── Template ─────────────────────────────────────────────────────────────────
@@ -213,3 +217,5 @@ export interface DynamicTimePeriodBalance {
   outbound: number;
   events: FinanceEvent[];
 }
+
+export * from './drafts';

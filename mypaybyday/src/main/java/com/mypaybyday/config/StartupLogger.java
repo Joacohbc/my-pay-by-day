@@ -26,14 +26,11 @@ public class StartupLogger {
     @ConfigProperty(name = "db.field.encryption.key")
     String encryptionKey;
 
-    @ConfigProperty(name = "quarkus.langchain4j.ollama.base-url")
-    String ollamaUrl;
+    @ConfigProperty(name = "quarkus.langchain4j.ai.gemini.chat-model.model-id")
+    String geminiChatModel;
 
-    @ConfigProperty(name = "quarkus.langchain4j.ollama.chat-model.model-id")
-    String ollamaModel;
-
-    @ConfigProperty(name = "quarkus.langchain4j.ollama.embedding-model.model-id")
-    String ollamaEmbedModel;
+    @ConfigProperty(name = "quarkus.langchain4j.ai.gemini.embedding-model.model-id")
+    String geminiEmbedModel;
 
     @ConfigProperty(name = "mypaybyday.timezone")
     String timezone;
@@ -53,9 +50,8 @@ public class StartupLogger {
         LOG.info("=== Startup Configuration ===");
         LOG.infof("  SQLite URL         : %s", jdbcUrl);
         LOG.infof("  SQLite pool        : min=%d, max=%d", jdbcMinSize, jdbcMaxSize);
-        LOG.infof("  Ollama URL         : %s", ollamaUrl);
-        LOG.infof("  Ollama Model       : %s", ollamaModel);
-        LOG.infof("  Ollama Embed Model : %s", ollamaEmbedModel);
+        LOG.infof("  Gemini Chat Model  : %s", geminiChatModel);
+        LOG.infof("  Gemini Embed Model : %s", geminiEmbedModel);
         LOG.infof("  Encryption key set : %b", encryptionKey != null && !encryptionKey.isBlank());
         LOG.infof("  Timezone           : %s", timezone);
         LOG.infof("  Server Time        : %s", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));

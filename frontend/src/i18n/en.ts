@@ -7,6 +7,7 @@ const en = {
     delete: 'Delete',
     save: 'Save',
     saved: 'Saved successfully',
+    deleted: 'Deleted successfully',
     error: 'An error occurred',
     close: 'Close',
     cancel: 'Cancel',
@@ -394,6 +395,15 @@ const en = {
     showingCount: 'Showing {{count}} of {{total}} icons — search to find more',
     browseAll: 'Browse all',
     allIconsTitle: 'All Icons',
+  },
+
+  // ─── Drafts ──────────────────────────────────────────────────────────────
+  drafts: {
+    title: 'Drafts',
+    save: 'Save as Draft',
+    untitledDraft: 'Untitled Draft',
+    delete: 'Delete Draft',
+    editingDraft: 'Editing Draft',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

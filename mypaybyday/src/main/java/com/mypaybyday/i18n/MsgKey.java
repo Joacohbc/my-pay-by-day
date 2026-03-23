@@ -66,6 +66,10 @@ public enum MsgKey {
     SUBSCRIPTION_NEXT_EXECUTION_DATE_REQUIRED("error.subscription.next_execution_date_required"),
     SUBSCRIPTION_RECURRENCE_REQUIRED("error.subscription.recurrence_required"),
 
+    // ── Event Draft ──────────────────────────────────────
+    DRAFT_NOT_FOUND("error.draft.not_found"),
+    DRAFT_INVALID_PAYLOAD("error.draft.invalid_payload"),
+
     // ── AI ───────────────────────────────────────────────
     AI_SYSTEM_PROMPT("ai.system.prompt");
 

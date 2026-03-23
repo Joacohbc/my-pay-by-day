@@ -1,8 +1,8 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.RawTextEventRequestDto;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.dto.IntelligentEventResponseDto;
 import com.mypaybyday.service.IntelligentEventService;
 
 import jakarta.inject.Inject;
@@ -25,15 +25,19 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 @org.eclipse.microprofile.openapi.annotations.tags.Tag(name = "Intelligent Events", description = "AI-powered endpoints for creating events.")
 public class IntelligentEventResource {
 
+    private final IntelligentEventService intelligentEventService;
+
     @Inject
-    IntelligentEventService intelligentEventService;
+    public IntelligentEventResource(IntelligentEventService intelligentEventService) {
+        this.intelligentEventService = intelligentEventService;
+    }
 
     @POST
-    @Operation(summary = "Create an event from raw text", description = "Uses the AI model and RAG to interpret raw text and automatically create the corresponding FinanceEvent.")
-    @APIResponse(responseCode = "201", description = "Event successfully created", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class)))
+    @Operation(summary = "Create an event from raw text", description = "Uses the AI model and RAG to interpret raw text and automatically create the corresponding FinanceEvent (or a Draft if incomplete).")
+    @APIResponse(responseCode = "201", description = "Event or Draft successfully created", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = IntelligentEventResponseDto.class)))
     @APIResponse(responseCode = "400", description = "Invalid text or generated event validation failed")
     public Response createFromText(@Valid RawTextEventRequestDto request) throws BusinessException {
-        FinanceEventDto createdEvent = intelligentEventService.createFromText(request);
-        return Response.status(Response.Status.CREATED).entity(createdEvent).build();
+        IntelligentEventResponseDto result = intelligentEventService.createFromText(request);
+        return Response.status(Response.Status.CREATED).entity(result).build();
     }
 }

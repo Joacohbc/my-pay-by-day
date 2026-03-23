@@ -6,8 +6,10 @@ import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatDate, eventNetAmount } from '@/lib/format';
 
 interface EventCardProps {
-  disableLink?: boolean;
-  event: FinanceEvent;
+  readonly disableLink?: boolean;
+  readonly event: FinanceEvent;
+  readonly to?: string;
+  readonly state?: unknown;
 }
 
 const typeConfig = {
@@ -33,7 +35,7 @@ const typeConfig = {
 
 export function EventCard({ event, disableLink }: EventCardProps) {
   const { t } = useTranslation();
-  const cfg = typeConfig[event.type];
+  const cfg = typeConfig[event.type as keyof typeof typeConfig] || typeConfig.OTHER;
   const net = eventNetAmount(event);
   const date = event.transactionDate;
 
@@ -41,18 +43,18 @@ export function EventCard({ event, disableLink }: EventCardProps) {
     <>
       <div className="flex items-center gap-4">
         {/* Icon */}
-        {event.category ? (
+        {event.category && !event.isDraft ? (
           <CategoryIcon category={event.category} size="lg" shape="rounded-full" />
         ) : (
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${cfg.iconBg}`}>
-            <Icon name={cfg.icon} />
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${event.isDraft ? 'bg-dn-surface-low text-dn-text-muted border border-dashed border-white/20' : cfg.iconBg}`}>
+            <Icon name={event.isDraft ? 'draft' : cfg.icon} />
           </div>
         )}
 
         {/* Info */}
         <div className="flex flex-col">
-          <span className="text-base font-medium text-dn-text-main">
-            {event.name}
+          <span className="text-base font-medium text-dn-text-main flex items-center gap-2">
+            <span className="truncate max-w-[200px]">{event.name || t('drafts.untitledDraft')}</span>
           </span>
           <span className="text-xs text-dn-text-muted">
             {event.category?.name ?? t(cfg.labelKey)}
@@ -62,9 +64,10 @@ export function EventCard({ event, disableLink }: EventCardProps) {
       </div>
 
       {/* Amount */}
-      <span className={`font-mono text-sm ${cfg.amountClass}`}>
-        {event.type === 'INBOUND' ? '+' : event.type === 'OUTBOUND' ? '-' : ''}
-        {formatCurrency(Math.abs(net))}
+      <span className={`font-mono text-sm ${event.isDraft ? 'text-dn-text-muted' : cfg.amountClass}`}>
+        {!event.isDraft && event.type === 'INBOUND' ? '+' : ''}
+        {!event.isDraft && event.type === 'OUTBOUND' ? '-' : ''}
+        {formatCurrency(Math.abs(net || 0))}
       </span>
     </>
   );
@@ -75,8 +78,15 @@ export function EventCard({ event, disableLink }: EventCardProps) {
     return <div className={containerClass}>{content}</div>;
   }
 
+  let finalTo = `/events/${event.id}`;
+
+  // If the event is a draft, the route is /events/:id/edit or /events/new
+  if (event.isDraft) {
+    finalTo = event.id ? `/events/${event.id}/edit` : '/events/new';
+  }
+
   return (
-    <Link to={`/events/${event.id}`} className={containerClass}>
+    <Link to={finalTo} state={{ draft: event}} className={containerClass}>
       {content}
     </Link>
   );

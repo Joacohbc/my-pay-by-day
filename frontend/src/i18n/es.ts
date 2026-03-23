@@ -7,6 +7,7 @@ const es = {
     delete: 'Eliminar',
     save: 'Guardar',
     saved: 'Guardado correctamente',
+    deleted: 'Eliminado correctamente',
     error: 'Ha ocurrido un error',
     close: 'Cerrar',
     cancel: 'Cancelar',
@@ -394,6 +395,15 @@ const es = {
     showingCount: 'Mostrando {{count}} de {{total}} íconos — buscá para ver más',
     browseAll: 'Ver todos',
     allIconsTitle: 'Todos los Íconos',
+  },
+
+  // ─── Drafts ──────────────────────────────────────────────────────────────
+  drafts: {
+    title: 'Borradores',
+    save: 'Guardar como Borrador',
+    untitledDraft: 'Borrador sin título',
+    delete: 'Eliminar borrador',
+    editingDraft: 'Editando borrador guardado',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────
