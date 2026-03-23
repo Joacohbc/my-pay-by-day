@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFieldArray, useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,6 +15,7 @@ import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import type { CreateEventDto, EventType, FinanceEvent, Category, Tag, FinanceLineItem } from '@/models';
 import type { Control, UseFormRegister, FieldErrors, UseFormSetValue, UseFieldArrayAppend, UseFieldArrayRemove, FieldArrayWithId } from 'react-hook-form';
 import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
+import { useDebounceCallback } from '@/hooks/useDebounce';
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
@@ -568,34 +569,20 @@ export function EventForm({
     }
   };
 
-  const handleSaveDraftRef = useRef(handleSaveDraft);
-  useEffect(() => {
-    handleSaveDraftRef.current = handleSaveDraft;
-  });
-
-  const saveDraftTimeout = useRef<ReturnType<typeof setTimeout>>(null);
-
+  // Debounce the save draft function to avoid saving on every keystroke
+  // To avoid overwhelming the backend with requests and save costs
+  const debouncedSaveDraft = useDebounceCallback(handleSaveDraft, 2000);
   useEffect(() => {
     if (!onSaveDraft) return;
 
     const subscription = watch((_, { name }) => {
+      // Don't save if the field that changed is draftId or isDraft
       if (name === 'draftId' || name === 'isDraft') return;
-
-      if (saveDraftTimeout.current) {
-        clearTimeout(saveDraftTimeout.current);
-      }
-      saveDraftTimeout.current = setTimeout(() => {
-        handleSaveDraftRef.current();
-      }, 2000);
+      debouncedSaveDraft();
     });
 
-    return () => {
-      subscription.unsubscribe();
-      if (saveDraftTimeout.current) {
-        clearTimeout(saveDraftTimeout.current);
-      }
-    };
-  }, [watch, onSaveDraft]);
+    return () => subscription.unsubscribe();
+  }, [watch, onSaveDraft, debouncedSaveDraft]);
 
   const handleDeleteDraft = async () => {
     if (!onDeleteDraft) return;
@@ -671,6 +658,7 @@ export function EventForm({
             )}
           </div>
         )}
+        
         <Button
           type="submit"
           size="sm"
