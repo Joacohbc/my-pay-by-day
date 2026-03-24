@@ -71,9 +71,19 @@ public class IntelligentEventService {
                 "Context: Nodes: [id: 1, name: Wallet], [id: 2, name: Supermarket]. Categories: [id: 5, name: Food].\n"
                 +
                 "Text: Spent 50 in the supermarket from my wallet.\n" +
+<<<<<<< HEAD
                 "Output: { \"name\": \"Groceries at Supermarket\", \"amount\": 50.00, \"sourceNodeId\": 1, \"destinationNodeId\": 2, \"categoryId\": 5 }\n\n"
                 +
                 "Now process the user request.";
+=======
+                "Output: { \"name\": \"Groceries at Supermarket\", \"amount\": 50.00, \"sourceNodeId\": 1, \"destinationNodeId\": 2, \"categoryId\": 5 }\n\n";
+
+        if (request.getInstructions() != null && !request.getInstructions().trim().isEmpty()) {
+            extractionPrompt += "ADDITIONAL USER INSTRUCTIONS:\n" + request.getInstructions() + "\n\n";
+        }
+
+        extractionPrompt += "Now process the user request.";
+>>>>>>> origin/master
 
         // Call the Langchain4j structured output extraction
         FinanceEventExtractionDto extraction = financeExtractor.extractEvent(request.getText(), extractionPrompt);

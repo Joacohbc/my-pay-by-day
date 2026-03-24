@@ -56,7 +56,11 @@ public class JobSchedulerService {
 
             systemJobRepository.persist(job);
         }
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> origin/master
         LOG.info("Subscription processor job completed.");
     }
 }

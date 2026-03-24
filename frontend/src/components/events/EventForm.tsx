@@ -539,7 +539,11 @@ export function EventForm({
         : undefined;
 
       draftDto.transactionDate = transactionDate || `${toLocalDateTimeString(getLocalizedNow())}:00.000`;
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> origin/master
       draftDto.lineItems = values.lineItems.map((li, i) => {
           const amountStr = li.amount;
           let amount = amountStr ? Number(amountStr) : 0;

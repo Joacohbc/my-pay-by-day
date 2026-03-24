@@ -126,7 +126,11 @@ public class SubscriptionService {
         }
 
         subscriptionRepository.persist(subscription);
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> origin/master
         SystemJob job = new SystemJob();
         job.jobCategory = JobCategory.SUBSCRIPTION_PROCESSOR;
         job.status = JobStatus.PENDING;
@@ -230,14 +234,22 @@ public class SubscriptionService {
         if (subscription == null) {
             throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NOT_FOUND, id));
         }
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> origin/master
         SystemJob pendingJob = systemJobRepository.findPendingJobByEntityId(JobCategory.SUBSCRIPTION_PROCESSOR, String.valueOf(subscription.id));
         if (pendingJob != null) {
             pendingJob.status = JobStatus.COMPLETED;
             pendingJob.message = "Subscription deleted";
             systemJobRepository.persist(pendingJob);
         }
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> origin/master
         subscriptionRepository.delete(subscription);
     }
 
@@ -272,7 +284,11 @@ public class SubscriptionService {
             nextJob.nextExecutionDate = sub.nextExecutionDate;
             nextJob.entityId = String.valueOf(sub.id);
             systemJobRepository.persist(nextJob);
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> origin/master
         } catch (Exception e) {
             LOG.errorf(e, "Failed to process subscription ID: %d", sub.id);
             throw new BusinessException("Failed to process subscription: " + e.getMessage());

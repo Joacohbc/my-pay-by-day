@@ -155,6 +155,7 @@ public class FinanceEvent extends BaseEntity {
     @JoinColumn(name = "subscription_id")
     public Subscription subscription;
 
+<<<<<<< HEAD
     /**
      * Files (images/documents) attached to this event.
      */
@@ -170,6 +171,8 @@ public class FinanceEvent extends BaseEntity {
     @JsonProperty("fileIds")
     public List<Long> fileIds;
 
+=======
+>>>>>>> origin/master
     @Override
     public String toRagContent() {
         StringBuilder sb = new StringBuilder();

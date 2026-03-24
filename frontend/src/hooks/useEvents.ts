@@ -109,3 +109,7 @@ export function useRemoveEventRelations() {
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
   });
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/master

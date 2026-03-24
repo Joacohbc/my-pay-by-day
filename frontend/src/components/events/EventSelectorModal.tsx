@@ -26,7 +26,11 @@ export function EventSelectorModal({
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> origin/master
   const { data: paged, isLoading, error } = useEvents({ page });
   const addRelation = useAddEventRelations();
 
@@ -98,7 +102,11 @@ export function EventSelectorModal({
         <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-2">
           {isLoading && <div className="py-4 text-center"><Spinner /></div>}
           {error && <div className="py-2 text-center text-dn-error text-sm">{String(error)}</div>}
+<<<<<<< HEAD
 
+=======
+          
+>>>>>>> origin/master
           {!isLoading && !error && filteredAndSorted.length === 0 && (
             <div className="py-4">
               <EmptyState title={search ? t('events.noEventsFoundSearch') : t('events.noEventsFound')} />

@@ -30,9 +30,15 @@ public record RelatedEventDto(
         }
 
         return new RelatedEventDto(
+<<<<<<< HEAD
                 event.id,
                 event.name,
                 txDate,
+=======
+                event.id, 
+                event.name, 
+                txDate, 
+>>>>>>> origin/master
                 calculatedAmount,
                 event.type,
                 event.category != null ? CategoryDto.from(event.category) : null

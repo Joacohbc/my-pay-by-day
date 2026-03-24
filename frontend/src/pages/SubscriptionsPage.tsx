@@ -91,7 +91,11 @@ function SubscriptionCard({
             <Icon name="sync" className="text-2xl text-dn-text-muted" />
             <h2 className="text-lg font-bold text-dn-text-main truncate">{sub.name}</h2>
           </div>
+<<<<<<< HEAD
 
+=======
+          
+>>>>>>> origin/master
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             {sub.eventType && (
               <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${EVENT_TYPE_COLORS[sub.eventType] ?? 'text-dn-text-muted bg-dn-surface-low'}`}>
@@ -116,7 +120,11 @@ function SubscriptionCard({
           {/* Details */}
           <div className="flex flex-col gap-3 min-w-0">
             <h3 className="text-xs font-bold text-dn-text-main uppercase tracking-wider">{t('subscriptions.expenseDetails', 'Detalles de Gasto')}</h3>
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> origin/master
             {sub.category && (
               <div className="flex items-center gap-3">
                 <div className="shrink-0 w-8 h-8 flex items-center justify-center text-dn-text-muted">
@@ -153,8 +161,13 @@ function SubscriptionCard({
           {/* Amount */}
           <div className="flex flex-col gap-3 min-w-0">
             <h3 className="text-xs font-bold text-dn-text-main uppercase tracking-wider">{t('subscriptions.amountToPay', 'Monto a Pagar')}</h3>
+<<<<<<< HEAD
 
             {sub.modifierValue !== undefined && (
+=======
+            
+            {sub.modifierValue != null && (
+>>>>>>> origin/master
               <div className="text-xl font-bold text-[#e1a5e3] tracking-tight break-all">
                 {formatCurrency(sub.modifierValue)}
               </div>
@@ -248,7 +261,11 @@ export function SubscriptionsPage() {
       destinationNodeId: sub.destinationNodeId ? String(sub.destinationNodeId) : '',
       categoryId: sub.category ? String(sub.category.id) : '',
       tagIds: sub.tags ? sub.tags.map((tag) => String(tag.id)) : [],
+<<<<<<< HEAD
       modifierValue: sub.modifierValue !== undefined ? String(sub.modifierValue) : '',
+=======
+      modifierValue: sub.modifierValue != null ? String(sub.modifierValue) : '',
+>>>>>>> origin/master
       recurrence: sub.recurrence,
       nextExecutionDate: sub.nextExecutionDate.slice(0, 10),
       status: sub.status,

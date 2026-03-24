@@ -112,7 +112,11 @@ public class EventResource {
     })
     public Response addRelations(
             @Parameter(description = "ID of the event", required = true) @PathParam("id") Long id,
+<<<<<<< HEAD
             @Parameter(description = "List of related event IDs", required = true) java.util.List<Long> relatedIds)
+=======
+            @Parameter(description = "List of related event IDs", required = true) java.util.List<Long> relatedIds) 
+>>>>>>> origin/master
             throws BusinessException {
         return Response.ok(eventService.addRelations(id, relatedIds)).build();
     }

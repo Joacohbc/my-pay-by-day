@@ -20,7 +20,11 @@ export function PeriodBalanceSummary({
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
 
+<<<<<<< HEAD
   const displayCurrency = (amount: number) =>
+=======
+  const displayCurrency = (amount: number) => 
+>>>>>>> origin/master
     isExpanded ? formatCurrency(amount) : formatCurrencyShort(amount);
 
   return (
@@ -28,7 +32,11 @@ export function PeriodBalanceSummary({
       <Card className="relative overflow-hidden">
         <div className="flex items-center justify-between mb-1">
           <p className="text-xs text-dn-text-muted uppercase tracking-wider">{t('periods.netBalance')}</p>
+<<<<<<< HEAD
           <button
+=======
+          <button 
+>>>>>>> origin/master
             onClick={() => setIsExpanded(!isExpanded)}
             className="text-dn-text-muted hover:text-dn-text-main transition-colors flex items-center justify-center p-1 rounded-full bg-dn-panel-bg"
             title={isExpanded ? t('common.collapse', 'Collapse') : t('common.expand', 'Expand')}
