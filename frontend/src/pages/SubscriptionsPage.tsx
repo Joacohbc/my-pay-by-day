@@ -154,7 +154,7 @@ function SubscriptionCard({
           <div className="flex flex-col gap-3 min-w-0">
             <h3 className="text-xs font-bold text-dn-text-main uppercase tracking-wider">{t('subscriptions.amountToPay', 'Monto a Pagar')}</h3>
             
-            {sub.modifierValue !== undefined && (
+            {sub.modifierValue != null && (
               <div className="text-xl font-bold text-[#e1a5e3] tracking-tight break-all">
                 {formatCurrency(sub.modifierValue)}
               </div>
@@ -248,7 +248,7 @@ export function SubscriptionsPage() {
       destinationNodeId: sub.destinationNodeId ? String(sub.destinationNodeId) : '',
       categoryId: sub.category ? String(sub.category.id) : '',
       tagIds: sub.tags ? sub.tags.map((tag) => String(tag.id)) : [],
-      modifierValue: sub.modifierValue !== undefined ? String(sub.modifierValue) : '',
+      modifierValue: sub.modifierValue != null ? String(sub.modifierValue) : '',
       recurrence: sub.recurrence,
       nextExecutionDate: sub.nextExecutionDate.slice(0, 10),
       status: sub.status,

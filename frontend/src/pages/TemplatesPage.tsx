@@ -114,7 +114,7 @@ export function TemplatesPage() {
       categoryId: t.category ? String(t.category.id) : '',
       tagIds: t.tags.map((tag) => String(tag.id)),
       modifierType: t.modifierType ?? '',
-      modifierValue: t.modifierValue !== undefined ? String(t.modifierValue) : '',
+      modifierValue: t.modifierValue != null ? String(t.modifierValue) : '',
     });
     setShowModal(true);
   };
@@ -234,7 +234,7 @@ export function TemplatesPage() {
                       #{tag.name}
                     </span>
                   ))}
-                  {tpl.modifierType && tpl.modifierValue !== undefined && (
+                  {tpl.modifierType && tpl.modifierValue != null && (
                     <span className="text-xs text-dn-primary/80">
                       {tpl.modifierType === 'PERCENTAGE'
                         ? `${tpl.modifierValue}% modifier`
