@@ -7,21 +7,30 @@ import com.mypaybyday.dto.CategoryBalanceDto;
 import com.mypaybyday.entity.Category;
 import com.mypaybyday.entity.FinanceLineItem;
 import com.mypaybyday.entity.Tag;
+import com.mypaybyday.entity.StoredFile;
 import com.mypaybyday.entity.FinanceTransaction;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
+import com.mypaybyday.repository.StoredFileRepository;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import io.quarkus.hibernate.orm.panache.PanacheQuery;
 
 /**
  * Service responsible for managing {@link FinanceEvent} lifecycle.
@@ -49,19 +58,83 @@ public class EventService {
     @Inject
     Messages messages;
 
+    @Inject
+    StoredFileRepository storedFileRepository;
+
     // -------------------------------------------------------------------------
     // Queries
     // -------------------------------------------------------------------------
 
     @Transactional
-    public PagedResponse<FinanceEventDto> listAll(int page, int size) {
-        long totalElements = eventRepository.count();
-        List<FinanceEventDto> content = eventRepository.findAll()
-                .page(Page.of(page, size))
-                .stream()
-                .map(FinanceEventDto::from)
-                .toList();
-        return PagedResponse.of(content, page, size, totalElements);
+    public PagedResponse<FinanceEventDto> listAll(int page, int size, String search, String startDate, String endDate, EventType type, Long categoryId, Long tagId) {
+        StringBuilder query = new StringBuilder("1=1");
+        Map<String, Object> params = new HashMap<>();
+
+        if (startDate != null && !startDate.isBlank()) {
+            query.append(" and transaction.transactionDate >= :startDate");
+            params.put("startDate", LocalDate.parse(startDate).atStartOfDay());
+        }
+
+        if (endDate != null && !endDate.isBlank()) {
+            query.append(" and transaction.transactionDate <= :endDate");
+            params.put("endDate", LocalDate.parse(endDate).atTime(LocalTime.MAX));
+        }
+
+        if (type != null) {
+            query.append(" and type = :type");
+            params.put("type", type);
+        }
+
+        if (categoryId != null) {
+            query.append(" and category.id = :categoryId");
+            params.put("categoryId", categoryId);
+        }
+
+        if (tagId != null) {
+            query.append(" and exists (select t from Tag t where t.id = :tagId and t member of tags)");
+            params.put("tagId", tagId);
+        }
+
+        query.append(" ORDER BY transaction.transactionDate DESC");
+
+        PanacheQuery<FinanceEvent> panacheQuery = eventRepository.find(query.toString(), params);
+
+        List<FinanceEvent> events;
+
+        // If we have an in-memory search, we have to fetch all matches from DB and filter manually
+        if (search != null && !search.isBlank()) {
+            String q = search.toLowerCase();
+            events = panacheQuery.stream()
+                    .filter(e -> {
+                        boolean matchName = e.name != null && e.name.toLowerCase().contains(q);
+                        boolean matchDesc = e.description != null && e.description.toLowerCase().contains(q);
+                        boolean matchCat = e.category != null && e.category.name != null && e.category.name.toLowerCase().contains(q);
+                        return matchName || matchDesc || matchCat;
+                    })
+                    .collect(Collectors.toList());
+
+            int totalElements = events.size();
+
+            int start = Math.min(page * size, totalElements);
+            int end = Math.min(start + size, totalElements);
+
+            List<FinanceEventDto> content = events.subList(start, end)
+                    .stream()
+                    .map(FinanceEventDto::from)
+                    .toList();
+
+            return PagedResponse.of(content, page, size, totalElements);
+
+        } else {
+            // Efficient DB pagination
+            long totalElements = panacheQuery.count();
+            List<FinanceEventDto> content = panacheQuery
+                    .page(Page.of(page, size))
+                    .stream()
+                    .map(FinanceEventDto::from)
+                    .toList();
+            return PagedResponse.of(content, page, size, totalElements);
+        }
     }
 
     @Transactional
@@ -70,6 +143,7 @@ public class EventService {
         if (event == null) {
             throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
         }
+
         return FinanceEventDto.from(event);
     }
 
@@ -149,6 +223,13 @@ public class EventService {
         // Resolve Tag references
         event.tags = resolveTags(event.tags);
 
+        // Resolve Files via transient fileIds
+        if (event.fileIds != null) {
+            event.files = resolveFileIds(event.fileIds);
+        } else {
+            event.files = resolveFiles(event.files);
+        }
+
         event.transaction = tx;
         eventRepository.persist(event);
         return FinanceEventDto.from(event);
@@ -193,6 +274,13 @@ public class EventService {
 
         // --- Tags ---
         event.tags = resolveTags(eventDetails.tags);
+
+        // --- Files ---
+        if (eventDetails.fileIds != null) {
+            event.files = resolveFileIds(eventDetails.fileIds);
+        } else {
+            event.files = resolveFiles(eventDetails.files);
+        }
 
         // --- Transaction ---
         if (eventDetails.transaction != null) {
@@ -253,6 +341,38 @@ public class EventService {
      * Resolves a list of Tag stubs (containing only IDs) into managed Tag entities.
      * Returns an empty list if the input is null.
      */
+    private List<StoredFile> resolveFileIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<StoredFile> resolved = new ArrayList<>();
+        for (Long id : ids) {
+            if (id != null) {
+                StoredFile sf = storedFileRepository.findById(id);
+                if (sf != null) {
+                    resolved.add(sf);
+                }
+            }
+        }
+        return resolved;
+    }
+
+    private List<StoredFile> resolveFiles(List<StoredFile> stubs) {
+        if (stubs == null || stubs.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<StoredFile> resolved = new ArrayList<>();
+        for (StoredFile stub : stubs) {
+            if (stub.id != null) {
+                StoredFile sf = storedFileRepository.findById(stub.id);
+                if (sf != null) {
+                    resolved.add(sf);
+                }
+            }
+        }
+        return resolved;
+    }
+
     private List<Tag> resolveTags(List<Tag> stubs) throws BusinessException {
         if (stubs == null || stubs.isEmpty()) {
             return new ArrayList<>();
@@ -265,5 +385,76 @@ public class EventService {
             resolved.add(tagService.findTagEntity(stub.id));
         }
         return resolved;
+    }
+
+    @Transactional
+    public FinanceEventDto addRelations(Long eventId, List<Long> relatedIds) throws BusinessException {
+        FinanceEvent event = eventRepository.findById(eventId);
+        if (event == null) throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
+
+        List<FinanceEvent> existingRelated = validateAndFetchRelatedEvents(relatedIds);
+
+        for (FinanceEvent fe : existingRelated) {
+            if (fe.id.equals(eventId)) continue;
+            if (!event.relatedEvents.contains(fe)) event.relatedEvents.add(fe);
+            if (!fe.relatedEvents.contains(event)) fe.relatedEvents.add(event);
+        }
+
+        existingRelated.add(event);
+        eventRepository.persist(existingRelated);
+        return FinanceEventDto.from(event);
+    }
+
+    @Transactional
+    public FinanceEventDto removeRelations(Long eventId, List<Long> relatedIds) throws BusinessException {
+        FinanceEvent event = eventRepository.findById(eventId);
+        if (event == null) {
+            throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
+        }
+
+        List<FinanceEvent> existingRelated = validateAndFetchRelatedEvents(relatedIds);
+
+        for (FinanceEvent relEvent : existingRelated) {
+            if (relEvent.id.equals(eventId)) {
+                continue;
+            }
+
+            event.relatedEvents.removeIf(e -> e.id.equals(relEvent.id));
+            relEvent.relatedEvents.removeIf(e -> e.id.equals(eventId));
+        }
+
+        existingRelated.add(event);
+        eventRepository.persist(existingRelated);
+
+        return FinanceEventDto.from(event);
+    }
+
+    @Transactional
+    public FinanceEventDto removeRelation(Long eventId, Long relatedId) throws BusinessException {
+        return removeRelations(eventId, List.of(relatedId));
+    }
+
+    private List<FinanceEvent> validateAndFetchRelatedEvents(List<Long> relatedIds) throws BusinessException {
+        List<FinanceEvent> fetchedRelated = eventRepository.findByIds(relatedIds);
+
+        // The default method findByIds return nulls for missing IDs, so we need to check which ones were not found
+        List<FinanceEvent> existingRelated = new ArrayList<>(relatedIds.size());
+        List<Long> missingIds = new ArrayList<>();
+
+        for (int i = 0; i < relatedIds.size(); i++) {
+            FinanceEvent related = i < fetchedRelated.size() ? fetchedRelated.get(i) : null;
+            if (related == null) {
+                missingIds.add(relatedIds.get(i));
+                continue;
+            }
+            existingRelated.add(related);
+        }
+
+        if (!missingIds.isEmpty()) {
+            throw new BusinessException(
+                    messages.get(MsgKey.EVENT_RELATED_NOT_FOUND, new LinkedHashSet<>(missingIds).toString()));
+        }
+
+        return existingRelated;
     }
 }

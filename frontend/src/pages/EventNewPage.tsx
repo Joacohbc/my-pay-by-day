@@ -3,36 +3,42 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useCreateEvent } from '@/hooks/useEvents';
-import type { CreateEventDto, Template } from '@/models';
+import { useCreateFinanceEventDraft } from '@/hooks/useDrafts';
+import type { CreateEventDto, Template, FinanceEvent } from '@/models';
 
 export function EventNewPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const createEvent = useCreateEvent();
+  const createDraft = useCreateFinanceEventDraft();
 
-  const template = (location.state as { template?: Template } | null)?.template;
+  const state = location.state as { template?: Template } | null;
+  const template = state?.template;
 
-  const preset = template
-    ? {
-        type: template.eventType,
-        categoryId: template.category?.id,
-        tagIds: template.tags.map((t) => String(t.id)),
-        lineNodeIds: [
-          ...(template.originNodeId ? [template.originNodeId] : []),
-          ...(template.destinationNodeId ? [template.destinationNodeId] : []),
-        ],
-      }
-    : undefined;
+  const preset =
+    template ? {
+      type: template.eventType,
+      categoryId: template.category?.id,
+      tagIds: template.tags.map((t) => String(t.id)),
+      lineNodeIds: [
+        ...(template.originNodeId ? [template.originNodeId] : []),
+        ...(template.destinationNodeId ? [template.destinationNodeId] : []),
+      ],
+    } : undefined;
 
   const handleSubmit = async (dto: CreateEventDto) => {
     const created = await createEvent.saveAsync(dto);
     if (created) {
       navigate(`/events/${created.id}`, { replace: true });
     } else {
-      // Queued offline — go back to event list
       navigate('/events', { replace: true });
     }
+  };
+
+  const handleSaveDraft = async (dto: Partial<FinanceEvent>) => {
+    const created = await createDraft.mutateAsync(dto);
+    return created.id;
   };
 
   return (
@@ -50,8 +56,9 @@ export function EventNewPage() {
         <EventForm
           preset={preset}
           onSubmit={handleSubmit}
+          onSaveDraft={handleSaveDraft}
           submitLabel={t('events.createEvent')}
-          loading={createEvent.isPending}
+          loading={createEvent.isPending || createDraft.isPending}
         />
       </div>
     </div>

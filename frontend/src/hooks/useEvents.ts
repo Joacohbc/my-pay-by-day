@@ -1,16 +1,17 @@
 import { useAlert } from '@/contexts/AlertContext';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { eventsService } from '@/services/events.service';
+import { eventsService, type EventFilters } from '@/services/events.service';
 import { usePendingEventsStore } from '@/store/pendingEventsStore';
 import type { CreateEventDto, FinanceEvent } from '@/models';
 
 export const EVENTS_KEY = ['events'] as const;
 
-export function useEvents(page = 0, size = 20) {
+export function useEvents(filters: EventFilters = {}, options?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: [...EVENTS_KEY, page, size],
-    queryFn: () => eventsService.getAll(page, size),
+    queryKey: [...EVENTS_KEY, filters],
+    queryFn: () => eventsService.getAll(filters),
+    enabled: options?.enabled,
   });
 }
 
@@ -70,6 +71,37 @@ export function useDeleteEvent() {
   const { t } = useTranslation();
   return useMutation({
     mutationFn: (id: number) => eventsService.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: EVENTS_KEY });
+      alert.success(t('common.saved'));
+    },
+    onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
+  });
+}
+
+
+export function useAddEventRelations() {
+  const qc = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: ({ id, relatedIds }: { id: number; relatedIds: number[] }) =>
+      eventsService.addRelations(id, relatedIds),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: EVENTS_KEY });
+      alert.success(t('common.saved'));
+    },
+    onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
+  });
+}
+
+export function useRemoveEventRelations() {
+  const qc = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: ({ id, relatedIds }: { id: number; relatedIds: number[] }) =>
+      eventsService.removeRelations(id, relatedIds),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: EVENTS_KEY });
       alert.success(t('common.saved'));

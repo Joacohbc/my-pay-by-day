@@ -7,6 +7,7 @@ const es = {
     delete: 'Eliminar',
     save: 'Guardar',
     saved: 'Guardado correctamente',
+    deleted: 'Eliminado correctamente',
     error: 'Ha ocurrido un error',
     close: 'Cerrar',
     cancel: 'Cancelar',
@@ -26,6 +27,9 @@ const es = {
     optional: 'opcional',
     required: 'Requerido',
     clearFilters: 'Limpiar filtros',
+    filters: 'Filtros',
+    category: 'Categoría',
+    tag: 'Etiqueta',
     confirmDelete: '¿Eliminar este {{item}}?',
     confirmDeleteNamed: '¿Eliminar "{{name}}"?',
     nameRequired: 'El nombre es requerido',
@@ -89,6 +93,12 @@ const es = {
     newEvent: 'Nuevo Evento',
     detail: 'Detalle',
     deleteConfirm: '¿Eliminar este evento permanentemente?',
+    relatedEvents: 'Eventos Relacionados',
+    addRelatedEvent: 'Añadir Relación',
+    removeRelation: 'Eliminar',
+    noRelatedEvents: 'No hay eventos relacionados',
+    selectRelatedEvent: 'Selecciona un evento para relacionar',
+    confirmRemoveRelation: '¿Eliminar la relación con este evento?',
     category: 'Categoría',
     date: 'Fecha',
     receipt: 'Recibo',
@@ -250,12 +260,25 @@ const es = {
     infoModalSubtext:
       'Las plantillas definen los nodos origen/destino predeterminados, categoría, etiquetas y modificadores opcionales de monto (ej. agregar 10% de propina automáticamente).',
     next: 'Próximo',
+    deleteConfirm: '¿Eliminar esta suscripción?',
+    editSubscription: 'Editar Suscripción',
+    recurrenceLabel: 'Recurrencia',
+    status: {
+      ACTIVE: 'Activa',
+      CANCELLED: 'Cancelada',
+    },
     recurrence: {
       DAILY: 'Diaria',
       WEEKLY: 'Semanal',
       MONTHLY: 'Mensual',
       YEARLY: 'Anual',
     },
+    expenseDetails: 'Detalles de Gasto',
+    amountToPay: 'Monto a Pagar',
+    frequency: 'Frecuencia',
+    nextPayment: 'Próximo Pago',
+    destination: 'Destino',
+    paymentMethod: 'Método de Pago',
   },
 
   // ─── Time Periods ───────────────────────────────────────────────────────
@@ -372,6 +395,15 @@ const es = {
     showingCount: 'Mostrando {{count}} de {{total}} íconos — buscá para ver más',
     browseAll: 'Ver todos',
     allIconsTitle: 'Todos los Íconos',
+  },
+
+  // ─── Drafts ──────────────────────────────────────────────────────────────
+  drafts: {
+    title: 'Borradores',
+    save: 'Guardar como Borrador',
+    untitledDraft: 'Borrador sin título',
+    delete: 'Eliminar borrador',
+    editingDraft: 'Editando borrador guardado',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

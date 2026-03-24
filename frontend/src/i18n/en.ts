@@ -7,6 +7,7 @@ const en = {
     delete: 'Delete',
     save: 'Save',
     saved: 'Saved successfully',
+    deleted: 'Deleted successfully',
     error: 'An error occurred',
     close: 'Close',
     cancel: 'Cancel',
@@ -26,6 +27,9 @@ const en = {
     optional: 'optional',
     required: 'Required',
     clearFilters: 'Clear filters',
+    filters: 'Filters',
+    category: 'Category',
+    tag: 'Tag',
     confirmDelete: 'Delete this {{item}}?',
     confirmDeleteNamed: 'Delete "{{name}}"?',
     nameRequired: 'Name is required',
@@ -89,6 +93,12 @@ const en = {
     newEvent: 'New Event',
     detail: 'Detail',
     deleteConfirm: 'Delete this event permanently?',
+    relatedEvents: 'Related Events',
+    addRelatedEvent: 'Add Relation',
+    removeRelation: 'Remove',
+    noRelatedEvents: 'No related events',
+    selectRelatedEvent: 'Select an event to relate',
+    confirmRemoveRelation: 'Remove relation with this event?',
     category: 'Category',
     date: 'Date',
     receipt: 'Receipt',
@@ -250,12 +260,25 @@ const en = {
     infoModalSubtext:
       'Templates define the default origin/destination nodes, category, tags, and optional amount modifiers (e.g. auto-add 10% tip).',
     next: 'Next',
+    deleteConfirm: 'Delete this subscription?',
+    editSubscription: 'Edit Subscription',
+    recurrenceLabel: 'Recurrence',
+    status: {
+      ACTIVE: 'Active',
+      CANCELLED: 'Cancelled',
+    },
     recurrence: {
       DAILY: 'Daily',
       WEEKLY: 'Weekly',
       MONTHLY: 'Monthly',
       YEARLY: 'Yearly',
     },
+    expenseDetails: 'Expense Details',
+    amountToPay: 'Amount to Pay',
+    frequency: 'Frequency',
+    nextPayment: 'Next Payment',
+    destination: 'Destination',
+    paymentMethod: 'Payment Method',
   },
 
   // ─── Time Periods ───────────────────────────────────────────────────────
@@ -372,6 +395,15 @@ const en = {
     showingCount: 'Showing {{count}} of {{total}} icons — search to find more',
     browseAll: 'Browse all',
     allIconsTitle: 'All Icons',
+  },
+
+  // ─── Drafts ──────────────────────────────────────────────────────────────
+  drafts: {
+    title: 'Drafts',
+    save: 'Save as Draft',
+    untitledDraft: 'Untitled Draft',
+    delete: 'Delete Draft',
+    editingDraft: 'Editing Draft',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

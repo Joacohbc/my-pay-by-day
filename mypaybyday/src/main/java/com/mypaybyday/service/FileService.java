@@ -36,7 +36,7 @@ public class FileService {
 
         storedFileRepository.persist(storedFile);
 
-        return mapToDTO(storedFile);
+        return FileDTO.from(storedFile);
     }
 
     public StoredFile getFile(Long id) {
@@ -45,14 +45,5 @@ public class FileService {
             throw new BusinessException("File not found");
         }
         return storedFile;
-    }
-
-    private FileDTO mapToDTO(StoredFile storedFile) {
-        FileDTO dto = new FileDTO();
-        dto.setId(storedFile.id);
-        dto.setFileName(storedFile.getFileName());
-        dto.setContentType(storedFile.getContentType());
-        dto.setCreatedAt(storedFile.createdAt);
-        return dto;
     }
 }

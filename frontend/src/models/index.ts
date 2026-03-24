@@ -80,6 +80,14 @@ export interface CreateTransactionDto {
 
 // ─── FinanceEvent ─────────────────────────────────────────────────────────────
 
+export interface RelatedEvent extends Identifiable {
+  name: string;
+  date: string;
+  amount: number;
+  type: EventType;
+  category?: Category;
+}
+
 /** Read model — matches the flat FinanceEventDto from the backend */
 export interface FinanceEvent extends Identifiable {
   transactionId: number;
@@ -91,6 +99,9 @@ export interface FinanceEvent extends Identifiable {
   lineItems: FinanceLineItem[];
   category?: Category;
   tags: Tag[];
+  relatedEvents?: RelatedEvent[];
+  isDraft?: boolean;
+  draftId?: number;
 }
 
 export interface CreateEventDto {
@@ -101,6 +112,8 @@ export interface CreateEventDto {
   transaction: CreateTransactionDto;
   category?: { id: number };
   tags?: { id: number }[];
+  isDraft?: boolean;
+  draftId?: number;
 }
 
 // ─── Template ─────────────────────────────────────────────────────────────────
@@ -133,16 +146,37 @@ export interface CreateTemplateDto {
 
 // ─── Subscription ─────────────────────────────────────────────────────────────
 
+export type SubscriptionStatus = 'ACTIVE' | 'CANCELLED';
+
 export interface Subscription extends Identifiable {
   name: string;
-  template: Template;
+  description?: string;
+  originNodeId?: number;
+  originNodeName?: string;
+  destinationNodeId?: number;
+  destinationNodeName?: string;
+  category?: Category;
+  tags: Tag[];
+  eventType?: EventType;
+  modifierValue?: number;
   recurrence: RecurrenceFrequency;
   nextExecutionDate: string; // ISO-8601 date
+  status: SubscriptionStatus;
 }
 
-export type CreateSubscriptionDto = Omit<Subscription, 'id' | 'template'> & {
-  template: { id: number };
-};
+export interface CreateSubscriptionDto {
+  name: string;
+  description?: string;
+  originNodeId?: number;
+  destinationNodeId?: number;
+  category?: { id: number };
+  tags?: { id: number }[];
+  eventType?: EventType;
+  modifierValue?: number;
+  recurrence: RecurrenceFrequency;
+  nextExecutionDate: string;
+  status?: SubscriptionStatus;
+}
 
 // ─── TimePeriod ───────────────────────────────────────────────────────────────
 
@@ -183,3 +217,5 @@ export interface DynamicTimePeriodBalance {
   outbound: number;
   events: FinanceEvent[];
 }
+
+export * from './drafts';

@@ -3,6 +3,7 @@ package com.mypaybyday.entity;
 import com.mypaybyday.crypto.StringEncryptionConverter;
 import com.mypaybyday.enums.EventType;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,11 +13,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.langchain4j.data.document.Metadata;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -131,6 +135,40 @@ public class FinanceEvent extends BaseEntity {
     @JoinTable(name = "event_tag", joinColumns = @JoinColumn(name = "event_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
     @Builder.Default
     public List<Tag> tags = new ArrayList<>();
+
+    /**
+     * Bidirectional relationship to other FinanceEvents.
+     */
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "event_relation",
+        joinColumns = @JoinColumn(name = "event_id"),
+        inverseJoinColumns = @JoinColumn(name = "related_event_id")
+    )
+    @Builder.Default
+    public List<FinanceEvent> relatedEvents = new ArrayList<>();
+
+    /**
+     * Optional link to the subscription that generated this event or is associated with it.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subscription_id")
+    public Subscription subscription;
+
+    /**
+     * Files (images/documents) attached to this event.
+     */
+    @OneToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinColumn(name = "event_id")
+    @Builder.Default
+    public List<StoredFile> files = new ArrayList<>();
+
+    /**
+     * Transient field used to capture file IDs from client requests.
+     */
+    @Transient
+    @JsonProperty("fileIds")
+    public List<Long> fileIds;
 
     @Override
     public String toRagContent() {

@@ -1,7 +1,9 @@
 package com.mypaybyday.entity;
 
+import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Lob;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,6 +22,7 @@ public class StoredFile extends BaseEntity {
     private String contentType;
 
     @Lob
+    @Basic(fetch = FetchType.LAZY)
     @Column(nullable = false)
     private byte[] data;
 
