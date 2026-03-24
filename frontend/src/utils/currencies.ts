@@ -3,42 +3,50 @@ export interface CurrencyOption {
   label: string;
 }
 
+const STATIC_CURRENCIES = [
+  "AED", "AFN", "ALL", "AMD", "ANG", "AOA", "ARS", "AUD", "AWG", "AZN",
+  "BAM", "BBD", "BDT", "BGN", "BHD", "BIF", "BMD", "BND", "BOB", "BRL",
+  "BSD", "BTN", "BWP", "BYN", "BZD", "CAD", "CDF", "CHF", "CLP", "CNY",
+  "COP", "CRC", "CUC", "CUP", "CVE", "CZK", "DJF", "DKK", "DOP", "DZD",
+  "EGP", "ERN", "ETB", "EUR", "FJD", "FKP", "GBP", "GEL", "GHS", "GIP",
+  "GMD", "GNF", "GTQ", "GYD", "HKD", "HNL", "HRK", "HTG", "HUF", "IDR",
+  "ILS", "INR", "IQD", "IRR", "ISK", "JMD", "JOD", "JPY", "KES", "KGS",
+  "KHR", "KMF", "KPW", "KRW", "KWD", "KYD", "KZT", "LAK", "LBP", "LKR",
+  "LRD", "LSL", "LYD", "MAD", "MDL", "MGA", "MKD", "MMK", "MNT", "MOP",
+  "MRU", "MUR", "MVR", "MWK", "MXN", "MYR", "MZN", "NAD", "NGN", "NIO",
+  "NOK", "NPR", "NZD", "OMR", "PAB", "PEN", "PGK", "PHP", "PKR", "PLN",
+  "PYG", "QAR", "RON", "RSD", "RUB", "RWF", "SAR", "SBD", "SCR", "SDG",
+  "SEK", "SGD", "SHP", "SLL", "SOS", "SRD", "SSP", "STN", "SVC", "SYP",
+  "SZL", "THB", "TJS", "TMT", "TND", "TOP", "TRY", "TTD", "TWD", "TZS",
+  "UAH", "UGX", "USD", "UYU", "UZS", "VES", "VND", "VUV", "WST", "XAF",
+  "XCD", "XDR", "XOF", "XPF", "XSU", "YER", "ZAR", "ZMW", "ZWL"
+];
+
 export const getSupportedCurrencies = (): CurrencyOption[] => {
-  try {
-    const codes = Intl.supportedValuesOf('currency');
-    return codes.map((code) => {
-      let symbol = '$';
-      try {
-        const formatter = new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: code,
-          currencyDisplay: 'symbol',
-        });
-        const parts = formatter.formatToParts(0);
-        const currencyPart = parts.find((p) => p.type === 'currency');
-        
-        // Use the symbol if it's different from the code, otherwise default to '$'
-        if (currencyPart && currencyPart.value && currencyPart.value !== code) {
-          symbol = currencyPart.value;
-        }
-      } catch {
-        // Keep default '$' if error
-      }
+  return STATIC_CURRENCIES.map((code) => {
+    let symbol = '$';
+    try {
+      const formatter = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: code,
+        currencyDisplay: 'symbol',
+      });
+      const parts = formatter.formatToParts(0);
+      const currencyPart = parts.find((p) => p.type === 'currency');
       
-      return {
-        code,
-        label: `${code} (${symbol})`,
-      };
-    });
-  } catch {
-    // Fallback if Intl.supportedValuesOf is not supported
-    return ['USD', 'EUR', 'GBP', 'ARS', 'MXN', 'COP', 'CLP', 'PEN', 'BRL', 'UYU', 'JPY'].map(
-      (code) => ({
-        code,
-        label: `${code} ($)`,
-      })
-    );
-  }
+      // Use the symbol if it's different from the code, otherwise default to '$'
+      if (currencyPart && currencyPart.value && currencyPart.value !== code) {
+        symbol = currencyPart.value;
+      }
+    } catch {
+      // Keep default '$' if error
+    }
+
+    return {
+      code,
+      label: `${code} (${symbol})`,
+    };
+  });
 };
 
 export const currenciesList = getSupportedCurrencies();
