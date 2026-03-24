@@ -11,4 +11,5 @@ import lombok.NoArgsConstructor;
 public class RawTextEventRequestDto {
     @NotBlank
     private String text;
+    private String instructions;
 }
