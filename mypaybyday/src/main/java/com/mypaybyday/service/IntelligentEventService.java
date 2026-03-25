@@ -238,6 +238,7 @@ public class IntelligentEventService {
                 - getTags(): Returns all tags with id and name.
                 - getRecentEvents(limit): Returns the most recent N finance events with full detail (name, type, category, date, amounts, nodes involved).
                 - getEventsByDateRange(from, to): Returns events within a date range (ISO-8601 format: 'YYYY-MM-DDTHH:mm:ss').
+                - searchEvents(search, startDate, endDate, type, categoryId, tagId): Broad search for finance events with multiple filters. Use for complex queries like 'spending on restaurants last month' or 'expenses tagged #vacation'.
                 - getTimePeriods(): Returns all budget time periods with their date ranges, limits, and savings goals.
 
                 DATA MODEL:
@@ -258,12 +259,13 @@ public class IntelligentEventService {
                 - 'Show my categories/tags' → Call getCategories() or getTags().
 
                 GOLDEN RULES:
-                1. Be brief and direct. Use bullet points or short paragraphs.
-                2. Never invent financial data. Always use tool results.
+                1. Be brief and direct. Use bullet points (using - or *) or short paragraphs.
+                2. NEVER invent financial data. Always use tool results.
                 3. When referencing amounts, always include the currency if available.
                 4. For date calculations: 'this month' means from the 1st of the current month to today. 'Last month' means the full previous calendar month.
                 5. If the user asks something unrelated to personal finance, politely redirect them.
                 6. When summarizing expenses, group by category when possible.
+                7. PLAIN TEXT ONLY: Never use Markdown. No bold (**), no italics (*), no headers (#), no tables. Use empty lines or simple markers for formatting.
                 """.formatted(now, lang);
     }
 }

@@ -1,26 +1,22 @@
 package com.mypaybyday.ai;
 
 import com.mypaybyday.entity.Category;
-import com.mypaybyday.entity.FinanceEvent;
-import com.mypaybyday.entity.FinanceLineItem;
 import com.mypaybyday.entity.FinanceNode;
 import com.mypaybyday.entity.Tag;
 import com.mypaybyday.entity.TimePeriod;
 import com.mypaybyday.repository.CategoryRepository;
-import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TimePeriodRepository;
 
 import dev.langchain4j.agent.tool.Tool;
-import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.mypaybyday.dto.FinanceEventDto;
 
 /**
  * AI Tools: exposes financial data to the LLM via @Tool-annotated methods.
@@ -39,11 +35,12 @@ public class FinanceAiTools {
     @Inject
     TagRepository tagRepository;
 
-    @Inject
-    EventRepository eventRepository;
 
     @Inject
     TimePeriodRepository timePeriodRepository;
+
+    @Inject
+    com.mypaybyday.service.EventService eventService;
 
     @Tool("Returns all active (non-archived) finance nodes: accounts, wallets, credit cards, external entities, and contacts. " +
             "Each entry contains id, name, and type (OWN, EXTERNAL, or CONTACT). " +
@@ -92,16 +89,13 @@ public class FinanceAiTools {
     @Transactional
     public String getRecentEvents(int limit) {
         int safeLimit = Math.min(Math.max(limit, 1), 50);
-        List<FinanceEvent> events = eventRepository
-                .find("ORDER BY transaction.transactionDate DESC")
-                .page(Page.of(0, safeLimit))
-                .list();
+        var response = eventService.listAll(0, safeLimit, null, null, null, null, null, null);
 
-        if (events.isEmpty()) {
+        if (response.content().isEmpty()) {
             return "No events found.";
         }
-        return events.stream()
-                .map(FinanceAiTools::formatEvent)
+        return response.content().stream()
+                .map(this::formatEventDto)
                 .collect(Collectors.joining("\n", "Recent events:\n", ""));
     }
 
@@ -111,23 +105,44 @@ public class FinanceAiTools {
             "Use this tool when the user asks about spending or income during a specific period, month, or date range.")
     @Transactional
     public String getEventsByDateRange(String from, String to) {
-        try {
-            LocalDateTime fromDt = LocalDateTime.parse(from);
-            LocalDateTime toDt = LocalDateTime.parse(to);
+        return searchEvents(null, from, to, null, null, null);
+    }
 
-            List<FinanceEvent> events = eventRepository.list(
-                    "transaction.transactionDate >= ?1 and transaction.transactionDate <= ?2 ORDER BY transaction.transactionDate DESC",
-                    fromDt, toDt);
-            
-            if (events.isEmpty()) {
-                return "No events found in the given date range.";
+    @Tool("Broad search for finance events with multiple filters. Returns a list of matching events. " +
+            "Filters (all optional, use null if not needed): " +
+            "- search: text to search in name, description or category name. " +
+            "- startDate/endDate: ISO-8601 format 'YYYY-MM-DDTHH:mm:ss'. " +
+            "- type: 'INBOUND', 'OUTBOUND', or 'OTHER'. " +
+            "- categoryId: numeric ID of the category. " +
+            "- tagId: numeric ID of the tag. " +
+            "Use this for complex queries like 'spending on restaurants last month' or 'expenses tagged #vacation'.")
+    @Transactional
+    public String searchEvents(String search, String startDate, String endDate, String type, Long categoryId, Long tagId) {
+        try {
+            com.mypaybyday.enums.EventType eventType = null;
+            if (type != null && !type.isBlank()) {
+                eventType = com.mypaybyday.enums.EventType.valueOf(type.toUpperCase());
             }
 
-            return events.stream()
-                    .map(FinanceAiTools::formatEvent)
-                    .collect(Collectors.joining("\n", "Events from " + from + " to " + to + ":\n", ""));
+            // Map ISO-8601 full string to LocalDate for the service if possible, 
+            // but the service takes String and parses it. Wait, checking EventService.java...
+            // EventService.listAll takes (page, size, search, startDate, endDate, type, categoryId, tagId)
+            // It expects startDate/endDate as "YYYY-MM-DD".
+            
+            String sDate = startDate != null && startDate.length() >= 10 ? startDate.substring(0, 10) : startDate;
+            String eDate = endDate != null && endDate.length() >= 10 ? endDate.substring(0, 10) : endDate;
+
+            var response = eventService.listAll(0, 50, search, sDate, eDate, eventType, categoryId, tagId);
+            
+            if (response.content().isEmpty()) {
+                return "No events found matching the criteria.";
+            }
+
+            return response.content().stream()
+                    .map(this::formatEventDto)
+                    .collect(Collectors.joining("\n", "Search results:\n", ""));
         } catch (Exception e) {
-            return "Invalid date format. Please use ISO-8601 format: YYYY-MM-DDTHH:mm:ss";
+            return "Error searching events: " + e.getMessage();
         }
     }
 
@@ -143,9 +158,11 @@ public class FinanceAiTools {
 
         return periods.stream()
                 .map(p -> String.format("[id=%d, name=%s, from=%s, to=%s, limit=%s, savingsGoal=%s%%]",
-                        p.id, p.name, p.startDate, p.endDate,
-                        p.budgetLimit != null ? p.budgetLimit.toPlainString() : "none",
-                        p.savingsPercentageGoal != null ? p.savingsPercentageGoal : "none"))
+                        p.id, p.name, 
+                        formatDate(p.startDate), 
+                        formatDate(p.endDate),
+                        formatAmount(p.budgetLimit),
+                        formatAmount(p.savingsPercentageGoal)))
                 .collect(Collectors.joining("\n", "Time periods:\n", ""));
     }
 
@@ -153,23 +170,23 @@ public class FinanceAiTools {
     // Private helpers
     // -------------------------------------------------------------------------
 
-    private static String formatEvent(FinanceEvent e) {
-        String category = (e.category != null) ? e.category.name : "uncategorized";
-        String date = (e.transaction != null && e.transaction.transactionDate != null)
-                ? e.transaction.transactionDate.toString() : "unknown date";
-        String lineItems = "";
-        if (e.transaction != null && e.transaction.lineItems != null) {
-            lineItems = e.transaction.lineItems.stream()
-                    .map(FinanceAiTools::formatLineItem)
+    private String formatEventDto(FinanceEventDto dto) {
+        String category = (dto.category() != null) ? dto.category().name() : "uncategorized";
+        String movements = "";
+        if (dto.lineItems() != null) {
+            movements = dto.lineItems().stream()
+                    .map(li -> String.format("%s: %s", li.financeNodeName(), formatAmount(li.amount())))
                     .collect(Collectors.joining(", "));
         }
         return String.format("  - Event[id=%d, name=%s, type=%s, category=%s, date=%s, movements=(%s)]",
-                e.id, e.name, e.type, category, date, lineItems);
+                dto.id(), dto.name(), dto.type(), category, formatDate(dto.transactionDate()), movements);
     }
 
-    private static String formatLineItem(FinanceLineItem li) {
-        String nodeName = (li.financeNode != null) ? li.financeNode.name : "unknown";
-        String amount = (li.amount != null) ? li.amount.toPlainString() : "null";
-        return String.format("%s: %s", nodeName, amount);
+    private String formatAmount(java.math.BigDecimal amount) {
+        return amount != null ? amount.toPlainString() : "none";
+    }
+
+    private String formatDate(java.time.temporal.Temporal date) {
+        return date != null ? date.toString() : "unknown date";
     }
 }
