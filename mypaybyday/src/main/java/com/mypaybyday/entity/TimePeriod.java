@@ -43,24 +43,5 @@ public class TimePeriod extends BaseEntity {
 
     public BigDecimal budgetLimit;
 
-    @Override
-    public String toRagContent() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(String.format("The time period '%s' spans from %s to %s.", name, startDate, endDate));
-        if (budgetLimit != null) {
-            sb.append(String.format(" It has a global budget limit of %s.", budgetLimit));
-        }
-        if (budgets != null && !budgets.isEmpty()) {
-            sb.append(" It has the following budgets: ");
-            for (TimePeriodBudget budget : budgets) {
-                sb.append(String.format(" %s: %s,", budget.category != null ? budget.category.name : "Unknown",
-                        budget.budgetedAmount));
-            }
-            sb.setLength(sb.length() - 1); // remove last comma
-            sb.append(".");
-        } else {
-            sb.append(" It has no budgets defined.");
-        }
-        return sb.toString();
-    }
 }
+

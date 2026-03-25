@@ -1,7 +1,6 @@
 package com.mypaybyday.entity;
 
 import com.mypaybyday.enums.EventType;
-import com.mypaybyday.enums.ModifierType;
 import com.mypaybyday.enums.RecurrenceFrequency;
 import com.mypaybyday.enums.SubscriptionStatus;
 import jakarta.persistence.*;
@@ -64,14 +63,5 @@ public class Subscription extends BaseEntity {
     @Builder.Default
     public SubscriptionStatus status = SubscriptionStatus.ACTIVE;
 
-    @Override
-    public String toRagContent() {
-        return String.format(
-            "A recurring subscription named '%s' is scheduled with %s frequency. The next execution is planned for %s. It is configured for %s events in the category '%s'. It moves value from node '%s' to node '%s'. Its status is %s.",
-            name, recurrence, nextExecutionDate, eventType,
-            category != null ? category.name : "Uncategorized",
-            originNode != null ? originNode.name : "unknown origin",
-            destinationNode != null ? destinationNode.name : "unknown destination",
-            status);
-    }
 }
+

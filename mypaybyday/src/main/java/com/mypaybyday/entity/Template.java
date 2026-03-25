@@ -47,13 +47,5 @@ public class Template extends BaseEntity {
 
     public BigDecimal modifierValue;
 
-    @Override
-    public String toRagContent() {
-        return String.format(
-                "A template named '%s' is configured for %s events in the category '%s'. It moves value from node '%s' to node '%s'.",
-                name, eventType,
-                category != null ? category.name : "Uncategorized",
-                originNode != null ? originNode.name : "unknown origin",
-                destinationNode != null ? destinationNode.name : "unknown destination");
-    }
 }
+

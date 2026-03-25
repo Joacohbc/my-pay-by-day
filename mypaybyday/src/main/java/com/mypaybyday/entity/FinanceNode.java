@@ -42,9 +42,5 @@ public class FinanceNode extends BaseEntity {
     @Builder.Default
     public boolean archived = false;
 
-    @Override
-    public String toRagContent() {
-        return String.format("A finance node named '%s' (ID: %s) is defined as a %s. Its current status is %s.",
-                name, id != null ? id : "NEW", type, archived ? "archived" : "active");
-    }
 }
+

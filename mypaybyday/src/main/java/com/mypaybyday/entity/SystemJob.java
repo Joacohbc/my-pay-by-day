@@ -36,8 +36,5 @@ public class SystemJob extends BaseEntity {
 
     public String message;
 
-    @Override
-    public String toRagContent() {
-        return "System Job";
-    }
 }
+

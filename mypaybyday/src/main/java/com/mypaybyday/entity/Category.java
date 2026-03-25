@@ -23,9 +23,5 @@ public class Category extends BaseEntity {
 
     public String icon;
 
-    @Override
-    public String toRagContent() {
-        return String.format("There is a category named '%s'%s.",
-                name, description != null ? " described as: " + description : "");
-    }
 }
+

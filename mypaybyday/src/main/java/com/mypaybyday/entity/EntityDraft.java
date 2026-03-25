@@ -47,8 +47,5 @@ public class EntityDraft extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String rawPayloadJson;
 
-    @Override
-    public String toRagContent() {
-        return "Draft payload for " + entityType + ": " + rawPayloadJson;
-    }
 }
+

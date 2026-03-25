@@ -26,11 +26,14 @@ public class StartupLogger {
     @ConfigProperty(name = "db.field.encryption.key")
     String encryptionKey;
 
-    @ConfigProperty(name = "quarkus.langchain4j.ai.gemini.chat-model.model-id")
-    String geminiChatModel;
+    @ConfigProperty(name = "quarkus.langchain4j.openai.base-url")
+    String openaiBaseUrl;
 
-    @ConfigProperty(name = "quarkus.langchain4j.ai.gemini.embedding-model.model-id")
-    String geminiEmbedModel;
+    @ConfigProperty(name = "quarkus.langchain4j.openai.chat-model.model-name")
+    String openaiModelName;
+
+    @ConfigProperty(name = "quarkus.langchain4j.chat-model.provider")
+    String chatModelProvider;
 
     @ConfigProperty(name = "mypaybyday.timezone")
     String timezone;
@@ -50,8 +53,9 @@ public class StartupLogger {
         LOG.info("=== Startup Configuration ===");
         LOG.infof("  SQLite URL         : %s", jdbcUrl);
         LOG.infof("  SQLite pool        : min=%d, max=%d", jdbcMinSize, jdbcMaxSize);
-        LOG.infof("  Gemini Chat Model  : %s", geminiChatModel);
-        LOG.infof("  Gemini Embed Model : %s", geminiEmbedModel);
+        LOG.infof("  AI Provider        : %s", chatModelProvider);
+        LOG.infof("  AI Base URL        : %s", openaiBaseUrl);
+        LOG.infof("  AI Model           : %s", openaiModelName);
         LOG.infof("  Encryption key set : %b", encryptionKey != null && !encryptionKey.isBlank());
         LOG.infof("  Timezone           : %s", timezone);
         LOG.infof("  Server Time        : %s", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
