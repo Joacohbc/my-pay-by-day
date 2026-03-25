@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFieldArray, useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,9 +10,11 @@ import { Button } from '@/components/ui/Button';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
+import { useUploadFile } from '@/hooks/useFiles';
+import { FileService } from '@/services/FileService';
 import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
-import type { CreateEventDto, EventType, FinanceEvent, Category, Tag, FinanceLineItem } from '@/models';
+import type { CreateEventDto, EventType, FinanceEvent, Category, Tag, FinanceLineItem, FileDto } from '@/models';
 import type { Control, UseFormRegister, FieldErrors, UseFormSetValue, UseFieldArrayAppend, UseFieldArrayRemove, FieldArrayWithId } from 'react-hook-form';
 import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
 import { useDebounceCallback } from '@/hooks/useDebounce';
@@ -38,6 +40,7 @@ function buildSchema(t: (key: string) => string) {
     lineItems: z.array(lineItemSchema).min(1, t('eventForm.atLeastOneLine')),
     isDraft: z.boolean().optional(),
     draftId: z.number().optional(),
+    fileIds: z.array(z.number()).optional(),
   });
 }
 
@@ -257,6 +260,99 @@ interface LineItemsEditorProps {
   nodeOptions: { value: string; label: string }[];
 }
 
+interface FileUploaderProps {
+  files: FileDto[];
+  onAddFile: (file: FileDto) => void;
+  onRemoveFile: (fileId: number) => void;
+}
+
+function FileUploader({ files, onAddFile, onRemoveFile }: FileUploaderProps) {
+  const { t } = useTranslation();
+  const { mutateAsync: uploadFile, isPending } = useUploadFile();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Content = reader.result as string;
+      try {
+        const uploadedFile = await uploadFile({
+          fileName: selectedFile.name,
+          mimeType: selectedFile.type,
+          base64Content,
+        });
+        onAddFile(uploadedFile);
+      } catch (error) {
+        console.error('File upload failed:', error);
+      } finally {
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsDataURL(selectedFile);
+  };
+
+  return (
+    <div>
+      <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2">{t('eventForm.files')}</p>
+
+      <div className="space-y-3">
+        {files.map((file) => (
+          <div key={file.id} className="flex items-center justify-between p-3 bg-dn-surface-low rounded-input border border-white/5">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="w-10 h-10 shrink-0 bg-dn-surface rounded-md flex items-center justify-center text-dn-text-muted">
+                <Icon name={file.mimeType.startsWith('image/') ? 'image' : file.mimeType.startsWith('video/') ? 'movie' : 'description'} />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-medium truncate">{file.fileName}</span>
+                <span className="text-xs text-dn-text-muted uppercase tracking-wider mt-0.5">
+                  {(file.size / 1024).toFixed(1)} KB • {file.mimeType.split('/')[1] || file.mimeType}
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <a
+                href={FileService.getContentUrl(file.id)}
+                target="_blank"
+                rel="noreferrer"
+                className="p-2 text-dn-text-muted hover:text-dn-primary transition-colors"
+              >
+                <Icon name="visibility" className="text-[1.2rem]" />
+              </a>
+              <button
+                type="button"
+                onClick={() => onRemoveFile(file.id)}
+                className="p-2 text-dn-text-muted hover:text-dn-error transition-colors"
+              >
+                <Icon name="close" className="text-[1.2rem]" />
+              </button>
+            </div>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isPending}
+          className="w-full flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50"
+        >
+          <Icon name={isPending ? 'pending' : 'upload'} className={isPending ? 'animate-spin' : ''} />
+          <span className="text-sm font-medium">{isPending ? t('common.loading') : t('eventForm.uploadFile')}</span>
+        </button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          accept="image/*,video/*,.pdf"
+        />
+      </div>
+    </div>
+  );
+}
+
 function LineItemsEditor({
   control,
   register,
@@ -433,6 +529,8 @@ export function EventForm({
   const { data: tagsResponse } = useTags(0, 200);
   const { data: nodesResponse } = useNodes(0, 200);
 
+  const [attachedFiles, setAttachedFiles] = useState<FileDto[]>(defaultValues?.files ?? []);
+
   const categories = categoriesResponse?.content ?? [];
   const tags = tagsResponse?.content ?? [];
   const nodes = nodesResponse?.content ?? [];
@@ -474,6 +572,7 @@ export function EventForm({
           : [{ nodeId: '', amount: '' }, { nodeId: '', amount: '' }]),
       isDraft: defaultValues?.isDraft ?? false,
       draftId: defaultValues?.draftId,
+      fileIds: defaultValues?.files?.map((f) => f.id) ?? [],
     },
   });
 
@@ -515,6 +614,7 @@ export function EventForm({
       },
       category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
       tags: values.tagIds?.map((id) => ({ id: Number(id) })),
+      fileIds: attachedFiles.map((f) => f.id),
     };
     await onSubmit(dto, values.draftId);
   };
@@ -629,6 +729,12 @@ export function EventForm({
         placeholder={t('eventForm.receiptUrlPlaceholder')}
         type="url"
         {...register('receiptUrl')}
+      />
+
+      <FileUploader
+        files={attachedFiles}
+        onAddFile={(file) => setAttachedFiles((prev) => [...prev, file])}
+        onRemoveFile={(id) => setAttachedFiles((prev) => prev.filter((f) => f.id !== id))}
       />
 
       <div className="flex flex-col gap-3">

@@ -8,6 +8,7 @@ import com.mypaybyday.entity.Category;
 import com.mypaybyday.entity.FinanceLineItem;
 import com.mypaybyday.entity.Tag;
 import com.mypaybyday.entity.FinanceTransaction;
+import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
@@ -55,6 +56,9 @@ public class EventService {
 
     @Inject
     Messages messages;
+
+    @Inject
+    FileService fileService;
 
     // -------------------------------------------------------------------------
     // Queries
@@ -218,6 +222,9 @@ public class EventService {
         // Resolve Tag references
         event.tags = resolveTags(event.tags);
 
+        // Resolve File references
+        event.files = resolveFiles(event.fileIds);
+
         event.transaction = tx;
         eventRepository.persist(event);
         return FinanceEventDto.from(event);
@@ -262,6 +269,11 @@ public class EventService {
 
         // --- Tags ---
         event.tags = resolveTags(eventDetails.tags);
+
+        // --- Files ---
+        if (eventDetails.fileIds != null) {
+            event.files = resolveFiles(eventDetails.fileIds);
+        }
 
         // --- Transaction ---
         if (eventDetails.transaction != null) {
@@ -332,6 +344,25 @@ public class EventService {
                 throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
             }
             resolved.add(tagService.findTagEntity(stub.id));
+        }
+        return resolved;
+    }
+
+    /**
+     * Resolves a list of File IDs into managed File entities.
+     * Returns an empty list if the input is null.
+     */
+    private List<FileEntity> resolveFiles(List<Long> fileIds) throws BusinessException {
+        if (fileIds == null || fileIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<FileEntity> resolved = new ArrayList<>();
+        for (Long fileId : fileIds) {
+            FileEntity file = FileEntity.findById(fileId);
+            if (file == null) {
+                throw new BusinessException("file.not.found");
+            }
+            resolved.add(file);
         }
         return resolved;
     }

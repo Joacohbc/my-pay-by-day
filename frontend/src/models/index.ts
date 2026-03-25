@@ -78,6 +78,21 @@ export interface CreateTransactionDto {
   lineItems: CreateLineItemDto[];
 }
 
+// ─── File ─────────────────────────────────────────────────────────────────────
+
+export interface FileDto extends Identifiable {
+  fileName: string;
+  mimeType: string;
+  size: number;
+  isOrphan: boolean;
+}
+
+export interface Base64FileUploadRequestDto {
+  fileName: string;
+  mimeType: string;
+  base64Content: string;
+}
+
 // ─── FinanceEvent ─────────────────────────────────────────────────────────────
 
 export interface RelatedEvent extends Identifiable {
@@ -102,6 +117,7 @@ export interface FinanceEvent extends Identifiable {
   relatedEvents?: RelatedEvent[];
   isDraft?: boolean;
   draftId?: number;
+  files?: FileDto[];
 }
 
 export interface CreateEventDto {
@@ -114,6 +130,7 @@ export interface CreateEventDto {
   tags?: { id: number }[];
   isDraft?: boolean;
   draftId?: number;
+  fileIds?: number[];
 }
 
 // ─── Template ─────────────────────────────────────────────────────────────────
