@@ -43,6 +43,7 @@ Please extract and list the following details:
 - Payment method
 - Suggested category or tags
 
+Generate a specific sentence for each individual item or piece of information identified in the image.
 Provide a comprehensive and structured description of the image content.
 """;
 
