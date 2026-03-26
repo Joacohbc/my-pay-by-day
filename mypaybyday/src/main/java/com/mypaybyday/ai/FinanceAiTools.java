@@ -4,19 +4,28 @@ import com.mypaybyday.entity.Category;
 import com.mypaybyday.entity.FinanceNode;
 import com.mypaybyday.entity.Tag;
 import com.mypaybyday.entity.TimePeriod;
+import com.mypaybyday.enums.EventType;
 import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TimePeriodRepository;
+import com.mypaybyday.dto.IntelligentEventResponseDto;
+import com.mypaybyday.dto.RawTextEventRequestDto;
+import com.mypaybyday.service.EventService;
+import com.mypaybyday.service.IntelligentEventService;
 
 import dev.langchain4j.agent.tool.Tool;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
+import java.math.BigDecimal;
+import java.time.temporal.Temporal;
 import java.util.List;
 import java.util.stream.Collectors;
 import com.mypaybyday.dto.FinanceEventDto;
+
+import org.jboss.logging.Logger;
 
 /**
  * AI Tools: exposes financial data to the LLM via @Tool-annotated methods.
@@ -25,6 +34,8 @@ import com.mypaybyday.dto.FinanceEventDto;
  */
 @ApplicationScoped
 public class FinanceAiTools {
+
+    private static final Logger log = Logger.getLogger(FinanceAiTools.class);
 
     @Inject
     FinanceNodeRepository financeNodeRepository;
@@ -35,12 +46,14 @@ public class FinanceAiTools {
     @Inject
     TagRepository tagRepository;
 
-
     @Inject
     TimePeriodRepository timePeriodRepository;
 
     @Inject
-    com.mypaybyday.service.EventService eventService;
+    EventService eventService;
+
+    @Inject
+    IntelligentEventService intelligentEventService;
 
     @Tool("Returns all active (non-archived) finance nodes: accounts, wallets, credit cards, external entities, and contacts. " +
             "Each entry contains id, name, and type (OWN, EXTERNAL, or CONTACT). " +
@@ -119,12 +132,12 @@ public class FinanceAiTools {
     @Transactional
     public String searchEvents(String search, String startDate, String endDate, String type, Long categoryId, Long tagId) {
         try {
-            com.mypaybyday.enums.EventType eventType = null;
+            EventType eventType = null;
             if (type != null && !type.isBlank()) {
-                eventType = com.mypaybyday.enums.EventType.valueOf(type.toUpperCase());
+                eventType = EventType.valueOf(type.toUpperCase());
             }
 
-            // Map ISO-8601 full string to LocalDate for the service if possible, 
+            // Map ISO-8601 full string to LocalDate for the service if possible,
             // but the service takes String and parses it. Wait, checking EventService.java...
             // EventService.listAll takes (page, size, search, startDate, endDate, type, categoryId, tagId)
             // It expects startDate/endDate as "YYYY-MM-DD".
@@ -158,12 +171,47 @@ public class FinanceAiTools {
 
         return periods.stream()
                 .map(p -> String.format("[id=%d, name=%s, from=%s, to=%s, limit=%s, savingsGoal=%s%%]",
-                        p.id, p.name, 
-                        formatDate(p.startDate), 
+                        p.id, p.name,
+                        formatDate(p.startDate),
                         formatDate(p.endDate),
                         formatAmount(p.budgetLimit),
                         formatAmount(p.savingsPercentageGoal)))
                 .collect(Collectors.joining("\n", "Time periods:\n", ""));
+    }
+
+    @Tool("Creates a finance event from a text description. Use this tool when the user provides a text description " +
+            "of a financial transaction (e.g., from a receipt, invoice, or verbal description). " +
+            "The text should include details like vendor name, item, amount, and date. " +
+            "The system will use AI to extract structured data and create an event. " +
+            "If the extraction is incomplete (missing nodes, etc.), a draft will be created instead. " +
+            "Returns a summary of the created event or draft. " +
+            "Call this tool ONCE per individual transaction/line item found on a receipt.")
+    public String createEventFromText(String description) {
+        log.infof("createEventFromText called with: %s", description);
+        try {
+            RawTextEventRequestDto request = new RawTextEventRequestDto();
+            request.setText(description);
+
+            IntelligentEventResponseDto result = intelligentEventService.createFromText(request);
+
+            if (result.getType() == IntelligentEventResponseDto.ResponseType.EVENT) {
+                FinanceEventDto event = result.getEvent();
+                return String.format("EVENT_CREATED: name='%s', amount=%s, type=%s, category=%s, id=%d",
+                        event.name(),
+                        event.amount() != null ? event.amount().toPlainString() : "unknown",
+                        event.type(),
+                        event.category() != null ? event.category().name() : "uncategorized",
+                        event.id());
+            } else {
+                FinanceEventDto draft = result.getEvent();
+                return String.format("DRAFT_CREATED: name='%s', amount=%s (incomplete data — saved as draft for user to complete)",
+                        draft.name(),
+                        draft.amount() != null ? draft.amount().toPlainString() : "unknown");
+            }
+        } catch (Exception e) {
+            log.errorf(e, "Failed to create event from text: %s", description);
+            return "ERROR: Could not create event from description: " + e.getMessage();
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -182,11 +230,11 @@ public class FinanceAiTools {
                 dto.id(), dto.name(), dto.type(), category, formatDate(dto.transactionDate()), movements);
     }
 
-    private String formatAmount(java.math.BigDecimal amount) {
+    private String formatAmount(BigDecimal amount) {
         return amount != null ? amount.toPlainString() : "none";
     }
 
-    private String formatDate(java.time.temporal.Temporal date) {
+    private String formatDate(Temporal date) {
         return date != null ? date.toString() : "unknown date";
     }
 }

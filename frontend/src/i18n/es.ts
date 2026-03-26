@@ -54,11 +54,22 @@ const es = {
   chat: {
     title: 'Asistente Financiero',
     placeholder: 'Pregúntame sobre tus finanzas...',
+    placeholderAgent: 'Describe una transacción o sube un recibo...',
     newChat: 'Nuevo Chat',
     emptyState: '¡Pregúntame cualquier cosa sobre tus categorías o períodos!',
+    imageHint: 'También puedes subir imágenes de recibos o facturas para crear eventos automáticamente.',
     send: 'Enviar',
     loading: 'Pensando...',
     error: 'Error al enviar el mensaje. Por favor, inténtalo de nuevo.',
+    uploadImage: 'Subir imagen de recibo',
+    imageUploaded: 'Imagen subida',
+    processingImage: 'Analizando imagen...',
+    modeQuery: 'Consulta',
+    modeAgent: 'Agente',
+    modeQueryHint: 'Solo lectura: pregunta sobre tus finanzas',
+    modeAgentHint: 'Crea eventos y borradores desde texto o imágenes',
+    clearMemory: 'Borrar Memoria',
+    confirmClearMemory: '¿Estás seguro de que deseas borrar la memoria del IA? El historial de la conversación se perderá.',
   },
 
   // ─── Greetings ───────────────────────────────────────────────────────────

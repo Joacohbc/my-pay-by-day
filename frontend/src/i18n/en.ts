@@ -54,11 +54,22 @@ const en = {
   chat: {
     title: 'Finance Assistant',
     placeholder: 'Ask me about your finances...',
+    placeholderAgent: 'Describe a transaction or upload a receipt...',
     newChat: 'New Chat',
     emptyState: 'Ask me anything about your categories or periods!',
+    imageHint: 'You can also upload receipt or invoice images to create events automatically.',
     send: 'Send',
     loading: 'Thinking...',
     error: 'Failed to send message. Please try again.',
+    uploadImage: 'Upload receipt image',
+    imageUploaded: 'Image uploaded',
+    processingImage: 'Analyzing image...',
+    modeQuery: 'Query',
+    modeAgent: 'Agent',
+    modeQueryHint: 'Read-only: ask questions about your finances',
+    modeAgentHint: 'Create events and drafts from text or images',
+    clearMemory: 'Clear Memory',
+    confirmClearMemory: 'Are you sure you want to clear the AI\'s memory? The conversation history will be lost.',
   },
 
   // ─── Greetings ───────────────────────────────────────────────────────────

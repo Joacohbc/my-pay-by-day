@@ -13,13 +13,11 @@ import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.LanguageContext;
 import com.mypaybyday.dto.IntelligentEventResponseDto;
-import com.mypaybyday.entity.EntityDraft;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -55,7 +53,6 @@ public class IntelligentEventService {
         this.categoryRepository = categoryRepository;
     }
 
-    @Transactional
     public IntelligentEventResponseDto createFromText(RawTextEventRequestDto request) throws BusinessException {
         String systemPrompt = buildSystemPrompt(LocalDateTime.now().toString(), languageContext.getLang());
 
@@ -78,9 +75,7 @@ public class IntelligentEventService {
                 "- destinationNodeId: The ID of the node where money goes TO. Pick from the AVAILABLE FINANCE NODES list above.\n" +
                 "- categoryId: The ID of the most appropriate category from the AVAILABLE CATEGORIES list above. Null if unclear.\n" +
                 "- transactionDate: The date in YYYY-MM-DD format. Extract from text if present, otherwise leave null.\n" +
-                "- IMPORTANT: Return ONLY valid JSON. Do not include conversational text, explanations, or markdown (no ```json).\n\n" +
-                "EXAMPLE OUTPUT:\n" +
-                "{ \"name\": \"Groceries at Supermarket\", \"amount\": 50.00, \"sourceNodeId\": 1, \"destinationNodeId\": 2, \"categoryId\": 5 }\n\n";
+                "- IMPORTANT: Return ONLY valid JSON. Do not include conversational text, explanations, or markdown (no ```json).\n\n";
 
         if (request.getInstructions() != null && !request.getInstructions().trim().isEmpty()) {
             extractionPrompt += "ADDITIONAL USER INSTRUCTIONS:\n" + request.getInstructions() + "\n\n";
@@ -170,6 +165,7 @@ public class IntelligentEventService {
         // Delegate persistence and validation to the existing service
         try {
             FinanceEventDto eventDto = eventService.create(event);
+            log.infof("Event created for intelligent event: %s", eventDto.name());
             return IntelligentEventResponseDto.builder()
                     .type(IntelligentEventResponseDto.ResponseType.EVENT)
                     .event(eventDto)
@@ -183,7 +179,7 @@ public class IntelligentEventService {
     private IntelligentEventResponseDto createDraftFallback(FinanceEventDto dto) {
         try {
             draftService.create(EntityType.FINANCE_EVENT, dto);
-
+            log.infof("Draft created for intelligent event: %s", dto.name());
             return IntelligentEventResponseDto.builder()
                     .type(IntelligentEventResponseDto.ResponseType.DRAFT)
                     .event(dto)
