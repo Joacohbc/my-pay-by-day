@@ -26,14 +26,14 @@ public class StartupLogger {
     @ConfigProperty(name = "db.field.encryption.key")
     String encryptionKey;
 
-    @ConfigProperty(name = "quarkus.langchain4j.openai.base-url")
-    String openaiBaseUrl;
+    @ConfigProperty(name = "ai.primary.base-url")
+    String aiBaseUrl;
 
-    @ConfigProperty(name = "quarkus.langchain4j.openai.chat-model.model-name")
-    String openaiModelName;
+    @ConfigProperty(name = "ai.primary.model-name")
+    String primaryModelName;
 
-    @ConfigProperty(name = "quarkus.langchain4j.chat-model.provider")
-    String chatModelProvider;
+    @ConfigProperty(name = "ai.vision.model-name")
+    String visionModelName;
 
     @ConfigProperty(name = "mypaybyday.timezone")
     String timezone;
@@ -53,9 +53,9 @@ public class StartupLogger {
         LOG.info("=== Startup Configuration ===");
         LOG.infof("  SQLite URL         : %s", jdbcUrl);
         LOG.infof("  SQLite pool        : min=%d, max=%d", jdbcMinSize, jdbcMaxSize);
-        LOG.infof("  AI Provider        : %s", chatModelProvider);
-        LOG.infof("  AI Base URL        : %s", openaiBaseUrl);
-        LOG.infof("  AI Model           : %s", openaiModelName);
+        LOG.infof("  AI Base URL        : %s", aiBaseUrl);
+        LOG.infof("  AI Primary Model   : %s", primaryModelName);
+        LOG.infof("  AI Vision Model    : %s", visionModelName);
         LOG.infof("  Encryption key set : %b", encryptionKey != null && !encryptionKey.isBlank());
         LOG.infof("  Timezone           : %s", timezone);
         LOG.infof("  Server Time        : %s", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));

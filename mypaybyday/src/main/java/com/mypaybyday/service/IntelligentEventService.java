@@ -1,6 +1,6 @@
 package com.mypaybyday.service;
 
-import com.mypaybyday.ai.FinanceExtractor;
+import com.mypaybyday.ai.AgentFinanceEventCreator;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.FinanceEventExtractionDto;
 import com.mypaybyday.dto.RawTextEventRequestDto;
@@ -34,7 +34,7 @@ public class IntelligentEventService {
 
     private static final Logger log = Logger.getLogger(IntelligentEventService.class);
 
-    private final FinanceExtractor financeExtractor;
+    private final AgentFinanceEventCreator agentFinanceEventCreator;
     private final EventService eventService;
     private final EntityDraftService draftService;
     private final LanguageContext languageContext;
@@ -42,10 +42,10 @@ public class IntelligentEventService {
     private final CategoryRepository categoryRepository;
 
     @Inject
-    public IntelligentEventService(FinanceExtractor financeExtractor, EventService eventService,
+    public IntelligentEventService(AgentFinanceEventCreator agentFinanceEventCreator, EventService eventService,
             EntityDraftService draftService, LanguageContext languageContext,
             FinanceNodeRepository financeNodeRepository, CategoryRepository categoryRepository) {
-        this.financeExtractor = financeExtractor;
+        this.agentFinanceEventCreator = agentFinanceEventCreator;
         this.eventService = eventService;
         this.draftService = draftService;
         this.languageContext = languageContext;
@@ -67,15 +67,18 @@ public class IntelligentEventService {
                 "AVAILABLE CATEGORIES (pick categoryId from these):\n" +
                 categoriesContext + "\n\n" +
                 "TASK:\n" +
-                "Extract the transaction details from the user's text using the context provided above.\n" +
+                "Extract the transaction details from the user's text using the context provided above.\n\n" +
                 "RULES FOR FIELDS:\n" +
                 "- name: Must be a descriptive and meaningful title. Include the business/service name and context (e.g., 'Dinner at Burger King', 'Monthly Salary from TechCorp').\n" +
                 "- amount: Total absolute amount of the transaction. Always positive, no currency symbols.\n" +
                 "- sourceNodeId: The ID of the node where money comes FROM. Pick from the AVAILABLE FINANCE NODES list above.\n" +
                 "- destinationNodeId: The ID of the node where money goes TO. Pick from the AVAILABLE FINANCE NODES list above.\n" +
                 "- categoryId: The ID of the most appropriate category from the AVAILABLE CATEGORIES list above. Null if unclear.\n" +
-                "- transactionDate: The date in YYYY-MM-DD format. Extract from text if present, otherwise leave null.\n" +
-                "- IMPORTANT: Return ONLY valid JSON. Do not include conversational text, explanations, or markdown (no ```json).\n\n";
+                "- transactionDate: The date in YYYY-MM-DD format. Extract from text if present, otherwise leave null.\n\n" +
+                "CRITICAL OUTPUT RULES:\n" +
+                "- Return ONLY valid JSON matching the expected schema.\n" +
+                "- Do NOT include conversational text, greetings, explanations, or any markdown formatting (no ```json).\n" +
+                "- If the text lacks meaningful transaction data, return a JSON with null fields rather than an error message.\n\n";
 
         if (request.getInstructions() != null && !request.getInstructions().trim().isEmpty()) {
             extractionPrompt += "ADDITIONAL USER INSTRUCTIONS:\n" + request.getInstructions() + "\n\n";
@@ -84,7 +87,7 @@ public class IntelligentEventService {
         extractionPrompt += "Now process the user request.";
 
         // Call the Langchain4j structured output extraction
-        FinanceEventExtractionDto extraction = financeExtractor.extractEvent(request.getText(), extractionPrompt);
+        FinanceEventExtractionDto extraction = agentFinanceEventCreator.extractEvent(request.getText(), extractionPrompt);
 
         log.infof("AI extracted event from text: '%s'. Result: name=%s, amount=%s, sourceNodeId=%s, destinationNodeId=%s, categoryId=%s, date=%s",
             request.getText(),
@@ -132,33 +135,35 @@ public class IntelligentEventService {
         BigDecimal amount = extraction.getAmount();
         boolean amountOk = amount != null && amount.compareTo(BigDecimal.ZERO) > 0;
 
-        if(extraction.getSourceNodeId() != null) {
-            FinanceLineItem sourceItem = new FinanceLineItem();
+        // Always create Source Line Item
+        FinanceLineItem sourceItem = new FinanceLineItem();
+        if (amountOk) {
+            sourceItem.setAmount(amount.negate());
+        }
 
-            if(amountOk) {
-                sourceItem.setAmount(amount.negate());
-            }
-
+        if (extraction.getSourceNodeId() != null) {
             FinanceNode sourceNode = new FinanceNode();
             sourceNode.id = extraction.getSourceNodeId();
             sourceItem.financeNode = sourceNode;
-            sourceItem.transaction = transaction;
-            lineItems.add(sourceItem);
         }
 
-        if(extraction.getDestinationNodeId() != null) {
-            FinanceLineItem destItem = new FinanceLineItem();
+        sourceItem.transaction = transaction;
+        lineItems.add(sourceItem);
 
-            if(amountOk) {
-                destItem.setAmount(amount);
-            }
+        // Always create Destination Line Item
+        FinanceLineItem destItem = new FinanceLineItem();
+        if (amountOk) {
+            destItem.setAmount(amount);
+        }
 
+        if (extraction.getDestinationNodeId() != null) {
             FinanceNode destNode = new FinanceNode();
             destNode.id = extraction.getDestinationNodeId();
             destItem.financeNode = destNode;
-            destItem.transaction = transaction;
-            lineItems.add(destItem);
         }
+
+        destItem.transaction = transaction;
+        lineItems.add(destItem);
 
         transaction.lineItems = lineItems;
 
@@ -212,56 +217,23 @@ public class IntelligentEventService {
 
     private static String buildSystemPrompt(String now, String lang) {
         return """
-                You are a personal finance assistant embedded in a budgeting application called MyPayByDay.
-                Your personality: concise, precise, and helpful. Skip pleasantries and get straight to the point.
+You are a highly precise data extraction AI for a personal finance system.
+Your ONLY task is to extract structured financial transaction details from the user's text and map them to our internal IDs.
 
-                CONTEXT:
-                - Current date and time: %s
-                - User's preferred language: %s
+CONTEXT:
+- Current system date and time: %s
+- User's primary language: %s
 
-                LANGUAGE RULES:
-                - ALWAYS respond in the user's preferred language indicated above.
-                - If the user writes in a different language, respond in that language instead.
+DATA MODEL OVERVIEW:
+1. **FinanceEvent**: The financial transaction.
+2. **FinanceNode**: Any entity that holds, sends, or receives money.
+3. **Category**: Budget classification bucket.
 
-                DATA ACCESS:
-                - You have access to tools that query the user's financial data in real time directly from the database.
-                - Always call the appropriate tool before answering a financial question. Never fabricate data, amounts, or transactions.
-                - If a tool returns no data or insufficient information, say so clearly. Do not guess.
-
-                AVAILABLE TOOLS:
-                - getFinanceNodes(): Returns all active finance nodes (accounts, wallets, external entities, contacts) with their id, name, and type.
-                - getCategories(): Returns all budget categories with id and name.
-                - getTags(): Returns all tags with id and name.
-                - getRecentEvents(limit): Returns the most recent N finance events with full detail (name, type, category, date, amounts, nodes involved).
-                - getEventsByDateRange(from, to): Returns events within a date range (ISO-8601 format: 'YYYY-MM-DDTHH:mm:ss').
-                - searchEvents(search, startDate, endDate, type, categoryId, tagId): Broad search for finance events with multiple filters. Use for complex queries like 'spending on restaurants last month' or 'expenses tagged #vacation'.
-                - getTimePeriods(): Returns all budget time periods with their date ranges, limits, and savings goals.
-
-                DATA MODEL:
-                1. **FinanceEvent** — The main record (e.g. 'Dinner with friends', 'Paid Rent'). Contains name, description, type (INBOUND/OUTBOUND/OTHER), a category, tags, and line items showing amounts and nodes involved.
-                2. **FinanceNode** — Any entity that can hold, send, or receive money:
-                    - OWN: the user's own accounts (bank accounts, wallets, credit cards).
-                    - EXTERNAL: third-party entities (supermarkets, employers, service providers).
-                    - CONTACT: people (friends, family) — money here represents debts or loans.
-                3. **Category** — A budget classification bucket (e.g. 'Food', 'Transport'). Every event is assigned to one category.
-                4. **Tag** — A transversal label for cross-cutting grouping (e.g. '#Vacation2026', '#Reimbursable').
-                5. **TimePeriod** — A budget container with a date range, a budget limit, and a savings goal percentage.
-
-                HOW TO INTERPRET USER QUESTIONS:
-                - 'How much did I spend on X?' → Call getEventsByDateRange() or getRecentEvents(), filter by category.
-                - 'What did I pay at Y?' → Call getRecentEvents() and look for a node named Y.
-                - 'What are my debts?' → Call getFinanceNodes(), look for CONTACT type nodes.
-                - 'What budget do I have?' → Call getTimePeriods().
-                - 'Show my categories/tags' → Call getCategories() or getTags().
-
-                GOLDEN RULES:
-                1. Be brief and direct. Use bullet points (using - or *) or short paragraphs.
-                2. NEVER invent financial data. Always use tool results.
-                3. When referencing amounts, always include the currency if available.
-                4. For date calculations: 'this month' means from the 1st of the current month to today. 'Last month' means the full previous calendar month.
-                5. If the user asks something unrelated to personal finance, politely redirect them.
-                6. When summarizing expenses, group by category when possible.
-                7. PLAIN TEXT ONLY: Never use Markdown. No bold (**), no italics (*), no headers (#), no tables. Use empty lines or simple markers for formatting.
-                """.formatted(now, lang);
+STRICT EXTRACTION RULES:
+1. NEVER reply with conversational text, greetings, apologies, or explanations. Just output the structured data.
+2. NEVER use markdown formatting like ```json or ```.
+3. IF the user's text DOES NOT contain a recognizable financial transaction, output empty/null fields instead of a conversational error.
+4. Your output will be consumed directly by a JSON parser. Any conversational text will cause a Fatal System Crash.
+""".formatted(now, lang);
     }
 }

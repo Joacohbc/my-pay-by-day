@@ -14,7 +14,9 @@ import com.mypaybyday.dto.RawTextEventRequestDto;
 import com.mypaybyday.service.EventService;
 import com.mypaybyday.service.IntelligentEventService;
 
+import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -32,6 +34,10 @@ import org.jboss.logging.Logger;
  * The LLM decides when to invoke these tools based on the user's question,
  * always fetching fresh data directly from the database.
  */
+// Required for Quarkus native image: AgentFinanceEventCreator.buildToolMap() uses reflection
+// (getDeclaredMethods + isAnnotationPresent) to discover @Tool methods at runtime.
+// Without this, GraalVM strips that metadata during compilation and no tools are registered.
+@RegisterForReflection
 @ApplicationScoped
 public class FinanceAiTools {
 
@@ -179,15 +185,13 @@ public class FinanceAiTools {
                 .collect(Collectors.joining("\n", "Time periods:\n", ""));
     }
 
-    @Tool("Creates a finance event from a text description. Use this tool when the user provides a text description " +
-            "of a financial transaction (e.g., from a receipt, invoice, or verbal description). " +
-            "The text should include details like vendor name, item, amount, and date. " +
-            "The system will use AI to extract structured data and create an event. " +
-            "If the extraction is incomplete (missing nodes, etc.), a draft will be created instead. " +
-            "Returns a summary of the created event or draft. " +
-            "Call this tool ONCE per individual transaction/line item found on a receipt.")
-    public String createEventFromText(String description) {
-        log.infof("createEventFromText called with: %s", description);
+    @Tool("Creates a finance event from a raw text description. Use this tool when the user wants to log a new financial transaction (e.g., from a receipt, invoice, or verbal description like 'I paid $5 for coffee').\n" +
+            "CRITICAL INSTRUCTIONS:\n" +
+            "1. The 'description' parameter MUST contain the ACTUAL transaction details (e.g. 'Coffee at Starbucks $5').\n" +
+            "2. NEVER pass a placeholder like '{text}', empty strings, or conversational filler. The AI strictly requires real transaction data.\n" +
+            "3. If the user provided an image or receipt, pass the complete summarized details of that receipt.\n" +
+            "Returns a summary of the created event or draft (if data was incomplete). Call this ONCE per individual transaction.")
+    public String createEventFromText(@P("The exact, literal text containing the transaction details to be extracted. NEVER use placeholders.") String description) {
         try {
             RawTextEventRequestDto request = new RawTextEventRequestDto();
             request.setText(description);

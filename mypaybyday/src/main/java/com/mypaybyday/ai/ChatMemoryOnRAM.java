@@ -4,7 +4,6 @@ import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.Produces;
 import org.jboss.logging.Logger;
 
 import java.util.Map;
@@ -22,8 +21,6 @@ public class ChatMemoryOnRAM implements Supplier<ChatMemoryProvider> {
     private static final Logger log = Logger.getLogger(ChatMemoryOnRAM.class);
     private final Map<Object, ChatMemory> memoryMap = new ConcurrentHashMap<>();
 
-    @Produces
-    @ApplicationScoped
     public ChatMemoryProvider chatMemoryProvider() {
         return chatId -> memoryMap.computeIfAbsent(chatId, id ->
                 MessageWindowChatMemory.builder()
