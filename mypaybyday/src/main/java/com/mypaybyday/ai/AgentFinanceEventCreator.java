@@ -106,6 +106,8 @@ Please extract and list the following details:
 - Suggested category or tags
 
 Provide a comprehensive and structured description of the image content.
+Current date and time: %s
+LANGUAGE: ALWAYS respond in %s. Never switch to another language.
 PLAIN TEXT ONLY: Never use Markdown. No bold (**), no italics (*), no headers (#), no tables. Use empty lines or simple markers for formatting.
 """;
 
@@ -170,7 +172,7 @@ GOLDEN RULES:
     }
 
     public String processImage(String chatId, Image image) {
-        String desc = viewImage(SYSTEM_PROMPT_FOR_IMAGES, image);
+        String desc = viewImage(buildSystemPrompt(SYSTEM_PROMPT_FOR_IMAGES), image);
         log.infof("Description: %s", desc);
         String message = "IMAGE DESCRIPTION:\n-----------------------\n" + desc + "\n-----------------------\n";
         return processText(chatId, message);
