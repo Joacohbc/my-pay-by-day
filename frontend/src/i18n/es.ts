@@ -122,6 +122,10 @@ const es = {
     template: 'Plantilla',
     startDate: 'Fecha Inicio',
     endDate: 'Fecha Fin',
+    dateField: 'Filtrar fechas por',
+    dateFieldTransaction: 'Fecha de transacción',
+    dateFieldCreated: 'Fecha de creación',
+    dateFieldUpdated: 'Fecha de actualización',
   },
 
   // ─── Event Types ─────────────────────────────────────────────────────────

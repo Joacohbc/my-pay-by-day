@@ -1,12 +1,15 @@
 import type { FinanceEvent, CreateEventDto, PagedResponse } from '@/models';
 import { api } from '@/services/api';
 
+export type DateField = 'TRANSACTION' | 'CREATED' | 'UPDATED';
+
 export interface EventFilters {
   page?: number;
   size?: number;
   search?: string;
   startDate?: string;
   endDate?: string;
+  dateField?: DateField;
   type?: string;
   categoryId?: number;
   tagId?: number;
@@ -21,6 +24,7 @@ export const eventsService = {
     if (filters.search) params.append('search', filters.search);
     if (filters.startDate) params.append('startDate', filters.startDate);
     if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.dateField) params.append('dateField', filters.dateField);
     if (filters.type && filters.type !== 'ALL') params.append('type', filters.type);
     if (filters.categoryId) params.append('categoryId', filters.categoryId.toString());
     if (filters.tagId) params.append('tagId', filters.tagId.toString());

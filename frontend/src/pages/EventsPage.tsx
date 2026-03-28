@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useEvents } from '@/hooks/useEvents';
@@ -6,6 +6,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useFinanceEventDrafts } from '@/hooks/useDrafts';
+import { useSearchParamsBatch } from '@/hooks/useSearchParamsState';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import { PendingEventsSync } from '@/components/events/PendingEventsSync';
 import type { Template, EventType } from '@/models';
@@ -21,35 +22,62 @@ import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { formatCurrencyShort, eventNetAmount } from '@/lib/format';
+import type { DateField } from '@/services/events.service';
 
 type FilterType = 'ALL' | EventType | 'DRAFT';
+
+const FILTER_PARAMS = {
+  page: { key: 'page', defaultValue: 0 as number, type: 'number' as const },
+  search: { key: 'q', defaultValue: '' as string, type: 'string' as const },
+  filter: { key: 'type', defaultValue: 'ALL' as string, type: 'string' as const },
+  startDate: { key: 'from', defaultValue: '' as string, type: 'string' as const },
+  endDate: { key: 'to', defaultValue: '' as string, type: 'string' as const },
+  dateField: { key: 'df', defaultValue: 'TRANSACTION' as string, type: 'string' as const },
+  categoryId: { key: 'cat', defaultValue: 0 as number, type: 'number' as const },
+  tagId: { key: 'tag', defaultValue: 0 as number, type: 'number' as const },
+};
 
 export function EventsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [page, setPage] = useState(0);
 
-  const [search, setSearch] = useState('');
+  const { values, setValues, clearAll } = useSearchParamsBatch(FILTER_PARAMS);
+
+  const page = values.page;
+  const search = values.search as string;
+  const filter = (values.filter || 'ALL') as FilterType;
+  const startDate = values.startDate as string;
+  const endDate = values.endDate as string;
+  const dateField = (values.dateField || 'TRANSACTION') as DateField;
+  const categoryId = values.categoryId ? Number(values.categoryId) : undefined;
+  const tagId = values.tagId ? Number(values.tagId) : undefined;
+
   const debouncedSearch = useDebounce(search, 500);
 
-  const [filter, setFilter] = useState<FilterType>('ALL');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [categoryId, setCategoryId] = useState<number | undefined>();
-  const [tagId, setTagId] = useState<number | undefined>();
   const [showPicker, setShowPicker] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
 
-  const clearFilters = () => {
-    setStartDate('');
-    setEndDate('');
-    setCategoryId(undefined);
-    setTagId(undefined);
-    setFilter('ALL');
-    setSearch('');
-  };
+  const hasAdvancedFilters = Boolean(startDate || endDate || categoryId || tagId || (dateField !== 'TRANSACTION'));
+  const hasActiveFilters = Boolean(search || filter !== 'ALL' || hasAdvancedFilters);
+  const [showFilters, setShowFilters] = useState(hasAdvancedFilters);
 
-  const hasActiveFilters = Boolean(search || filter !== 'ALL' || startDate || endDate || categoryId || tagId);
+  const setPage = useCallback((p: number) => setValues({ page: p }), [setValues]);
+  const setSearch = useCallback((s: string) => setValues({ search: s, page: 0 }), [setValues]);
+  const setFilter = useCallback((f: string) => setValues({ filter: f, page: 0 }), [setValues]);
+  const setStartDate = useCallback((d: string) => setValues({ startDate: d, page: 0 }), [setValues]);
+  const setEndDate = useCallback((d: string) => setValues({ endDate: d, page: 0 }), [setValues]);
+  const setDateField = useCallback((d: string) => setValues({ dateField: d, page: 0 }), [setValues]);
+  const setCategoryId = useCallback((id: number) => setValues({ categoryId: id, page: 0 }), [setValues]);
+  const setTagId = useCallback((id: number) => setValues({ tagId: id, page: 0 }), [setValues]);
+
+  const clearFilters = useCallback(() => clearAll(), [clearAll]);
+
+  const toggleFilters = useCallback(() => {
+    if (showFilters) {
+      // Closing: clear advanced filters
+      setValues({ startDate: '', endDate: '', dateField: 'TRANSACTION', categoryId: 0, tagId: 0, page: 0 });
+    }
+    setShowFilters(prev => !prev);
+  }, [showFilters, setValues]);
 
   const { data: paged, isLoading: isEventsLoading, error: eventsError } = useEvents({
     page,
@@ -57,6 +85,7 @@ export function EventsPage() {
     search: debouncedSearch,
     startDate,
     endDate,
+    dateField,
     type: filter !== 'ALL' && filter !== 'DRAFT' ? (filter as EventType) : undefined,
     categoryId,
     tagId,
@@ -97,14 +126,19 @@ export function EventsPage() {
   const isLoading = isDraftFilter ? isDraftsLoading : isEventsLoading;
   const error = isDraftFilter ? draftsError : eventsError;
 
-  // Summary stats (for the current page)
-  const totalIncome = allEvents
-    .filter((e) => e.type === 'INBOUND')
-    .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0);
+  const totalIncome = useMemo(() =>
+    allEvents
+      .filter((e) => e.type === 'INBOUND')
+      .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0),
+    [allEvents],
+  );
 
-    const totalExpenses = allEvents
-    .filter((e) => e.type === 'OUTBOUND')
-    .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0);
+  const totalExpenses = useMemo(() =>
+    allEvents
+      .filter((e) => e.type === 'OUTBOUND')
+      .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0),
+    [allEvents],
+  );
 
   const filterBtns: { label: string; value: FilterType }[] = [
     { label: t('common.all'), value: 'ALL' },
@@ -113,13 +147,6 @@ export function EventsPage() {
     { label: t('events.expenses'), value: 'OUTBOUND' },
     { label: t('events.transfers'), value: 'OTHER' },
   ];
-
-  const toggleFilter = () => {
-    setShowFilters(!showFilters)
-    if(showFilters) {
-      clearFilters()
-    }
-  }
 
   if (isLoading && !allEvents.length) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
@@ -166,7 +193,7 @@ export function EventsPage() {
         <Button
           variant={showFilters ? 'primary' : 'secondary'}
           className="shrink-0 aspect-square p-0 w-4 flex items-center justify-center rounded-input"
-          onClick={toggleFilter}
+          onClick={toggleFilters}
         >
           { showFilters ?
             <Icon name="filter_alt_off" className="text-xl" />
@@ -190,6 +217,18 @@ export function EventsPage() {
           </div>
 
           <div className="space-y-3">
+            <SearchableSelect
+              label={t('events.dateField')}
+              value={dateField}
+              options={[
+                { value: 'TRANSACTION', label: t('events.dateFieldTransaction') },
+                { value: 'CREATED', label: t('events.dateFieldCreated') },
+                { value: 'UPDATED', label: t('events.dateFieldUpdated') },
+              ]}
+              onChange={(val) => setDateField((val || 'TRANSACTION') as string)}
+              placeholder={t('events.dateField')}
+            />
+
             <div className="flex gap-3">
               <div className="flex-1">
                 <Input
@@ -218,7 +257,7 @@ export function EventsPage() {
                     { value: '', label: t('common.all') },
                     ...categories.map(c => ({ value: c.id, label: c.name }))
                   ]}
-                  onChange={(val) => setCategoryId(val ? Number(val) : undefined)}
+                  onChange={(val) => setCategoryId(val ? Number(val) : 0)}
                   placeholder={t('common.category')}
                 />
               </div>
@@ -230,7 +269,7 @@ export function EventsPage() {
                     { value: '', label: t('common.all') },
                     ...tags.map(t => ({ value: t.id, label: t.name }))
                   ]}
-                  onChange={(val) => setTagId(val ? Number(val) : undefined)}
+                  onChange={(val) => setTagId(val ? Number(val) : 0)}
                   placeholder={t('common.tag')}
                 />
               </div>

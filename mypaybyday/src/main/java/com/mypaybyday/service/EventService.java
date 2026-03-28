@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -61,18 +62,31 @@ public class EventService {
     // -------------------------------------------------------------------------
 
     @Transactional
-    public PagedResponse<FinanceEventDto> listAll(int page, int size, String search, String startDate, String endDate, EventType type, Long categoryId, Long tagId) {
+    public PagedResponse<FinanceEventDto> listAll(int page, int size, String search, String startDate, String endDate, String dateField, EventType type, Long categoryId, Long tagId) {
         StringBuilder query = new StringBuilder("1=1");
         Map<String, Object> params = new HashMap<>();
 
+        boolean isInstantField = "CREATED".equals(dateField) || "UPDATED".equals(dateField);
+        String dateFieldExpr = "CREATED".equals(dateField) ? "createdAt"
+                : "UPDATED".equals(dateField) ? "updatedAt"
+                : "transaction.transactionDate";
+
         if (startDate != null && !startDate.isBlank()) {
-            query.append(" and transaction.transactionDate >= :startDate");
-            params.put("startDate", LocalDate.parse(startDate).atStartOfDay());
+            query.append(" and ").append(dateFieldExpr).append(" >= :startDate");
+            if (isInstantField) {
+                params.put("startDate", LocalDate.parse(startDate).atStartOfDay(ZoneOffset.UTC).toInstant());
+            } else {
+                params.put("startDate", LocalDate.parse(startDate).atStartOfDay());
+            }
         }
 
         if (endDate != null && !endDate.isBlank()) {
-            query.append(" and transaction.transactionDate <= :endDate");
-            params.put("endDate", LocalDate.parse(endDate).atTime(LocalTime.MAX));
+            query.append(" and ").append(dateFieldExpr).append(" <= :endDate");
+            if (isInstantField) {
+                params.put("endDate", LocalDate.parse(endDate).atTime(LocalTime.MAX).atOffset(ZoneOffset.UTC).toInstant());
+            } else {
+                params.put("endDate", LocalDate.parse(endDate).atTime(LocalTime.MAX));
+            }
         }
 
         if (type != null) {
@@ -90,7 +104,7 @@ public class EventService {
             params.put("tagId", tagId);
         }
 
-        query.append(" ORDER BY transaction.transactionDate DESC");
+        query.append(" ORDER BY ").append(dateFieldExpr).append(" DESC");
 
         PanacheQuery<FinanceEvent> panacheQuery = eventRepository.find(query.toString(), params);
 
