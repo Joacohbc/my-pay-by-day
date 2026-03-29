@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 type ParamType = 'string' | 'number' | 'boolean';
@@ -74,8 +74,12 @@ export function useSearchParamsBatch<T extends Record<string, string | number | 
 } {
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const configEntries = useMemo(
+    () => Object.entries(configs) as [keyof T, ParamConfig<T[keyof T]>][],
+    [configs],
+  );
+
   const values = {} as T;
-  const configEntries = Object.entries(configs) as [keyof T, ParamConfig<T[keyof T]>][];
 
   for (const [field, config] of configEntries) {
     const raw = searchParams.get(config.key);
@@ -110,7 +114,7 @@ export function useSearchParamsBatch<T extends Record<string, string | number | 
       }
       return next;
     }, { replace: true });
-  }, [configs, setSearchParams]);
+  }, [configEntries, setSearchParams]);
 
   return { values, setValues, clearAll };
 }

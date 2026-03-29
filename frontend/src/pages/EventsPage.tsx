@@ -119,7 +119,10 @@ export function EventsPage() {
       )
     : [];
 
-  const allEvents = isDraftFilter ? filteredDrafts : (paged?.content ?? []);
+  const allEvents = useMemo(
+    () => isDraftFilter ? filteredDrafts : (paged?.content ?? []),
+    [isDraftFilter, filteredDrafts, paged],
+  );
   const totalPages = isDraftFilter ? 1 : (paged?.totalPages ?? 1);
   const totalElements = isDraftFilter ? filteredDrafts.length : (paged?.totalElements ?? 0);
 
