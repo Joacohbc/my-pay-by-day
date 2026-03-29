@@ -9,6 +9,7 @@ import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TimePeriodRepository;
+import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.IntelligentEventResponseDto;
 import com.mypaybyday.dto.RawTextEventRequestDto;
 import com.mypaybyday.service.EventService;
@@ -108,7 +109,7 @@ public class FinanceAiTools {
     @Transactional
     public String getRecentEvents(int limit) {
         int safeLimit = Math.min(Math.max(limit, 1), 50);
-        var response = eventService.listAll(0, safeLimit, null, null, null, null, null, null);
+        var response = eventService.listAll(EventQuery.builder().page(0).size(safeLimit).build());
 
         if (response.content().isEmpty()) {
             return "No events found.";
@@ -151,7 +152,11 @@ public class FinanceAiTools {
             String sDate = startDate != null && startDate.length() >= 10 ? startDate.substring(0, 10) : startDate;
             String eDate = endDate != null && endDate.length() >= 10 ? endDate.substring(0, 10) : endDate;
 
-            var response = eventService.listAll(0, 50, search, sDate, eDate, eventType, categoryId, tagId);
+            var response = eventService.listAll(EventQuery.builder()
+                    .page(0).size(50)
+                    .search(search).startDate(sDate).endDate(eDate)
+                    .type(eventType).categoryId(categoryId).tagId(tagId)
+                    .build());
             
             if (response.content().isEmpty()) {
                 return "No events found matching the criteria.";

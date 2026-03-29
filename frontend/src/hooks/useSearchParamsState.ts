@@ -1,29 +1,39 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+// The three primitive types a URL param can represent after parsing.
+// We keep it narrow on purpose: dates, arrays, objects etc. don't round-trip
+// cleanly through a URL string, so we don't pretend to support them.
 type ParamType = 'string' | 'number' | 'boolean';
 
-interface ParamConfig<T> {
-  key: string;
-  defaultValue: T;
-  type?: ParamType;
+// A single parsed param value. `undefined` means "not present / use default".
+export type SearchParamValue = string | number | boolean | undefined;
+
+// Configuration for a single URL search param.
+export interface ParamConfig {
+  key: string;          // the URL param name, e.g. "page"
+  defaultValue: SearchParamValue;  // value to use when the param is absent
+  type?: ParamType;     // how to parse the raw string (defaults to 'string')
 }
 
-function parseValue<T>(raw: string | null, defaultValue: T, type: ParamType): T {
+// A record of field names to their parsed values.
+export type SearchParamsRecord = Record<string, SearchParamValue>;
+
+function parseValue(raw: string | null, defaultValue: SearchParamValue, type: ParamType): SearchParamValue {
   if (raw === null || raw === '') return defaultValue;
   switch (type) {
     case 'number': {
       const n = Number(raw);
-      return (isNaN(n) ? defaultValue : n) as T;
+      return isNaN(n) ? defaultValue : n;
     }
     case 'boolean':
-      return (raw === 'true') as unknown as T;
+      return raw === 'true';
     default:
-      return raw as unknown as T;
+      return raw;
   }
 }
 
-function serializeValue<T>(value: T, defaultValue: T): string | null {
+function serializeValue(value: SearchParamValue, defaultValue: SearchParamValue): string | null {
   if (value === defaultValue || value === undefined || value === null || value === '') return null;
   return String(value);
 }
@@ -32,18 +42,18 @@ function serializeValue<T>(value: T, defaultValue: T): string | null {
  * Syncs a single value with a URL search param.
  * Returns [value, setValue] like useState.
  */
-export function useSearchParamState<T extends string | number | boolean | undefined>(
+export function useSearchParamState(
   key: string,
-  defaultValue: T,
+  defaultValue: SearchParamValue,
   type: ParamType = 'string',
-): [T, (value: T) => void] {
+): [SearchParamValue, (value: SearchParamValue) => void] {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const raw = searchParams.get(key);
   const value = parseValue(raw, defaultValue, type);
 
   const setValue = useCallback(
-    (newValue: T) => {
+    (newValue: SearchParamValue) => {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         const serialized = serializeValue(newValue, defaultValue);
@@ -65,21 +75,21 @@ export function useSearchParamState<T extends string | number | boolean | undefi
  * Batch-read multiple search params at once and return a batch setter.
  * Useful when you need to clear or set multiple params atomically.
  */
-export function useSearchParamsBatch<T extends Record<string, string | number | boolean | undefined>>(
-  configs: { [K in keyof T]: ParamConfig<T[K]> },
+export function useSearchParamsBatch(
+  configs: Record<string, ParamConfig>,
 ): {
-  values: T;
-  setValues: (partial: Partial<T>) => void;
+  values: SearchParamsRecord;
+  setValues: (partial: Partial<SearchParamsRecord>) => void;
   clearAll: () => void;
 } {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const configEntries = useMemo(
-    () => Object.entries(configs) as [keyof T, ParamConfig<T[keyof T]>][],
+    () => Object.entries(configs),
     [configs],
   );
 
-  const values = {} as T;
+  const values: SearchParamsRecord = {};
 
   for (const [field, config] of configEntries) {
     const raw = searchParams.get(config.key);
@@ -87,11 +97,11 @@ export function useSearchParamsBatch<T extends Record<string, string | number | 
   }
 
   const setValues = useCallback(
-    (partial: Partial<T>) => {
+    (partial: Partial<SearchParamsRecord>) => {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         for (const [field, newValue] of Object.entries(partial)) {
-          const config = configs[field as keyof T];
+          const config = configs[field];
           if (!config) continue;
           const serialized = serializeValue(newValue, config.defaultValue);
           if (serialized === null) {

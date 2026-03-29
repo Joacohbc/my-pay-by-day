@@ -1,5 +1,7 @@
 package com.mypaybyday.resource;
 
+import com.mypaybyday.dto.EventQuery;
+import com.mypaybyday.dto.EventQuery.DateField;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.FinanceEvent;
@@ -36,12 +38,16 @@ public class EventResource {
             @Parameter(description = "Filter by text in name or description") @QueryParam("search") String search,
             @Parameter(description = "Filter by start date (YYYY-MM-DD)") @QueryParam("startDate") String startDate,
             @Parameter(description = "Filter by end date (YYYY-MM-DD)") @QueryParam("endDate") String endDate,
-            @Parameter(description = "Date field to filter on: TRANSACTION, CREATED, UPDATED") @QueryParam("dateField") @DefaultValue("TRANSACTION") String dateField,
+            @Parameter(description = "Date field to filter on: TRANSACTION, CREATED, UPDATED") @QueryParam("dateField") @DefaultValue("TRANSACTION") DateField dateField,
             @Parameter(description = "Filter by event type") @QueryParam("type") com.mypaybyday.enums.EventType type,
             @Parameter(description = "Filter by category ID") @QueryParam("categoryId") Long categoryId,
             @Parameter(description = "Filter by tag ID") @QueryParam("tagId") Long tagId) {
 
-        return Response.ok(eventService.listAll(page, size, search, startDate, endDate, dateField, type, categoryId, tagId)).build();
+        return Response.ok(eventService.listAll(EventQuery.builder()
+                .page(page).size(size)
+                .search(search).startDate(startDate).endDate(endDate).dateField(dateField)
+                .type(type).categoryId(categoryId).tagId(tagId)
+                .build())).build();
     }
 
     @GET

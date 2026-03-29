@@ -7,6 +7,7 @@ import { useTags } from '@/hooks/useTags';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useFinanceEventDrafts } from '@/hooks/useDrafts';
 import { useSearchParamsBatch } from '@/hooks/useSearchParamsState';
+import type { ParamConfig, SearchParamValue } from '@/hooks/useSearchParamsState';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import { PendingEventsSync } from '@/components/events/PendingEventsSync';
 import type { Template, EventType } from '@/models';
@@ -27,15 +28,15 @@ import type { DateField } from '@/services/events.service';
 type FilterType = 'ALL' | EventType | 'DRAFT';
 
 const FILTER_PARAMS = {
-  page: { key: 'page', defaultValue: 0 as number, type: 'number' as const },
-  search: { key: 'q', defaultValue: '' as string, type: 'string' as const },
-  filter: { key: 'type', defaultValue: 'ALL' as string, type: 'string' as const },
-  startDate: { key: 'from', defaultValue: '' as string, type: 'string' as const },
-  endDate: { key: 'to', defaultValue: '' as string, type: 'string' as const },
-  dateField: { key: 'df', defaultValue: 'TRANSACTION' as string, type: 'string' as const },
-  categoryId: { key: 'cat', defaultValue: 0 as number, type: 'number' as const },
-  tagId: { key: 'tag', defaultValue: 0 as number, type: 'number' as const },
-};
+  page: { key: 'page', defaultValue: 0, type: 'number' },
+  search: { key: 'q', defaultValue: '', type: 'string' },
+  filter: { key: 'type', defaultValue: 'ALL', type: 'string' },
+  startDate: { key: 'from', defaultValue: '', type: 'string' },
+  endDate: { key: 'to', defaultValue: '', type: 'string' },
+  dateField: { key: 'df', defaultValue: 'TRANSACTION', type: 'string' },
+  categoryId: { key: 'cat', defaultValue: 0, type: 'number' },
+  tagId: { key: 'tag', defaultValue: 0, type: 'number' }
+} satisfies Record<string, ParamConfig<SearchParamValue>>;
 
 export function EventsPage() {
   const { t } = useTranslation();
@@ -112,12 +113,15 @@ export function EventsPage() {
 
   const isDraftFilter = filter === 'DRAFT';
 
-  const filteredDrafts = isDraftFilter && draftEvents
-    ? draftEvents.filter(d =>
-        !debouncedSearch ||
-        d.description?.toLowerCase().includes(debouncedSearch.toLowerCase())
-      )
-    : [];
+  const filteredDrafts = useMemo(
+    () => isDraftFilter && draftEvents
+      ? draftEvents.filter(d =>
+          !debouncedSearch ||
+          d.description?.toLowerCase().includes(debouncedSearch.toLowerCase())
+        )
+      : [],
+    [isDraftFilter, draftEvents, debouncedSearch],
+  );
 
   const allEvents = useMemo(
     () => isDraftFilter ? filteredDrafts : (paged?.content ?? []),
