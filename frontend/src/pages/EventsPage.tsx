@@ -7,7 +7,7 @@ import { useTags } from '@/hooks/useTags';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useFinanceEventDrafts } from '@/hooks/useDrafts';
 import { useSearchParamsBatch } from '@/hooks/useSearchParamsState';
-import type { ParamConfig, SearchParamValue } from '@/hooks/useSearchParamsState';
+import type { ParamConfig } from '@/hooks/useSearchParamsState';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import { PendingEventsSync } from '@/components/events/PendingEventsSync';
 import type { Template, EventType } from '@/models';
@@ -36,7 +36,7 @@ const FILTER_PARAMS = {
   dateField: { key: 'df', defaultValue: 'TRANSACTION', type: 'string' },
   categoryId: { key: 'cat', defaultValue: 0, type: 'number' },
   tagId: { key: 'tag', defaultValue: 0, type: 'number' }
-} satisfies Record<string, ParamConfig<SearchParamValue>>;
+} satisfies Record<string, ParamConfig>;
 
 export function EventsPage() {
   const { t } = useTranslation();
@@ -44,7 +44,7 @@ export function EventsPage() {
 
   const { values, setValues, clearAll } = useSearchParamsBatch(FILTER_PARAMS);
 
-  const page = values.page;
+  const page = values.page as number | undefined;
   const search = values.search as string;
   const filter = (values.filter || 'ALL') as FilterType;
   const startDate = values.startDate as string;
@@ -334,7 +334,7 @@ export function EventsPage() {
         )}
       </div>
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      <Pagination page={page ?? 0} totalPages={totalPages} onPageChange={setPage} />
 
       <TemplatePickerModal
         open={showPicker}
