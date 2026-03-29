@@ -18,14 +18,15 @@ function resolveBaseUrl(): string {
 export const chatService = {
   /**
    * Unified send: always uses multipart/form-data to POST /chat.
-   * Image is optional — when absent the backend runs in text-only mode.
+   * Images are optional.
    */
-  sendMessage: async ({ chatId, message, mode, image }: ChatSendParams): Promise<ChatResponse> => {
+  sendMessage: async ({ chatId, message, images }: ChatSendParams): Promise<ChatResponse> => {
     const formData = new FormData();
     formData.append('chatId', chatId);
     formData.append('message', message);
-    if (mode) formData.append('mode', mode);
-    if (image) formData.append('image', image);
+    if (images && images.length > 0) {
+      images.forEach(img => formData.append('images', img));
+    }
 
     const BASE_URL = resolveBaseUrl();
     const lang = i18n.language ?? 'en';
@@ -59,6 +60,20 @@ export const chatService = {
     const BASE_URL = resolveBaseUrl();
     await fetch(`${BASE_URL}/chat/${chatId}`, {
       method: 'DELETE',
+    });
+  },
+
+  /**
+   * Trims the AI's memory up to the last user message containing the text.
+   */
+  trimMemory: async (chatId: string, textToMatch: string): Promise<void> => {
+    const BASE_URL = resolveBaseUrl();
+    await fetch(`${BASE_URL}/chat/${chatId}/trim`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ textToMatch }),
     });
   },
 };

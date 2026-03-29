@@ -70,6 +70,8 @@ const en = {
     modeAgentHint: 'Create events and drafts from text or images',
     clearMemory: 'Clear Memory',
     confirmClearMemory: 'Are you sure you want to clear the AI\'s memory? The conversation history will be lost.',
+    user: 'You',
+    assistant: 'Assistant',
   },
 
   // ─── Greetings ───────────────────────────────────────────────────────────
@@ -411,6 +413,7 @@ const en = {
   // ─── Drafts ──────────────────────────────────────────────────────────────
   drafts: {
     title: 'Drafts',
+    confirmAll: 'Confirm All',
     save: 'Save as Draft',
     untitledDraft: 'Untitled Draft',
     delete: 'Delete Draft',

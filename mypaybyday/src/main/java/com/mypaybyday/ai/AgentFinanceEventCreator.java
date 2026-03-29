@@ -108,7 +108,6 @@ Please extract and list the following details:
 Provide a comprehensive and structured description of the image content.
 Current date and time: %s
 LANGUAGE: ALWAYS respond in %s. Never switch to another language.
-PLAIN TEXT ONLY: Never use Markdown. No bold (**), no italics (*), no headers (#), no tables. Use empty lines or simple markers for formatting.
 """;
 
     final String SYSTEM_PROMPT_FOR_CHAT = """
@@ -161,7 +160,6 @@ GOLDEN RULES:
 4. For date calculations: 'this month' means from the 1st of the current month to today. 'Last month' means the full previous calendar month.
 5. If the user asks something unrelated to personal finance, politely redirect them.
 6. When summarizing expenses, group by category when possible.
-7. PLAIN TEXT ONLY: Never use Markdown. No bold (**), no italics (*), no headers (#), no tables. Use empty lines or simple markers for formatting.
 """;
 
     public Image buildImage(String base64Data, String mimeType) {
@@ -171,10 +169,11 @@ GOLDEN RULES:
             .build();
     }
 
-    public String processImage(String chatId, Image image) {
-        String desc = viewImage(buildSystemPrompt(SYSTEM_PROMPT_FOR_IMAGES), image);
+    public String processImages(String chatId, List<Image> images, String text) {
+        String desc = viewImages(buildSystemPrompt(SYSTEM_PROMPT_FOR_IMAGES), images);
         log.infof("Description: %s", desc);
-        String message = "IMAGE DESCRIPTION:\n-----------------------\n" + desc + "\n-----------------------\n";
+        String message = (text != null && !text.isBlank() ? "USER TEXT: " + text + "\n\n" : "") +
+                         "IMAGE DESCRIPTIONS:\n-----------------------\n" + desc + "\n-----------------------\n";
         return processText(chatId, message);
     }
 
@@ -183,12 +182,14 @@ GOLDEN RULES:
         return chatAgent.chat(chatId, prompt, text);
     }
 
-    private String viewImage(String systemPrompt, Image image) {
+    private String viewImages(String systemPrompt, List<Image> images) {
         var systemMessage = dev.langchain4j.data.message.SystemMessage.from(systemPrompt);
-        var userMessage = dev.langchain4j.data.message.UserMessage.from(
-            TextContent.from("Please analyze this image."),
-            ImageContent.from(image)
-        );
+        List<dev.langchain4j.data.message.Content> contents = new java.util.ArrayList<>();
+        contents.add(TextContent.from("Please analyze these images."));
+        for (Image img : images) {
+            contents.add(ImageContent.from(img));
+        }
+        var userMessage = dev.langchain4j.data.message.UserMessage.from(contents);
         List<ChatMessage> messages = List.of(systemMessage, userMessage);
         ChatResponse response = visionModel.chat(messages);
         return response.aiMessage().text();

@@ -120,12 +120,40 @@ export function EventsPage() {
           d.description?.toLowerCase().includes(debouncedSearch.toLowerCase())
         )
       : [],
-    [isDraftFilter, draftEvents, debouncedSearch],
+    [isDraftFilter, draftEvents, debouncedSearch]
   );
+
+  const [isConfirming, setIsConfirming] = useState(false);
+
+  const handleConfirmAll = async () => {
+    if (!filteredDrafts.length || isConfirming) return;
+    setIsConfirming(true);
+    try {
+      const { eventsService } = await import('@/services/events.service');
+      const { draftsService } = await import('@/services/drafts.service');
+      // Process drafts sequentially to avoid overwhelming the backend
+      for (const draft of filteredDrafts) {
+        if (!draft.id || !draft.draftId) continue;
+        const creationPayload = {
+          ...draft,
+          id: undefined, // remove front-end id logic or draft id to let backend create
+          draftId: undefined
+        };
+        await eventsService.create(creationPayload as unknown as import('@/models').CreateEventDto);
+        await draftsService.delete(draft.draftId);
+      }
+      // Refresh the page or invalidate queries
+      window.location.reload(); 
+    } catch (err) {
+      console.error('Failed to confirm all drafts', err);
+      alert(t('common.error'));
+      setIsConfirming(false);
+    }
+  };
 
   const allEvents = useMemo(
     () => isDraftFilter ? filteredDrafts : (paged?.content ?? []),
-    [isDraftFilter, filteredDrafts, paged],
+    [isDraftFilter, filteredDrafts, paged]
   );
   const totalPages = isDraftFilter ? 1 : (paged?.totalPages ?? 1);
   const totalElements = isDraftFilter ? filteredDrafts.length : (paged?.totalElements ?? 0);
@@ -137,14 +165,14 @@ export function EventsPage() {
     allEvents
       .filter((e) => e.type === 'INBOUND')
       .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0),
-    [allEvents],
+    [allEvents]
   );
 
   const totalExpenses = useMemo(() =>
     allEvents
       .filter((e) => e.type === 'OUTBOUND')
       .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0),
-    [allEvents],
+    [allEvents]
   );
 
   const filterBtns: { label: string; value: FilterType }[] = [
@@ -164,10 +192,18 @@ export function EventsPage() {
         title={t('events.title')}
         subtitle={t('events.eventsCount', { count: totalElements })}
         action={
-          <Button size="sm" onClick={() => setShowPicker(true)}>
-            <Icon name="add" className="text-sm" />
-            {t('common.new')}
-          </Button>
+          <div className="flex gap-2">
+            {isDraftFilter && filteredDrafts.length > 0 && (
+              <Button size="sm" variant="secondary" onClick={handleConfirmAll} disabled={isConfirming}>
+                <Icon name="check_all" className="text-sm" />
+                {isConfirming ? t('common.loading') : t('drafts.confirmAll')}
+              </Button>
+            )}
+            <Button size="sm" onClick={() => setShowPicker(true)}>
+              <Icon name="add" className="text-sm" />
+              {t('common.new')}
+            </Button>
+          </div>
         }
       />
 

@@ -1,27 +1,26 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ChatMode = 'query' | 'agent';
-
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  imageUrl?: string;
+  imageUrls?: string[];
   timestamp: string;
 }
 
 interface ChatStoreState {
   chatId: string;
   messages: ChatMessage[];
-  mode: ChatMode;
   isClearing: boolean;
+  draftImages: File[];
 
   addMessage: (msg: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
-  setMode: (mode: ChatMode) => void;
   clearChat: () => void;
   newChat: () => void;
   clearBackendMemory: () => Promise<void>;
+  trimBackendMemory: (textToMatch: string) => Promise<void>;
+  setDraftImages: (images: File[]) => void;
 }
 
 import { chatService } from '@/services/chatService';
@@ -31,8 +30,8 @@ export const useChatStore = create<ChatStoreState>()(
     (set, get) => ({
       chatId: crypto.randomUUID(),
       messages: [],
-      mode: 'query' as ChatMode,
       isClearing: false,
+      draftImages: [],
 
       addMessage: (msg) =>
         set((s) => ({
@@ -45,8 +44,6 @@ export const useChatStore = create<ChatStoreState>()(
             },
           ],
         })),
-
-      setMode: (mode) => set({ mode }),
 
       clearChat: () => set({ messages: [] }),
 
@@ -66,7 +63,31 @@ export const useChatStore = create<ChatStoreState>()(
           set({ isClearing: false });
         }
       },
+
+      trimBackendMemory: async (textToMatch: string) => {
+        const { chatId, messages } = get();
+        set({ isClearing: true });
+        try {
+          await chatService.trimMemory(chatId, textToMatch);
+          // Also trim locally
+          const matchIndex = [...messages].reverse().findIndex(m => m.role === 'user' && m.content.includes(textToMatch));
+          if (matchIndex !== -1) {
+            const actualIndex = messages.length - 1 - matchIndex;
+            set({ messages: messages.slice(0, actualIndex) });
+          }
+        } finally {
+          set({ isClearing: false });
+        }
+      },
+
+      setDraftImages: (images: File[]) => set({ draftImages: images }),
     }),
-    { name: 'mpbd-chat' }
+    { 
+      name: 'mpbd-chat',
+      partialize: (state) => ({ 
+        chatId: state.chatId, 
+        messages: state.messages 
+      })
+    }
   )
 );

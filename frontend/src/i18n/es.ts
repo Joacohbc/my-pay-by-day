@@ -70,6 +70,8 @@ const es = {
     modeAgentHint: 'Crea eventos y borradores desde texto o imágenes',
     clearMemory: 'Borrar Memoria',
     confirmClearMemory: '¿Estás seguro de que deseas borrar la memoria del IA? El historial de la conversación se perderá.',
+    user: 'Tú',
+    assistant: 'Asistente',
   },
 
   // ─── Greetings ───────────────────────────────────────────────────────────
@@ -415,6 +417,7 @@ const es = {
   // ─── Drafts ──────────────────────────────────────────────────────────────
   drafts: {
     title: 'Borradores',
+    confirmAll: 'Confirmar Todos',
     save: 'Guardar como Borrador',
     untitledDraft: 'Borrador sin título',
     delete: 'Eliminar borrador',

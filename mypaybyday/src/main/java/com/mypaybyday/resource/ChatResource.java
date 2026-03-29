@@ -19,6 +19,8 @@ import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.Base64;
+import java.util.List;
+import java.util.ArrayList;
 
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -68,8 +70,7 @@ public class ChatResource {
     public Response chat(
             @RestForm String chatId,
             @RestForm String message,
-            @RestForm String mode,
-            @RestForm("image") FileUpload image) {
+            @RestForm("images") List<FileUpload> images) {
 
         if (chatId == null || chatId.isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -77,32 +78,29 @@ public class ChatResource {
                     .build();
         }
 
-        boolean hasImage = image != null;
+        boolean hasImages = images != null && !images.isEmpty();
 
         try {
             String aiResponse;
-            String base64Data = null;
-            String mimeType = null;
 
-            if (hasImage) {
-                byte[] imageBytes;
-                try (InputStream is = Files.newInputStream(image.uploadedFile())) {
-                    imageBytes = is.readAllBytes();
+            if (hasImages) {
+                log.infof("Chat request [chatId=%s, imageCount=%d]", chatId, images.size());
+                List<Image> extractedImages = new ArrayList<>();
+                for (FileUpload img : images) {
+                    byte[] imageBytes;
+                    try (InputStream is = Files.newInputStream(img.uploadedFile())) {
+                        imageBytes = is.readAllBytes();
+                    }
+                    String base64Data = Base64.getEncoder().encodeToString(imageBytes);
+                    String mimeType = img.contentType();
+                    if (mimeType == null || mimeType.isBlank()) {
+                        mimeType = "image/jpeg";
+                    }
+                    extractedImages.add(agentFinanceEventCreator.buildImage(base64Data, mimeType));
                 }
-                base64Data = Base64.getEncoder().encodeToString(imageBytes);
-                mimeType = image.contentType();
-                if (mimeType == null || mimeType.isBlank()) {
-                    mimeType = "image/jpeg";
-                }
-                log.infof("Chat request [chatId=%s, mode=agent, mimeType=%s, imageSize=%d bytes]", chatId, mimeType, imageBytes.length);
+                aiResponse = agentFinanceEventCreator.processImages(chatId, extractedImages, message);
             } else {
                 log.infof("Chat request [chatId=%s, mode=agent]", chatId);
-            }
-
-            if(hasImage) {
-                Image imageIa = agentFinanceEventCreator.buildImage(base64Data, mimeType);
-                aiResponse = agentFinanceEventCreator.processImage(chatId, imageIa);
-            } else {
                 aiResponse = agentFinanceEventCreator.processText(chatId, message);
             }
 
@@ -114,6 +112,31 @@ public class ChatResource {
                     .entity(new ChatResponseDto("Failed to process request: " + e.getMessage()))
                     .build();
         }
+    }
+
+    public static class TrimRequestDto {
+        private String textToMatch;
+        public String getTextToMatch() { return textToMatch; }
+        public void setTextToMatch(String textToMatch) { this.textToMatch = textToMatch; }
+    }
+
+    @POST
+    @Path("/{chatId}/trim")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Operation(summary = "Trim chat memory", description = "Trims the AI's memory from the last user message containing the specific text.")
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "Memory trimmed"),
+            @APIResponse(responseCode = "400", description = "Invalid request")
+    })
+    public Response trimMemory(
+            @PathParam("chatId") String chatId,
+            TrimRequestDto request) {
+        
+        if (chatId == null || chatId.isBlank() || request == null || request.getTextToMatch() == null) {
+            return Response.status(Response.Status.BAD_REQUEST).build();
+        }
+        chatMemoryBean.trimFromMessageContent(chatId, request.getTextToMatch());
+        return Response.ok().build();
     }
 
     @DELETE

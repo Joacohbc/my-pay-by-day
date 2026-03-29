@@ -170,18 +170,10 @@ public class IntelligentEventService {
 
         transaction.lineItems = lineItems;
 
-        // Delegate persistence and validation to the existing service
-        try {
-            FinanceEventDto eventDto = eventService.create(event);
-            log.infof("Event created for intelligent event: %s", eventDto.name());
-            return IntelligentEventResponseDto.builder()
-                    .type(IntelligentEventResponseDto.ResponseType.EVENT)
-                    .event(eventDto)
-                    .build();
-        } catch (Exception e) {
-            log.warnf("Intelligent event creation failed, falling back to draft. Error: %s", e.getMessage());
-            return createDraftFallback(FinanceEventDto.from(event));
-        }
+        // Always create a Draft as requested by user logic
+        FinanceEventDto eventDto = FinanceEventDto.from(event);
+        log.infof("Delegating to createDraftFallback for event: %s", eventDto.name());
+        return createDraftFallback(eventDto);
     }
 
     private IntelligentEventResponseDto createDraftFallback(FinanceEventDto dto) {
