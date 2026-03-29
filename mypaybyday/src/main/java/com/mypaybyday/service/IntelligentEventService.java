@@ -99,10 +99,13 @@ public class IntelligentEventService {
             extraction.getTransactionDate()
         );
 
+        String description = agentFinanceEventCreator.generateDescription(request.getText(), languageContext.getLang());
+        log.infof("AI generated description: %s", description);
+
         // Map the extracted DTO to the entities
         FinanceEvent event = new FinanceEvent();
         event.name = extraction.getName();
-        event.description = "Created intelligently from: " + request.getText();
+        event.description = description;
         event.type = EventType.OUTBOUND;
 
         // Map Category

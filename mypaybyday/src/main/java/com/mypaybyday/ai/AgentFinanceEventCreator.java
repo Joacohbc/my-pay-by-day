@@ -198,6 +198,18 @@ GOLDEN RULES:
         return chatAgent.extractEvent(systemPrompt, text);
     }
 
+    public String generateDescription(String originalText, String lang) {
+        String systemPrompt = """
+You are a personal finance assistant. Generate a short, human-readable description (1-2 sentences) for a financial transaction, written in %s.
+Summarize what happened, who was involved, and any relevant context extracted from the user's input.
+PLAIN TEXT ONLY. No markdown, no bullet points. Return only the description text, nothing else.
+""".formatted(lang);
+        var systemMessage = dev.langchain4j.data.message.SystemMessage.from(systemPrompt);
+        var userMessage = dev.langchain4j.data.message.UserMessage.from(originalText);
+        ChatResponse response = primaryModel.chat(List.of(systemMessage, userMessage));
+        return response.aiMessage().text();
+    }
+
     private String buildSystemPrompt(String prompt) {
         String now = LocalDateTime.now().toString();
         String lang = languageContext.getLang();
