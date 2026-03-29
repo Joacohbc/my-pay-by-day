@@ -236,50 +236,42 @@ export function EventsPage() {
               placeholder={t('events.dateField')}
             />
 
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <Input
-                  type="date"
-                  label={t('events.startDate')}
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-              </div>
-              <div className="flex-1">
-                <Input
-                  type="date"
-                  label={t('events.endDate')}
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                type="date"
+                label={t('events.startDate')}
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+              <Input
+                type="date"
+                label={t('events.endDate')}
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
             </div>
 
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <SearchableSelect
-                  label={t('common.category')}
-                  value={categoryId}
-                  options={[
-                    { value: '', label: t('common.all') },
-                    ...categories.map(c => ({ value: c.id, label: c.name }))
-                  ]}
-                  onChange={(val) => setCategoryId(val ? Number(val) : 0)}
-                  placeholder={t('common.category')}
-                />
-              </div>
-              <div className="flex-1">
-                <SearchableSelect
-                  label={t('common.tag')}
-                  value={tagId}
-                  options={[
-                    { value: '', label: t('common.all') },
-                    ...tags.map(t => ({ value: t.id, label: t.name }))
-                  ]}
-                  onChange={(val) => setTagId(val ? Number(val) : 0)}
-                  placeholder={t('common.tag')}
-                />
-              </div>
+            <div className="grid grid-cols-2 gap-3">
+              <SearchableSelect
+                label={t('common.category')}
+                value={categoryId}
+                options={[
+                  { value: '', label: t('common.all') },
+                  ...categories.map(c => ({ value: c.id, label: c.name }))
+                ]}
+                onChange={(val) => setCategoryId(val ? Number(val) : 0)}
+                placeholder={t('common.category')}
+              />
+              <SearchableSelect
+                label={t('common.tag')}
+                value={tagId}
+                options={[
+                  { value: '', label: t('common.all') },
+                  ...tags.map(t => ({ value: t.id, label: t.name }))
+                ]}
+                onChange={(val) => setTagId(val ? Number(val) : 0)}
+                placeholder={t('common.tag')}
+              />
             </div>
           </div>
         </div>
