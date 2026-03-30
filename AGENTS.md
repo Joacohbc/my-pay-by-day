@@ -188,7 +188,28 @@ Every endpoint **must** return the appropriate HTTP status code:
 
 ---
 
-## 11. Coding Conventions
+## 11. Docker — Dockerfile Consistency Rule
+
+The project has **three Dockerfile contexts** that must stay in sync:
+
+| File | Scope |
+|---|---|
+| `frontend/Dockerfile` | Frontend-only image (nginx:alpine, serves the SPA) |
+| `mypaybyday/src/main/docker/Dockerfile.native-multistage` | Backend-only image (Quarkus GraalVM native) |
+| `docker/Dockerfile` | Combined image (frontend + backend in a single container, Quarkus JVM mode) |
+
+**Rule:** Any change to a component's Dockerfile **must also be reflected in the root combined `Dockerfile`**. Examples:
+
+* Changing the Node version in `frontend/Dockerfile` → update the `frontend-builder` stage in the root `Dockerfile`.
+* Changing the Maven/Java version in `Dockerfile.native-multistage` → update the `backend-builder` and final stage in the root `Dockerfile`.
+* Adding a new build step, env var, or volume in either component Dockerfile → replicate it in the corresponding stage of the root `Dockerfile`.
+* Changing the entrypoint or nginx config in `frontend/Dockerfile` → review `nginx-combined.conf` and `entrypoint-combined.sh` accordingly.
+
+When modifying any Dockerfile, always open and review all three to ensure they remain consistent.
+
+---
+
+## 12. Coding Conventions
 
 1. **Explicit Exception Declaration:** Every method in the service and validator layers that throws or propagates a `BusinessException` — even though it is unchecked — **must** declare it explicitly in its `throws` clause. This makes the contract visible at the call site without requiring callers to read the implementation.
 2. **Resources use Services, never Repositories:** The resource layer must inject and call the service layer exclusively. Direct repository access from a resource bypasses all business-rule validation and is forbidden.
