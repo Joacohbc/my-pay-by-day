@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { idbStorage } from '@/lib/idbStorage';
 
 export interface ChatMessage {
   id: string;
@@ -82,11 +83,12 @@ export const useChatStore = create<ChatStoreState>()(
 
       setDraftImages: (images: File[]) => set({ draftImages: images }),
     }),
-    { 
+    {
       name: 'mpbd-chat',
-      partialize: (state) => ({ 
-        chatId: state.chatId, 
-        messages: state.messages 
+      storage: createJSONStorage(() => idbStorage),
+      partialize: (state) => ({
+        chatId: state.chatId,
+        messages: state.messages
       })
     }
   )

@@ -7,16 +7,16 @@ import type { ChatSendParams } from '@/models/chat';
 
 export function useChatUI() {
   const { t } = useTranslation();
-  const { 
-    chatId, 
-    messages, 
-    isClearing, 
-    draftImages, 
-    setDraftImages, 
-    addMessage, 
-    newChat, 
-    clearBackendMemory, 
-    trimBackendMemory 
+  const {
+    chatId,
+    messages,
+    isClearing,
+    draftImages,
+    setDraftImages,
+    addMessage,
+    newChat,
+    clearBackendMemory,
+    trimBackendMemory
   } = useChatStore();
 
   const [input, setInput] = useState('');
@@ -52,26 +52,41 @@ export function useChatUI() {
     };
   }, [imagePreviewUrls]);
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback(async () => {
     const userText = input.trim();
     if (!userText && draftImages.length === 0) return;
-
-    addMessage({
-      role: 'user',
-      content: userText || t('chat.imageUploaded'),
-      imageUrls: imagePreviewUrls.length > 0 ? [...imagePreviewUrls] : undefined,
-    });
 
     const currentImages = [...draftImages];
     setInput('');
     setDraftImages([]);
 
-    sendMutation.mutate({ 
-      chatId, 
-      message: userText, 
-      images: currentImages.length > 0 ? currentImages : undefined 
+    let base64Urls: string[] | undefined;
+    if (currentImages.length > 0) {
+      base64Urls = await Promise.all(
+        currentImages.map(
+          (file) =>
+            new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            })
+        )
+      );
+    }
+
+    addMessage({
+      role: 'user',
+      content: userText || t('chat.imageUploaded'),
+      imageUrls: base64Urls,
     });
-  }, [input, draftImages, addMessage, t, imagePreviewUrls, setDraftImages, sendMutation, chatId]);
+
+    sendMutation.mutate({
+      chatId,
+      message: userText,
+      images: currentImages.length > 0 ? currentImages : undefined
+    });
+  }, [input, draftImages, addMessage, t, setDraftImages, sendMutation, chatId]);
 
   const handleNewChat = useCallback(() => {
     setDraftImages([]);
