@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useEvent, useDeleteEvent } from '@/hooks/useEvents';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -43,9 +43,11 @@ export function EventDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: event, isLoading, error } = useEvent(Number(id));
   const deleteEvent = useDeleteEvent();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const cameFromEvents = location.key !== 'default';
 
   if (isLoading) return <FullPageSpinner />;
   if (error || !event) return <ErrorState message={t('errors.eventNotFound')} />;
@@ -55,7 +57,11 @@ export function EventDetailPage() {
 
   const confirmDelete = async () => {
     await deleteEvent.mutateAsync(event.id);
-    navigate('/events', { replace: true });
+    if (cameFromEvents) {
+      navigate(-1);
+    } else {
+      navigate('/events', { replace: true });
+    }
   };
 
   return (

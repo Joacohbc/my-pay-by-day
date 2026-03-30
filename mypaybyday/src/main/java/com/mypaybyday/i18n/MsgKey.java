@@ -68,10 +68,7 @@ public enum MsgKey {
 
     // ── Event Draft ──────────────────────────────────────
     DRAFT_NOT_FOUND("error.draft.not_found"),
-    DRAFT_INVALID_PAYLOAD("error.draft.invalid_payload"),
-
-    // ── AI ───────────────────────────────────────────────
-    AI_SYSTEM_PROMPT("ai.system.prompt");
+    DRAFT_INVALID_PAYLOAD("error.draft.invalid_payload");
 
     /** The property key used to look up this message in the resource bundle. */
     public final String key;

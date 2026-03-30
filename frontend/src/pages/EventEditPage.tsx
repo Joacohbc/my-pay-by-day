@@ -54,7 +54,7 @@ export function EventEditPage() {
     if (idToDelete) {
       await deleteDraft.mutateAsync(idToDelete);
     }
-    navigate('/events', { replace: true });
+    navigate(-1);
   };
 
   return (

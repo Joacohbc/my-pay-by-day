@@ -103,12 +103,5 @@ public class FinanceLineItem extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     public BigDecimal amount;
 
-    @Override
-    public String toRagContent() {
-        return String.format(
-                "A line item records a monetary value of %s associated with the finance node '%s' (ID: %s).",
-                amount != null ? amount.toString() : "zero",
-                financeNode != null ? financeNode.name : "unknown node",
-                financeNode != null && financeNode.id != null ? financeNode.id.toString() : "unknown ID");
-    }
 }
+

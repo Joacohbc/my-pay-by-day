@@ -61,25 +61,4 @@ public class FinanceTransaction extends BaseEntity {
     @Builder.Default
     public List<FinanceLineItem> lineItems = new ArrayList<>();
 
-    @Override
-    public String toRagContent() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(String.format("Transaction ID %s records a financial movement on %s. ",
-                id != null ? id.toString() : "NEW",
-                transactionDate));
-
-        if (lineItems != null && !lineItems.isEmpty()) {
-            sb.append(String.format("It involves %d atomic line items: ", lineItems.size()));
-            String details = lineItems.stream()
-                    .map(li -> String.format("%s for %s",
-                            li.amount != null ? li.amount : "0",
-                            li.financeNode != null ? li.financeNode.name : "unknown"))
-                    .collect(java.util.stream.Collectors.joining(", "));
-            sb.append(details).append(".");
-        } else {
-            sb.append("No line items are currently associated with this transaction.");
-        }
-
-        return sb.toString();
-    }
 }

@@ -21,9 +21,5 @@ public class Tag extends BaseEntity {
     public String name;
 
     public String description;
-    @Override
-    public String toRagContent() {
-        return String.format("There is a tag named '%s'%s.",
-                name, description != null ? " used for: " + description : "");
-    }
 }
+

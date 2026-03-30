@@ -14,4 +14,10 @@ public class ChatRequestDto {
 
     @NotBlank
     private String message;
+
+    /**
+     * Chat mode: "query" for read-only queries (default), "agent" for creating events/drafts.
+     * When null or blank, defaults to "query".
+     */
+    private String mode;
 }

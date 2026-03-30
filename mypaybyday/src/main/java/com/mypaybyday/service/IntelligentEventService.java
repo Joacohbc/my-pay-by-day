@@ -1,6 +1,6 @@
 package com.mypaybyday.service;
 
-import com.mypaybyday.ai.FinanceExtractor;
+import com.mypaybyday.ai.AgentFinanceEventCreator;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.FinanceEventExtractionDto;
 import com.mypaybyday.dto.RawTextEventRequestDto;
@@ -12,12 +12,10 @@ import com.mypaybyday.entity.FinanceTransaction;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.LanguageContext;
-import com.mypaybyday.i18n.Messages;
-import com.mypaybyday.i18n.MsgKey;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mypaybyday.dto.IntelligentEventResponseDto;
-import com.mypaybyday.entity.EntityDraft;
 import com.mypaybyday.enums.EntityType;
+import com.mypaybyday.repository.CategoryRepository;
+import com.mypaybyday.repository.FinanceNodeRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -27,6 +25,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.jboss.logging.Logger;
 
@@ -35,43 +34,51 @@ public class IntelligentEventService {
 
     private static final Logger log = Logger.getLogger(IntelligentEventService.class);
 
-    private final FinanceExtractor financeExtractor;
+    private final AgentFinanceEventCreator agentFinanceEventCreator;
     private final EventService eventService;
     private final EntityDraftService draftService;
     private final LanguageContext languageContext;
-    private final Messages messages;
+    private final FinanceNodeRepository financeNodeRepository;
+    private final CategoryRepository categoryRepository;
 
     @Inject
-    public IntelligentEventService(FinanceExtractor financeExtractor, EventService eventService,
-            EntityDraftService draftService, LanguageContext languageContext, Messages messages) {
-        this.financeExtractor = financeExtractor;
+    public IntelligentEventService(AgentFinanceEventCreator agentFinanceEventCreator, EventService eventService,
+            EntityDraftService draftService, LanguageContext languageContext,
+            FinanceNodeRepository financeNodeRepository, CategoryRepository categoryRepository) {
+        this.agentFinanceEventCreator = agentFinanceEventCreator;
         this.eventService = eventService;
         this.draftService = draftService;
         this.languageContext = languageContext;
-        this.messages = messages;
+        this.financeNodeRepository = financeNodeRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     public IntelligentEventResponseDto createFromText(RawTextEventRequestDto request) throws BusinessException {
-        // Construct the AI context
-        String systemPrompt = messages.get(MsgKey.AI_SYSTEM_PROMPT, LocalDateTime.now().toString(), languageContext.getLang());
+        String systemPrompt = buildSystemPrompt(LocalDateTime.now().toString(), languageContext.getLang());
+
+        // Pre-fetch context so the LLM can pick IDs without needing tool calls
+        // (tool-calling and structured POJO output are mutually exclusive in LangChain4j)
+        String nodesContext = buildNodesContext();
+        String categoriesContext = buildCategoriesContext();
 
         String extractionPrompt = systemPrompt + "\n\n" +
+                "AVAILABLE FINANCE NODES (pick sourceNodeId and destinationNodeId from these):\n" +
+                nodesContext + "\n\n" +
+                "AVAILABLE CATEGORIES (pick categoryId from these):\n" +
+                categoriesContext + "\n\n" +
                 "TASK:\n" +
-                "Extract the transaction details using ONLY the IDs provided in the context.\n" +
+                "Extract the transaction details from the user's text using the context provided above.\n\n" +
                 "RULES FOR FIELDS:\n" +
-                "- name: Must be a descriptive and meaningful title. Avoid generic words like 'Purchase' or 'Food'. Include the business/service name and context (e.g., 'Dinner at Burger King', 'Monthly Salary from TechCorp', 'Groceries at Walmart').\n" +
+                "- name: Must be a descriptive and meaningful title. Include the business/service name and context (e.g., 'Dinner at Burger King', 'Monthly Salary from TechCorp').\n" +
                 "- amount: Total absolute amount of the transaction. Always positive, no currency symbols.\n" +
-                "- sourceNodeId (who pays / where the money comes from): Carefully analyze the historical context and past events. If not explicit, infer based on past similar transactions found in the historical data.\n" +
-                "- destinationNodeId (who receives / where the money goes to): Carefully analyze the historical context. If ambiguous, look at where similar past events were routed to find the exact destination node ID.\n" +
-                "- categoryId: Look at the historical context to infer the most appropriate category ID based on the event's name, nodes, and how similar events were categorized in the past. Null if unclear.\n" +
-                "- transactionDate: The date in YYYY-MM-DD format. Extract from text if present, otherwise leave null.\n" +
-                "- IMPORTANT: Return ONLY valid JSON as your response. Do not include any conversational text, explanations, greetings, or markdown formatting (like ```json).\n\n"
-                +
-                "EXAMPLE:\n" +
-                "Context: Nodes: [id: 1, name: Wallet], [id: 2, name: Supermarket]. Categories: [id: 5, name: Food].\n"
-                +
-                "Text: Spent 50 in the supermarket from my wallet.\n" +
-                "Output: { \"name\": \"Groceries at Supermarket\", \"amount\": 50.00, \"sourceNodeId\": 1, \"destinationNodeId\": 2, \"categoryId\": 5 }\n\n";
+                "- sourceNodeId: The ID of the node where money comes FROM. Pick from the AVAILABLE FINANCE NODES list above.\n" +
+                "- destinationNodeId: The ID of the node where money goes TO. Pick from the AVAILABLE FINANCE NODES list above.\n" +
+                "- categoryId: The ID of the most appropriate category from the AVAILABLE CATEGORIES list above. Null if unclear.\n" +
+                "- transactionDate: The date in YYYY-MM-DD format. Extract from text if present, otherwise leave null.\n\n" +
+                "CRITICAL OUTPUT RULES:\n" +
+                "- Return ONLY valid JSON matching the expected schema.\n" +
+                "- Do NOT include conversational text, greetings, explanations, or any markdown formatting (no ```json).\n" +
+                "- If the text lacks meaningful transaction data, return a JSON with null fields rather than an error message.\n\n";
 
         if (request.getInstructions() != null && !request.getInstructions().trim().isEmpty()) {
             extractionPrompt += "ADDITIONAL USER INSTRUCTIONS:\n" + request.getInstructions() + "\n\n";
@@ -80,7 +87,7 @@ public class IntelligentEventService {
         extractionPrompt += "Now process the user request.";
 
         // Call the Langchain4j structured output extraction
-        FinanceEventExtractionDto extraction = financeExtractor.extractEvent(request.getText(), extractionPrompt);
+        FinanceEventExtractionDto extraction = agentFinanceEventCreator.extractEvent(request.getText(), extractionPrompt);
 
         log.infof("AI extracted event from text: '%s'. Result: name=%s, amount=%s, sourceNodeId=%s, destinationNodeId=%s, categoryId=%s, date=%s",
             request.getText(),
@@ -92,10 +99,13 @@ public class IntelligentEventService {
             extraction.getTransactionDate()
         );
 
+        String description = agentFinanceEventCreator.generateDescription(request.getText(), languageContext.getLang());
+        log.infof("AI generated description: %s", description);
+
         // Map the extracted DTO to the entities
         FinanceEvent event = new FinanceEvent();
         event.name = extraction.getName();
-        event.description = "Created intelligently from: " + request.getText();
+        event.description = description;
         event.type = EventType.OUTBOUND;
 
         // Map Category
@@ -128,53 +138,48 @@ public class IntelligentEventService {
         BigDecimal amount = extraction.getAmount();
         boolean amountOk = amount != null && amount.compareTo(BigDecimal.ZERO) > 0;
 
-        if(extraction.getSourceNodeId() != null) {
-            FinanceLineItem sourceItem = new FinanceLineItem();
+        // Always create Source Line Item
+        FinanceLineItem sourceItem = new FinanceLineItem();
+        if (amountOk) {
+            sourceItem.setAmount(amount.negate());
+        }
 
-            if(amountOk) {
-                sourceItem.setAmount(amount.negate());
-            }
-
+        if (extraction.getSourceNodeId() != null) {
             FinanceNode sourceNode = new FinanceNode();
             sourceNode.id = extraction.getSourceNodeId();
             sourceItem.financeNode = sourceNode;
-            sourceItem.transaction = transaction;
-            lineItems.add(sourceItem);
         }
 
-        if(extraction.getDestinationNodeId() != null) {
-            FinanceLineItem destItem = new FinanceLineItem();
+        sourceItem.transaction = transaction;
+        lineItems.add(sourceItem);
 
-            if(amountOk) {
-                destItem.setAmount(amount);
-            }
+        // Always create Destination Line Item
+        FinanceLineItem destItem = new FinanceLineItem();
+        if (amountOk) {
+            destItem.setAmount(amount);
+        }
 
+        if (extraction.getDestinationNodeId() != null) {
             FinanceNode destNode = new FinanceNode();
             destNode.id = extraction.getDestinationNodeId();
             destItem.financeNode = destNode;
-            destItem.transaction = transaction;
-            lineItems.add(destItem);
         }
+
+        destItem.transaction = transaction;
+        lineItems.add(destItem);
 
         transaction.lineItems = lineItems;
 
-        // Delegate persistence and validation to the existing service
-        try {
-            FinanceEventDto eventDto = eventService.create(event);
-            return IntelligentEventResponseDto.builder()
-                    .type(IntelligentEventResponseDto.ResponseType.EVENT)
-                    .event(eventDto)
-                    .build();
-        } catch (Exception e) {
-            log.warnf("Intelligent event creation failed, falling back to draft. Error: %s", e.getMessage());
-            return createDraftFallback(FinanceEventDto.from(event));
-        }
+        // Always create a Draft as requested by user logic
+        FinanceEventDto eventDto = FinanceEventDto.from(event);
+        log.infof("Delegating to createDraftFallback for event: %s", eventDto.name());
+        return createDraftFallback(eventDto);
     }
 
     private IntelligentEventResponseDto createDraftFallback(FinanceEventDto dto) {
         try {
             draftService.create(EntityType.FINANCE_EVENT, dto);
-
+            log.infof("Draft created for intelligent event: %s", dto.name());
             return IntelligentEventResponseDto.builder()
                     .type(IntelligentEventResponseDto.ResponseType.DRAFT)
                     .event(dto)
@@ -183,5 +188,47 @@ public class IntelligentEventService {
             log.error("Critical failure: Could not even create a draft for the intelligent event", e);
             throw new BusinessException("Could not create event or draft from the provided text.");
         }
+    }
+
+    private String buildNodesContext() {
+        List<FinanceNode> nodes = financeNodeRepository.find("archived", false).list();
+        if (nodes.isEmpty()) {
+            return "No finance nodes available.";
+        }
+        return nodes.stream()
+                .map(n -> String.format("  - id=%d, name=%s, type=%s", n.id, n.name, n.type))
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String buildCategoriesContext() {
+        List<Category> categories = categoryRepository.listAll();
+        if (categories.isEmpty()) {
+            return "No categories available.";
+        }
+        return categories.stream()
+                .map(c -> String.format("  - id=%d, name=%s", c.id, c.name))
+                .collect(Collectors.joining("\n"));
+    }
+
+    private static String buildSystemPrompt(String now, String lang) {
+        return """
+You are a highly precise data extraction AI for a personal finance system.
+Your ONLY task is to extract structured financial transaction details from the user's text and map them to our internal IDs.
+
+CONTEXT:
+- Current system date and time: %s
+- User's primary language: %s
+
+DATA MODEL OVERVIEW:
+1. **FinanceEvent**: The financial transaction.
+2. **FinanceNode**: Any entity that holds, sends, or receives money.
+3. **Category**: Budget classification bucket.
+
+STRICT EXTRACTION RULES:
+1. NEVER reply with conversational text, greetings, apologies, or explanations. Just output the structured data.
+2. NEVER use markdown formatting like ```json or ```.
+3. IF the user's text DOES NOT contain a recognizable financial transaction, output empty/null fields instead of a conversational error.
+4. Your output will be consumed directly by a JSON parser. Any conversational text will cause a Fatal System Crash.
+""".formatted(now, lang);
     }
 }

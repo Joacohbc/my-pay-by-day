@@ -41,7 +41,7 @@ export function EventCard({ event, disableLink }: EventCardProps) {
 
   const content = (
     <>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 min-w-0 flex-1">
         {/* Icon */}
         {event.category && !event.isDraft ? (
           <CategoryIcon category={event.category} size="lg" shape="rounded-full" />
@@ -52,9 +52,9 @@ export function EventCard({ event, disableLink }: EventCardProps) {
         )}
 
         {/* Info */}
-        <div className="flex flex-col">
-          <span className="text-base font-medium text-dn-text-main flex items-center gap-2">
-            <span className="truncate max-w-[200px]">{event.name || t('drafts.untitledDraft')}</span>
+        <div className="flex flex-col flex-1 min-w-0">
+          <span className="text-base font-medium text-dn-text-main flex items-center gap-2 min-w-0">
+            <span className="truncate">{event.name || t('drafts.untitledDraft')}</span>
           </span>
           <span className="text-xs text-dn-text-muted">
             {event.category?.name ?? t(cfg.labelKey)}
@@ -64,7 +64,7 @@ export function EventCard({ event, disableLink }: EventCardProps) {
       </div>
 
       {/* Amount */}
-      <span className={`font-mono text-sm ${event.isDraft ? 'text-dn-text-muted' : cfg.amountClass}`}>
+      <span className={`font-mono text-sm shrink-0 whitespace-nowrap ${event.isDraft ? 'text-dn-text-muted' : cfg.amountClass}`}>
         {!event.isDraft && event.type === 'INBOUND' ? '+' : ''}
         {!event.isDraft && event.type === 'OUTBOUND' ? '-' : ''}
         {formatCurrency(Math.abs(net || 0))}
