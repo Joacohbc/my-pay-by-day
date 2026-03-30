@@ -42,7 +42,7 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
     <div
       className=""
     >
-      <div className="max-w-4xl mt-5 px-4 md:px-8 flex flex-col">
+      <div className={`max-w-4xl mx-auto mt-5 px-4 md:px-8 flex flex-col`}>
 
         {/* Header Row: Icon + Role + Actions */}
         <div className={`flex items-center gap-2 mb-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -78,7 +78,7 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
             <div className={`transition-all duration-300 ${isUser ? 'group-hover:blur-md group-hover:opacity-40 group-hover:select-none' : ''}`}>
               {isUser ? (
                 <div
-                  className="whitespace-pre-wrap text-sm leading-relaxed text-dn-text-main/90 text-right md:text-left selection:bg-dn-primary/30"
+                  className="whitespace-pre-wrap text-sm leading-relaxed text-dn-text-main/90 text-right selection:bg-dn-primary/30"
                   onMouseDown={handlePressStart}
                   onMouseUp={handlePressEnd}
                   onMouseLeave={handlePressEnd}
