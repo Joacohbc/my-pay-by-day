@@ -27,7 +27,7 @@ export function ChatInput({ inputContent, setInputContent, onSend, onImageSelect
   };
 
   return (
-    <div className="p-4 border-t border-dn-border bg-dn-surface mt-auto">
+    <div className="p-4 border-t border-dn-border/10 mt-auto">
       <form
         className="flex items-end space-x-2"
         onSubmit={(e) => {
@@ -51,8 +51,8 @@ export function ChatInput({ inputContent, setInputContent, onSend, onImageSelect
           disabled={isPending}
           className={`shrink-0 w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
             isPending
-              ? 'bg-dn-surface-low text-dn-text-main/20'
-              : 'bg-dn-surface-low text-dn-text-main/60 hover:text-dn-primary hover:bg-dn-primary/10'
+              ? 'text-dn-text-main/20'
+              : 'text-dn-text-main/60 hover:text-dn-primary hover:bg-dn-primary/10'
           }`}
           aria-label={t('chat.uploadImage')}
           title={t('chat.uploadImage')}
@@ -62,7 +62,7 @@ export function ChatInput({ inputContent, setInputContent, onSend, onImageSelect
 
         <Textarea
           containerClassName="flex-1 min-w-0"
-          className="px-4! py-2.5! text-sm transition-all min-h-[44px]! max-h-[200px]! overflow-y-auto"
+          className="px-4! py-2.5! text-sm transition-all min-h-[44px]! max-h-[200px]! overflow-y-auto bg-transparent!"
           placeholder={t('chat.placeholderAgent')}
           value={inputContent}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputContent(e.target.value)}
@@ -80,8 +80,8 @@ export function ChatInput({ inputContent, setInputContent, onSend, onImageSelect
           disabled={(!inputContent.trim() && !hasDraftImages) || isPending}
           className={`w-10 h-10 flex items-center justify-center rounded-full shrink-0 transition-colors ${
             (inputContent.trim() || hasDraftImages) && !isPending
-              ? 'bg-dn-primary text-dn-bg hover:bg-dn-primary/90'
-              : 'bg-dn-surface-low text-dn-text-main/30'
+              ? 'text-dn-primary hover:bg-dn-primary/10'
+              : 'text-dn-text-main/30'
           }`}
         >
           <Icon name="send" className="text-[18px]" />

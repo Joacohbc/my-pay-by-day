@@ -62,8 +62,6 @@ export function ChatPage() {
               key={msg.id}
               message={msg}
               onEdit={handleEditMessage}
-              isClearing={isClearing}
-              isPending={isPending}
             />
           ))
         )}
