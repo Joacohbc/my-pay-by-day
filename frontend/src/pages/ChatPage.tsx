@@ -68,7 +68,7 @@ export function ChatPage() {
 
         {/* Thinking Indicator */}
         {isPending && (
-          <div className="w-full py-6 md:py-8 bg-dn-bg border-b border-dn-border/20">
+          <div className="w-full py-6 md:py-8 bg-dn-bg">
             <div className="max-w-4xl mx-auto px-4 md:px-8 flex flex-col space-y-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-dn-surface-low border border-dn-border text-dn-primary/50 shadow-sm">
