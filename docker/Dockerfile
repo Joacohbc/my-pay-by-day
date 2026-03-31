@@ -47,7 +47,7 @@ COPY --from=backend-builder /app/target/quarkus-app/app/     /deployments/app/
 COPY --from=backend-builder /app/target/quarkus-app/quarkus/ /deployments/quarkus/
 
 # ── Configuration files ──
-COPY docker/nginx-combined.conf          /etc/nginx/conf.d/default.conf
+COPY docker/nginx-combined.conf          /etc/nginx/http.d/default.conf
 COPY docker/supervisord.conf             /etc/supervisor/conf.d/app.conf
 COPY docker/entrypoint-combined.sh       /entrypoint.sh
 RUN chmod +x /entrypoint.sh
