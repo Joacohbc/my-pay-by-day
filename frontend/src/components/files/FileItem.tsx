@@ -3,6 +3,7 @@ import type { FileDto } from '@/models';
 import { Icon } from '@/components/ui/Icon';
 import { MultimediaPreviewer } from '@/components/files/MultimediaPreviewer';
 import { formatFileSize } from '@/lib/format';
+import { getFileIcon } from '@/lib/fileUtils';
 
 interface FileItemProps {
   file: FileDto;
@@ -21,15 +22,7 @@ export function FileItem({ file, onClick, disablePreview = false }: FileItemProp
     }
   };
 
-  const getMimeIcon = (mime: string) => {
-    if (mime.startsWith('image/')) return 'image';
-    if (mime.startsWith('video/')) return 'movie';
-    if (mime.startsWith('audio/')) return 'audio_file';
-    if (mime === 'application/pdf') return 'picture_as_pdf';
-    return 'description';
-  };
-
-  const iconName = getMimeIcon(file.mimeType);
+  const iconName = getFileIcon(file.mimeType);
   const typeLabel = file.mimeType.split('/')[1]?.toUpperCase() || file.mimeType;
 
   return (

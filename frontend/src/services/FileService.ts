@@ -1,12 +1,12 @@
-import { api } from '@/services/api';
-import type { FileDto, PagedResponse, Base64FileUploadRequestDto } from '@/models';
+import { api, BASE_URL } from '@/services/api';
+import type { FileDto, FileWithEventDto, PagedResponse, Base64FileUploadRequestDto } from '@/models';
 
 export const FileService = {
   uploadBase64: async (data: Base64FileUploadRequestDto): Promise<FileDto> => {
     return api.post<FileDto>('/files/base64', data);
   },
 
-  getAll: async (page = 0, size = 20, orphaned?: boolean): Promise<PagedResponse<FileDto>> => {
+  getAll: async (page = 0, size = 20, orphaned?: boolean): Promise<PagedResponse<FileWithEventDto>> => {
     const params = new URLSearchParams({
       page: String(page),
       size: String(size),
@@ -14,7 +14,7 @@ export const FileService = {
     if (orphaned !== undefined) {
       params.append('orphaned', String(orphaned));
     }
-    return api.get<PagedResponse<FileDto>>(`/files?${params.toString()}`);
+    return api.get<PagedResponse<FileWithEventDto>>(`/files?${params.toString()}`);
   },
 
   getById: async (id: number): Promise<FileDto> => {
@@ -26,6 +26,6 @@ export const FileService = {
   },
 
   getContentUrl: (id: number): string => {
-    return `${import.meta.env.VITE_API_URL}/files/${id}/content`;
+    return `${BASE_URL}/files/${id}/content/binary`;
   }
 };

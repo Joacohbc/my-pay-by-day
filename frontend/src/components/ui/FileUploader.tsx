@@ -1,0 +1,191 @@
+import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/Icon';
+import { Modal } from '@/components/ui/Modal';
+import { useFiles, useUploadFile } from '@/hooks/useFiles';
+import { FileService } from '@/services/FileService';
+import type { FileDto } from '@/models';
+import { getFileIcon } from '@/lib/fileUtils';
+
+interface FileSelectorModalProps {
+  open: boolean;
+  onClose: () => void;
+  onSelect: (file: FileDto) => void;
+  excludeIds: number[];
+}
+
+function FileSelectorModal({ open, onClose, onSelect, excludeIds }: FileSelectorModalProps) {
+  const { t } = useTranslation();
+  const [search, setSearch] = useState('');
+  const { data: paged, isLoading } = useFiles(0, 200);
+
+  const files = useMemo(() => {
+    let result = paged?.content ?? [];
+    result = result.filter((f) => !excludeIds.includes(f.id));
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((f) => f.fileName.toLowerCase().includes(q));
+    }
+    return result;
+  }, [paged, search, excludeIds]);
+
+  return (
+    <Modal open={open} onClose={onClose} title={t('files.title')}>
+      <div className="space-y-3">
+        <div className="relative">
+          <Icon
+            name="search"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-base pointer-events-none"
+          />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('files.searchPlaceholder')}
+            className="w-full bg-dn-surface-low border border-white/5 rounded-xl pl-9 pr-4 py-2.5 text-sm text-dn-text-main placeholder:text-dn-text-muted focus:outline-none focus:ring-1 focus:ring-dn-primary/50"
+          />
+        </div>
+
+        {isLoading ? (
+          <p className="text-sm text-dn-text-muted text-center py-4">{t('common.loading')}</p>
+        ) : files.length === 0 ? (
+          <p className="text-sm text-dn-text-muted text-center py-4">{t('common.noResults')}</p>
+        ) : (
+          <div className="space-y-2 max-h-72 overflow-y-auto">
+            {files.map((file) => (
+              <button
+                key={file.id}
+                type="button"
+                onClick={() => onSelect(file)}
+                className="w-full flex items-center gap-3 p-3 bg-dn-surface-low hover:bg-dn-surface rounded-xl border border-white/5 hover:border-dn-primary/30 transition-all text-left"
+              >
+                <div className="w-9 h-9 shrink-0 bg-dn-surface rounded-lg flex items-center justify-center text-dn-text-muted">
+                  <Icon name={getFileIcon(file.mimeType)} className="text-base" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-dn-text-main truncate">{file.fileName}</p>
+                  <p className="text-xs text-dn-text-muted">
+                    {(file.size / 1024).toFixed(1)} KB · {file.mimeType.split('/')[1] || file.mimeType}
+                  </p>
+                </div>
+                <Icon name="add_circle" className="text-dn-primary shrink-0" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+export interface FileUploaderProps {
+  files: FileDto[];
+  onAddFile: (file: FileDto) => void;
+  onRemoveFile: (fileId: number) => void;
+}
+
+export function FileUploader({ files, onAddFile, onRemoveFile }: FileUploaderProps) {
+  const { t } = useTranslation();
+  const { mutateAsync: uploadFile, isPending } = useUploadFile();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [selectorOpen, setSelectorOpen] = useState(false);
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Content = reader.result as string;
+      try {
+        const uploadedFile = await uploadFile({
+          fileName: selectedFile.name,
+          mimeType: selectedFile.type,
+          base64Content,
+        });
+        onAddFile(uploadedFile);
+      } catch (error) {
+        console.error('File upload failed:', error);
+      } finally {
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsDataURL(selectedFile);
+  };
+
+  return (
+    <div>
+      <FileSelectorModal
+        open={selectorOpen}
+        onClose={() => setSelectorOpen(false)}
+        onSelect={(file) => { onAddFile(file); setSelectorOpen(false); }}
+        excludeIds={files.map((f) => f.id)}
+      />
+
+      <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2">{t('eventForm.files')}</p>
+
+      <div className="space-y-3">
+        {files.map((file) => (
+          <div key={file.id} className="flex items-center justify-between p-3 bg-dn-surface-low rounded-input border border-white/5">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="w-10 h-10 shrink-0 bg-dn-surface rounded-md flex items-center justify-center text-dn-text-muted">
+                <Icon name={getFileIcon(file.mimeType)} />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-medium truncate">{file.fileName}</span>
+                <span className="text-xs text-dn-text-muted uppercase tracking-wider mt-0.5">
+                  {(file.size / 1024).toFixed(1)} KB • {file.mimeType.split('/')[1] || file.mimeType}
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <a
+                href={FileService.getContentUrl(file.id)}
+                target="_blank"
+                rel="noreferrer"
+                className="p-2 text-dn-text-muted hover:text-dn-primary transition-colors"
+              >
+                <Icon name="visibility" className="text-[1.2rem]" />
+              </a>
+              <button
+                type="button"
+                onClick={() => onRemoveFile(file.id)}
+                className="p-2 text-dn-text-muted hover:text-dn-error transition-colors"
+              >
+                <Icon name="close" className="text-[1.2rem]" />
+              </button>
+            </div>
+          </div>
+        ))}
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isPending}
+            className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50"
+          >
+            <Icon name={isPending ? 'pending' : 'upload'} className={isPending ? 'animate-spin' : ''} />
+            <span className="text-sm font-medium">{isPending ? t('common.loading') : t('eventForm.uploadFile')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectorOpen(true)}
+            disabled={isPending}
+            className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50"
+          >
+            <Icon name="folder_open" />
+            <span className="text-sm font-medium">{t('eventForm.selectExistingFile')}</span>
+          </button>
+        </div>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          accept="image/*,video/*,.pdf"
+        />
+      </div>
+    </div>
+  );
+}

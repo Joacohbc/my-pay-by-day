@@ -14,6 +14,7 @@ import { TemplatesPage } from '@/pages/TemplatesPage';
 import { TimePeriodsPage } from '@/pages/TimePeriodsPage';
 import { TimePeriodDetailPage } from '@/pages/TimePeriodDetailPage';
 import { ChatPage } from '@/pages/ChatPage';
+import { FilesPage } from '@/pages/FilesPage';
 
 export const router = createBrowserRouter([
   {
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
       { path: 'settings/tags', element: <TagsPage /> },
       { path: 'settings/templates', element: <TemplatesPage /> },
       { path: 'settings/nodes', element: <NodesPage /> },
+      { path: 'settings/files', element: <FilesPage /> },
 
       // Fallback
       { path: '*', element: <Navigate to="/" replace /> },

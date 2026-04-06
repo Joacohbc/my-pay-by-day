@@ -14,6 +14,7 @@ import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatDateTime, eventNetAmount } from '@/lib/format';
 import { useState } from 'react';
 import { RelatedEventsSection } from '@/components/events/RelatedEventsSection';
+import { FileItem } from '@/components/files/FileItem';
 
 const eventTypeConfig = {
   INBOUND: {
@@ -186,6 +187,18 @@ export function EventDetailPage() {
           <EmptyState title={t('events.noLineItems')} />
         )}
       </div>
+
+      {/* Files */}
+      {event.files && event.files.length > 0 && (
+        <div className="px-5">
+          <h3 className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">{t('eventForm.files')}</h3>
+          <Card className="divide-y divide-white/5">
+            {event.files.map((file) => (
+              <FileItem key={file.id} file={file} />
+            ))}
+          </Card>
+        </div>
+      )}
 
       {/* Related Events */}
       <RelatedEventsSection event={event} />

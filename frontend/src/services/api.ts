@@ -22,7 +22,7 @@ function resolveBaseUrl(): string {
   return '/api';
 }
 
-const BASE_URL = resolveBaseUrl();
+export const BASE_URL = resolveBaseUrl();
 
 function withLang(path: string): string {
   const lang = i18n.language ?? 'en';

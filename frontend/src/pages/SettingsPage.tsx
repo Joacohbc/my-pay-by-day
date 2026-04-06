@@ -9,6 +9,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useTemplates } from '@/hooks/useTemplates';
 import { useNodes } from '@/hooks/useNodes';
+import { useFiles } from '@/hooks/useFiles';
 import { changeLanguage } from '@/i18n';
 import { getCurrency, setCurrency, onCurrencyChange } from '@/lib/format';
 import { commonTimezones } from '@/utils/timezones';
@@ -54,6 +55,7 @@ export function SettingsPage() {
   const { data: tagsPaged } = useTags();
   const { data: templatesPaged } = useTemplates();
   const { data: nodesPaged } = useNodes();
+  const { data: filesPaged } = useFiles(0, 1);
 
   useEffect(() => onCurrencyChange(() => _setCurrency(getCurrency())), []);
 
@@ -173,6 +175,13 @@ export function SettingsPage() {
             title={t('templates.title')}
             subtitle={t('settings.templatesDesc')}
             count={templatesPaged?.totalElements}
+          />
+          <SettingRow
+            to="/settings/files"
+            icon="attach_file"
+            title={t('files.title')}
+            subtitle={t('settings.filesDesc')}
+            count={filesPaged?.totalElements}
           />
         </Card>
       </section>

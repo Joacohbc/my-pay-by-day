@@ -80,11 +80,20 @@ export interface CreateTransactionDto {
 
 // ─── File ─────────────────────────────────────────────────────────────────────
 
+export interface EventSummary extends Identifiable {
+  name: string;
+  type: EventType;
+}
+
 export interface FileDto extends Identifiable {
   fileName: string;
   mimeType: string;
   size: number;
   isOrphan: boolean;
+}
+
+export interface FileWithEventDto extends FileDto {
+  events?: EventSummary[];
 }
 
 export interface Base64FileUploadRequestDto {
