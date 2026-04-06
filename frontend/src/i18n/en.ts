@@ -175,6 +175,8 @@ const en = {
     atLeastOneLine: 'At least one line item required',
     manualMode: 'Manual mode',
     simplifiedMode: 'Simplified mode',
+    files: 'Files',
+    uploadFile: 'Upload File',
   },
 
   // ─── Template Picker ────────────────────────────────────────────────────

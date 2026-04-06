@@ -175,6 +175,8 @@ const es = {
     atLeastOneLine: 'Se requiere al menos una partida',
     manualMode: 'Modo manual',
     simplifiedMode: 'Modo simplificado',
+    files: 'Archivos',
+    uploadFile: 'Subir Archivo',
   },
 
   // ─── Template Picker ────────────────────────────────────────────────────
