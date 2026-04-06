@@ -27,12 +27,7 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Pagination } from '@/components/ui/Pagination';
 import type { Subscription, EventType, RecurrenceFrequency, SubscriptionStatus } from '@/models';
 
-const EVENT_TYPE_LABELS: Record<string, string> = {
-  INBOUND: 'Income',
-  OUTBOUND: 'Expense',
-  OTHER: 'Transfer',
-};
-
+// EVENT_TYPE_COLORS provides the tailwind classes for each event type
 const EVENT_TYPE_COLORS: Record<string, string> = {
   INBOUND: 'text-dn-success bg-dn-success/10',
   OUTBOUND: 'text-dn-error bg-dn-error/10',
@@ -96,7 +91,7 @@ function SubscriptionCard({
             {sub.eventType && (
               <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${EVENT_TYPE_COLORS[sub.eventType] ?? 'text-dn-text-muted bg-dn-surface-low'}`}>
                 <Icon name={sub.eventType === 'OUTBOUND' ? 'upload' : sub.eventType === 'INBOUND' ? 'download' : 'sync_alt'} className="text-[13px]" />
-                {EVENT_TYPE_LABELS[sub.eventType]}
+                {t(`eventType.${sub.eventType}`)}
               </span>
             )}
 
@@ -115,7 +110,7 @@ function SubscriptionCard({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Details */}
           <div className="flex flex-col gap-3 min-w-0">
-            <h3 className="text-xs font-bold text-dn-text-main uppercase tracking-wider">{t('subscriptions.expenseDetails', 'Detalles de Gasto')}</h3>
+            <h3 className="text-xs font-bold text-dn-text-main uppercase tracking-wider">{t('subscriptions.expenseDetails')}</h3>
             
             {sub.category && (
               <div className="flex items-center gap-3">
@@ -152,7 +147,7 @@ function SubscriptionCard({
 
           {/* Amount */}
           <div className="flex flex-col gap-3 min-w-0">
-            <h3 className="text-xs font-bold text-dn-text-main uppercase tracking-wider">{t('subscriptions.amountToPay', 'Monto a Pagar')}</h3>
+            <h3 className="text-xs font-bold text-dn-text-main uppercase tracking-wider">{t('subscriptions.amountToPay')}</h3>
             
             {sub.modifierValue != null && (
               <div className="text-xl font-bold text-[#e1a5e3] tracking-tight break-all">
@@ -304,7 +299,7 @@ export function SubscriptionsPage() {
         onClose={() => setConfirmDeleteId(null)}
         onConfirm={confirmDelete}
         title={t('common.delete')}
-        message={t('subscriptions.deleteConfirm', 'Delete this subscription?')}
+        message={t('subscriptions.deleteConfirm')}
         confirmLabel={t('common.delete')}
         loading={deleteSub.isPending}
       />
@@ -368,7 +363,7 @@ export function SubscriptionsPage() {
           setShowModal(false);
           reset(DEFAULT_FORM);
         }}
-        title={editTarget ? t('subscriptions.editSubscription', 'Edit Subscription') : t('subscriptions.createSubscription')}
+        title={editTarget ? t('subscriptions.editSubscription') : t('subscriptions.createSubscription')}
         footer={
           <Button fullWidth onClick={handleSubmit(onSubmit)} loading={isSubmitting}>
             {editTarget ? t('common.update') : t('common.create')}
@@ -396,7 +391,7 @@ export function SubscriptionsPage() {
               rules={{ required: t('common.required') }}
               render={({ field }) => (
                 <SearchableSelect
-                  label={t('subscriptions.recurrenceLabel', 'Recurrence')}
+                  label={t('subscriptions.recurrenceLabel')}
                   placeholder={t('common.none')}
                   options={[
                     { value: 'DAILY', label: t('subscriptions.recurrence.DAILY') },
@@ -409,7 +404,7 @@ export function SubscriptionsPage() {
               )}
             />
             <Input
-              label={t('subscriptions.next', 'Next Execution')}
+              label={t('subscriptions.next')}
               type="date"
               error={errors.nextExecutionDate?.message}
               {...register('nextExecutionDate', { required: t('common.required') })}
@@ -423,10 +418,10 @@ export function SubscriptionsPage() {
               rules={{ required: t('common.required') }}
               render={({ field }) => (
                 <SearchableSelect
-                  label={t('common.status', 'Status')}
+                  label={t('common.status')}
                   options={[
-                    { value: 'ACTIVE', label: t('subscriptions.status.ACTIVE', 'Active') },
-                    { value: 'CANCELLED', label: t('subscriptions.status.CANCELLED', 'Cancelled') },
+                    { value: 'ACTIVE', label: t('subscriptions.status.ACTIVE') },
+                    { value: 'CANCELLED', label: t('subscriptions.status.CANCELLED') },
                   ]}
                   {...field}
                 />
@@ -535,7 +530,7 @@ export function SubscriptionsPage() {
 
           <Input
             label={t('eventForm.amount')}
-            placeholder="e.g. 5.00"
+            placeholder={t('eventForm.amountPlaceholderEg')}
             type="number"
             step="0.01"
             min="0"

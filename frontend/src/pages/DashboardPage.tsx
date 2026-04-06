@@ -69,7 +69,7 @@ export function DashboardPage() {
               className="text-xs text-dn-primary flex items-center gap-1"
               onClick={() => setDynamicPeriod(null)}
             >
-              <Icon name="arrow_back" className="text-sm" /> {defaultId !== null ? t('periods.backToDefault', 'Back to Default') : t('common.back', 'Back')}
+              <Icon name="arrow_back" className="text-sm" /> {defaultId !== null ? t('periods.backToDefault') : t('common.back')}
             </button>
           </div>
           <DynamicTimePeriodSelector

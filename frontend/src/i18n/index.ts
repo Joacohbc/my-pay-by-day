@@ -21,6 +21,7 @@ i18n.use(initReactI18next).init({
   lng: getSavedLanguage(),
   fallbackLng: 'en',
   interpolation: { escapeValue: false },
+  parseMissingKeyHandler: () => 'TRANSLATION NOT FOUND',
 });
 
 export function changeLanguage(lng: string) {

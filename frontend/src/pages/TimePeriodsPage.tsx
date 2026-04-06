@@ -452,7 +452,7 @@ export function TimePeriodsPage() {
                 onClick={() => appendBudget({ categoryId: '', budgetedAmount: '' })}
                 className="text-xs text-dn-primary flex items-center gap-1"
               >
-                <Icon name="add" className="text-sm" /> {t('common.add', 'Add')}
+                <Icon name="add" className="text-sm" /> {t('common.add')}
               </button>
             </div>
             {budgetFields.map((field, index) => (

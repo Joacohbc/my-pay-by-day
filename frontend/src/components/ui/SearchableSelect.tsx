@@ -131,7 +131,7 @@ export const SearchableSelect = forwardRef<HTMLDivElement, SearchableSelectProps
                     <input
                       type="text"
                       className="w-full bg-dn-surface-low text-base text-dn-text-main rounded-input pl-10 pr-4 py-3 outline-none focus:ring-1 focus:ring-dn-primary"
-                      placeholder={t('common.search', 'Search...')}
+                      placeholder={t('common.search')}
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       autoFocus
@@ -177,7 +177,7 @@ export const SearchableSelect = forwardRef<HTMLDivElement, SearchableSelectProps
                     ))
                   ) : (
                     <div className="px-4 py-12 text-center text-sm text-dn-text-muted">
-                      {t('common.noResults', 'No results found')}
+                      {t('common.noResults')}
                     </div>
                   )}
                 </div>
