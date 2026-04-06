@@ -1,15 +1,21 @@
 package com.mypaybyday.service;
 
 import com.mypaybyday.dto.Base64FileUploadRequestDto;
+import com.mypaybyday.dto.EventSummaryDto;
 import com.mypaybyday.dto.FileDto;
+import com.mypaybyday.dto.FileWithEventDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.FileEntity;
+import com.mypaybyday.entity.FinanceEvent;
 import com.mypaybyday.exception.BusinessException;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.HexFormat;
 import java.util.List;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -44,14 +50,30 @@ public class FileService {
             throw new BusinessException("file.size.exceeded");
         }
 
+        String hash = computeHash(data);
+        FileEntity existing = FileEntity.find("hash", hash).firstResult();
+        if (existing != null) {
+            return FileDto.from(existing, isOrphan(existing.id));
+        }
+
         FileEntity file = new FileEntity();
         file.fileName = fileName;
         file.mimeType = mimeType;
         file.size = data.length;
         file.data = data;
+        file.hash = hash;
         file.persist();
 
         return FileDto.from(file);
+    }
+
+    private String computeHash(byte[] data) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(md.digest(data));
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public FileDto getFileMetadata(Long id) throws BusinessException {
@@ -70,7 +92,13 @@ public class FileService {
         return file;
     }
 
-    public PagedResponse<FileDto> listFiles(int page, int size, Boolean orphaned) {
+    public String getFileContentAsBase64(Long id) throws BusinessException {
+        FileEntity file = getFileContent(id);
+        String base64Encoded = Base64.getEncoder().encodeToString(file.data);
+        return "data:" + file.mimeType + ";base64," + base64Encoded;
+    }
+
+    public PagedResponse<FileWithEventDto> listFiles(int page, int size, Boolean orphaned) {
         PanacheQuery<FileEntity> query;
 
         if (orphaned != null && orphaned) {
@@ -83,9 +111,13 @@ public class FileService {
 
         query.page(Page.of(page, size));
 
-        List<FileDto> dtos = query.list().stream().map(file -> {
-            boolean isOprhanStatus = isOrphan(file.id);
-            return FileDto.from(file, isOprhanStatus);
+        List<FileWithEventDto> dtos = query.list().stream().map(file -> {
+            List<FinanceEvent> associatedEvents = getAssociatedEvents(file.id);
+            boolean isOrphanStatus = associatedEvents.isEmpty();
+            List<EventSummaryDto> eventSummaries = associatedEvents.stream()
+                .map(EventSummaryDto::from)
+                .toList();
+            return FileWithEventDto.from(file, isOrphanStatus, eventSummaries);
         }).toList();
 
         return new PagedResponse<>(
@@ -122,5 +154,13 @@ public class FileService {
             .setParameter("fileId", fileId)
             .getSingleResult();
         return eventCount == 0;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<FinanceEvent> getAssociatedEvents(Long fileId) {
+        return FileEntity.getEntityManager()
+            .createQuery("select e from FinanceEvent e join e.files f where f.id = :fileId")
+            .setParameter("fileId", fileId)
+            .getResultList();
     }
 }

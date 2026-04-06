@@ -3,7 +3,7 @@ package com.mypaybyday.entity;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.Lob;
+import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -32,8 +32,10 @@ public class FileEntity extends BaseEntity {
 
     public long size;
 
-    @Lob
+    @Column(columnDefinition = "BLOB")
     @Basic(fetch = FetchType.LAZY)
     public byte[] data;
+
+    public String hash;
 
 }

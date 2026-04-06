@@ -74,18 +74,36 @@ public class FileResource {
     }
 
     @GET
-    @Path("/{id}/content")
+    @Path("/{id}/content/binary")
     @Produces(MediaType.WILDCARD)
     @Operation(summary = "Get file content", description = "Returns the binary content of the file with the appropriate mime type")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "File content stream"),
             @APIResponse(responseCode = "404", description = "File not found")
     })
-    public Response getContent(
+    public Response getContentBinary(
             @Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
             throws BusinessException {
         FileEntity file = fileService.getFileContent(id);
-        return Response.ok(file.data).type(file.mimeType).build();
+        return Response.ok(file.data)
+                .type(file.mimeType)
+                .header("Content-Disposition", "inline; filename=\"" + file.fileName + "\"")
+                .build();
+    }
+
+    @GET
+    @Path("/{id}/content/base64")
+    @Produces(MediaType.TEXT_PLAIN)
+    @Operation(summary = "Get file content as Base64", description = "Returns the file content encoded in Base64 (Data URI format)")
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "File content as Base64 string"),
+            @APIResponse(responseCode = "404", description = "File not found")
+    })
+    public Response getContentBase64(
+            @Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
+            throws BusinessException {
+        String dataUri = fileService.getFileContentAsBase64(id);
+        return Response.ok(dataUri).build();
     }
 
     @DELETE
