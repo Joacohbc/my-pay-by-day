@@ -31,7 +31,7 @@ export function PeriodBalanceSummary({
           <button 
             onClick={() => setIsExpanded(!isExpanded)}
             className="text-dn-text-muted hover:text-dn-text-main transition-colors flex items-center justify-center p-1 rounded-full bg-dn-panel-bg"
-            title={isExpanded ? t('common.collapse', 'Collapse') : t('common.expand', 'Expand')}
+            title={isExpanded ? t('common.collapse') : t('common.expand')}
           >
             <Icon name={isExpanded ? 'visibility_off' : 'visibility'} className="text-sm" />
           </button>

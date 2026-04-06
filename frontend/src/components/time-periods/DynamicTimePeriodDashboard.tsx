@@ -39,7 +39,7 @@ export function DynamicTimePeriodDashboard({
       {/* Header */}
       <div>
         <div className="flex items-start justify-between gap-2">
-          <h1 className="text-2xl font-semibold text-dn-text-main tracking-tight">{t('periods.dynamic.title', 'Dynamic Period')}</h1>
+          <h1 className="text-2xl font-semibold text-dn-text-main tracking-tight">{t('periods.dynamic.title')}</h1>
         </div>
         <p className="text-xs text-dn-text-muted mt-0.5">{dateLabel}</p>
       </div>

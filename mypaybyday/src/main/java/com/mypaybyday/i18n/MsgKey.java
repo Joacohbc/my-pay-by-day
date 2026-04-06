@@ -65,10 +65,14 @@ public enum MsgKey {
     SUBSCRIPTION_TEMPLATE_REQUIRED("error.subscription.template_required"),
     SUBSCRIPTION_NEXT_EXECUTION_DATE_REQUIRED("error.subscription.next_execution_date_required"),
     SUBSCRIPTION_RECURRENCE_REQUIRED("error.subscription.recurrence_required"),
+    SUBSCRIPTION_PROCESSING_FAILED("error.subscription.processing_failed"),
 
     // ── Event Draft ──────────────────────────────────────
     DRAFT_NOT_FOUND("error.draft.not_found"),
-    DRAFT_INVALID_PAYLOAD("error.draft.invalid_payload");
+    DRAFT_INVALID_PAYLOAD("error.draft.invalid_payload"),
+
+    // ── Intelligent Event ────────────────────────────────
+    INTELLIGENT_EVENT_DRAFT_CREATION_FAILED("error.intelligent_event.draft_creation_failed");
 
     /** The property key used to look up this message in the resource bundle. */
     public final String key;

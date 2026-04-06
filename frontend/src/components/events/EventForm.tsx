@@ -339,7 +339,7 @@ function LineItemsEditor({
           </div>
           <Input
             label={t('eventForm.amount')}
-            placeholder="0.00"
+            placeholder={t('eventForm.amountPlaceholder')}
             type="number"
             step="0.01"
             error={errors.lineItems?.[0]?.amount?.message}
@@ -367,7 +367,7 @@ function LineItemsEditor({
               <div className="flex items-center gap-1.5 shrink-0">
                 <div className="w-24">
                   <Input
-                    placeholder="0.00"
+                    placeholder={t('eventForm.amountPlaceholder')}
                     type="number"
                     step="0.01"
                     error={errors.lineItems?.[i]?.amount?.message}

@@ -61,7 +61,7 @@ export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardP
             {/* Star */}
             <button
               onClick={() => setDefaultId(isDefault ? null : tp.id)}
-              title={isDefault ? 'Remove as default' : 'Set as Home default'}
+              title={isDefault ? t('nodes.removeAsDefault') : t('nodes.setAsDefault')}
               className={`p-1 rounded-full transition-colors shrink-0 ${
                 isDefault
                   ? 'text-dn-warning hover:bg-dn-warning/10'

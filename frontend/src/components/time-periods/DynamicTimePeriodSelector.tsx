@@ -11,13 +11,13 @@ export function DynamicTimePeriodSelector({ value, onChange }: Props) {
   const { t } = useTranslation();
 
   const options: { value: DynamicPeriodOption; label: string }[] = [
-    { value: 'TODAY', label: t('periods.dynamic.today', 'Today') },
-    { value: 'YESTERDAY', label: t('periods.dynamic.yesterday', 'Yesterday') },
-    { value: 'THIS_WEEK', label: t('periods.dynamic.thisWeek', 'This Week') },
-    { value: 'LAST_WEEK', label: t('periods.dynamic.lastWeek', 'Last Week') },
-    { value: 'THIS_MONTH', label: t('periods.dynamic.thisMonth', 'This Month') },
-    { value: 'LAST_MONTH', label: t('periods.dynamic.lastMonth', 'Last Month') },
-    { value: 'THIS_YEAR', label: t('periods.dynamic.thisYear', 'This Year') },
+    { value: 'TODAY', label: t('periods.dynamic.today') },
+    { value: 'YESTERDAY', label: t('periods.dynamic.yesterday') },
+    { value: 'THIS_WEEK', label: t('periods.dynamic.thisWeek') },
+    { value: 'LAST_WEEK', label: t('periods.dynamic.lastWeek') },
+    { value: 'THIS_MONTH', label: t('periods.dynamic.thisMonth') },
+    { value: 'LAST_MONTH', label: t('periods.dynamic.lastMonth') },
+    { value: 'THIS_YEAR', label: t('periods.dynamic.thisYear') },
   ];
 
   return (

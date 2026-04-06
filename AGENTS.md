@@ -309,6 +309,8 @@ Resource bundle files live at `src/main/resources/i18n/`:
 * **Library:** `react-i18next` with `i18next`. The setup lives in `src/i18n/index.ts`.
 * **Supported languages:** English (`en`) and Spanish (`es`). Translation files are `src/i18n/en.ts` and `src/i18n/es.ts`.
 * **No hard-coded UI strings:** Every user-visible string **must** go through the `t()` function (from `useTranslation()`). Never embed raw English or Spanish text in components.
+* **No hardcoded defaults in `t()` calls:** Calls to `t()` should only pass the key (and optional interpolation data). Providing a hardcoded default string as a second argument (e.g., `t('key', 'Default')`) is forbidden to ensure a single source of truth for translations.
+* **Global Missing Key Handler:** The `i18n` instance is configured with a `parseMissingKeyHandler` that returns `"TRANSLATION NOT FOUND"`. This ensures that missing keys are highly visible during development without cluttering components with fallback text.
 * **Both languages required:** When adding or modifying a translation key, you **must** add/update the entry in **both** `en.ts` and `es.ts` in the same change. A key present in one file but missing in the other is treated as a bug.
 * **Key organisation:** Keys are grouped by domain area using nested objects (e.g., `common.*`, `events.*`, `nodes.*`). Follow the existing structure and place new keys in the appropriate group.
 

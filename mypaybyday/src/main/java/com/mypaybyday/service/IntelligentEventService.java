@@ -12,6 +12,8 @@ import com.mypaybyday.entity.FinanceTransaction;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.LanguageContext;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.dto.IntelligentEventResponseDto;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.repository.CategoryRepository;
@@ -40,17 +42,20 @@ public class IntelligentEventService {
     private final LanguageContext languageContext;
     private final FinanceNodeRepository financeNodeRepository;
     private final CategoryRepository categoryRepository;
+    private final Messages messages;
 
     @Inject
     public IntelligentEventService(AgentFinanceEventCreator agentFinanceEventCreator, EventService eventService,
             EntityDraftService draftService, LanguageContext languageContext,
-            FinanceNodeRepository financeNodeRepository, CategoryRepository categoryRepository) {
+            FinanceNodeRepository financeNodeRepository, CategoryRepository categoryRepository,
+            Messages messages) {
         this.agentFinanceEventCreator = agentFinanceEventCreator;
         this.eventService = eventService;
         this.draftService = draftService;
         this.languageContext = languageContext;
         this.financeNodeRepository = financeNodeRepository;
         this.categoryRepository = categoryRepository;
+        this.messages = messages;
     }
 
     public IntelligentEventResponseDto createFromText(RawTextEventRequestDto request) throws BusinessException {
@@ -186,7 +191,7 @@ public class IntelligentEventService {
                     .build();
         } catch (Exception e) {
             log.error("Critical failure: Could not even create a draft for the intelligent event", e);
-            throw new BusinessException("Could not create event or draft from the provided text.");
+            throw new BusinessException(messages.get(MsgKey.INTELLIGENT_EVENT_DRAFT_CREATION_FAILED));
         }
     }
 

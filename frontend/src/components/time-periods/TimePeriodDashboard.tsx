@@ -100,7 +100,7 @@ export function TimePeriodDashboard({
       { (timePeriod.budgetLimit != null || (balance.categoryBudgets && balance.categoryBudgets.length > 0)) &&
       <Card className="space-y-4">
         <p className="text-sm text-dn-text-muted uppercase tracking-wider mb-3">
-          {t('periods.budgetLabel', 'Budgets')}
+          {t('periods.budgetLabel')}
         </p>
 
         {timePeriod.budgetLimit != null && (

@@ -275,7 +275,7 @@ public class SubscriptionService {
             
         } catch (Exception e) {
             LOG.errorf(e, "Failed to process subscription ID: %d", sub.id);
-            throw new BusinessException("Failed to process subscription: " + e.getMessage());
+            throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_PROCESSING_FAILED, e.getMessage()));
         }
     }
 
