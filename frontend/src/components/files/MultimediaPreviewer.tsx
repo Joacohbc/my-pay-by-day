@@ -117,7 +117,7 @@ export function MultimediaPreviewer({ fileId, fileName, onClose }: MultimediaPre
              {/* Zoom Controls for images */}
              {isImage && (
                <div className="flex items-center bg-white/5 rounded-pill px-1 mr-2 border border-white/5">
-                 <button onClick={() => setZoom(z => Math.max(0.5, z - 0.25))} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors">
+                 <button onClick={() => setZoom(z => Math.max(1, z - 0.25))} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors">
                     <Icon name="zoom_out" className="text-[20px]" />
                  </button>
                  <span className="text-xs text-white/70 min-w-[36px] text-center font-mono font-medium">
