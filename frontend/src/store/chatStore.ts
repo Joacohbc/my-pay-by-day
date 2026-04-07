@@ -24,7 +24,7 @@ interface ChatStoreState {
   setDraftImages: (images: File[]) => void;
 }
 
-import { chatService } from '@/services/chatService';
+import { chatService } from '@/services/chat.service';
 
 export const useChatStore = create<ChatStoreState>()(
   persist(

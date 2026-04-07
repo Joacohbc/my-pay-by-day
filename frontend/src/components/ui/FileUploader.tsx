@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
 import { useFiles, useUploadFile } from '@/hooks/useFiles';
-import { FileService } from '@/services/FileService';
+import { filesService } from '@/services/files.service';
 import type { FileDto } from '@/models';
 import { getFileIcon } from '@/lib/fileUtils';
 
@@ -140,7 +140,7 @@ export function FileUploader({ files, onAddFile, onRemoveFile }: FileUploaderPro
             </div>
             <div className="flex gap-2 shrink-0">
               <a
-                href={FileService.getContentUrl(file.id)}
+                href={filesService.getContentUrl(file.id)}
                 target="_blank"
                 rel="noreferrer"
                 className="p-2 text-dn-text-muted hover:text-dn-primary transition-colors"

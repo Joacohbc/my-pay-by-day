@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
-import { FileService } from '@/services/FileService';
+import { filesService } from '@/services/files.service';
 import type { FileWithEventDto } from '@/models';
 
 function formatSize(bytes: number): string {
@@ -100,7 +100,7 @@ function FileCard({ file, onDelete, deleting }: FileCardProps) {
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
           <a
-            href={FileService.getContentUrl(file.id)}
+            href={filesService.getContentUrl(file.id)}
             target="_blank"
             rel="noreferrer"
             className="p-1.5 rounded-lg text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"

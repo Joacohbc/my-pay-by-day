@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileService } from '@/services/FileService';
+import { filesService } from '@/services/files.service';
 import { Icon } from '@/components/ui/Icon';
 import type { FileDto } from '@/models';
 
@@ -24,13 +24,13 @@ export function MultimediaPreviewer({ fileId, fileName, onClose }: MultimediaPre
   }, [onClose]);
 
   useEffect(() => {
-    FileService.getById(fileId)
+    filesService.getById(fileId)
       .then(setFileDetails)
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [fileId]);
 
-  const contentUrl = FileService.getContentUrl(fileId);
+  const contentUrl = filesService.getContentUrl(fileId);
 
   let content = null;
   const isImage = fileDetails?.mimeType.startsWith('image/');

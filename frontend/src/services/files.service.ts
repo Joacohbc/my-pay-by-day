@@ -1,7 +1,7 @@
 import { api, BASE_URL } from '@/services/api';
 import type { FileDto, FileWithEventDto, PagedResponse, Base64FileUploadRequestDto } from '@/models';
 
-export const FileService = {
+export const filesService = {
   uploadBase64: async (data: Base64FileUploadRequestDto): Promise<FileDto> => {
     return api.post<FileDto>('/files/base64', data);
   },
