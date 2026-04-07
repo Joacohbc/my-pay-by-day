@@ -142,6 +142,18 @@ export interface CreateEventDto {
   fileIds?: number[];
 }
 
+/** PATCH model — all fields optional; `null` means "clear", `undefined` means "don't touch" */
+export interface PatchEventDto {
+  name?: string;
+  description?: string | null;
+  receiptUrl?: string | null;
+  type?: EventType;
+  category?: { id: number } | null;
+  tags?: { id: number }[] | null;
+  fileIds?: number[] | null;
+  transaction?: CreateTransactionDto;
+}
+
 // ─── Template ─────────────────────────────────────────────────────────────────
 
 export interface Template extends Identifiable {

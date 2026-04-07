@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventsService, type EventFilters } from '@/services/events.service';
 import { usePendingEventsStore } from '@/store/pendingEventsStore';
-import type { CreateEventDto, FinanceEvent } from '@/models';
+import type { CreateEventDto, PatchEventDto, FinanceEvent } from '@/models';
 
 export const EVENTS_KEY = ['events'] as const;
 
@@ -55,7 +55,7 @@ export function useUpdateEvent() {
   const alert = useAlert();
   const { t } = useTranslation();
   return useMutation({
-    mutationFn: ({ id, dto }: { id: number; dto: Partial<CreateEventDto> }) =>
+    mutationFn: ({ id, dto }: { id: number; dto: PatchEventDto }) =>
       eventsService.update(id, dto),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: EVENTS_KEY });

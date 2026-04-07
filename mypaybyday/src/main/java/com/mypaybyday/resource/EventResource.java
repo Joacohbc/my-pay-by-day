@@ -4,6 +4,7 @@ import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.EventQuery.DateField;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.PagedResponse;
+import com.mypaybyday.dto.PatchEventDto;
 import com.mypaybyday.entity.FinanceEvent;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.EventService;
@@ -91,8 +92,8 @@ public class EventResource {
     })
     public Response update(
             @Parameter(description = "ID of the event", required = true) @PathParam("id") Long id,
-            FinanceEvent eventDetails) throws BusinessException {
-        return Response.ok(eventService.update(id, eventDetails)).build();
+            PatchEventDto patch) throws BusinessException {
+        return Response.ok(eventService.update(id, patch)).build();
     }
 
     @DELETE
