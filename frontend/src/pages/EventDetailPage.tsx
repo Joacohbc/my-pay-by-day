@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
-import { useEvent, useDeleteEvent } from '@/hooks/useEvents';
+import { useEvent, useDeleteEvent, useUpdateEvent } from '@/hooks/useEvents';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -14,7 +14,8 @@ import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatDateTime, eventNetAmount } from '@/lib/format';
 import { useState } from 'react';
 import { RelatedEventsSection } from '@/components/events/RelatedEventsSection';
-import { FileItem } from '@/components/files/FileItem';
+import { FileUploader } from '@/components/ui/FileUploader';
+import type { FileDto } from '@/models';
 
 const eventTypeConfig = {
   INBOUND: {
@@ -47,6 +48,7 @@ export function EventDetailPage() {
   const location = useLocation();
   const { data: event, isLoading, error } = useEvent(Number(id));
   const deleteEvent = useDeleteEvent();
+  const updateEvent = useUpdateEvent();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const cameFromEvents = location.key !== 'default';
 
@@ -63,6 +65,20 @@ export function EventDetailPage() {
     } else {
       navigate('/events', { replace: true });
     }
+  };
+
+  const handleAddFile = async (file: FileDto) => {
+    if (!event) return;
+    const currentIds = event.files?.map((f) => f.id) || [];
+    if (!currentIds.includes(file.id)) {
+      await updateEvent.mutateAsync({ id: event.id, dto: { fileIds: [...currentIds, file.id] } });
+    }
+  };
+
+  const handleRemoveFile = async (fileId: number) => {
+    if (!event) return;
+    const currentIds = event.files?.map((f) => f.id) || [];
+    await updateEvent.mutateAsync({ id: event.id, dto: { fileIds: currentIds.filter((id) => id !== fileId) } });
   };
 
   return (
@@ -189,16 +205,13 @@ export function EventDetailPage() {
       </div>
 
       {/* Files */}
-      {event.files && event.files.length > 0 && (
-        <div className="px-5">
-          <h3 className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">{t('eventForm.files')}</h3>
-          <Card className="divide-y divide-white/5">
-            {event.files.map((file) => (
-              <FileItem key={file.id} file={file} />
-            ))}
-          </Card>
-        </div>
-      )}
+      <div className="px-5">
+        <FileUploader
+          files={event?.files || []}
+          onAddFile={handleAddFile}
+          onRemoveFile={handleRemoveFile}
+        />
+      </div>
 
       {/* Related Events */}
       <RelatedEventsSection event={event} />

@@ -10,10 +10,9 @@ import { Button } from '@/components/ui/Button';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
-import { FileUploader } from '@/components/ui/FileUploader';
 import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
-import type { CreateEventDto, EventType, FinanceEvent, Category, Tag, FinanceLineItem, FileDto } from '@/models';
+import type { CreateEventDto, EventType, FinanceEvent, Category, Tag, FinanceLineItem } from '@/models';
 import type { Control, UseFormRegister, FieldErrors, UseFormSetValue, UseFieldArrayAppend, UseFieldArrayRemove, FieldArrayWithId } from 'react-hook-form';
 import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
 import { useDebounceCallback } from '@/hooks/useDebounce';
@@ -39,7 +38,6 @@ function buildSchema(t: (key: string) => string) {
     lineItems: z.array(lineItemSchema).min(1, t('eventForm.atLeastOneLine')),
     isDraft: z.boolean().optional(),
     draftId: z.number().optional(),
-    fileIds: z.array(z.number()).optional(),
   });
 }
 
@@ -436,8 +434,6 @@ export function EventForm({
   const { data: tagsResponse } = useTags(0, 200);
   const { data: nodesResponse } = useNodes(0, 200);
 
-  const [attachedFiles, setAttachedFiles] = useState<FileDto[]>(defaultValues?.files ?? []);
-
   const categories = categoriesResponse?.content ?? [];
   const tags = tagsResponse?.content ?? [];
   const nodes = nodesResponse?.content ?? [];
@@ -479,15 +475,10 @@ export function EventForm({
           : [{ nodeId: '', amount: '' }, { nodeId: '', amount: '' }]),
       isDraft: defaultValues?.isDraft ?? false,
       draftId: defaultValues?.draftId,
-      fileIds: defaultValues?.files?.map((f) => f.id) ?? [],
     },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'lineItems' });
-
-  useEffect(() => {
-    setValue('fileIds', attachedFiles.map((f) => f.id), { shouldDirty: true });
-  }, [attachedFiles, setValue]);
 
   const [isSimplifiedMode, setIsSimplifiedMode] = useState(
     !!(preset?.lineNodeIds?.length) || !defaultValues,
@@ -525,7 +516,6 @@ export function EventForm({
       },
       category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
       tags: values.tagIds?.map((id) => ({ id: Number(id) })),
-      fileIds: attachedFiles.map((f) => f.id),
     };
     await onSubmit(dto, values.draftId);
   };
@@ -640,12 +630,6 @@ export function EventForm({
         placeholder={t('eventForm.receiptUrlPlaceholder')}
         type="url"
         {...register('receiptUrl')}
-      />
-
-      <FileUploader
-        files={attachedFiles}
-        onAddFile={(file) => setAttachedFiles((prev) => [...prev, file])}
-        onRemoveFile={(id) => setAttachedFiles((prev) => prev.filter((f) => f.id !== id))}
       />
 
       <div className="flex flex-col gap-3">
