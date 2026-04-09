@@ -20,6 +20,7 @@ export function EventEditPage() {
   const updateDraft = useUpdateFinanceEventDraft();
   const deleteDraft = useDeleteDraft();
 
+  // TODO: Use endpoint that get by Id the Draft, not a list
   const state = useLocation().state as { draft?: FinanceEvent } | null;
   const existingDraft = drafts?.find(d => d.id === Number(id));
   const draft = state?.draft || existingDraft;
@@ -71,7 +72,8 @@ export function EventEditPage() {
       <div className="px-5 pb-6">
         <EventForm
           mode="edit"
-          baseValues={draft ?? event}
+          baseValues={event}
+          draftValues={draft}
           isDraft={!!draft}
           onSubmit={handleSubmit}
           onSaveDraft={handleSaveDraft}

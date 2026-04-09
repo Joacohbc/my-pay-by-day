@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAlert } from '@/contexts/AlertContext';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/components/ui/Input';
@@ -27,10 +28,34 @@ import type { FormValues } from '@/components/events/EventFormMapper';
 
 interface EventFormProps {
   mode: 'create' | 'edit';
+  /**
+   * The persisted event as it exists on the server — used exclusively as the RHF dirty-tracking
+   * baseline. The form never displays these values directly when a draft is present.
+   */
   baseValues?: Partial<FinanceEvent>;
+  /**
+   * In-progress edits saved as a draft. When provided, the form displays these values while
+   * `baseValues` stays frozen as the baseline, so `dirtyFields` reflects the real diff between
+   * the draft and the original event.
+   */
+  draftValues?: Partial<FinanceEvent>;
+  /**
+   * Called on valid submission with a fully-resolved DTO (CreateEventDto in create mode,
+   * PatchEventDto with only dirty fields in edit mode). Receives `draftId` so the parent can
+   * delete the associated draft atomically in the same operation.
+   */
   onSubmit: (dto: CreateEventDto | PatchEventDto, draftId?: number) => Promise<void>;
+  /**
+   * When provided, enables draft persistence: renders the "Save draft" button and activates the
+   * debounced autosave on every field change. Returns the server-assigned draft ID on creation
+   * so the form can store it internally and reuse it on subsequent saves.
+   */
   onSaveDraft?: (dto: Partial<FinanceEvent>) => Promise<number | void>;
   onDeleteDraft?: (draftId?: number) => Promise<void>;
+  /**
+   * Controls only the visibility of the "Delete draft" button — it does not affect form
+   * behaviour. Must be true when the form is loaded from an existing persisted draft.
+   */
   isDraft?: boolean;
   submitLabel?: string;
   loading?: boolean;
@@ -87,6 +112,7 @@ function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormValues {
 export function EventForm({
   mode,
   baseValues,
+  draftValues,
   onSubmit,
   onSaveDraft,
   onDeleteDraft,
@@ -107,10 +133,18 @@ export function EventForm({
 
   const activeNodes = nodes.filter((n) => !n.archived);
 
+  // `defaultValues` acts as the immutable dirty-tracking baseline (the original saved event).
+  // `values` drives what is actually displayed — the draft when one exists, otherwise the event.
+  // `resetOptions.keepDefaultValues` prevents RHF from overwriting that baseline when `values`
+  // updates, so `dirtyFields` always reflects the real diff between the draft and the original.
   const methods = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: useMemo(() => buildFormDefaults(baseValues), [baseValues]),
+    values: useMemo(() => buildFormDefaults(draftValues ?? baseValues), [draftValues, baseValues]),
+    resetOptions: { keepDefaultValues: true },
   });
+
+  const alert = useAlert();
 
   const {
     register,
@@ -130,13 +164,33 @@ export function EventForm({
   }, [isDirty]);
 
   const handleFormSubmit = async (values: FormValues) => {
-    if (mode === 'edit') {
-      const patch = toPatchDto(values, dirtyFields);
-      await onSubmit(patch, values.draftId ?? undefined);
-    } else {
-      const dto = toCreateDto(values);
-      await onSubmit(dto, values.draftId ?? undefined);
+    try {
+      if (mode === 'edit') {
+        const patch = toPatchDto(values, dirtyFields);
+        await onSubmit(patch, values.draftId ?? undefined);
+      } else {
+        const dto = toCreateDto(values);
+        await onSubmit(dto, values.draftId ?? undefined);
+      }
+    } catch (err) {
+      alert.error(err instanceof Error ? err.message : t('common.error'));
     }
+  };
+
+  const handleInvalidSubmit = (fieldErrors: Record<string, unknown>) => {
+    const findFirstMessage = (value: unknown): string | undefined => {
+      if (!value || typeof value !== 'object') return undefined;
+      if ('message' in value && typeof (value as { message: unknown }).message === 'string') {
+        return (value as { message: string }).message;
+      }
+      for (const child of Object.values(value as object)) {
+        const found = findFirstMessage(child);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const errorMessage = findFirstMessage(fieldErrors) ?? t('common.validationError');
+    alert.error(errorMessage);
   };
 
   const [savingDraft, setSavingDraft] = useState(false);
@@ -190,7 +244,7 @@ export function EventForm({
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
+      <form onSubmit={handleSubmit(handleFormSubmit, handleInvalidSubmit)} className="space-y-5">
         <BasicInfoFields />
 
         <TypeAndDateFields />
