@@ -43,6 +43,11 @@ const es = {
     selectCategory: 'Seleccionar Categoría',
     expand: 'Expandir',
     collapse: 'Contraer',
+    validationError: 'Por favor revisá el formulario',
+    alertError: 'Error',
+    alertSuccess: 'Éxito',
+    alertInfo: 'Info',
+    alertWarning: 'Advertencia',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────

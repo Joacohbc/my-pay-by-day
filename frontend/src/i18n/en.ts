@@ -43,6 +43,11 @@ const en = {
     selectCategory: 'Select Category',
     expand: 'Expand',
     collapse: 'Collapse',
+    validationError: 'Please check the form for errors',
+    alertError: 'Error',
+    alertSuccess: 'Success',
+    alertInfo: 'Info',
+    alertWarning: 'Warning',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────

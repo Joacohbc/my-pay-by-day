@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useCallback, type ReactNode, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { sileo, Toaster } from 'sileo';
 
 interface AlertContextType {
@@ -12,6 +13,7 @@ interface AlertContextType {
 const AlertContext = createContext<AlertContextType | undefined>(undefined);
 
 export function AlertProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
 
   const commonValues = useMemo(() => {
     return {
@@ -26,37 +28,41 @@ export function AlertProvider({ children }: { children: ReactNode }) {
 
   const error = useCallback((message: string) => {
     sileo.error({
-      title: message,
+      title: t('common.alertError'),
+      description: message,
       ...commonValues,
       duration: 3000
     });
-  }, [commonValues]);
+  }, [commonValues, t]);
 
   const success = useCallback((message: string) => {
     sileo.success({
-      title: message,
+      title: t('common.alertSuccess'),
+      description: message,
       ...commonValues
     });
-  }, [commonValues]);
+  }, [commonValues, t]);
 
   const info = useCallback((message: string) => {
     sileo.info({
-      title: message,
+      title: t('common.alertInfo'),
+      description: message,
       ...commonValues
     });
-  }, [commonValues]);
+  }, [commonValues, t]);
 
   const warning = useCallback((message: string) => {
     sileo.warning({
-      title: message,
+      title: t('common.alertWarning'),
+      description: message,
       ...commonValues
     });
-  }, [commonValues]);
+  }, [commonValues, t]);
 
   return (
     <AlertContext.Provider value={{ error, success, info, warning }}>
       {children}
-      <Toaster position='bottom-center' />
+      <Toaster position='top-center' />
     </AlertContext.Provider>
   );
 }
