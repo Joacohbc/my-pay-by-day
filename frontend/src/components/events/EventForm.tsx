@@ -156,12 +156,7 @@ export function EventForm({
     formState: { isDirty, dirtyFields },
   } = methods;
 
-  // Keep a ref to the latest isDirty value so the watch callback (a stable closure)
-  // can read the current value without becoming stale.
-  const isDirtyRef = useRef(isDirty);
-  useEffect(() => {
-    isDirtyRef.current = isDirty;
-  }, [isDirty]);
+  const hasUserInteracted = useRef(false);
 
   const handleFormSubmit = async (values: FormValues) => {
     try {
@@ -213,21 +208,23 @@ export function EventForm({
     }
   };
 
-  const debouncedSaveDraft = useDebounceCallback(handleSaveDraft, 100);
+  // The user may close the browser or navigate away mid-form. Every change is automatically
+  // persisted as a draft so they can resume exactly where they left off.
+  const debouncedSaveDraft = useDebounceCallback(handleSaveDraft, 1000);
   useEffect(() => {
     if (!onSaveDraft) return;
 
     const subscription = watch((_, { name }) => {
       if (name === 'draftId' || name === 'isDraft') return;
-      // Only save draft when the user has actually changed something.
-      // React Hook Form fires watch subscribers during its internal `values` sync on mount,
-      // which would otherwise trigger an unwanted draft save immediately.
-      if (!isDirtyRef.current) return;
+      if (!hasUserInteracted.current) {
+        hasUserInteracted.current = true;
+        return;
+      }
       debouncedSaveDraft();
     });
 
     return () => subscription.unsubscribe();
-  }, [watch, isDirty, onSaveDraft, debouncedSaveDraft]);
+  }, [watch, onSaveDraft, debouncedSaveDraft]);
 
   const handleDeleteDraft = async () => {
     if (!onDeleteDraft) return;
