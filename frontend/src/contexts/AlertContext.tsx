@@ -17,7 +17,7 @@ export function AlertProvider({ children }: { children: ReactNode }) {
 
   const commonValues = useMemo(() => {
     return {
-      duration: 1000,
+      duration: 2500,
       fill: "var(--color-dn-bg)",
       styles: {
         title: "text-white!",
