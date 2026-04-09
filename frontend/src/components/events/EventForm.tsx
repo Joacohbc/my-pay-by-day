@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,18 +25,9 @@ import type { FormValues } from '@/components/events/EventFormMapper';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-interface EventFormPreset {
-  type?: string;
-  categoryId?: number;
-  tagIds?: string[];
-  lineNodeIds?: number[];
-}
-
 interface EventFormProps {
   mode: 'create' | 'edit';
   baseValues?: Partial<FinanceEvent>;
-  currentValues?: Partial<FinanceEvent>;
-  preset?: EventFormPreset;
   onSubmit: (dto: CreateEventDto | PatchEventDto, draftId?: number) => Promise<void>;
   onSaveDraft?: (dto: Partial<FinanceEvent>) => Promise<number | void>;
   onDeleteDraft?: (draftId?: number) => Promise<void>;
@@ -51,41 +42,38 @@ const DEFAULT_LINE_ITEMS: FormValues['lineItems'] = [
 ];
 
 /**
- * Builds the initial form values by merging saved event data (defaultValues) with
- * preset hints. Priority: defaultValues > preset > hardcoded defaults.
+ * Builds the initial form values from saved event data (draft, template-as-event, or existing event).
+ * Falls back to sensible defaults when no data is provided.
  */
-function buildFormDefaults(
-  defaultValues?: Partial<FinanceEvent>,
-  preset?: EventFormPreset,
-): FormValues {
+function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormValues {
   const transactionDate = defaultValues?.transactionDate
     ? toLocalDateTimeString(defaultValues.transactionDate)
     : toLocalDateTimeString(getLocalizedNow());
 
-  const categoryId = defaultValues?.category
-    ? String(defaultValues.category.id)
-    : preset?.categoryId
-      ? String(preset.categoryId)
-      : '';
+  const categoryId = defaultValues?.category ? String(defaultValues.category.id) : '';
 
-  const tagIds = defaultValues?.tags?.map((t) => String(t.id)) ?? preset?.tagIds ?? [];
+  const tagIds = defaultValues?.tags?.map((t) => String(t.id)) ?? [];
 
+  // lineItems from a template-as-event have amount === 0; keep the node pre-selected
+  // but leave the amount empty so the user must fill it in.
   const lineItems =
     defaultValues?.lineItems?.map((li) => ({
       nodeId: String(li.financeNodeId),
-      amount: String(li.amount),
-    })) ??
-    (preset?.lineNodeIds?.length
-      ? preset.lineNodeIds.map((id) => ({ nodeId: String(id), amount: '' }))
-      : DEFAULT_LINE_ITEMS);
+      amount: li.amount !== 0 ? String(li.amount) : '',
+    })) ?? DEFAULT_LINE_ITEMS;
 
-  const isSimplifiedMode = !!(preset?.lineNodeIds?.length) || (!defaultValues);
+  // Simplified mode: pre-selected nodes (from template) OR a brand-new empty form.
+  // Full mode: an existing event with signed amounts in its line items.
+  const hasPreSelectedNodes =
+    !!defaultValues?.lineItems?.length &&
+    defaultValues.lineItems.every((li) => li.amount === 0);
+  const isSimplifiedMode = hasPreSelectedNodes || !defaultValues;
 
   return {
     name: defaultValues?.name ?? '',
     description: defaultValues?.description ?? '',
     receiptUrl: defaultValues?.receiptUrl ?? '',
-    type: (defaultValues?.type as EventType) ?? (preset?.type as EventType) ?? 'OUTBOUND',
+    type: (defaultValues?.type as EventType) ?? 'OUTBOUND',
     transactionDate,
     categoryId,
     tagIds,
@@ -99,8 +87,6 @@ function buildFormDefaults(
 export function EventForm({
   mode,
   baseValues,
-  currentValues,
-  preset,
   onSubmit,
   onSaveDraft,
   onDeleteDraft,
@@ -121,13 +107,9 @@ export function EventForm({
 
   const activeNodes = nodes.filter((n) => !n.archived);
 
-  // We use currentValues for 'values' to sync the UI state (e.g. from a draft).
-  // We use baseValues for 'defaultValues' so RHF correctly calculates dirtyFields
-  // relative to the actual database state.
   const methods = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: useMemo(() => buildFormDefaults(baseValues, preset), [baseValues, preset]),
-    values: useMemo(() => buildFormDefaults(currentValues, preset), [currentValues, preset]),
+    defaultValues: useMemo(() => buildFormDefaults(baseValues), [baseValues]),
   });
 
   const {
@@ -139,6 +121,13 @@ export function EventForm({
     watch,
     formState: { isDirty, dirtyFields },
   } = methods;
+
+  // Keep a ref to the latest isDirty value so the watch callback (a stable closure)
+  // can read the current value without becoming stale.
+  const isDirtyRef = useRef(isDirty);
+  useEffect(() => {
+    isDirtyRef.current = isDirty;
+  }, [isDirty]);
 
   const handleFormSubmit = async (values: FormValues) => {
     if (mode === 'edit') {
@@ -170,17 +159,21 @@ export function EventForm({
     }
   };
 
-  const debouncedSaveDraft = useDebounceCallback(handleSaveDraft, 2000);
+  const debouncedSaveDraft = useDebounceCallback(handleSaveDraft, 100);
   useEffect(() => {
     if (!onSaveDraft) return;
 
     const subscription = watch((_, { name }) => {
       if (name === 'draftId' || name === 'isDraft') return;
+      // Only save draft when the user has actually changed something.
+      // React Hook Form fires watch subscribers during its internal `values` sync on mount,
+      // which would otherwise trigger an unwanted draft save immediately.
+      if (!isDirtyRef.current) return;
       debouncedSaveDraft();
     });
 
     return () => subscription.unsubscribe();
-  }, [watch, onSaveDraft, debouncedSaveDraft]);
+  }, [watch, isDirty, onSaveDraft, debouncedSaveDraft]);
 
   const handleDeleteDraft = async () => {
     if (!onDeleteDraft) return;

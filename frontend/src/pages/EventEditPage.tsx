@@ -71,8 +71,7 @@ export function EventEditPage() {
       <div className="px-5 pb-6">
         <EventForm
           mode="edit"
-          baseValues={event as unknown as FinanceEvent}
-          currentValues={(draft || event) as unknown as FinanceEvent}
+          baseValues={draft ?? event}
           isDraft={!!draft}
           onSubmit={handleSubmit}
           onSaveDraft={handleSaveDraft}

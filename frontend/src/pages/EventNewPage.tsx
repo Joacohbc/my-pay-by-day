@@ -5,7 +5,24 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { useCreateEvent } from '@/hooks/useEvents';
 import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft } from '@/hooks/useDrafts';
-import type { CreateEventDto, PatchEventDto, Template, FinanceEvent } from '@/models';
+import type { CreateEventDto, PatchEventDto, Template, FinanceEvent, FinanceLineItem } from '@/models';
+
+function mapTemplateToEventValues(template: Template): Partial<FinanceEvent> {
+  const originLineItem: FinanceLineItem | undefined = template.originNodeId
+    ? { id: 0, financeNodeId: template.originNodeId, financeNodeName: template.originNodeName ?? '', amount: 0 }
+    : undefined;
+
+  const destinationLineItem: FinanceLineItem | undefined = template.destinationNodeId
+    ? { id: 0, financeNodeId: template.destinationNodeId, financeNodeName: template.destinationNodeName ?? '', amount: 0 }
+    : undefined;
+
+  return {
+    type: template.eventType,
+    category: template.category,
+    tags: template.tags,
+    lineItems: [originLineItem, destinationLineItem].filter((li): li is FinanceLineItem => !!li),
+  };
+}
 
 export function EventNewPage() {
   const { t } = useTranslation();
@@ -20,16 +37,7 @@ export function EventNewPage() {
   const template = state?.template;
   const draft = state?.draft;
 
-  const preset =
-    template ? {
-      type: template.eventType,
-      categoryId: template.category?.id,
-      tagIds: template.tags.map((t) => String(t.id)),
-      lineNodeIds: [
-        ...(template.originNodeId ? [template.originNodeId] : []),
-        ...(template.destinationNodeId ? [template.destinationNodeId] : []),
-      ],
-    } : undefined;
+  const initialValues = draft ?? (template ? mapTemplateToEventValues(template) : undefined);
 
   const handleSubmit = async (dto: CreateEventDto | PatchEventDto, formDraftId?: number) => {
     const created = await createEvent.saveAsync(dto as CreateEventDto);
@@ -87,8 +95,7 @@ export function EventNewPage() {
       <div className="px-5 pb-6">
         <EventForm
           mode="create"
-          currentValues={draft as unknown as FinanceEvent}
-          preset={preset}
+          baseValues={initialValues}
           isDraft={!!draft}
           onSubmit={handleSubmit}
           onSaveDraft={handleSaveDraft}
