@@ -6,7 +6,7 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { Icon } from '@/components/ui/Icon';
 import { useEvent, useUpdateEvent } from '@/hooks/useEvents';
 import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft, useFinanceEventDrafts } from '@/hooks/useDrafts';
-import type { CreateEventDto, FinanceEvent } from '@/models';
+import type { CreateEventDto, PatchEventDto, FinanceEvent } from '@/models';
 
 export function EventEditPage() {
   const { t } = useTranslation();
@@ -27,8 +27,8 @@ export function EventEditPage() {
   if (isLoading || isLoadingDrafts) return <FullPageSpinner />;
   if (!event) return null;
 
-  const handleSubmit = async (dto: CreateEventDto, formDraftId?: number) => {
-    await updateEvent.mutateAsync({ id: Number(id), dto });
+  const handleSubmit = async (dto: CreateEventDto | PatchEventDto, formDraftId?: number) => {
+    await updateEvent.mutateAsync({ id: Number(id), dto: dto as PatchEventDto });
     const idToDelete = formDraftId || draft?.draftId;
     if (idToDelete) {
       await deleteDraft.mutateAsync(idToDelete);
@@ -70,7 +70,9 @@ export function EventEditPage() {
       )}
       <div className="px-5 pb-6">
         <EventForm
-          defaultValues={(draft || event) as unknown as FinanceEvent}
+          mode="edit"
+          baseValues={event as unknown as FinanceEvent}
+          currentValues={(draft || event) as unknown as FinanceEvent}
           isDraft={!!draft}
           onSubmit={handleSubmit}
           onSaveDraft={handleSaveDraft}

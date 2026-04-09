@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { useCreateEvent } from '@/hooks/useEvents';
 import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft } from '@/hooks/useDrafts';
-import type { CreateEventDto, Template, FinanceEvent } from '@/models';
+import type { CreateEventDto, PatchEventDto, Template, FinanceEvent } from '@/models';
 
 export function EventNewPage() {
   const { t } = useTranslation();
@@ -31,8 +31,8 @@ export function EventNewPage() {
       ],
     } : undefined;
 
-  const handleSubmit = async (dto: CreateEventDto, formDraftId?: number) => {
-    const created = await createEvent.saveAsync(dto);
+  const handleSubmit = async (dto: CreateEventDto | PatchEventDto, formDraftId?: number) => {
+    const created = await createEvent.saveAsync(dto as CreateEventDto);
     if (created) {
       const idToDelete = formDraftId || draft?.draftId;
       if (idToDelete) {
@@ -86,7 +86,8 @@ export function EventNewPage() {
       )}
       <div className="px-5 pb-6">
         <EventForm
-          defaultValues={draft as unknown as FinanceEvent}
+          mode="create"
+          currentValues={draft as unknown as FinanceEvent}
           preset={preset}
           isDraft={!!draft}
           onSubmit={handleSubmit}

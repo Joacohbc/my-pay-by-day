@@ -21,6 +21,8 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
+import { CategorySelector } from '@/components/ui/CategorySelector';
+import { TagSelector } from '@/components/ui/TagSelector';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
@@ -476,57 +478,26 @@ export function SubscriptionsPage() {
             name="categoryId"
             control={control}
             render={({ field }) => (
-              <SearchableSelect
-                label={t('eventForm.category')}
-                placeholder={t('common.none')}
-                options={categories.map((c) => ({ value: String(c.id), label: c.name }))}
-                {...field}
+              <CategorySelector
+                categories={categories}
+                value={field.value}
+                onChange={(val) => field.onChange(val)}
+                variant="select"
               />
             )}
           />
 
-          {tags.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2">
-                {t('eventForm.tags')}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Controller
-                  name="tagIds"
-                  control={control}
-                  render={({ field }) => (
-                    <>
-                      {tags.map((tag) => {
-                        const selected = field.value?.includes(String(tag.id));
-                        return (
-                          <button
-                            key={tag.id}
-                            type="button"
-                            onClick={() => {
-                              const current = field.value ?? [];
-                              if (selected) {
-                                field.onChange(current.filter((id) => id !== String(tag.id)));
-                              } else {
-                                field.onChange([...current, String(tag.id)]);
-                              }
-                            }}
-                            className={[
-                              'px-3 py-1.5 rounded-pill text-xs font-medium border transition-all cursor-pointer',
-                              selected
-                                ? 'bg-dn-primary/20 border-dn-primary/30 text-dn-primary'
-                                : 'bg-dn-surface-low border-white/5 text-dn-text-muted hover:border-white/10',
-                            ].join(' ')}
-                          >
-                            #{tag.name}
-                          </button>
-                        );
-                      })}
-                    </>
-                  )}
-                />
-              </div>
-            </div>
-          )}
+          <Controller
+            name="tagIds"
+            control={control}
+            render={({ field }) => (
+              <TagSelector
+                tags={tags}
+                value={field.value ?? []}
+                onChange={field.onChange}
+              />
+            )}
+          />
 
           <Input
             label={t('eventForm.amount')}
