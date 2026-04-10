@@ -28,24 +28,23 @@ import lombok.Setter;
 @Table(name = "entity_draft")
 public class DraftEntity extends BaseEntity {
 
-    /**
-     * Optional link to the original entity if this draft represents an edit of a pre-existing
-     * finalized entity.
-     */
-    private Long originalEntityId;
+	/**
+	* Optional link to the original entity if this draft represents an edit of a pre-existing
+	* finalized entity.
+	*/
+	private Long originalEntityId;
 
-    /**
-     * The type of entity this draft represents.
-     */
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private EntityType entityType;
+	/**
+	* The type of entity this draft represents.
+	*/
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false)
+	private EntityType entityType;
 
-    /**
-     * The raw UI state representing the draft.
-     */
-    @Column(columnDefinition = "TEXT")
-    private String rawPayloadJson;
+	/**
+	* The raw UI state representing the draft.
+	*/
+	@Column(columnDefinition = "TEXT")
+	private String rawPayloadJson;
 
 }
-

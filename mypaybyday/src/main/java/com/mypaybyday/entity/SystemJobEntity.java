@@ -23,20 +23,19 @@ import lombok.Setter;
 @AllArgsConstructor
 public class SystemJobEntity extends BaseEntity {
 
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    public JobCategory jobCategory;
+	@NotNull
+	@Enumerated(EnumType.STRING)
+	public JobCategory jobCategory;
 
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    public JobStatus status;
+	@NotNull
+	@Enumerated(EnumType.STRING)
+	public JobStatus status;
 
-    @NotNull
-    public LocalDate nextExecutionDate;
+	@NotNull
+	public LocalDate nextExecutionDate;
 
-    public String entityId;
+	public String entityId;
 
-    public String message;
+	public String message;
 
 }
-

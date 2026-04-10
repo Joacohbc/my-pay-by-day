@@ -7,17 +7,17 @@ import jakarta.ws.rs.ext.Provider;
 @Provider
 public class BusinessExceptionMapper implements ExceptionMapper<BusinessException> {
 
-    @Override
-    public Response toResponse(BusinessException exception) {
-        return Response.status(Response.Status.BAD_REQUEST)
-                .entity(new ErrorResponse(exception.getMessage()))
-                .build();
-    }
+	@Override
+	public Response toResponse(BusinessException exception) {
+		return Response.status(Response.Status.BAD_REQUEST)
+				.entity(new ErrorResponse(exception.getMessage()))
+				.build();
+	}
 
-    public static class ErrorResponse {
-        public String error;
-        public ErrorResponse(String error) {
-            this.error = error;
-        }
-    }
+	public static class ErrorResponse {
+		public String error;
+		public ErrorResponse(String error) {
+			this.error = error;
+		}
+	}
 }

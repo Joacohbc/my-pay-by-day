@@ -19,9 +19,8 @@ import lombok.Setter;
 @AllArgsConstructor
 public class TagEntity extends BaseEntity {
 
-    @NotBlank
-    public String name;
+	@NotBlank
+	public String name;
 
-    public String description;
+	public String description;
 }
-

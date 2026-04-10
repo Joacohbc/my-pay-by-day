@@ -26,22 +26,21 @@ import lombok.Setter;
 @Table(name = "TimePeriod")
 public class TimePeriodEntity extends BaseEntity {
 
-    @NotBlank
-    public String name;
+	@NotBlank
+	public String name;
 
-    @NotNull
-    public LocalDate startDate;
+	@NotNull
+	public LocalDate startDate;
 
-    @NotNull
-    public LocalDate endDate;
+	@NotNull
+	public LocalDate endDate;
 
-    @OneToMany(mappedBy = "timePeriod", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @Builder.Default
-    public List<TimePeriodBudgetEntity> budgets = new ArrayList<>();
+	@OneToMany(mappedBy = "timePeriod", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+	@Builder.Default
+	public List<TimePeriodBudgetEntity> budgets = new ArrayList<>();
 
-    public BigDecimal savingsPercentageGoal;
+	public BigDecimal savingsPercentageGoal;
 
-    public BigDecimal budgetLimit;
+	public BigDecimal budgetLimit;
 
 }
-

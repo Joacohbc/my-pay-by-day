@@ -10,11 +10,11 @@ import java.util.Optional;
 @ApplicationScoped
 public class EntityDraftRepository implements PanacheRepository<DraftEntity> {
 
-    public Optional<DraftEntity> findByOriginalEntityIdAndType(Long originalEntityId, EntityType entityType) {
-        return find("originalEntityId = ?1 and entityType = ?2", originalEntityId, entityType).firstResultOptional();
-    }
+	public Optional<DraftEntity> findByOriginalEntityIdAndType(Long originalEntityId, EntityType entityType) {
+		return find("originalEntityId = ?1 and entityType = ?2", originalEntityId, entityType).firstResultOptional();
+	}
 
-    public long deleteByOriginalEntityIdAndType(Long originalEntityId, EntityType entityType) {
-        return delete("originalEntityId = ?1 and entityType = ?2", originalEntityId, entityType);
-    }
+	public long deleteByOriginalEntityIdAndType(Long originalEntityId, EntityType entityType) {
+		return delete("originalEntityId = ?1 and entityType = ?2", originalEntityId, entityType);
+	}
 }

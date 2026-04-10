@@ -17,46 +17,46 @@ import org.jboss.logging.Logger;
 @ApplicationScoped
 public class JobSchedulerService {
 
-    private static final Logger LOG = Logger.getLogger(JobSchedulerService.class);
+	private static final Logger LOG = Logger.getLogger(JobSchedulerService.class);
 
-    @Inject
-    SystemJobRepository systemJobRepository;
+	@Inject
+	SystemJobRepository systemJobRepository;
 
-    @Inject
-    SubscriptionService subscriptionService;
+	@Inject
+	SubscriptionService subscriptionService;
 
-    @Scheduled(every = "1h", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
-    @Transactional
-    public void processSubscriptionsJob() {
-        LOG.info("Starting subscription processor job...");
+	@Scheduled(every = "1h", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+	@Transactional
+	public void processSubscriptionsJob() {
+		LOG.info("Starting subscription processor job...");
 
-        List<SystemJobEntity> pendingJobs = systemJobRepository.findPendingJobsByCategory(JobCategory.SUBSCRIPTION_PROCESSOR);
+		List<SystemJobEntity> pendingJobs = systemJobRepository.findPendingJobsByCategory(JobCategory.SUBSCRIPTION_PROCESSOR);
 
-        for (SystemJobEntity job : pendingJobs) {
-            if (job.nextExecutionDate.isAfter(LocalDate.now())) {
-                continue;
-            }
+		for (SystemJobEntity job : pendingJobs) {
+			if (job.nextExecutionDate.isAfter(LocalDate.now())) {
+				continue;
+			}
 
-            try {
-                if (job.entityId != null) {
-                    subscriptionService.processSubscription(Long.valueOf(job.entityId));
-                    job.status = JobStatus.COMPLETED;
-                    job.message = "Successfully processed subscription " + job.entityId;
-                    LOG.infof("Job completed successfully for subscription %s.", job.entityId);
-                } else {
-                    job.status = JobStatus.FAILED;
-                    job.message = "No entityId associated with this job.";
-                    LOG.warn("Job failed: entityId is null.");
-                }
-            } catch (Exception e) {
-                LOG.error("Job failed.", e);
-                job.status = JobStatus.FAILED;
-                job.message = "Failed: " + e.getMessage();
-            }
+			try {
+				if (job.entityId != null) {
+					subscriptionService.processSubscription(Long.valueOf(job.entityId));
+					job.status = JobStatus.COMPLETED;
+					job.message = "Successfully processed subscription " + job.entityId;
+					LOG.infof("Job completed successfully for subscription %s.", job.entityId);
+				} else {
+					job.status = JobStatus.FAILED;
+					job.message = "No entityId associated with this job.";
+					LOG.warn("Job failed: entityId is null.");
+				}
+			} catch (Exception e) {
+				LOG.error("Job failed.", e);
+				job.status = JobStatus.FAILED;
+				job.message = "Failed: " + e.getMessage();
+			}
 
-            systemJobRepository.persist(job);
-        }
-        
-        LOG.info("Subscription processor job completed.");
-    }
+			systemJobRepository.persist(job);
+		}
+
+		LOG.info("Subscription processor job completed.");
+	}
 }

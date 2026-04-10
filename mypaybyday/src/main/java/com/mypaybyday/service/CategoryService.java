@@ -17,76 +17,76 @@ import java.util.List;
 @ApplicationScoped
 public class CategoryService {
 
-    @Inject
-    CategoryRepository categoryRepository;
+	@Inject
+	CategoryRepository categoryRepository;
 
-    @Inject
-    Messages messages;
+	@Inject
+	Messages messages;
 
-    // -------------------------------------------------------------------------
-    // Queries
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Queries
+	// -------------------------------------------------------------------------
 
-    @Transactional
-    public PagedResponse<CategoryDto> listAll(int page, int size) {
-        long totalElements = categoryRepository.count();
-        List<CategoryDto> content = categoryRepository.findAll()
-                .page(Page.of(page, size))
-                .stream()
-                .map(CategoryDto::from)
-                .toList();
-        return PagedResponse.of(content, page, size, totalElements);
-    }
+	@Transactional
+	public PagedResponse<CategoryDto> listAll(int page, int size) {
+		long totalElements = categoryRepository.count();
+		List<CategoryDto> content = categoryRepository.findAll()
+				.page(Page.of(page, size))
+				.stream()
+				.map(CategoryDto::from)
+				.toList();
+		return PagedResponse.of(content, page, size, totalElements);
+	}
 
-    @Transactional
-    public CategoryDto findById(Long id) throws BusinessException {
-        return CategoryDto.from(findEntityById(id));
-    }
+	@Transactional
+	public CategoryDto findById(Long id) throws BusinessException {
+		return CategoryDto.from(findEntityById(id));
+	}
 
-    /**
-     * Internal method used by other services that need a managed {@link CategoryEntity} entity
-     * (e.g. {@link EventService} when resolving a category reference).
-     */
-    CategoryEntity findEntityById(Long id) throws BusinessException {
-        CategoryEntity category = categoryRepository.findById(id);
-        if (category == null) {
-            throw new BusinessException(messages.get(MsgKey.CATEGORY_NOT_FOUND, id));
-        }
-        return category;
-    }
+	/**
+	* Internal method used by other services that need a managed {@link CategoryEntity} entity
+	* (e.g. {@link EventService} when resolving a category reference).
+	*/
+	CategoryEntity findEntityById(Long id) throws BusinessException {
+		CategoryEntity category = categoryRepository.findById(id);
+		if (category == null) {
+			throw new BusinessException(messages.get(MsgKey.CATEGORY_NOT_FOUND, id));
+		}
+		return category;
+	}
 
-    // -------------------------------------------------------------------------
-    // Commands
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Commands
+	// -------------------------------------------------------------------------
 
-    @Transactional
-    public CategoryDto create(CategoryDto dto) throws BusinessException {
-        if (dto.name() == null || dto.name().isBlank()) {
-            throw new BusinessException(messages.get(MsgKey.CATEGORY_NAME_REQUIRED));
-        }
-        CategoryEntity category = new CategoryEntity();
-        category.name = dto.name();
-        category.description = dto.description();
-        category.icon = dto.icon();
-        categoryRepository.persist(category);
-        return CategoryDto.from(category);
-    }
+	@Transactional
+	public CategoryDto create(CategoryDto dto) throws BusinessException {
+		if (dto.name() == null || dto.name().isBlank()) {
+			throw new BusinessException(messages.get(MsgKey.CATEGORY_NAME_REQUIRED));
+		}
+		CategoryEntity category = new CategoryEntity();
+		category.name = dto.name();
+		category.description = dto.description();
+		category.icon = dto.icon();
+		categoryRepository.persist(category);
+		return CategoryDto.from(category);
+	}
 
-    @Transactional
-    public CategoryDto update(Long id, CategoryDto dto) throws BusinessException {
-        CategoryEntity category = findEntityById(id);
-        if (dto.name() == null || dto.name().isBlank()) {
-            throw new BusinessException(messages.get(MsgKey.CATEGORY_NAME_REQUIRED));
-        }
-        category.name = dto.name();
-        category.description = dto.description();
-        category.icon = dto.icon();
-        return CategoryDto.from(category);
-    }
+	@Transactional
+	public CategoryDto update(Long id, CategoryDto dto) throws BusinessException {
+		CategoryEntity category = findEntityById(id);
+		if (dto.name() == null || dto.name().isBlank()) {
+			throw new BusinessException(messages.get(MsgKey.CATEGORY_NAME_REQUIRED));
+		}
+		category.name = dto.name();
+		category.description = dto.description();
+		category.icon = dto.icon();
+		return CategoryDto.from(category);
+	}
 
-    @Transactional
-    public void delete(Long id) throws BusinessException {
-        CategoryEntity category = findEntityById(id);
-        categoryRepository.delete(category);
-    }
+	@Transactional
+	public void delete(Long id) throws BusinessException {
+		CategoryEntity category = findEntityById(id);
+		categoryRepository.delete(category);
+	}
 }

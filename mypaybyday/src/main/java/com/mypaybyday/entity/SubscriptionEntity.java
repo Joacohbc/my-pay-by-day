@@ -33,44 +33,43 @@ import lombok.Setter;
 @AllArgsConstructor
 public class SubscriptionEntity extends BaseEntity {
 
-    @NotBlank
-    public String name;
+	@NotBlank
+	public String name;
 
-    public String description;
+	public String description;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "origin_node_id")
-    public FinanceNodeEntity originNode;
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "origin_node_id")
+	public FinanceNodeEntity originNode;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "destination_node_id")
-    public FinanceNodeEntity destinationNode;
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "destination_node_id")
+	public FinanceNodeEntity destinationNode;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "category_id")
-    public CategoryEntity category;
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "category_id")
+	public CategoryEntity category;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "subscription_tag", joinColumns = @JoinColumn(name = "subscription_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
-    @Builder.Default
-    public List<TagEntity> tags = new ArrayList<>();
+	@ManyToMany(fetch = FetchType.EAGER)
+	@JoinTable(name = "subscription_tag", joinColumns = @JoinColumn(name = "subscription_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
+	@Builder.Default
+	public List<TagEntity> tags = new ArrayList<>();
 
-    @Enumerated(EnumType.STRING)
-    public EventType eventType;
+	@Enumerated(EnumType.STRING)
+	public EventType eventType;
 
-    public BigDecimal modifierValue;
+	public BigDecimal modifierValue;
 
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    public RecurrenceFrequency recurrence;
+	@NotNull
+	@Enumerated(EnumType.STRING)
+	public RecurrenceFrequency recurrence;
 
-    @NotNull
-    public LocalDate nextExecutionDate;
+	@NotNull
+	public LocalDate nextExecutionDate;
 
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    @Builder.Default
-    public SubscriptionStatus status = SubscriptionStatus.ACTIVE;
+	@NotNull
+	@Enumerated(EnumType.STRING)
+	@Builder.Default
+	public SubscriptionStatus status = SubscriptionStatus.ACTIVE;
 
 }
-

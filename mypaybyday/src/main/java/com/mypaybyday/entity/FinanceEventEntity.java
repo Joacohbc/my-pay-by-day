@@ -49,126 +49,125 @@ import lombok.Setter;
 @Table(name = "FinanceEvent")
 public class FinanceEventEntity extends BaseEntity {
 
-    /**
-     * Human-readable name for the event (e.g., "Dinner with friends", "Paid Rent").
-     *
-     * <p>
-     * <b>Encrypted at rest</b> via AES-256-GCM. Cannot be used in JPQL/SQL
-     * {@code WHERE}, {@code LIKE}, or {@code ORDER BY} clauses — filter or sort
-     * in memory after loading.
-     */
-    @NotBlank
-    @Convert(converter = StringEncryptionConverter.class)
-    public String name;
+	/**
+	* Human-readable name for the event (e.g., "Dinner with friends", "Paid Rent").
+	*
+	* <p>
+	* <b>Encrypted at rest</b> via AES-256-GCM. Cannot be used in JPQL/SQL
+	* {@code WHERE}, {@code LIKE}, or {@code ORDER BY} clauses — filter or sort
+	* in memory after loading.
+	*/
+	@NotBlank
+	@Convert(converter = StringEncryptionConverter.class)
+	public String name;
 
-    /**
-     * Optional free-text description providing additional context about the event.
-     *
-     * <p>
-     * <b>Encrypted at rest</b> via AES-256-GCM. Cannot be used in JPQL/SQL
-     * {@code WHERE} or {@code LIKE} clauses — filter in memory after loading.
-     */
-    @Convert(converter = StringEncryptionConverter.class)
-    public String description;
+	/**
+	* Optional free-text description providing additional context about the event.
+	*
+	* <p>
+	* <b>Encrypted at rest</b> via AES-256-GCM. Cannot be used in JPQL/SQL
+	* {@code WHERE} or {@code LIKE} clauses — filter in memory after loading.
+	*/
+	@Convert(converter = StringEncryptionConverter.class)
+	public String description;
 
-    /**
-     * URL pointing to an attached receipt or supporting document for this event.
-     *
-     * <p>
-     * <b>Encrypted at rest</b> via AES-256-GCM. Cannot be used in JPQL/SQL
-     * {@code WHERE} clauses — compare in memory after loading.
-     */
-    @Convert(converter = StringEncryptionConverter.class)
-    public String receiptUrl;
+	/**
+	* URL pointing to an attached receipt or supporting document for this event.
+	*
+	* <p>
+	* <b>Encrypted at rest</b> via AES-256-GCM. Cannot be used in JPQL/SQL
+	* {@code WHERE} clauses — compare in memory after loading.
+	*/
+	@Convert(converter = StringEncryptionConverter.class)
+	public String receiptUrl;
 
-    /**
-     * Directional nature of this event.
-     *
-     * <ul>
-     * <li>{@link EventType#INBOUND} — money flowing into an own account (e.g.,
-     * salary).</li>
-     * <li>{@link EventType#OUTBOUND} — money flowing out of an own account (e.g.,
-     * purchase).</li>
-     * <li>{@link EventType#OTHER} — internal transfers or neutral movements.</li>
-     * </ul>
-     */
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    public EventType type;
+	/**
+	* Directional nature of this event.
+	*
+	* <ul>
+	* <li>{@link EventType#INBOUND} — money flowing into an own account (e.g.,
+	* salary).</li>
+	* <li>{@link EventType#OUTBOUND} — money flowing out of an own account (e.g.,
+	* purchase).</li>
+	* <li>{@link EventType#OTHER} — internal transfers or neutral movements.</li>
+	* </ul>
+	*/
+	@NotNull
+	@Enumerated(EnumType.STRING)
+	public EventType type;
 
-    /**
-     * The accounting envelope generated for this event.
-     *
-     * <p>
-     * Exactly one {@link FinanceTransactionEntity} is associated per Event. The
-     * Transaction enforces
-     * the Zero-Sum Rule: the sum of all origin {@link FinanceLineItemEntity} amounts must
-     * equal the sum
-     * of all destination amounts.
-     */
-    @OneToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "transaction_id")
-    public FinanceTransactionEntity transaction;
+	/**
+	* The accounting envelope generated for this event.
+	*
+	* <p>
+	* Exactly one {@link FinanceTransactionEntity} is associated per Event. The
+	* Transaction enforces
+	* the Zero-Sum Rule: the sum of all origin {@link FinanceLineItemEntity} amounts must
+	* equal the sum
+	* of all destination amounts.
+	*/
+	@OneToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "transaction_id")
+	public FinanceTransactionEntity transaction;
 
-    /**
-     * The budget bucket this event is assigned to (e.g., "Food", "Transport",
-     * "Utilities").
-     *
-     * <p>
-     * Together with {@code tags}, this is the only place where classification
-     * lives.
-     * The underlying {@link FinanceLineItemEntity}s carry no category of their own.
-     */
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "category_id")
-    public CategoryEntity category;
+	/**
+	* The budget bucket this event is assigned to (e.g., "Food", "Transport",
+	* "Utilities").
+	*
+	* <p>
+	* Together with {@code tags}, this is the only place where classification
+	* lives.
+	* The underlying {@link FinanceLineItemEntity}s carry no category of their own.
+	*/
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "category_id")
+	public CategoryEntity category;
 
-    /**
-     * Transversal labels applied to this event (e.g., {@code #Vacation2026},
-     * {@code #Reimbursable}).
-     */
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "event_tag", joinColumns = @JoinColumn(name = "event_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
-    @Builder.Default
-    public List<TagEntity> tags = new ArrayList<>();
+	/**
+	* Transversal labels applied to this event (e.g., {@code #Vacation2026},
+	* {@code #Reimbursable}).
+	*/
+	@ManyToMany(fetch = FetchType.EAGER)
+	@JoinTable(name = "event_tag", joinColumns = @JoinColumn(name = "event_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
+	@Builder.Default
+	public List<TagEntity> tags = new ArrayList<>();
 
-    /**
-     * Bidirectional relationship to other FinanceEvents.
-     */
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "event_relation",
-        joinColumns = @JoinColumn(name = "event_id"),
-        inverseJoinColumns = @JoinColumn(name = "related_event_id")
-    )
-    @Builder.Default
-    public List<FinanceEventEntity> relatedEvents = new ArrayList<>();
+	/**
+	* Bidirectional relationship to other FinanceEvents.
+	*/
+	@ManyToMany(fetch = FetchType.LAZY)
+	@JoinTable(
+		name = "event_relation",
+		joinColumns = @JoinColumn(name = "event_id"),
+		inverseJoinColumns = @JoinColumn(name = "related_event_id")
+	)
+	@Builder.Default
+	public List<FinanceEventEntity> relatedEvents = new ArrayList<>();
 
-    /**
-     * Optional link to the subscription that generated this event or is associated with it.
-     */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subscription_id")
-    public SubscriptionEntity subscription;
+	/**
+	* Optional link to the subscription that generated this event or is associated with it.
+	*/
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "subscription_id")
+	public SubscriptionEntity subscription;
 
-    /**
-     * Transient property to hold file IDs during request parsing.
-     */
-    @Transient
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    public List<Long> fileIds;
+	/**
+	* Transient property to hold file IDs during request parsing.
+	*/
+	@Transient
+	@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+	public List<Long> fileIds;
 
-    /**
-     * Attached files (images, documents, videos).
-     */
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "event_file",
-        joinColumns = @JoinColumn(name = "event_id"),
-        inverseJoinColumns = @JoinColumn(name = "file_id")
-    )
-    @Builder.Default
-    public List<FileEntity> files = new ArrayList<>();
+	/**
+	* Attached files (images, documents, videos).
+	*/
+	@ManyToMany(fetch = FetchType.LAZY)
+	@JoinTable(
+		name = "event_file",
+		joinColumns = @JoinColumn(name = "event_id"),
+		inverseJoinColumns = @JoinColumn(name = "file_id")
+	)
+	@Builder.Default
+	public List<FileEntity> files = new ArrayList<>();
 
 }
-

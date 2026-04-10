@@ -11,13 +11,13 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @Produces(MediaType.APPLICATION_JSON)
 public class ConfigResource {
 
-    @ConfigProperty(name = "mypaybyday.timezone")
-    String timezone;
+	@ConfigProperty(name = "mypaybyday.timezone")
+	String timezone;
 
-    @GET
-    public ConfigDto getConfig() {
-        return ConfigDto.builder()
-                .timezone(timezone)
-                .build();
-    }
+	@GET
+	public ConfigDto getConfig() {
+		return ConfigDto.builder()
+				.timezone(timezone)
+				.build();
+	}
 }

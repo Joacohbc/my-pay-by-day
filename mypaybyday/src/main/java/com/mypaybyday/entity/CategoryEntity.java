@@ -18,12 +18,11 @@ import lombok.Setter;
 @AllArgsConstructor
 public class CategoryEntity extends BaseEntity {
 
-    @NotBlank
-    public String name;
+	@NotBlank
+	public String name;
 
-    public String description;
+	public String description;
 
-    public String icon;
+	public String icon;
 
 }
-

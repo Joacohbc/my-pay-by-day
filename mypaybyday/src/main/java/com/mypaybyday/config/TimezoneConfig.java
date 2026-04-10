@@ -11,13 +11,13 @@ import java.util.TimeZone;
 @ApplicationScoped
 public class TimezoneConfig {
 
-    private static final Logger LOG = Logger.getLogger(TimezoneConfig.class);
+	private static final Logger LOG = Logger.getLogger(TimezoneConfig.class);
 
-    @ConfigProperty(name = "mypaybyday.timezone")
-    String timezone;
+	@ConfigProperty(name = "mypaybyday.timezone")
+	String timezone;
 
-    void onStart(@Observes StartupEvent ev) {
-        LOG.info("Setting default TimeZone to " + timezone);
-        TimeZone.setDefault(TimeZone.getTimeZone(timezone));
-    }
+	void onStart(@Observes StartupEvent ev) {
+		LOG.info("Setting default TimeZone to " + timezone);
+		TimeZone.setDefault(TimeZone.getTimeZone(timezone));
+	}
 }

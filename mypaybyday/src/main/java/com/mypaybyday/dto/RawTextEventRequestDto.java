@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RawTextEventRequestDto {
-    @NotBlank
-    private String text;
-    private String instructions;
+	@NotBlank
+	private String text;
+	private String instructions;
 }

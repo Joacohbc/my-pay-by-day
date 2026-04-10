@@ -42,7 +42,7 @@ import lombok.Setter;
  * live
  * on this entity. They belong exclusively to the parent {@link FinanceEventEntity}
  * wrapper.
- * 
+ *
  * The operational layer is intentionally kept free of any classification
  * concern;
  * it only cares about math and balance.
@@ -56,52 +56,51 @@ import lombok.Setter;
 @Table(name = "FinanceLineItem")
 public class FinanceLineItemEntity extends BaseEntity {
 
-    /**
-     * The {@link FinanceTransactionEntity} this line item belongs to.
-     *
-     * <p>
-     * Loaded lazily to avoid N+1 issues when querying transactions in bulk.
-     * Excluded from JSON serialization since the parent context is always known
-     * from the {@link FinanceEventEntity} wrapper.
-     */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "transaction_id")
-    @JsonIgnore
-    public FinanceTransactionEntity transaction;
+	/**
+	* The {@link FinanceTransactionEntity} this line item belongs to.
+	*
+	* <p>
+	* Loaded lazily to avoid N+1 issues when querying transactions in bulk.
+	* Excluded from JSON serialization since the parent context is always known
+	* from the {@link FinanceEventEntity} wrapper.
+	*/
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "transaction_id")
+	@JsonIgnore
+	public FinanceTransactionEntity transaction;
 
-    /**
-     * The {@link FinanceNodeEntity} (account, external entity, or contact) involved in
-     * this movement.
-     *
-     * <p>
-     * A FinanceNodeEntity with associated LineItems cannot be hard-deleted — only
-     * archived —
-     * to preserve historical balance and debt calculations (Node Immutability
-     * Rule).
-     */
-    @NotNull
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "finance_node_id")
-    public FinanceNodeEntity financeNode;
+	/**
+	* The {@link FinanceNodeEntity} (account, external entity, or contact) involved in
+	* this movement.
+	*
+	* <p>
+	* A FinanceNodeEntity with associated LineItems cannot be hard-deleted — only
+	* archived —
+	* to preserve historical balance and debt calculations (Node Immutability
+	* Rule).
+	*/
+	@NotNull
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "finance_node_id")
+	public FinanceNodeEntity financeNode;
 
-    /**
-     * The signed monetary amount for this movement.
-     *
-     * <p>
-     * Positive values indicate inflow to the {@link FinanceNodeEntity}; negative values
-     * indicate outflow. The sum of all amounts across all LineItems in the parent
-     * {@link FinanceTransactionEntity} must equal zero (Zero-Sum Rule).
-     *
-     * <p>
-     * <b>Encrypted at rest</b> via AES-256-GCM (stored as TEXT in the database).
-     * Cannot be used in JPQL/SQL {@code WHERE}, {@code SUM()}, {@code AVG()},
-     * {@code MAX()}, {@code MIN()}, or {@code ORDER BY} clauses — aggregate or
-     * compare in memory after loading.
-     */
-    @NotNull
-    @Convert(converter = BigDecimalEncryptionConverter.class)
-    @Column(columnDefinition = "TEXT")
-    public BigDecimal amount;
+	/**
+	* The signed monetary amount for this movement.
+	*
+	* <p>
+	* Positive values indicate inflow to the {@link FinanceNodeEntity}; negative values
+	* indicate outflow. The sum of all amounts across all LineItems in the parent
+	* {@link FinanceTransactionEntity} must equal zero (Zero-Sum Rule).
+	*
+	* <p>
+	* <b>Encrypted at rest</b> via AES-256-GCM (stored as TEXT in the database).
+	* Cannot be used in JPQL/SQL {@code WHERE}, {@code SUM()}, {@code AVG()},
+	* {@code MAX()}, {@code MIN()}, or {@code ORDER BY} clauses — aggregate or
+	* compare in memory after loading.
+	*/
+	@NotNull
+	@Convert(converter = BigDecimalEncryptionConverter.class)
+	@Column(columnDefinition = "TEXT")
+	public BigDecimal amount;
 
 }
-

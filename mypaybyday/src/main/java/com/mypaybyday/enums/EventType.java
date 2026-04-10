@@ -10,7 +10,7 @@ package com.mypaybyday.enums;
  * </ul>
  */
 public enum EventType {
-    INBOUND,
-    OUTBOUND,
-    OTHER
+	INBOUND,
+	OUTBOUND,
+	OTHER
 }

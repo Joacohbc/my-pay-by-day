@@ -22,18 +22,17 @@ import lombok.Setter;
 @Table(name = "TimePeriodBudget")
 public class TimePeriodBudgetEntity extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "time_period_id")
-    @NotNull
-    public TimePeriodEntity timePeriod;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "time_period_id")
+	@NotNull
+	public TimePeriodEntity timePeriod;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "category_id")
-    @NotNull
-    public CategoryEntity category;
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "category_id")
+	@NotNull
+	public CategoryEntity category;
 
-    @NotNull
-    public BigDecimal budgetedAmount;
+	@NotNull
+	public BigDecimal budgetedAmount;
 
 }
-

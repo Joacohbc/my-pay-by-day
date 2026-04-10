@@ -22,70 +22,70 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Tag(name = "Categories", description = "Budget classification buckets assigned to Events")
 public class CategoryResource {
 
-    @Inject
-    CategoryService categoryService;
+	@Inject
+	CategoryService categoryService;
 
-    @GET
-    @Operation(summary = "List categories (paginated)")
-    @APIResponse(responseCode = "200", description = "Paginated list of categories",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
-    public Response getAll(
-            @Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
-            @Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
-        return Response.ok(categoryService.listAll(page, size)).build();
-    }
+	@GET
+	@Operation(summary = "List categories (paginated)")
+	@APIResponse(responseCode = "200", description = "Paginated list of categories",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
+	public Response getAll(
+			@Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
+			@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
+		return Response.ok(categoryService.listAll(page, size)).build();
+	}
 
-    @GET
-    @Path("/{id}")
-    @Operation(summary = "Get category by ID")
-    @APIResponses({
-            @APIResponse(responseCode = "200", description = "Category found",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class))),
-            @APIResponse(responseCode = "404", description = "Category not found")
-    })
-    public Response getById(
-            @Parameter(description = "ID of the category", required = true) @PathParam("id") Long id)
-            throws BusinessException {
-        return Response.ok(categoryService.findById(id)).build();
-    }
+	@GET
+	@Path("/{id}")
+	@Operation(summary = "Get category by ID")
+	@APIResponses({
+			@APIResponse(responseCode = "200", description = "Category found",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class))),
+			@APIResponse(responseCode = "404", description = "Category not found")
+	})
+	public Response getById(
+			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id)
+			throws BusinessException {
+		return Response.ok(categoryService.findById(id)).build();
+	}
 
-    @POST
-    @Operation(summary = "Create a new category", description = "Category name must not be blank.")
-    @APIResponses({
-            @APIResponse(responseCode = "201", description = "Category created",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class))),
-            @APIResponse(responseCode = "400", description = "Validation error")
-    })
-    public Response create(CategoryDto category) throws BusinessException {
-        return Response.status(Response.Status.CREATED).entity(categoryService.create(category)).build();
-    }
+	@POST
+	@Operation(summary = "Create a new category", description = "Category name must not be blank.")
+	@APIResponses({
+			@APIResponse(responseCode = "201", description = "Category created",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class))),
+			@APIResponse(responseCode = "400", description = "Validation error")
+	})
+	public Response create(CategoryDto category) throws BusinessException {
+		return Response.status(Response.Status.CREATED).entity(categoryService.create(category)).build();
+	}
 
-    @PATCH
-    @Path("/{id}")
-    @Operation(summary = "Update a category")
-    @APIResponses({
-            @APIResponse(responseCode = "200", description = "Category updated",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class))),
-            @APIResponse(responseCode = "400", description = "Validation error"),
-            @APIResponse(responseCode = "404", description = "Category not found")
-    })
-    public Response update(
-            @Parameter(description = "ID of the category", required = true) @PathParam("id") Long id,
-            CategoryDto categoryDetails) throws BusinessException {
-        return Response.ok(categoryService.update(id, categoryDetails)).build();
-    }
+	@PATCH
+	@Path("/{id}")
+	@Operation(summary = "Update a category")
+	@APIResponses({
+			@APIResponse(responseCode = "200", description = "Category updated",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class))),
+			@APIResponse(responseCode = "400", description = "Validation error"),
+			@APIResponse(responseCode = "404", description = "Category not found")
+	})
+	public Response update(
+			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id,
+			CategoryDto categoryDetails) throws BusinessException {
+		return Response.ok(categoryService.update(id, categoryDetails)).build();
+	}
 
-    @DELETE
-    @Path("/{id}")
-    @Operation(summary = "Delete a category")
-    @APIResponses({
-            @APIResponse(responseCode = "204", description = "Category deleted"),
-            @APIResponse(responseCode = "404", description = "Category not found")
-    })
-    public Response delete(
-            @Parameter(description = "ID of the category", required = true) @PathParam("id") Long id)
-            throws BusinessException {
-        categoryService.delete(id);
-        return Response.noContent().build();
-    }
+	@DELETE
+	@Path("/{id}")
+	@Operation(summary = "Delete a category")
+	@APIResponses({
+			@APIResponse(responseCode = "204", description = "Category deleted"),
+			@APIResponse(responseCode = "404", description = "Category not found")
+	})
+	public Response delete(
+			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id)
+			throws BusinessException {
+		categoryService.delete(id);
+		return Response.noContent().build();
+	}
 }

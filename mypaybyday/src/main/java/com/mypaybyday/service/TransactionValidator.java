@@ -23,70 +23,70 @@ import java.util.List;
 @ApplicationScoped
 public class TransactionValidator {
 
-    @Inject
-    FinanceNodeRepository financeNodeRepository;
+	@Inject
+	FinanceNodeRepository financeNodeRepository;
 
-    @Inject
-    Messages messages;
+	@Inject
+	Messages messages;
 
-    /**
-     * Validates the Zero-Sum Rule: the algebraic sum of all line-item amounts must equal 0.
-     *
-     * @throws BusinessException if the rule is violated or any amount is null
-     */
-    public void validateZeroSum(FinanceTransactionEntity transaction) throws BusinessException {
-        if (transaction.lineItems == null || transaction.lineItems.isEmpty()) {
-            throw new BusinessException(messages.get(MsgKey.TRANSACTION_NO_LINE_ITEMS));
-        }
+	/**
+	* Validates the Zero-Sum Rule: the algebraic sum of all line-item amounts must equal 0.
+	*
+	* @throws BusinessException if the rule is violated or any amount is null
+	*/
+	public void validateZeroSum(FinanceTransactionEntity transaction) throws BusinessException {
+		if (transaction.lineItems == null || transaction.lineItems.isEmpty()) {
+			throw new BusinessException(messages.get(MsgKey.TRANSACTION_NO_LINE_ITEMS));
+		}
 
-        BigDecimal sum = BigDecimal.ZERO;
-        for (FinanceLineItemEntity item : transaction.lineItems) {
-            if (item.amount == null) {
-                throw new BusinessException(messages.get(MsgKey.TRANSACTION_LINE_ITEM_AMOUNT_NULL));
-            }
-            sum = sum.add(item.amount);
-        }
+		BigDecimal sum = BigDecimal.ZERO;
+		for (FinanceLineItemEntity item : transaction.lineItems) {
+			if (item.amount == null) {
+				throw new BusinessException(messages.get(MsgKey.TRANSACTION_LINE_ITEM_AMOUNT_NULL));
+			}
+			sum = sum.add(item.amount);
+		}
 
-        if (sum.compareTo(BigDecimal.ZERO) != 0) {
-            throw new BusinessException(messages.get(MsgKey.TRANSACTION_ZERO_SUM_VIOLATED, sum));
-        }
-    }
+		if (sum.compareTo(BigDecimal.ZERO) != 0) {
+			throw new BusinessException(messages.get(MsgKey.TRANSACTION_ZERO_SUM_VIOLATED, sum));
+		}
+	}
 
-    /**
-     * Validates that every {@link FinanceLineItemEntity} references a {@link FinanceNodeEntity} that exists
-     * and is not archived (Node Immutability Rule).
-     *
-     * @throws BusinessException if a node is missing, not found, or archived
-     */
-    public void validateNodesExist(FinanceTransactionEntity transaction) throws BusinessException {
-        if (transaction.lineItems == null) return;
+	/**
+	* Validates that every {@link FinanceLineItemEntity} references a {@link FinanceNodeEntity} that exists
+	* and is not archived (Node Immutability Rule).
+	*
+	* @throws BusinessException if a node is missing, not found, or archived
+	*/
+	public void validateNodesExist(FinanceTransactionEntity transaction) throws BusinessException {
+		if (transaction.lineItems == null) return;
 
-        List<Long> ids = transaction.lineItems.stream()
-            .map(item -> item.financeNode != null ? item.financeNode.id : null)
-            .toList();
+		List<Long> ids = transaction.lineItems.stream()
+			.map(item -> item.financeNode != null ? item.financeNode.id : null)
+			.toList();
 
-        List<FinanceNodeEntity> nodes = financeNodeRepository.list(ids);
-        if(nodes.size() != ids.size()) {
-            throw new BusinessException(messages.get(MsgKey.TRANSACTION_LINE_ITEM_NODES_NOT_FOUND));
-        }
+		List<FinanceNodeEntity> nodes = financeNodeRepository.list(ids);
+		if(nodes.size() != ids.size()) {
+			throw new BusinessException(messages.get(MsgKey.TRANSACTION_LINE_ITEM_NODES_NOT_FOUND));
+		}
 
-        nodes.stream()
-            .filter(node -> node.archived)
-            .findFirst()
-            .ifPresent(node -> {
-                throw new BusinessException(messages.get(MsgKey.NODE_ARCHIVED_IN_USE, node.id));
-            });
-    }
+		nodes.stream()
+			.filter(node -> node.archived)
+			.findFirst()
+			.ifPresent(node -> {
+				throw new BusinessException(messages.get(MsgKey.NODE_ARCHIVED_IN_USE, node.id));
+			});
+	}
 
-    /**
-     * Validates that the transaction date is not in the future.
-     * The comparison uses the globally configured TimeZone implicitly via LocalDateTime.now().
-     *
-     * @throws BusinessException if the transaction date is in the future
-     */
-    public void validateDateNotInFuture(FinanceTransactionEntity transaction) throws BusinessException {
-        if (transaction.transactionDate != null && transaction.transactionDate.isAfter(LocalDateTime.now())) {
-            throw new BusinessException(messages.get(MsgKey.TRANSACTION_DATE_IN_FUTURE));
-        }
-    }
+	/**
+	* Validates that the transaction date is not in the future.
+	* The comparison uses the globally configured TimeZone implicitly via LocalDateTime.now().
+	*
+	* @throws BusinessException if the transaction date is in the future
+	*/
+	public void validateDateNotInFuture(FinanceTransactionEntity transaction) throws BusinessException {
+		if (transaction.transactionDate != null && transaction.transactionDate.isAfter(LocalDateTime.now())) {
+			throw new BusinessException(messages.get(MsgKey.TRANSACTION_DATE_IN_FUTURE));
+		}
+	}
 }

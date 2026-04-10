@@ -34,271 +34,271 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class TimePeriodService {
 
-    @Inject
-    TimePeriodRepository timePeriodRepository;
+	@Inject
+	TimePeriodRepository timePeriodRepository;
 
-    @Inject
-    EventService eventService;
+	@Inject
+	EventService eventService;
 
-    @Inject
-    CategoryService categoryService;
+	@Inject
+	CategoryService categoryService;
 
-    @Inject
-    Messages messages;
+	@Inject
+	Messages messages;
 
-    // -------------------------------------------------------------------------
-    // Queries
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Queries
+	// -------------------------------------------------------------------------
 
-    @Transactional
-    public PagedResponse<TimePeriodDto> listAll(int page, int size) {
-        long totalElements = timePeriodRepository.count();
-        List<TimePeriodDto> content = timePeriodRepository.findAll()
-                .page(Page.of(page, size))
-                .stream()
-                .map(TimePeriodDto::from)
-                .toList();
-        return PagedResponse.of(content, page, size, totalElements);
-    }
+	@Transactional
+	public PagedResponse<TimePeriodDto> listAll(int page, int size) {
+		long totalElements = timePeriodRepository.count();
+		List<TimePeriodDto> content = timePeriodRepository.findAll()
+				.page(Page.of(page, size))
+				.stream()
+				.map(TimePeriodDto::from)
+				.toList();
+		return PagedResponse.of(content, page, size, totalElements);
+	}
 
-    @Transactional
-    public TimePeriodDto findById(Long id) throws BusinessException {
-        return TimePeriodDto.from(findTimePeriodEntity(id));
-    }
+	@Transactional
+	public TimePeriodDto findById(Long id) throws BusinessException {
+		return TimePeriodDto.from(findTimePeriodEntity(id));
+	}
 
-    /**
-     * Returns a balance summary for the given time period.
-     *
-     * <p>Events are associated dynamically: any {@link FinanceEventEntity} whose transaction date
-     * falls within [{@code startDate}, {@code endDate}] (both endpoints inclusive) is included.
-     *
-     * <p>Income is the sum of positive line-item amounts across all {@code INBOUND} events;
-     * outbound is the equivalent sum for {@code OUTBOUND} events. {@code OTHER} events are
-     * listed in the result but do not contribute to either figure.
-     *
-     * <p>This method must run inside a transaction so that lazy-loaded line items remain
-     * accessible throughout the calculation.
-     */
-    @Transactional
-    public TimePeriodBalanceDto getBalance(Long id) throws BusinessException {
-        TimePeriodEntity timePeriod = findTimePeriodEntity(id);
+	/**
+	* Returns a balance summary for the given time period.
+	*
+	* <p>Events are associated dynamically: any {@link FinanceEventEntity} whose transaction date
+	* falls within [{@code startDate}, {@code endDate}] (both endpoints inclusive) is included.
+	*
+	* <p>Income is the sum of positive line-item amounts across all {@code INBOUND} events;
+	* outbound is the equivalent sum for {@code OUTBOUND} events. {@code OTHER} events are
+	* listed in the result but do not contribute to either figure.
+	*
+	* <p>This method must run inside a transaction so that lazy-loaded line items remain
+	* accessible throughout the calculation.
+	*/
+	@Transactional
+	public TimePeriodBalanceDto getBalance(Long id) throws BusinessException {
+		TimePeriodEntity timePeriod = findTimePeriodEntity(id);
 
-        LocalDateTime from = timePeriod.startDate.atStartOfDay();
-        LocalDateTime to   = timePeriod.endDate.atTime(LocalTime.MAX);
+		LocalDateTime from = timePeriod.startDate.atStartOfDay();
+		LocalDateTime to   = timePeriod.endDate.atTime(LocalTime.MAX);
 
-        List<FinanceEventDto> events = eventService.findByDateRange(from, to);
+		List<FinanceEventDto> events = eventService.findByDateRange(from, to);
 
-        BigDecimal income   = BigDecimal.ZERO;
-        BigDecimal outbound = BigDecimal.ZERO;
+		BigDecimal income   = BigDecimal.ZERO;
+		BigDecimal outbound = BigDecimal.ZERO;
 
-        for (FinanceEventDto event : events) {
-            if (event.transactionId() == null || event.lineItems() == null) {
-                continue;
-            }
+		for (FinanceEventDto event : events) {
+			if (event.transactionId() == null || event.lineItems() == null) {
+				continue;
+			}
 
-            // The "amount" of an event = sum of its positive line items.
-            // By the Zero-Sum Rule, this equals the sum of its absolute negative line items.
-            BigDecimal eventAmount = event.lineItems().stream()
-                    .map(li -> li.amount())
-                    .filter(a -> a.compareTo(BigDecimal.ZERO) > 0)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+			// The "amount" of an event = sum of its positive line items.
+			// By the Zero-Sum Rule, this equals the sum of its absolute negative line items.
+			BigDecimal eventAmount = event.lineItems().stream()
+					.map(li -> li.amount())
+					.filter(a -> a.compareTo(BigDecimal.ZERO) > 0)
+					.reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            if (event.type() == EventType.INBOUND) {
-                income = income.add(eventAmount);
-            } else if (event.type() == EventType.OUTBOUND) {
-                outbound = outbound.add(eventAmount);
-            }
-        }
+			if (event.type() == EventType.INBOUND) {
+				income = income.add(eventAmount);
+			} else if (event.type() == EventType.OUTBOUND) {
+				outbound = outbound.add(eventAmount);
+			}
+		}
 
-        List<CategoryBudgetSummaryDto> categoryBudgets = calculateCategoryBudgets(timePeriod.budgets, events);
+		List<CategoryBudgetSummaryDto> categoryBudgets = calculateCategoryBudgets(timePeriod.budgets, events);
 
-        return new TimePeriodBalanceDto(timePeriod, income, outbound, categoryBudgets, events);
-    }
+		return new TimePeriodBalanceDto(timePeriod, income, outbound, categoryBudgets, events);
+	}
 
-    private List<CategoryBudgetSummaryDto> calculateCategoryBudgets(List<TimePeriodBudgetEntity> budgets, List<FinanceEventDto> events) {
-        if (budgets == null || budgets.isEmpty()) {
-            return List.of();
-        }
+	private List<CategoryBudgetSummaryDto> calculateCategoryBudgets(List<TimePeriodBudgetEntity> budgets, List<FinanceEventDto> events) {
+		if (budgets == null || budgets.isEmpty()) {
+			return List.of();
+		}
 
-        Map<Long, BigDecimal> spentPerCategory = new HashMap<>();
+		Map<Long, BigDecimal> spentPerCategory = new HashMap<>();
 
-        for (FinanceEventDto event : events) {
-            if (event.type() == EventType.OUTBOUND && event.category() != null) {
-                BigDecimal eventAmount = BigDecimal.ZERO;
-                if (event.lineItems() != null) {
-                    eventAmount = event.lineItems().stream()
-                            .map(li -> li.amount())
-                            .filter(a -> a.compareTo(BigDecimal.ZERO) > 0)
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
-                }
-                spentPerCategory.merge(event.category().id(), eventAmount, BigDecimal::add);
-            }
-        }
+		for (FinanceEventDto event : events) {
+			if (event.type() == EventType.OUTBOUND && event.category() != null) {
+				BigDecimal eventAmount = BigDecimal.ZERO;
+				if (event.lineItems() != null) {
+					eventAmount = event.lineItems().stream()
+							.map(li -> li.amount())
+							.filter(a -> a.compareTo(BigDecimal.ZERO) > 0)
+							.reduce(BigDecimal.ZERO, BigDecimal::add);
+				}
+				spentPerCategory.merge(event.category().id(), eventAmount, BigDecimal::add);
+			}
+		}
 
-        return budgets.stream().map(budget -> {
-            BigDecimal spent = spentPerCategory.getOrDefault(budget.category.id, BigDecimal.ZERO);
-            return new CategoryBudgetSummaryDto(
-                    com.mypaybyday.dto.CategoryDto.from(budget.category),
-                    budget.budgetedAmount,
-                    spent
-            );
-        }).collect(Collectors.toList());
-    }
+		return budgets.stream().map(budget -> {
+			BigDecimal spent = spentPerCategory.getOrDefault(budget.category.id, BigDecimal.ZERO);
+			return new CategoryBudgetSummaryDto(
+					com.mypaybyday.dto.CategoryDto.from(budget.category),
+					budget.budgetedAmount,
+					spent
+			);
+		}).collect(Collectors.toList());
+	}
 
-    @Transactional
-    public DynamicTimePeriodBalanceDto getDynamicBalance(LocalDate startDate, LocalDate endDate) throws BusinessException {
-        if (startDate == null || endDate == null) {
-            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_START_DATE_REQUIRED)); // or appropriate generic date message
-        }
-        if (endDate.isBefore(startDate)) {
-            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
-        }
+	@Transactional
+	public DynamicTimePeriodBalanceDto getDynamicBalance(LocalDate startDate, LocalDate endDate) throws BusinessException {
+		if (startDate == null || endDate == null) {
+			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_START_DATE_REQUIRED)); // or appropriate generic date message
+		}
+		if (endDate.isBefore(startDate)) {
+			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
+		}
 
-        LocalDateTime from = startDate.atStartOfDay();
-        LocalDateTime to = endDate.atTime(LocalTime.MAX);
+		LocalDateTime from = startDate.atStartOfDay();
+		LocalDateTime to = endDate.atTime(LocalTime.MAX);
 
-        List<FinanceEventDto> events = eventService.findByDateRange(from, to);
+		List<FinanceEventDto> events = eventService.findByDateRange(from, to);
 
-        BigDecimal income = BigDecimal.ZERO;
-        BigDecimal outbound = BigDecimal.ZERO;
+		BigDecimal income = BigDecimal.ZERO;
+		BigDecimal outbound = BigDecimal.ZERO;
 
-        for (FinanceEventDto event : events) {
-            if (event.transactionId() == null || event.lineItems() == null) {
-                continue;
-            }
+		for (FinanceEventDto event : events) {
+			if (event.transactionId() == null || event.lineItems() == null) {
+				continue;
+			}
 
-            BigDecimal eventAmount = event.lineItems().stream()
-                    .map(li -> li.amount())
-                    .filter(a -> a.compareTo(BigDecimal.ZERO) > 0)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+			BigDecimal eventAmount = event.lineItems().stream()
+					.map(li -> li.amount())
+					.filter(a -> a.compareTo(BigDecimal.ZERO) > 0)
+					.reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            if (event.type() == EventType.INBOUND) {
-                income = income.add(eventAmount);
-            } else if (event.type() == EventType.OUTBOUND) {
-                outbound = outbound.add(eventAmount);
-            }
-        }
+			if (event.type() == EventType.INBOUND) {
+				income = income.add(eventAmount);
+			} else if (event.type() == EventType.OUTBOUND) {
+				outbound = outbound.add(eventAmount);
+			}
+		}
 
-        return new DynamicTimePeriodBalanceDto(startDate, endDate, income, outbound, events);
-    }
+		return new DynamicTimePeriodBalanceDto(startDate, endDate, income, outbound, events);
+	}
 
-    // -------------------------------------------------------------------------
-    // Commands
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Commands
+	// -------------------------------------------------------------------------
 
-    @Transactional
-    public TimePeriodDto create(TimePeriodDto dto) throws BusinessException {
-        TimePeriodEntity timePeriod = dto.to();
-        if (dto.budgets() != null) {
-            for (TimePeriodBudgetDto budgetDto : dto.budgets()) {
-                if (budgetDto.category() != null && budgetDto.category().id() != null) {
-                    CategoryEntity category = categoryService.findEntityById(budgetDto.category().id());
-                    TimePeriodBudgetEntity budget = new TimePeriodBudgetEntity();
-                    budget.timePeriod = timePeriod;
-                    budget.category = category;
-                    budget.budgetedAmount = budgetDto.budgetedAmount() != null ? budgetDto.budgetedAmount() : BigDecimal.ZERO;
-                    timePeriod.budgets.add(budget);
-                }
-            }
-        }
-        validatePeriod(timePeriod);
-        timePeriodRepository.persist(timePeriod);
-        return TimePeriodDto.from(timePeriod);
-    }
+	@Transactional
+	public TimePeriodDto create(TimePeriodDto dto) throws BusinessException {
+		TimePeriodEntity timePeriod = dto.to();
+		if (dto.budgets() != null) {
+			for (TimePeriodBudgetDto budgetDto : dto.budgets()) {
+				if (budgetDto.category() != null && budgetDto.category().id() != null) {
+					CategoryEntity category = categoryService.findEntityById(budgetDto.category().id());
+					TimePeriodBudgetEntity budget = new TimePeriodBudgetEntity();
+					budget.timePeriod = timePeriod;
+					budget.category = category;
+					budget.budgetedAmount = budgetDto.budgetedAmount() != null ? budgetDto.budgetedAmount() : BigDecimal.ZERO;
+					timePeriod.budgets.add(budget);
+				}
+			}
+		}
+		validatePeriod(timePeriod);
+		timePeriodRepository.persist(timePeriod);
+		return TimePeriodDto.from(timePeriod);
+	}
 
-    @Transactional
-    public TimePeriodDto patch(Long id, TimePeriodDto dto) throws BusinessException {
-        TimePeriodEntity timePeriod = findTimePeriodEntity(id);
+	@Transactional
+	public TimePeriodDto patch(Long id, TimePeriodDto dto) throws BusinessException {
+		TimePeriodEntity timePeriod = findTimePeriodEntity(id);
 
-        if (dto.name() != null) {
-            if (dto.name().isBlank()) {
-                throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NAME_REQUIRED));
-            }
-            timePeriod.name = dto.name();
-        }
-        if (dto.startDate() != null) {
-            timePeriod.startDate = dto.startDate();
-        }
-        if (dto.endDate() != null) {
-            timePeriod.endDate = dto.endDate();
-        }
-        if (timePeriod.endDate.isBefore(timePeriod.startDate)) {
-            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
-        }
-        if (dto.budgets() != null) {
-            timePeriod.budgets.clear();
-            for (TimePeriodBudgetDto budgetDto : dto.budgets()) {
-                if (budgetDto.category() != null && budgetDto.category().id() != null) {
-                    CategoryEntity category = categoryService.findEntityById(budgetDto.category().id());
-                    TimePeriodBudgetEntity budget = new TimePeriodBudgetEntity();
-                    budget.timePeriod = timePeriod;
-                    budget.category = category;
-                    budget.budgetedAmount = budgetDto.budgetedAmount() != null ? budgetDto.budgetedAmount() : BigDecimal.ZERO;
-                    timePeriod.budgets.add(budget);
-                }
-            }
-        }
-        if (dto.savingsPercentageGoal() != null) {
-            if (dto.savingsPercentageGoal().compareTo(BigDecimal.ZERO) < 0
-                    || dto.savingsPercentageGoal().compareTo(new BigDecimal("100")) > 0) {
-                throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_SAVINGS_GOAL_RANGE));
-            }
-            timePeriod.savingsPercentageGoal = dto.savingsPercentageGoal();
-        }
-        if (dto.budgetLimit() != null) {
-            timePeriod.budgetLimit = dto.budgetLimit();
-        }
+		if (dto.name() != null) {
+			if (dto.name().isBlank()) {
+				throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NAME_REQUIRED));
+			}
+			timePeriod.name = dto.name();
+		}
+		if (dto.startDate() != null) {
+			timePeriod.startDate = dto.startDate();
+		}
+		if (dto.endDate() != null) {
+			timePeriod.endDate = dto.endDate();
+		}
+		if (timePeriod.endDate.isBefore(timePeriod.startDate)) {
+			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
+		}
+		if (dto.budgets() != null) {
+			timePeriod.budgets.clear();
+			for (TimePeriodBudgetDto budgetDto : dto.budgets()) {
+				if (budgetDto.category() != null && budgetDto.category().id() != null) {
+					CategoryEntity category = categoryService.findEntityById(budgetDto.category().id());
+					TimePeriodBudgetEntity budget = new TimePeriodBudgetEntity();
+					budget.timePeriod = timePeriod;
+					budget.category = category;
+					budget.budgetedAmount = budgetDto.budgetedAmount() != null ? budgetDto.budgetedAmount() : BigDecimal.ZERO;
+					timePeriod.budgets.add(budget);
+				}
+			}
+		}
+		if (dto.savingsPercentageGoal() != null) {
+			if (dto.savingsPercentageGoal().compareTo(BigDecimal.ZERO) < 0
+					|| dto.savingsPercentageGoal().compareTo(new BigDecimal("100")) > 0) {
+				throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_SAVINGS_GOAL_RANGE));
+			}
+			timePeriod.savingsPercentageGoal = dto.savingsPercentageGoal();
+		}
+		if (dto.budgetLimit() != null) {
+			timePeriod.budgetLimit = dto.budgetLimit();
+		}
 
-        validatePeriod(timePeriod);
+		validatePeriod(timePeriod);
 
-        return TimePeriodDto.from(timePeriod);
-    }
+		return TimePeriodDto.from(timePeriod);
+	}
 
-    @Transactional
-    public void delete(Long id) throws BusinessException {
-        TimePeriodEntity timePeriod = findTimePeriodEntity(id);
-        timePeriodRepository.delete(timePeriod);
-    }
+	@Transactional
+	public void delete(Long id) throws BusinessException {
+		TimePeriodEntity timePeriod = findTimePeriodEntity(id);
+		timePeriodRepository.delete(timePeriod);
+	}
 
-    // -------------------------------------------------------------------------
-    // Internal helpers
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Internal helpers
+	// -------------------------------------------------------------------------
 
-    private TimePeriodEntity findTimePeriodEntity(Long id) throws BusinessException {
-        TimePeriodEntity timePeriod = timePeriodRepository.findById(id);
-        if (timePeriod == null) {
-            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NOT_FOUND, id));
-        }
-        return timePeriod;
-    }
+	private TimePeriodEntity findTimePeriodEntity(Long id) throws BusinessException {
+		TimePeriodEntity timePeriod = timePeriodRepository.findById(id);
+		if (timePeriod == null) {
+			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NOT_FOUND, id));
+		}
+		return timePeriod;
+	}
 
-    private void validatePeriod(TimePeriodEntity tp) throws BusinessException {
-        if (tp.name == null || tp.name.isBlank()) {
-            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NAME_REQUIRED));
-        }
-        if (tp.startDate == null) {
-            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_START_DATE_REQUIRED));
-        }
-        if (tp.endDate == null) {
-            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_DATE_REQUIRED));
-        }
-        if (tp.endDate.isBefore(tp.startDate)) {
-            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
-        }
-        if (tp.savingsPercentageGoal != null
-                && (tp.savingsPercentageGoal.compareTo(BigDecimal.ZERO) < 0
-                    || tp.savingsPercentageGoal.compareTo(new BigDecimal("100")) > 0)) {
-                throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_SAVINGS_GOAL_RANGE));
-        }
+	private void validatePeriod(TimePeriodEntity tp) throws BusinessException {
+		if (tp.name == null || tp.name.isBlank()) {
+			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NAME_REQUIRED));
+		}
+		if (tp.startDate == null) {
+			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_START_DATE_REQUIRED));
+		}
+		if (tp.endDate == null) {
+			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_DATE_REQUIRED));
+		}
+		if (tp.endDate.isBefore(tp.startDate)) {
+			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
+		}
+		if (tp.savingsPercentageGoal != null
+				&& (tp.savingsPercentageGoal.compareTo(BigDecimal.ZERO) < 0
+					|| tp.savingsPercentageGoal.compareTo(new BigDecimal("100")) > 0)) {
+				throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_SAVINGS_GOAL_RANGE));
+		}
 
-        BigDecimal sumOfCategoryBudgets = tp.budgets.stream()
-                .map(b -> b.budgetedAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+		BigDecimal sumOfCategoryBudgets = tp.budgets.stream()
+				.map(b -> b.budgetedAmount)
+				.reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        if (tp.budgetLimit == null) {
-            tp.budgetLimit = sumOfCategoryBudgets;
-        } else if (tp.budgetLimit.compareTo(sumOfCategoryBudgets) < 0) {
-            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_BUDGET_LIMIT_MINIMUM, sumOfCategoryBudgets));
-        }
-    }
+		if (tp.budgetLimit == null) {
+			tp.budgetLimit = sumOfCategoryBudgets;
+		} else if (tp.budgetLimit.compareTo(sumOfCategoryBudgets) < 0) {
+			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_BUDGET_LIMIT_MINIMUM, sumOfCategoryBudgets));
+		}
+	}
 }

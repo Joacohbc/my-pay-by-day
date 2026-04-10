@@ -45,20 +45,20 @@ import lombok.Setter;
 @Table(name = "FinanceTransaction")
 public class FinanceTransactionEntity extends BaseEntity {
 
-    /** The date and time at which the financial movement occurred. */
-    @NotNull
-    public LocalDateTime transactionDate;
+	/** The date and time at which the financial movement occurred. */
+	@NotNull
+	public LocalDateTime transactionDate;
 
-    /**
-     * The atomic movements of value that make up this transaction.
-     *
-     * <p>
-     * Each {@link FinanceLineItemEntity} links exactly one {@link FinanceNodeEntity} to an
-     * amount.
-     * The collection of all line items must satisfy the Zero-Sum Rule.
-     */
-    @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @Builder.Default
-    public List<FinanceLineItemEntity> lineItems = new ArrayList<>();
+	/**
+	* The atomic movements of value that make up this transaction.
+	*
+	* <p>
+	* Each {@link FinanceLineItemEntity} links exactly one {@link FinanceNodeEntity} to an
+	* amount.
+	* The collection of all line items must satisfy the Zero-Sum Rule.
+	*/
+	@OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	@Builder.Default
+	public List<FinanceLineItemEntity> lineItems = new ArrayList<>();
 
 }

@@ -25,24 +25,23 @@ import lombok.Setter;
 @AllArgsConstructor
 public class FinanceNodeEntity extends BaseEntity {
 
-    /**
-     * Display name of this node (e.g., "BBVA cuenta sueldo", "Visa 4567").
-     *
-     * <p>
-     * <b>Encrypted at rest</b> via AES-256-GCM. Cannot be used in JPQL/SQL
-     * {@code WHERE}, {@code LIKE}, or {@code ORDER BY} clauses — filter or sort
-     * in memory after loading.
-     */
-    @NotBlank
-    @Convert(converter = StringEncryptionConverter.class)
-    public String name;
+	/**
+	* Display name of this node (e.g., "BBVA cuenta sueldo", "Visa 4567").
+	*
+	* <p>
+	* <b>Encrypted at rest</b> via AES-256-GCM. Cannot be used in JPQL/SQL
+	* {@code WHERE}, {@code LIKE}, or {@code ORDER BY} clauses — filter or sort
+	* in memory after loading.
+	*/
+	@NotBlank
+	@Convert(converter = StringEncryptionConverter.class)
+	public String name;
 
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    public FinanceNodeType type;
+	@NotNull
+	@Enumerated(EnumType.STRING)
+	public FinanceNodeType type;
 
-    @Builder.Default
-    public boolean archived = false;
+	@Builder.Default
+	public boolean archived = false;
 
 }
-

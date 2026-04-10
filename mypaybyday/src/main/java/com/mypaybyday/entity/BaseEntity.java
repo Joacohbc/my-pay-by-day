@@ -21,25 +21,24 @@ import java.time.Instant;
 @MappedSuperclass
 public abstract class BaseEntity extends PanacheEntityBase {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    public Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	public Long id;
 
-    @Column(updatable = false)
-    public Instant createdAt;
+	@Column(updatable = false)
+	public Instant createdAt;
 
-    public Instant updatedAt;
+	public Instant updatedAt;
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = Instant.now();
-        updatedAt = Instant.now();
-    }
+	@PrePersist
+	protected void onCreate() {
+		createdAt = Instant.now();
+		updatedAt = Instant.now();
+	}
 
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
-    }
+	@PreUpdate
+	protected void onUpdate() {
+		updatedAt = Instant.now();
+	}
 
 }
-

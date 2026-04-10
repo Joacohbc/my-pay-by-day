@@ -7,9 +7,9 @@ import java.math.BigDecimal;
  * The AI uses this to avoid doing calculations itself.
  */
 public record CategoryBalanceDto(
-    Long categoryId,
-    String categoryName,
-    BigDecimal income,
-    BigDecimal outbound
+	Long categoryId,
+	String categoryName,
+	BigDecimal income,
+	BigDecimal outbound
 ) {
 }

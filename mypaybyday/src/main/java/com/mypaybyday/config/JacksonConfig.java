@@ -8,8 +8,8 @@ import org.openapitools.jackson.nullable.JsonNullableModule;
 @Singleton
 public class JacksonConfig implements ObjectMapperCustomizer {
 
-    @Override
-    public void customize(ObjectMapper mapper) {
-        mapper.registerModule(new JsonNullableModule());
-    }
+	@Override
+	public void customize(ObjectMapper mapper) {
+		mapper.registerModule(new JsonNullableModule());
+	}
 }
