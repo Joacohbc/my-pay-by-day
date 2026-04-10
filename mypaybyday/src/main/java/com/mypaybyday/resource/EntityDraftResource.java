@@ -69,6 +69,17 @@ public class EntityDraftResource {
         return draftService.listFinanceEventDrafts();
     }
 
+    @GET
+    @Path("/finance-events/by-entity/{entityId}")
+    @Operation(summary = "Get a finance event draft by original entity ID")
+    @APIResponse(responseCode = "200", description = "Finance event draft found")
+    @APIResponse(responseCode = "204", description = "No draft found for this entity")
+    public Response getFinanceEventDraftByEntityId(@PathParam("entityId") Long entityId) {
+        return draftService.findFinanceEventDraftByEntityId(entityId)
+            .map(dto -> Response.ok(dto).build())
+            .orElseGet(() -> Response.noContent().build());
+    }
+
     @POST
     @Path("/finance-events")
     @Operation(summary = "Create a new finance event draft from FinanceEventDto")

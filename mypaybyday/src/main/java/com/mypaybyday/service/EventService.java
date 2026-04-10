@@ -12,6 +12,7 @@ import com.mypaybyday.entity.Tag;
 import com.mypaybyday.entity.FinanceTransaction;
 import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.enums.EventType;
+import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
@@ -67,6 +68,9 @@ public class EventService {
 
     @Inject
     FileService fileService;
+
+    @Inject
+    EntityDraftService entityDraftService;
 
     // -------------------------------------------------------------------------
     // Queries
@@ -366,6 +370,7 @@ public class EventService {
         if (event == null) {
             throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
         }
+        entityDraftService.deleteByOriginalEntityId(id, EntityType.FINANCE_EVENT);
         eventRepository.delete(event);
     }
 
