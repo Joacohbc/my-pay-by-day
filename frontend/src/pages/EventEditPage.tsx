@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { Icon } from '@/components/ui/Icon';
 import { useEvent, useUpdateEvent } from '@/hooks/useEvents';
-import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft, useFinanceEventDrafts } from '@/hooks/useDrafts';
+import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft, useFinanceEventDraftByEntityId } from '@/hooks/useDrafts';
 import type { CreateEventDto, PatchEventDto, FinanceEvent } from '@/models';
 
 export function EventEditPage() {
@@ -13,19 +13,17 @@ export function EventEditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: event, isLoading } = useEvent(Number(id));
-  const { data: drafts, isLoading: isLoadingDrafts } = useFinanceEventDrafts();
+  const { data: fetchedDraft, isLoading: isLoadingDraft } = useFinanceEventDraftByEntityId(Number(id));
 
   const updateEvent = useUpdateEvent();
   const createDraft = useCreateFinanceEventDraft();
   const updateDraft = useUpdateFinanceEventDraft();
   const deleteDraft = useDeleteDraft();
 
-  // TODO: Use endpoint that get by Id the Draft, not a list
   const state = useLocation().state as { draft?: FinanceEvent } | null;
-  const existingDraft = drafts?.find(d => d.id === Number(id));
-  const draft = state?.draft || existingDraft;
+  const draft = state?.draft || fetchedDraft || undefined;
 
-  if (isLoading || isLoadingDrafts) return <FullPageSpinner />;
+  if (isLoading || isLoadingDraft) return <FullPageSpinner />;
   if (!event) return null;
 
   const handleSubmit = async (dto: CreateEventDto | PatchEventDto, formDraftId?: number) => {

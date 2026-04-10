@@ -30,6 +30,14 @@ export function useDraft(id: number | null) {
   });
 }
 
+export function useFinanceEventDraftByEntityId(entityId: number | null) {
+  return useQuery({
+    queryKey: [...DRAFTS_KEY, 'by-entity', entityId],
+    queryFn: () => (entityId ? draftsService.getFinanceEventDraftByEntityId(entityId) : null),
+    enabled: !!entityId,
+  });
+}
+
 export function useCreateFinanceEventDraft() {
   const qc = useQueryClient();
   const alert = useAlert();
