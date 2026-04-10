@@ -6,6 +6,9 @@ export const draftsService = {
 
   getById: (id: number) => api.get<EntityDraft>(`/entity-drafts/${id}`),
 
+  getFinanceEventDraftByEntityId: (entityId: number) =>
+    api.get<FinanceEvent | null>(`/entity-drafts/finance-events/by-entity/${entityId}`),
+
   createFinanceEventDraft: (dto: Partial<FinanceEvent>) =>
     api.post<EntityDraft>('/entity-drafts/finance-events', dto),
 

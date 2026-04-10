@@ -37,7 +37,8 @@ public record FinanceEventDto(
     List<TagDto> tags,
     List<RelatedEventDto> relatedEvents,
     Long subscriptionId,
-    Long draftId
+    Long draftId,
+    List<FileDto> files
 ) {
     public FinanceEventDto fromDraft(Long id, Long draftId) {
         return new FinanceEventDto(
@@ -53,7 +54,8 @@ public record FinanceEventDto(
             this.tags,
             this.relatedEvents,
             this.subscriptionId,
-            draftId
+            draftId,
+            this.files
         );
     }
     public static FinanceEventDto from(FinanceEvent event) {
@@ -102,7 +104,11 @@ public record FinanceEventDto(
 
             event.subscription != null ? event.subscription.id : null,
 
-            null
+            null,
+
+            event.files != null
+                ? event.files.stream().map(FileDto::from).toList()
+                : List.of()
         );
     }
 }

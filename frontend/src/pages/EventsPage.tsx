@@ -195,7 +195,7 @@ export function EventsPage() {
           <div className="flex gap-2">
             {isDraftFilter && filteredDrafts.length > 0 && (
               <Button size="sm" variant="secondary" onClick={handleConfirmAll} disabled={isConfirming}>
-                <Icon name="check_all" className="text-sm" />
+                <Icon name="checklist_rtl" className="text-sm" />
                 {isConfirming ? t('common.loading') : t('drafts.confirmAll')}
               </Button>
             )}

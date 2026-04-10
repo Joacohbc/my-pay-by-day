@@ -17,6 +17,7 @@ import jakarta.transaction.Transactional;
 
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Optional;
 
 @ApplicationScoped
 public class EntityDraftService {
@@ -44,6 +45,11 @@ public class EntityDraftService {
         return listByEntityType(EntityType.FINANCE_EVENT).stream()
             .map(this::mapToFinanceEventDto)
             .toList();
+    }
+
+    public Optional<FinanceEventDto> findFinanceEventDraftByEntityId(Long originalEntityId) {
+        return draftRepository.findByOriginalEntityIdAndType(originalEntityId, EntityType.FINANCE_EVENT)
+            .map(this::mapToFinanceEventDto);
     }
 
 
@@ -96,6 +102,11 @@ public class EntityDraftService {
     public void delete(Long id) throws BusinessException {
         EntityDraft entity = findEntityById(id);
         draftRepository.delete(entity);
+    }
+
+    @Transactional
+    public long deleteByOriginalEntityId(Long originalEntityId, EntityType entityType) {
+        return draftRepository.deleteByOriginalEntityIdAndType(originalEntityId, entityType);
     }
 
     private EntityDraft findEntityById(Long id) throws BusinessException {

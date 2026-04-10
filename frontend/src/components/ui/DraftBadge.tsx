@@ -1,0 +1,47 @@
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/Icon';
+import { Spinner } from '@/components/ui/Spinner';
+
+interface DraftBadgeProps {
+  saving?: boolean;
+}
+
+export function DraftBadge({ saving = false }: DraftBadgeProps) {
+  const { t } = useTranslation();
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setCollapsed(true), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="fixed bottom-20 right-3 z-50 pointer-events-none">
+      <span
+        className={[
+          'inline-flex items-center text-[11px] font-medium text-dn-text-muted',
+          'bg-dn-surface/80 backdrop-blur-md border border-white/5 shadow-sm',
+          'rounded-pill whitespace-nowrap transition-all duration-500 ease-in-out',
+          collapsed ? 'px-1.5 py-1.5 gap-0' : 'px-3 py-1 gap-1.5',
+        ].join(' ')}
+      >
+        <span className="inline-flex items-center justify-center w-3.5 h-3.5">
+          {saving ? (
+            <Spinner size="sm" className="h-3.5! w-3.5!" />
+          ) : (
+            <Icon name="edit_document" className="text-[14px]" />
+          )}
+        </span>
+        <span
+          className={[
+            'overflow-hidden transition-all duration-500 ease-in-out',
+            collapsed ? 'max-w-0 opacity-0' : 'max-w-48 opacity-100',
+          ].join(' ')}
+        >
+          {t('drafts.editingDraft')}
+        </span>
+      </span>
+    </div>
+  );
+}

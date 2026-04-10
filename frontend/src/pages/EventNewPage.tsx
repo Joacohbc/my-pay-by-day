@@ -2,10 +2,27 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Icon } from '@/components/ui/Icon';
+import { DraftBadge } from '@/components/ui/DraftBadge';
 import { useCreateEvent } from '@/hooks/useEvents';
 import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft } from '@/hooks/useDrafts';
-import type { CreateEventDto, Template, FinanceEvent } from '@/models';
+import type { CreateEventDto, PatchEventDto, Template, FinanceEvent, FinanceLineItem } from '@/models';
+
+function mapTemplateToEventValues(template: Template): Partial<FinanceEvent> {
+  const originLineItem: FinanceLineItem | undefined = template.originNodeId
+    ? { id: 0, financeNodeId: template.originNodeId, financeNodeName: template.originNodeName ?? '', amount: 0 }
+    : undefined;
+
+  const destinationLineItem: FinanceLineItem | undefined = template.destinationNodeId
+    ? { id: 0, financeNodeId: template.destinationNodeId, financeNodeName: template.destinationNodeName ?? '', amount: 0 }
+    : undefined;
+
+  return {
+    type: template.eventType,
+    category: template.category,
+    tags: template.tags,
+    lineItems: [originLineItem, destinationLineItem].filter((li): li is FinanceLineItem => !!li),
+  };
+}
 
 export function EventNewPage() {
   const { t } = useTranslation();
@@ -20,19 +37,10 @@ export function EventNewPage() {
   const template = state?.template;
   const draft = state?.draft;
 
-  const preset =
-    template ? {
-      type: template.eventType,
-      categoryId: template.category?.id,
-      tagIds: template.tags.map((t) => String(t.id)),
-      lineNodeIds: [
-        ...(template.originNodeId ? [template.originNodeId] : []),
-        ...(template.destinationNodeId ? [template.destinationNodeId] : []),
-      ],
-    } : undefined;
+  const initialValues = draft ?? (template ? mapTemplateToEventValues(template) : undefined);
 
-  const handleSubmit = async (dto: CreateEventDto, formDraftId?: number) => {
-    const created = await createEvent.saveAsync(dto);
+  const handleSubmit = async (dto: CreateEventDto | PatchEventDto, formDraftId?: number) => {
+    const created = await createEvent.saveAsync(dto as CreateEventDto);
     if (created) {
       const idToDelete = formDraftId || draft?.draftId;
       if (idToDelete) {
@@ -67,14 +75,7 @@ export function EventNewPage() {
     <div className="space-y-4">
       <PageHeader title={t('events.newEventTitle')} back />
       
-      {draft && (
-        <div className="fixed top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-dn-text-muted bg-dn-surface/80 backdrop-blur-md border border-white/5 shadow-sm px-3 py-1 rounded-pill whitespace-nowrap">
-            <Icon name="edit_document" className="text-[14px]" />
-            {t('drafts.editingDraft')}
-          </span>
-        </div>
-      )}
+      {draft && <DraftBadge saving={createDraft.isPending || updateDraft.isPending} />}
 
       {template && (
         <div className="px-5">
@@ -86,14 +87,14 @@ export function EventNewPage() {
       )}
       <div className="px-5 pb-6">
         <EventForm
-          defaultValues={draft as unknown as FinanceEvent}
-          preset={preset}
+          mode="create"
+          baseValues={initialValues}
           isDraft={!!draft}
           onSubmit={handleSubmit}
           onSaveDraft={handleSaveDraft}
           onDeleteDraft={handleDeleteDraft}
           submitLabel={t('events.createEvent')}
-          loading={createEvent.isPending || createDraft.isPending || updateDraft.isPending || deleteDraft.isPending}
+          loading={createEvent.isPending || deleteDraft.isPending}
         />
       </div>
     </div>

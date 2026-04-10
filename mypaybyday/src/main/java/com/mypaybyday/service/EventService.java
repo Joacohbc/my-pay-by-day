@@ -10,7 +10,9 @@ import com.mypaybyday.entity.Category;
 import com.mypaybyday.entity.FinanceLineItem;
 import com.mypaybyday.entity.Tag;
 import com.mypaybyday.entity.FinanceTransaction;
+import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.enums.EventType;
+import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
@@ -19,6 +21,11 @@ import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+
+import com.mypaybyday.dto.CategoryDto;
+import com.mypaybyday.dto.PatchEventDto;
+import com.mypaybyday.dto.TagDto;
+import org.openapitools.jackson.nullable.JsonNullable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -58,6 +65,12 @@ public class EventService {
 
     @Inject
     Messages messages;
+
+    @Inject
+    FileService fileService;
+
+    @Inject
+    EntityDraftService entityDraftService;
 
     // -------------------------------------------------------------------------
     // Queries
@@ -237,6 +250,9 @@ public class EventService {
         // Resolve Tag references
         event.tags = resolveTags(event.tags);
 
+        // Resolve File references
+        event.files = resolveFiles(event.fileIds);
+
         event.transaction = tx;
         eventRepository.persist(event);
         return FinanceEventDto.from(event);
@@ -245,47 +261,99 @@ public class EventService {
     /**
      * Updates the metadata, category, tags, and/or transaction of an existing Event.
      *
+     * <p>Implements true PATCH semantics via {@link JsonNullable}, which allows
+     * distinguishing three states for each field sent from the frontend:
+     * <ol>
+     *   <li><b>Field absent</b> ({@code isPresent() == false}): the frontend did not include
+     *       the field in the body → the current value is left untouched.</li>
+     *   <li><b>Field present with a value</b> ({@code isPresent() == true, get() != null}):
+     *       the frontend wants to update the field to the new value.</li>
+     *   <li><b>Field present as {@code null}</b> ({@code isPresent() == true, get() == null}):
+     *       the frontend wants to explicitly clear/remove the field's value.</li>
+     * </ol>
+     *
+     * <p>This distinction is necessary because, with standard Jackson deserialization,
+     * an omitted field and a field sent as {@code null} both produce the same result
+     * ({@code null} in the DTO), making it impossible to tell whether the frontend intended
+     * to clear the value or simply did not send it. {@link JsonNullable} resolves this ambiguity.
+     *
      * <p>Updating the transaction replaces its date and all line items atomically.
      * The Zero-Sum Rule is re-validated whenever line items change.
      *
-     * @param id            the ID of the Event to update
-     * @param eventDetails  object carrying the new field values
+     * @param id    the ID of the Event to update
+     * @param patch DTO with only the fields to change (see {@link PatchEventDto})
      * @return the updated, managed Event
      */
     @Transactional
-    public FinanceEventDto update(Long id, FinanceEvent eventDetails) throws BusinessException {
+    public FinanceEventDto update(Long id, PatchEventDto patch) throws BusinessException {
         FinanceEvent event = eventRepository.findById(id);
         if (event == null) {
             throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
         }
 
         // --- Metadata ---
-        if (eventDetails.name != null && !eventDetails.name.isBlank()) {
-            event.name = eventDetails.name;
+        if (patch.getName().isPresent()) {
+            String name = patch.getName().get();
+            if (name != null && !name.isBlank()) {
+                event.name = name;
+            }
         }
-        event.description = eventDetails.description;
-        event.receiptUrl = eventDetails.receiptUrl;
-        if (eventDetails.type != null) {
-            event.type = eventDetails.type;
+        if (patch.getDescription().isPresent()) {
+            event.description = patch.getDescription().get();
+        }
+        if (patch.getReceiptUrl().isPresent()) {
+            event.receiptUrl = patch.getReceiptUrl().get();
+        }
+        if (patch.getType().isPresent()) {
+            EventType type = patch.getType().get();
+            if (type != null) {
+                event.type = type;
+            }
         }
 
         // --- Category ---
-        if (eventDetails.category != null) {
-            if (eventDetails.category.id == null) {
-                throw new BusinessException(messages.get(MsgKey.EVENT_CATEGORY_ID_REQUIRED));
+        if (patch.getCategory().isPresent()) {
+            CategoryDto catDto = patch.getCategory().get();
+            if (catDto == null) {
+                event.category = null;
+            } else {
+                if (catDto.id() == null) {
+                    throw new BusinessException(messages.get(MsgKey.EVENT_CATEGORY_ID_REQUIRED));
+                }
+                event.category = categoryService.findEntityById(catDto.id());
             }
-            event.category = categoryService.findEntityById(eventDetails.category.id);
-        } else {
-            event.category = null;
         }
 
         // --- Tags ---
-        event.tags = resolveTags(eventDetails.tags);
+        if (patch.getTags().isPresent()) {
+            List<TagDto> tagDtos = patch.getTags().get();
+            if (tagDtos == null || tagDtos.isEmpty()) {
+                event.tags = new ArrayList<>();
+            } else {
+                List<Tag> resolved = new ArrayList<>();
+                for (TagDto tagDto : tagDtos) {
+                    if (tagDto.id() == null) {
+                        throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
+                    }
+                    resolved.add(tagService.findTagEntity(tagDto.id()));
+                }
+                event.tags = resolved;
+            }
+        }
+
+        // --- Files ---
+        if (patch.getFileIds().isPresent()) {
+            List<Long> fileIds = patch.getFileIds().get();
+            if (fileIds == null || fileIds.isEmpty()) {
+                event.files = new ArrayList<>();
+            } else {
+                event.files = resolveFiles(fileIds);
+            }
+        }
 
         // --- Transaction ---
-        if (eventDetails.transaction != null) {
-            // Delegate to TransactionService: validates Zero-Sum, node existence, and updates
-            transactionService.update(event.transaction.id, eventDetails.transaction);
+        if (patch.getTransaction().isPresent() && patch.getTransaction().get() != null) {
+            transactionService.update(event.transaction.id, patch.getTransaction().get().toEntity());
         }
 
         return FinanceEventDto.from(event);
@@ -302,6 +370,7 @@ public class EventService {
         if (event == null) {
             throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
         }
+        entityDraftService.deleteByOriginalEntityId(id, EntityType.FINANCE_EVENT);
         eventRepository.delete(event);
     }
 
@@ -351,6 +420,25 @@ public class EventService {
                 throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
             }
             resolved.add(tagService.findTagEntity(stub.id));
+        }
+        return resolved;
+    }
+
+    /**
+     * Resolves a list of File IDs into managed File entities.
+     * Returns an empty list if the input is null.
+     */
+    private List<FileEntity> resolveFiles(List<Long> fileIds) throws BusinessException {
+        if (fileIds == null || fileIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<FileEntity> resolved = new ArrayList<>();
+        for (Long fileId : fileIds) {
+            FileEntity file = FileEntity.findById(fileId);
+            if (file == null) {
+                throw new BusinessException("file.not.found");
+            }
+            resolved.add(file);
         }
         return resolved;
     }

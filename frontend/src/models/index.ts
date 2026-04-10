@@ -78,6 +78,30 @@ export interface CreateTransactionDto {
   lineItems: CreateLineItemDto[];
 }
 
+// ─── File ─────────────────────────────────────────────────────────────────────
+
+export interface EventSummary extends Identifiable {
+  name: string;
+  type: EventType;
+}
+
+export interface FileDto extends Identifiable {
+  fileName: string;
+  mimeType: string;
+  size: number;
+  isOrphan: boolean;
+}
+
+export interface FileWithEventDto extends FileDto {
+  events?: EventSummary[];
+}
+
+export interface Base64FileUploadRequestDto {
+  fileName: string;
+  mimeType: string;
+  base64Content: string;
+}
+
 // ─── FinanceEvent ─────────────────────────────────────────────────────────────
 
 export interface RelatedEvent extends Identifiable {
@@ -102,6 +126,7 @@ export interface FinanceEvent extends Identifiable {
   relatedEvents?: RelatedEvent[];
   isDraft?: boolean;
   draftId?: number;
+  files?: FileDto[];
 }
 
 export interface CreateEventDto {
@@ -114,6 +139,19 @@ export interface CreateEventDto {
   tags?: { id: number }[];
   isDraft?: boolean;
   draftId?: number;
+  fileIds?: number[];
+}
+
+/** PATCH model — all fields optional; `null` means "clear", `undefined` means "don't touch" */
+export interface PatchEventDto {
+  name?: string;
+  description?: string | null;
+  receiptUrl?: string | null;
+  type?: EventType;
+  category?: { id: number } | null;
+  tags?: { id: number }[] | null;
+  fileIds?: number[] | null;
+  transaction?: CreateTransactionDto;
 }
 
 // ─── Template ─────────────────────────────────────────────────────────────────

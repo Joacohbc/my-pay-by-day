@@ -43,6 +43,11 @@ const es = {
     selectCategory: 'Seleccionar Categoría',
     expand: 'Expandir',
     collapse: 'Contraer',
+    validationError: 'Por favor revisá el formulario',
+    alertError: 'Error',
+    alertSuccess: 'Éxito',
+    alertInfo: 'Info',
+    alertWarning: 'Advertencia',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────
@@ -175,6 +180,9 @@ const es = {
     atLeastOneLine: 'Se requiere al menos una partida',
     manualMode: 'Modo manual',
     simplifiedMode: 'Modo simplificado',
+    files: 'Archivos',
+    uploadFile: 'Subir Archivo',
+    selectExistingFile: 'Seleccionar Existente',
   },
 
   // ─── Template Picker ────────────────────────────────────────────────────
@@ -375,6 +383,25 @@ const es = {
     },
   },
 
+  // ─── Files ───────────────────────────────────────────────────────────────
+  files: {
+    title: 'Archivos',
+    count: '{{count}} archivos',
+    noFiles: 'Sin archivos',
+    noFilesDesc: 'Los archivos subidos en eventos aparecerán aquí',
+    searchPlaceholder: 'Buscar por nombre…',
+    sortBySize: 'Ordenar por tamaño',
+    orphan: 'Huérfano',
+    orphanHint: 'No está vinculado a ningún evento',
+    orphanSummary: '{{count}} archivo(s) huérfano(s) — clic para revisar',
+    associatedEvents: 'Eventos asociados',
+    noAssociatedEvents: 'Sin eventos',
+    deleteConfirm: '¿Eliminar este archivo permanentemente?',
+    all: 'Todos',
+    orphansOnly: 'Huérfanos',
+    linkedOnly: 'Vinculados',
+  },
+
   // ─── Settings ────────────────────────────────────────────────────────────
   settings: {
     title: 'Ajustes',
@@ -383,6 +410,7 @@ const es = {
     tagsDesc: 'Etiquetas transversales para eventos',
     nodesDesc: 'Cuentas, entidades, contactos',
     templatesDesc: 'Plantillas para creación rápida de eventos',
+    filesDesc: 'Archivos subidos y sus asociaciones con eventos',
     about: 'Acerca de',
     appName: 'MyPayByDay',
     appDesc:

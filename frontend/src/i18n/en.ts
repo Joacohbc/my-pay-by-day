@@ -43,6 +43,11 @@ const en = {
     selectCategory: 'Select Category',
     expand: 'Expand',
     collapse: 'Collapse',
+    validationError: 'Please check the form for errors',
+    alertError: 'Error',
+    alertSuccess: 'Success',
+    alertInfo: 'Info',
+    alertWarning: 'Warning',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────
@@ -175,6 +180,9 @@ const en = {
     atLeastOneLine: 'At least one line item required',
     manualMode: 'Manual mode',
     simplifiedMode: 'Simplified mode',
+    files: 'Files',
+    uploadFile: 'Upload File',
+    selectExistingFile: 'Select Existing',
   },
 
   // ─── Template Picker ────────────────────────────────────────────────────
@@ -375,6 +383,25 @@ const en = {
     },
   },
 
+  // ─── Files ───────────────────────────────────────────────────────────────
+  files: {
+    title: 'Files',
+    count: '{{count}} files',
+    noFiles: 'No files',
+    noFilesDesc: 'Files uploaded in events will appear here',
+    searchPlaceholder: 'Search by name…',
+    sortBySize: 'Sort by size',
+    orphan: 'Orphan',
+    orphanHint: 'Not linked to any event',
+    orphanSummary: '{{count}} orphan file(s) — click to review',
+    associatedEvents: 'Associated events',
+    noAssociatedEvents: 'No events',
+    deleteConfirm: 'Permanently delete this file?',
+    all: 'All',
+    orphansOnly: 'Orphans',
+    linkedOnly: 'Linked',
+  },
+
   // ─── Settings ────────────────────────────────────────────────────────────
   settings: {
     title: 'Settings',
@@ -383,6 +410,7 @@ const en = {
     tagsDesc: 'Transversal labels for events',
     nodesDesc: 'Accounts, entities, contacts',
     templatesDesc: 'Blueprints for rapid event creation',
+    filesDesc: 'Uploaded files and event associations',
     about: 'About',
     appName: 'MyPayByDay',
     appDesc:

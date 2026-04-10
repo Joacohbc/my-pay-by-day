@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
-import { chatService } from '@/services/chatService';
+import { chatService } from '@/services/chat.service';
 import { useChatStore, type ChatMessage } from '@/store/chatStore';
 import type { ChatSendParams } from '@/models/chat';
 

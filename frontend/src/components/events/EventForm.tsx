@@ -1,424 +1,119 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useFieldArray, useForm, Controller, useWatch } from 'react-hook-form';
+import { useAlert } from '@/contexts/AlertContext';
+import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod/v4';
 import { Input } from '@/components/ui/Input';
-import { SearchableSelect } from '@/components/ui/SearchableSelect';
-import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
+import { CategorySelector } from '@/components/ui/CategorySelector';
+import { TagSelector } from '@/components/ui/TagSelector';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
 import { Icon } from '@/components/ui/Icon';
-import { CategoryIcon } from '@/components/ui/CategoryIcon';
-import type { CreateEventDto, EventType, FinanceEvent, Category, Tag, FinanceLineItem } from '@/models';
-import type { Control, UseFormRegister, FieldErrors, UseFormSetValue, UseFieldArrayAppend, UseFieldArrayRemove, FieldArrayWithId } from 'react-hook-form';
+import type { CreateEventDto, PatchEventDto, FinanceEvent, EventType } from '@/models';
 import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
 import { useDebounceCallback } from '@/hooks/useDebounce';
 
-// ─── Schema ──────────────────────────────────────────────────────────────────
+// Sub-components
+import { BasicInfoFields } from '@/components/events/BasicInfoFields';
+import { TypeAndDateFields } from '@/components/events/TypeAndDateFields';
+import { LineItemsEditor } from '@/components/events/LineItemsEditor';
 
-function buildSchema(t: (key: string) => string) {
-  const lineItemSchema = z.object({
-    nodeId: z.string().min(1, t('eventForm.nodeRequired')),
-    amount: z.string().refine((v) => !isNaN(Number(v)) && Number(v) !== 0, {
-      message: t('eventForm.amountNonZero'),
-    }),
-  });
-
-  return z.object({
-    name: z.string().min(1, t('eventForm.nameRequired')),
-    description: z.string().optional(),
-    receiptUrl: z.string().optional(),
-    type: z.enum(['INBOUND', 'OUTBOUND', 'OTHER']),
-    transactionDate: z.string().min(1, t('eventForm.dateRequired')),
-    categoryId: z.string().optional(),
-    tagIds: z.array(z.string()).optional(),
-    lineItems: z.array(lineItemSchema).min(1, t('eventForm.atLeastOneLine')),
-    isDraft: z.boolean().optional(),
-    draftId: z.number().optional(),
-  });
-}
-
-type FormValues = z.infer<ReturnType<typeof buildSchema>>;
-
-// ─── Sub-components ─────────────────────────────────────────────────────────
-
-interface CategorySelectorProps {
-  categories: Category[];
-  control: Control<FormValues>;
-}
-
-function CategorySelector({ categories, control }: CategorySelectorProps) {
-  const { t } = useTranslation();
-
-  if (categories.length === 0) return null;
-
-  return (
-    <div>
-      <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">
-        {t('eventForm.category')}
-      </p>
-      <Controller
-        name="categoryId"
-        control={control}
-        render={({ field }) => (
-          <div className="grid grid-cols-4 gap-x-3 gap-y-4">
-            {categories.map((cat) => {
-              const selected = field.value === String(cat.id);
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => field.onChange(selected ? '' : String(cat.id))}
-                  className="flex flex-col items-center gap-2"
-                >
-                  <CategoryIcon
-                    category={cat}
-                    size="lg"
-                    colorClass={selected ? 'bg-dn-primary text-dn-bg' : 'bg-dn-surface text-dn-text-muted'}
-                    className="transition-all active:scale-95"
-                  />
-                  <span
-                    className={[
-                      'text-xs text-center font-medium leading-tight',
-                      selected ? 'text-dn-primary' : 'text-dn-text-muted',
-                    ].join(' ')}
-                  >
-                    {cat.name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      />
-    </div>
-  );
-}
-
-interface TagSelectorProps {
-  tags: Tag[];
-  control: Control<FormValues>;
-}
-
-function TagSelector({ tags, control }: TagSelectorProps) {
-  const { t } = useTranslation();
-
-  if (tags.length === 0) return null;
-
-  return (
-    <div>
-      <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2">{t('eventForm.tags')}</p>
-      <div className="flex flex-wrap gap-2">
-        <Controller
-          name="tagIds"
-          control={control}
-          render={({ field }) => (
-            <>
-              {tags.map((tag) => {
-                const selected = field.value?.includes(String(tag.id));
-                return (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => {
-                      const current = field.value ?? [];
-                      if (selected) {
-                        field.onChange(current.filter((id) => id !== String(tag.id)));
-                      } else {
-                        field.onChange([...current, String(tag.id)]);
-                      }
-                    }}
-                    className={[
-                      'px-3 py-1.5 rounded-pill text-xs font-medium border transition-all cursor-pointer',
-                      selected
-                        ? 'bg-dn-primary/20 border-dn-primary/30 text-dn-primary'
-                        : 'bg-dn-surface-low border-white/5 text-dn-text-muted hover:border-white/10',
-                    ].join(' ')}
-                  >
-                    #{tag.name}
-                  </button>
-                );
-              })}
-            </>
-          )}
-        />
-      </div>
-    </div>
-  );
-}
-
-interface BasicInfoFieldsProps {
-  register: UseFormRegister<FormValues>;
-  errors: FieldErrors<FormValues>;
-}
-
-function BasicInfoFields({ register, errors }: BasicInfoFieldsProps) {
-  const { t } = useTranslation();
-  return (
-    <>
-      <Input
-        label={t('eventForm.eventName')}
-        placeholder={t('eventForm.eventNamePlaceholder')}
-        error={errors.name?.message}
-        {...register('name')}
-      />
-
-      <Textarea
-        label={t('eventForm.description')}
-        placeholder={t('eventForm.descriptionPlaceholder')}
-        {...register('description')}
-      />
-    </>
-  );
-}
-
-interface TypeAndDateFieldsProps {
-  control: Control<FormValues>;
-  register: UseFormRegister<FormValues>;
-  errors: FieldErrors<FormValues>;
-}
-
-function TypeAndDateFields({ control, register, errors }: TypeAndDateFieldsProps) {
-  const { t } = useTranslation();
-  return (
-    <div className="space-y-3">
-      <Controller
-        name="type"
-        control={control}
-        render={({ field }) => {
-          const typeStyles = {
-            OUTBOUND: {
-              active: 'bg-dn-error/15 text-dn-error',
-              inactive: 'text-dn-text-muted hover:text-dn-error',
-            },
-            INBOUND: {
-              active: 'bg-dn-success/15 text-dn-success',
-              inactive: 'text-dn-text-muted hover:text-dn-success',
-            },
-            OTHER: {
-              active: 'bg-dn-info/15 text-dn-info',
-              inactive: 'text-dn-text-muted hover:text-dn-info',
-            },
-          } as const;
-
-          return (
-            <div>
-              <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2">
-                {t('eventForm.type')}
-              </p>
-              <div className="flex rounded-pill bg-dn-surface-low p-1 gap-1">
-                {(['OUTBOUND', 'INBOUND', 'OTHER'] as const).map((opt) => {
-                  const styles = typeStyles[opt];
-                  const isActive = field.value === opt;
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => field.onChange(opt)}
-                      className={[
-                        'flex-1 py-2 rounded-pill text-sm font-semibold transition-all',
-                        isActive ? styles.active : styles.inactive,
-                      ].join(' ')}
-                    >
-                      {t(`eventType.${opt}`)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        }}
-      />
-
-      <Input
-        type="datetime-local"
-        label={t('eventForm.dateTime')}
-        error={errors.transactionDate?.message}
-        {...register('transactionDate')}
-      />
-    </div>
-  );
-}
-
-interface LineItemsEditorProps {
-  control: Control<FormValues>;
-  register: UseFormRegister<FormValues>;
-  errors: FieldErrors<FormValues>;
-  fields: FieldArrayWithId<FormValues, 'lineItems', 'id'>[];
-  append: UseFieldArrayAppend<FormValues, 'lineItems'>;
-  remove: UseFieldArrayRemove;
-  isSimplifiedMode: boolean;
-  setIsSimplifiedMode: (val: boolean) => void;
-  setValue: UseFormSetValue<FormValues>;
-  firstAmount?: string;
-  nodeOptions: { value: string; label: string }[];
-}
-
-function LineItemsEditor({
-  control,
-  register,
-  errors,
-  fields,
-  append,
-  remove,
-  isSimplifiedMode,
-  setIsSimplifiedMode,
-  setValue,
-  firstAmount,
-  nodeOptions,
-}: LineItemsEditorProps) {
-  const { t } = useTranslation();
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">{t('eventForm.lineItems')}</p>
-        <div className="flex items-center gap-3">
-          {!isSimplifiedMode && (
-            <button
-              type="button"
-              onClick={() => append({ nodeId: '', amount: '' })}
-              className="flex items-center gap-1 text-xs text-dn-primary hover:brightness-110 transition-all"
-            >
-              <Icon name="add" className="text-sm" />
-              {t('eventForm.addLineItem')}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              if (!isSimplifiedMode) {
-                setIsSimplifiedMode(true);
-              } else {
-                const num = parseFloat(firstAmount ?? '') || 0;
-                if (num !== 0) {
-                  fields.forEach((_, i) => {
-                    setValue(`lineItems.${i}.amount`, String(i === 0 ? -Math.abs(num) : Math.abs(num)));
-                  });
-                }
-                setIsSimplifiedMode(false);
-              }
-            }}
-            className="text-xs text-dn-text-muted hover:text-dn-primary transition-colors"
-          >
-            {isSimplifiedMode ? t('eventForm.manualMode') : t('eventForm.simplifiedMode')}
-          </button>
-        </div>
-      </div>
-      {errors.lineItems?.root?.message && (
-        <p className="text-xs text-dn-error mb-2">{errors.lineItems.root.message}</p>
-      )}
-
-      {isSimplifiedMode ? (
-        <div className="space-y-3">
-          <div className="space-y-2">
-            {fields.map((field, i) => (
-              <div key={field.id} className="flex items-center gap-3 px-3 py-2 rounded-input bg-dn-surface-low">
-                <span className={`text-sm font-bold w-4 shrink-0 ${i === 0 ? 'text-dn-error' : 'text-dn-success'}`}>
-                  {i === 0 ? '−' : '+'}
-                </span>
-                <div className="flex-1">
-                  <Controller
-                    name={`lineItems.${i}.nodeId`}
-                    control={control}
-                    render={({ field: f }) => (
-                      <SearchableSelect
-                        placeholder={t('eventForm.selectNode')}
-                        options={nodeOptions}
-                        error={errors.lineItems?.[i]?.nodeId?.message}
-                        {...f}
-                      />
-                    )}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-          <Input
-            label={t('eventForm.amount')}
-            placeholder={t('eventForm.amountPlaceholder')}
-            type="number"
-            step="0.01"
-            error={errors.lineItems?.[0]?.amount?.message}
-            {...register('lineItems.0.amount')}
-          />
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {fields.map((field, i) => (
-            <div key={field.id} className="flex gap-2 items-center">
-              <div className="flex-1">
-                <Controller
-                  name={`lineItems.${i}.nodeId`}
-                  control={control}
-                  render={({ field: f }) => (
-                    <SearchableSelect
-                      placeholder={t('eventForm.selectNode')}
-                      options={nodeOptions}
-                      error={errors.lineItems?.[i]?.nodeId?.message}
-                      {...f}
-                    />
-                  )}
-                />
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <div className="w-24">
-                  <Input
-                    placeholder={t('eventForm.amountPlaceholder')}
-                    type="number"
-                    step="0.01"
-                    error={errors.lineItems?.[i]?.amount?.message}
-                    {...register(`lineItems.${i}.amount`)}
-                  />
-                </div>
-              </div>
-              {fields.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => remove(i)}
-                  className="p-1.5 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors"
-                >
-                  <Icon name="delete" className="text-base" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      <p className="text-xs text-dn-text-muted mt-2">
-        {isSimplifiedMode ? t('eventForm.signedAmountHint') : t('eventForm.manualAmountHint')}
-      </p>
-    </div>
-  );
-}
+// Mapper and Schema
+import { buildSchema, toCreateDto, toPatchDto, toDraftDto } from '@/components/events/EventFormMapper';
+import type { FormValues } from '@/components/events/EventFormMapper';
+import { FullPageSpinner } from '@/components/ui/Spinner';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-interface EventFormPreset {
-  type?: EventType;
-  categoryId?: number;
-  tagIds?: string[];
-  lineNodeIds?: number[];
-}
-
 interface EventFormProps {
-  defaultValues?: Partial<FinanceEvent>;
-  preset?: EventFormPreset;
-  onSubmit: (dto: CreateEventDto, draftId?: number) => Promise<void>;
+  mode: 'create' | 'edit';
+  /**
+   * The persisted event as it exists on the server — used exclusively as the RHF dirty-tracking
+   * baseline. The form never displays these values directly when a draft is present.
+   */
+  baseValues?: Partial<FinanceEvent>;
+  /**
+   * In-progress edits saved as a draft. When provided, the form displays these values while
+   * `baseValues` stays frozen as the baseline, so `dirtyFields` reflects the real diff between
+   * the draft and the original event.
+   */
+  draftValues?: Partial<FinanceEvent>;
+  /**
+   * Called on valid submission with a fully-resolved DTO (CreateEventDto in create mode,
+   * PatchEventDto with only dirty fields in edit mode). Receives `draftId` so the parent can
+   * delete the associated draft atomically in the same operation.
+   */
+  onSubmit: (dto: CreateEventDto | PatchEventDto, draftId?: number) => Promise<void>;
+  /**
+   * When provided, enables draft persistence: renders the "Save draft" button and activates the
+   * debounced autosave on every field change. Returns the server-assigned draft ID on creation
+   * so the form can store it internally and reuse it on subsequent saves.
+   */
   onSaveDraft?: (dto: Partial<FinanceEvent>) => Promise<number | void>;
   onDeleteDraft?: (draftId?: number) => Promise<void>;
+  /**
+   * Controls only the visibility of the "Delete draft" button — it does not affect form
+   * behaviour. Must be true when the form is loaded from an existing persisted draft.
+   */
   isDraft?: boolean;
   submitLabel?: string;
   loading?: boolean;
 }
 
+const DEFAULT_LINE_ITEMS: FormValues['lineItems'] = [
+  { nodeId: '', amount: '' },
+  { nodeId: '', amount: '' },
+];
+
+/**
+ * Builds the initial form values from saved event data (draft, template-as-event, or existing event).
+ * Falls back to sensible defaults when no data is provided.
+ */
+function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormValues {
+  const transactionDate = defaultValues?.transactionDate
+    ? toLocalDateTimeString(defaultValues.transactionDate)
+    : toLocalDateTimeString(getLocalizedNow());
+
+  const categoryId = defaultValues?.category ? String(defaultValues.category.id) : '';
+
+  const tagIds = defaultValues?.tags?.map((t) => String(t.id)) ?? [];
+
+  // lineItems from a template-as-event have amount === 0; keep the node pre-selected
+  // but leave the amount empty so the user must fill it in.
+  const lineItems =
+    defaultValues?.lineItems?.map((li) => ({
+      nodeId: String(li.financeNodeId),
+      amount: li.amount !== 0 ? String(li.amount) : '',
+    })) ?? DEFAULT_LINE_ITEMS;
+
+  // Simplified mode: pre-selected nodes (from template) OR a brand-new empty form.
+  // Full mode: an existing event with signed amounts in its line items.
+  const hasPreSelectedNodes =
+    !!defaultValues?.lineItems?.length &&
+    defaultValues.lineItems.every((li) => li.amount === 0);
+  const isSimplifiedMode = hasPreSelectedNodes || !defaultValues;
+
+  return {
+    name: defaultValues?.name ?? '',
+    description: defaultValues?.description ?? '',
+    receiptUrl: defaultValues?.receiptUrl ?? '',
+    type: (defaultValues?.type as EventType) ?? 'OUTBOUND',
+    transactionDate,
+    categoryId,
+    tagIds,
+    lineItems,
+    isDraft: defaultValues?.isDraft ?? false,
+    draftId: defaultValues?.draftId,
+    isSimplifiedMode,
+  };
+}
+
 export function EventForm({
-  defaultValues,
-  preset,
+  mode,
+  baseValues,
+  draftValues,
   onSubmit,
   onSaveDraft,
   onDeleteDraft,
@@ -439,6 +134,28 @@ export function EventForm({
 
   const activeNodes = nodes.filter((n) => !n.archived);
 
+  // `defaultValues` acts as the immutable dirty-tracking baseline (the original saved event).
+  // `values` drives what is actually displayed — the draft when one exists, otherwise the event.
+  // `resetOptions.keepDefaultValues` prevents RHF from overwriting that baseline when `values`
+  // updates, so `dirtyFields` always reflects the real diff between the draft and the original.
+  const computedValues = useMemo(() => buildFormDefaults(draftValues ?? baseValues), [draftValues, baseValues]);
+  const initValues = useMemo(() => buildFormDefaults(baseValues), [baseValues]);
+  
+  const methods = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: initValues,
+    values: computedValues,
+    resetOptions: { keepDefaultValues: true },
+  });
+
+  // When a draft is present, RHF needs one render cycle to apply `values` over `defaultValues`.
+  // Hide the form body until the values have settled to prevent a visible flash in category/tags.
+  const [formReady, setFormReady] = useState(!draftValues);
+  useEffect(() => {
+    if (!formReady) setFormReady(true);
+  }, [formReady]);
+
+  
   const {
     register,
     handleSubmit,
@@ -446,140 +163,79 @@ export function EventForm({
     setValue,
     getValues,
     watch,
-    formState: { errors, isDirty },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      name: defaultValues?.name ?? '',
-      description: defaultValues?.description ?? '',
-      receiptUrl: defaultValues?.receiptUrl ?? '',
-      type: defaultValues?.type ?? preset?.type ?? 'OUTBOUND',
-      // Convert current date to the user's localized time before putting it into the datetime-local input
-      transactionDate: defaultValues?.transactionDate
-        ? toLocalDateTimeString(defaultValues.transactionDate) // defaultValues are already properly formatted to local time by interceptor
-        : toLocalDateTimeString(getLocalizedNow()),
-      categoryId: defaultValues?.category
-        ? String(defaultValues.category.id)
-        : preset?.categoryId
-          ? String(preset.categoryId)
-          : '',
-      tagIds: defaultValues?.tags?.map((t) => String(t.id)) ?? preset?.tagIds ?? [],
-      lineItems:
-        defaultValues?.lineItems?.map((li) => ({
-          nodeId: String(li.financeNodeId),
-          amount: String(li.amount),
-        })) ??
-        (preset?.lineNodeIds?.length
-          ? preset.lineNodeIds.map((id) => ({ nodeId: String(id), amount: '' }))
-          : [{ nodeId: '', amount: '' }, { nodeId: '', amount: '' }]),
-      isDraft: defaultValues?.isDraft ?? false,
-      draftId: defaultValues?.draftId,
-    },
-  });
-
-  const { fields, append, remove } = useFieldArray({ control, name: 'lineItems' });
-
-  const [isSimplifiedMode, setIsSimplifiedMode] = useState(
-    !!(preset?.lineNodeIds?.length) || !defaultValues,
-  );
-  const firstAmount = useWatch({ control, name: 'lineItems.0.amount' });
-
-  useEffect(() => {
-    if (!isSimplifiedMode) return;
-    for (let i = 1; i < fields.length; i++) {
-      setValue(`lineItems.${i}.amount`, firstAmount ?? '');
-    }
-  }, [firstAmount, isSimplifiedMode, fields.length, setValue]);
-
+    formState: { isDirty, dirtyFields },
+  } = methods;
+  
+  const alert = useAlert();
+  
   const handleFormSubmit = async (values: FormValues) => {
-    const dto: CreateEventDto = {
-      name: values.name,
-      description: values.description || undefined,
-      receiptUrl: values.receiptUrl || undefined,
-      type: values.type,
-      transaction: {
-        // Form input datetime-local returns "YYYY-MM-DDTHH:mm". We append the seconds so it's parsed as expected locally before interceptors make it UTC.
-        transactionDate: values.transactionDate.includes(':00.000') ? values.transactionDate : `${values.transactionDate}:00.000`,
-        lineItems: values.lineItems.map((li, i) => {
-          let amount = Number(li.amount);
-          if (isSimplifiedMode) {
-            // First item (amount == 0) is the one that determines the sign of the transaction.
-            // because it is the one that is lose X (origin) money and the destination is the one that gain X money (destination)
-            amount = i === 0 ? -Math.abs(amount) : Math.abs(amount);
-          }
-          return {
-            financeNode: { id: Number(li.nodeId) },
-            amount,
-          };
-        }),
-      },
-      category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
-      tags: values.tagIds?.map((id) => ({ id: Number(id) })),
-    };
-    await onSubmit(dto, values.draftId);
+    try {
+      if (mode === 'edit') {
+        const patch = toPatchDto(values, dirtyFields);
+        await onSubmit(patch, values.draftId ?? undefined);
+      } else {
+        const dto = toCreateDto(values);
+        await onSubmit(dto, values.draftId ?? undefined);
+      }
+    } catch (err) {
+      alert.error(err instanceof Error ? err.message : t('common.error'));
+    }
   };
-
+  
+  const handleInvalidSubmit = (fieldErrors: Record<string, unknown>) => {
+    const findFirstMessage = (value: unknown): string | undefined => {
+      if (!value || typeof value !== 'object') return undefined;
+      if ('message' in value && typeof (value as { message: unknown }).message === 'string') {
+        return (value as { message: string }).message;
+      }
+      for (const child of Object.values(value as object)) {
+        const found = findFirstMessage(child);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const errorMessage = findFirstMessage(fieldErrors) ?? t('common.validationError');
+    alert.error(errorMessage);
+  };
+  
   const [savingDraft, setSavingDraft] = useState(false);
   const [deletingDraft, setDeletingDraft] = useState(false);
+  
+  const saveDraftCore = async () => {
+    if (!onSaveDraft) return;
+    const values = getValues();
+    const draftDto = toDraftDto(values, t);
+    const resultId = await onSaveDraft(draftDto);
+    if (typeof resultId === 'number') {
+      setValue('draftId', resultId);
+      setValue('isDraft', true);
+    }
+  };
 
   const handleSaveDraft = async () => {
-    if (!onSaveDraft) return;
     setSavingDraft(true);
     try {
-      const values = getValues();
-      const draftDto: Partial<FinanceEvent> = {
-        name: values.name || t('drafts.untitledDraft'),
-        description: values.description || undefined,
-        receiptUrl: values.receiptUrl || undefined,
-        type: values.type,
-      };
-
-      const transactionDate = values.transactionDate
-        ? (values.transactionDate.includes(':00.000') ? values.transactionDate : `${values.transactionDate}:00.000`)
-        : undefined;
-
-      draftDto.transactionDate = transactionDate || `${toLocalDateTimeString(getLocalizedNow())}:00.000`;
-      
-      draftDto.lineItems = values.lineItems.map((li, i) => {
-          const amountStr = li.amount;
-          let amount = amountStr ? Number(amountStr) : 0;
-          if (isSimplifiedMode) {
-            amount = i === 0 ? -Math.abs(amount) : Math.abs(amount);
-          }
-          return {
-            id: 0,
-            financeNodeId: li.nodeId ? Number(li.nodeId) : 0,
-            financeNodeName: '',
-            amount,
-          } as FinanceLineItem;
-        }).filter(li => li.financeNodeId || li.amount !== 0);
-
-      // Cast to Category and Tag since the backend only needs the ID to link them
-      if (values.categoryId) draftDto.category = { id: Number(values.categoryId) } as Category;
-      if (values.tagIds?.length) draftDto.tags = values.tagIds.map(id => ({ id: Number(id) } as Tag));
-
-      draftDto.isDraft = true;
-      draftDto.draftId = values.draftId;
-
-      const resultId = await onSaveDraft(draftDto);
-      if (typeof resultId === 'number') {
-        setValue('draftId', resultId);
-        setValue('isDraft', true);
-      }
+      await saveDraftCore();
     } finally {
       setSavingDraft(false);
     }
   };
 
-  // Debounce the save draft function to avoid saving on every keystroke
-  // To avoid overwhelming the backend with requests and save costs
-  const debouncedSaveDraft = useDebounceCallback(handleSaveDraft, 2000);
+  const hasUserInteracted = useRef(false);
+
+  // The user may close the browser or navigate away mid-form. Every change is automatically
+  // persisted as a draft so they can resume exactly where they left off.
+  // Uses saveDraftCore (no loading state) to avoid flashing buttons on auto-save.
+  const debouncedSaveDraft = useDebounceCallback(saveDraftCore, 1000);
   useEffect(() => {
     if (!onSaveDraft) return;
 
     const subscription = watch((_, { name }) => {
-      // Don't save if the field that changed is draftId or isDraft
       if (name === 'draftId' || name === 'isDraft') return;
+      if (!hasUserInteracted.current) {
+        hasUserInteracted.current = true;
+        return;
+      }
       debouncedSaveDraft();
     });
 
@@ -591,7 +247,7 @@ export function EventForm({
     setDeletingDraft(true);
     try {
       const values = getValues();
-      await onDeleteDraft(values.draftId);
+      await onDeleteDraft(values.draftId ?? undefined);
     } finally {
       setDeletingDraft(false);
     }
@@ -599,77 +255,88 @@ export function EventForm({
 
   const nodeOptions = activeNodes.map((n) => ({ value: String(n.id), label: n.name }));
 
+  if (!formReady) return <FullPageSpinner />;
+
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
-      <BasicInfoFields register={register} errors={errors} />
+    <FormProvider {...methods}>
+      <form onSubmit={handleSubmit(handleFormSubmit, handleInvalidSubmit)} className="space-y-5">
+        <BasicInfoFields />
 
-      <TypeAndDateFields control={control} register={register} errors={errors} />
+        <TypeAndDateFields />
 
-      <CategorySelector categories={categories} control={control} />
+        <Controller
+          name="categoryId"
+          control={control}
+          render={({ field }) => (
+            <CategorySelector
+              categories={categories}
+              value={field.value ?? ''}
+              onChange={field.onChange}
+            />
+          )}
+        />
 
-      <TagSelector tags={tags} control={control} />
+        <Controller
+          name="tagIds"
+          control={control}
+          render={({ field }) => (
+            <TagSelector
+              tags={tags}
+              value={field.value ?? []}
+              onChange={field.onChange}
+            />
+          )}
+        />
 
-      <LineItemsEditor
-        control={control}
-        register={register}
-        errors={errors}
-        fields={fields}
-        append={append}
-        remove={remove}
-        isSimplifiedMode={isSimplifiedMode}
-        setIsSimplifiedMode={setIsSimplifiedMode}
-        setValue={setValue}
-        firstAmount={firstAmount}
-        nodeOptions={nodeOptions}
-      />
+        <LineItemsEditor nodeOptions={nodeOptions} />
 
-      {/* Receipt URL */}
-      <Input
-        label={t('eventForm.receiptUrl')}
-        placeholder={t('eventForm.receiptUrlPlaceholder')}
-        type="url"
-        {...register('receiptUrl')}
-      />
+        <Input
+          label={t('eventForm.receiptUrl')}
+          placeholder={t('eventForm.receiptUrlPlaceholder')}
+          type="url"
+          {...register('receiptUrl')}
+        />
 
-      <div className="flex flex-col gap-3">
-        {onSaveDraft && (
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleSaveDraft}
-              loading={savingDraft}
-              className="flex-1"
-            >
-              <Icon name="save" className="mr-2" />
-              {t('drafts.save')}
-            </Button>
-            {isDraft && onDeleteDraft && (
+        <div className="flex flex-col gap-3">
+          {onSaveDraft && (
+            <div className="flex gap-3">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={handleDeleteDraft}
-                loading={deletingDraft}
-                className="flex-1 text-dn-error hover:bg-dn-error/10"
+                onClick={handleSaveDraft}
+                loading={savingDraft}
+                className="flex-1"
               >
-                <Icon name="delete" className="mr-2" />
-                {t('drafts.delete')}
+                <Icon name="save" className="mr-2" />
+                {t('drafts.save')}
               </Button>
-            )}
-          </div>
-        )}
-        <Button
-          type="submit"
-          size="sm"
-          loading={loading}
-          disabled={!isDirty && !!defaultValues?.id && !defaultValues?.isDraft}
-          className="w-full"
-        >
-          {submitLabel ?? t('common.save')}
-        </Button>
-      </div>
-    </form>
+              {isDraft && onDeleteDraft && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDeleteDraft}
+                  loading={deletingDraft}
+                  className="flex-1 text-dn-error hover:bg-dn-error/10"
+                >
+                  <Icon name="delete" className="mr-2" />
+                  {t('drafts.delete')}
+                </Button>
+              )}
+            </div>
+          )}
+          <Button
+            type="submit"
+            size="sm"
+            loading={loading}
+            disabled={!isDirty && mode === 'edit' && !isDraft}
+            className="w-full"
+          >
+            {submitLabel ?? t('common.save')}
+          </Button>
+        </div>
+      </form>
+    </FormProvider>
   );
 }
