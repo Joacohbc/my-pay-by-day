@@ -59,10 +59,12 @@ function FileCard({ file, onDelete, deleting }: FileCardProps) {
               {file.fileName}
             </span>
             {file.isOrphan && (
-              <Badge variant="expense" size="sm" title={t('files.orphanHint')}>
-                <Icon name="link_off" className="text-[10px] mr-0.5" />
-                {t('files.orphan')}
-              </Badge>
+              <span title={t('files.orphanHint')}>
+                <Badge variant="expense" size="sm">
+                  <Icon name="link_off" className="text-[10px] mr-0.5" />
+                  {t('files.orphan')}
+                </Badge>
+              </span>
             )}
           </div>
 
@@ -85,7 +87,7 @@ function FileCard({ file, onDelete, deleting }: FileCardProps) {
                     variant={eventTypeColors[ev.type] as 'income' | 'expense' | 'neutral'}
                     size="sm"
                     className="w-1.5 h-1.5 p-0 rounded-full"
-                  />
+                  >{''}</Badge>
                   <span className="truncate max-w-[120px]">{ev.name}</span>
                 </Link>
               ))}
