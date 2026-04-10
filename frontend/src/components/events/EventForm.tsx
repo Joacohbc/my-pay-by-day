@@ -23,6 +23,7 @@ import { LineItemsEditor } from '@/components/events/LineItemsEditor';
 // Mapper and Schema
 import { buildSchema, toCreateDto, toPatchDto, toDraftDto } from '@/components/events/EventFormMapper';
 import type { FormValues } from '@/components/events/EventFormMapper';
+import { FullPageSpinner } from '@/components/ui/Spinner';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -137,15 +138,24 @@ export function EventForm({
   // `values` drives what is actually displayed — the draft when one exists, otherwise the event.
   // `resetOptions.keepDefaultValues` prevents RHF from overwriting that baseline when `values`
   // updates, so `dirtyFields` always reflects the real diff between the draft and the original.
+  const computedValues = useMemo(() => buildFormDefaults(draftValues ?? baseValues), [draftValues, baseValues]);
+  const initValues = useMemo(() => buildFormDefaults(baseValues), [baseValues]);
+  
   const methods = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: useMemo(() => buildFormDefaults(baseValues), [baseValues]),
-    values: useMemo(() => buildFormDefaults(draftValues ?? baseValues), [draftValues, baseValues]),
+    defaultValues: initValues,
+    values: computedValues,
     resetOptions: { keepDefaultValues: true },
   });
 
-  const alert = useAlert();
+  // When a draft is present, RHF needs one render cycle to apply `values` over `defaultValues`.
+  // Hide the form body until the values have settled to prevent a visible flash in category/tags.
+  const [formReady, setFormReady] = useState(!draftValues);
+  useEffect(() => {
+    if (!formReady) setFormReady(true);
+  }, [formReady]);
 
+  
   const {
     register,
     handleSubmit,
@@ -155,9 +165,9 @@ export function EventForm({
     watch,
     formState: { isDirty, dirtyFields },
   } = methods;
-
-  const hasUserInteracted = useRef(false);
-
+  
+  const alert = useAlert();
+  
   const handleFormSubmit = async (values: FormValues) => {
     try {
       if (mode === 'edit') {
@@ -171,7 +181,7 @@ export function EventForm({
       alert.error(err instanceof Error ? err.message : t('common.error'));
     }
   };
-
+  
   const handleInvalidSubmit = (fieldErrors: Record<string, unknown>) => {
     const findFirstMessage = (value: unknown): string | undefined => {
       if (!value || typeof value !== 'object') return undefined;
@@ -187,17 +197,17 @@ export function EventForm({
     const errorMessage = findFirstMessage(fieldErrors) ?? t('common.validationError');
     alert.error(errorMessage);
   };
-
+  
   const [savingDraft, setSavingDraft] = useState(false);
   const [deletingDraft, setDeletingDraft] = useState(false);
-
+  
   const handleSaveDraft = async () => {
     if (!onSaveDraft) return;
     setSavingDraft(true);
     try {
       const values = getValues();
       const draftDto = toDraftDto(values, t);
-
+      
       const resultId = await onSaveDraft(draftDto);
       if (typeof resultId === 'number') {
         setValue('draftId', resultId);
@@ -207,6 +217,8 @@ export function EventForm({
       setSavingDraft(false);
     }
   };
+  
+  const hasUserInteracted = useRef(false);
 
   // The user may close the browser or navigate away mid-form. Every change is automatically
   // persisted as a draft so they can resume exactly where they left off.
@@ -238,6 +250,8 @@ export function EventForm({
   };
 
   const nodeOptions = activeNodes.map((n) => ({ value: String(n.id), label: n.name }));
+
+  if (!formReady) return <FullPageSpinner />;
 
   return (
     <FormProvider {...methods}>
