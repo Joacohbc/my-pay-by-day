@@ -1,7 +1,7 @@
 package com.mypaybyday.resource;
 
 import com.mypaybyday.dto.FinanceEventDto;
-import com.mypaybyday.entity.EntityDraft;
+import com.mypaybyday.entity.DraftEntity;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.service.EntityDraftService;
 import jakarta.inject.Inject;
@@ -36,7 +36,7 @@ public class EntityDraftResource {
     @GET
     @Operation(summary = "List all entity drafts")
     @APIResponse(responseCode = "200", description = "List of all drafts")
-    public List<EntityDraft> listAll() {
+    public List<DraftEntity> listAll() {
         return draftService.listAll();
     }
 
@@ -45,7 +45,7 @@ public class EntityDraftResource {
     @Operation(summary = "Get a draft by its draft ID")
     @APIResponse(responseCode = "200", description = "Draft found")
     @APIResponse(responseCode = "400", description = "Draft not found (Business Exception)")
-    public EntityDraft getById(@PathParam("id") Long id) {
+    public DraftEntity getById(@PathParam("id") Long id) {
         return draftService.findById(id);
     }
 
@@ -85,7 +85,7 @@ public class EntityDraftResource {
     @Operation(summary = "Create a new finance event draft from FinanceEventDto")
     @APIResponse(responseCode = "201", description = "Finance event draft created successfully")
     public Response createFinanceEventDraft(FinanceEventDto dto) {
-        EntityDraft draft = draftService.create(EntityType.FINANCE_EVENT, dto);
+        DraftEntity draft = draftService.create(EntityType.FINANCE_EVENT, dto);
         return Response.status(Response.Status.CREATED).entity(draft).build();
     }
 
@@ -94,7 +94,7 @@ public class EntityDraftResource {
     @Operation(summary = "Update an existing finance event draft with a new FinanceEventDto payload")
     @APIResponse(responseCode = "200", description = "Finance event draft updated successfully")
     @APIResponse(responseCode = "400", description = "Draft not found (Business Exception)")
-    public EntityDraft updateFinanceEventDraft(@PathParam("id") Long draftId, FinanceEventDto dto) {
+    public DraftEntity updateFinanceEventDraft(@PathParam("id") Long draftId, FinanceEventDto dto) {
         return draftService.update(draftId, dto);
     }
 }

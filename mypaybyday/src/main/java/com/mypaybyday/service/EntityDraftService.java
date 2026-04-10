@@ -3,7 +3,7 @@ package com.mypaybyday.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mypaybyday.dto.FinanceEventDto;
-import com.mypaybyday.entity.EntityDraft;
+import com.mypaybyday.entity.DraftEntity;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
@@ -33,11 +33,11 @@ public class EntityDraftService {
         this.objectMapper = objectMapper;
     }
 
-    public List<EntityDraft> listAll() {
+    public List<DraftEntity> listAll() {
         return draftRepository.listAll();
     }
 
-    public List<EntityDraft> listByEntityType(EntityType type) {
+    public List<DraftEntity> listByEntityType(EntityType type) {
         return draftRepository.find("entityType", type).list();
     }
 
@@ -53,13 +53,13 @@ public class EntityDraftService {
     }
 
 
-    public EntityDraft findById(Long id) throws BusinessException {
+    public DraftEntity findById(Long id) throws BusinessException {
         return findEntityById(id);
     }
 
     @Transactional
-    public EntityDraft create(EntityType entityType, Object payload) throws BusinessException {
-        EntityDraft entity = new EntityDraft();
+    public DraftEntity create(EntityType entityType, Object payload) throws BusinessException {
+        DraftEntity entity = new DraftEntity();
         entity.setEntityType(entityType);
 
         if (payload != null) {
@@ -78,8 +78,8 @@ public class EntityDraftService {
     }
 
     @Transactional
-    public EntityDraft update(Long id, Object payload) throws BusinessException {
-        EntityDraft entity = findEntityById(id);
+    public DraftEntity update(Long id, Object payload) throws BusinessException {
+        DraftEntity entity = findEntityById(id);
 
         if (payload != null) {
             Class<?> entityClass = resolvePayloadClass(entity.getEntityType());
@@ -100,7 +100,7 @@ public class EntityDraftService {
 
     @Transactional
     public void delete(Long id) throws BusinessException {
-        EntityDraft entity = findEntityById(id);
+        DraftEntity entity = findEntityById(id);
         draftRepository.delete(entity);
     }
 
@@ -109,15 +109,15 @@ public class EntityDraftService {
         return draftRepository.deleteByOriginalEntityIdAndType(originalEntityId, entityType);
     }
 
-    private EntityDraft findEntityById(Long id) throws BusinessException {
-        EntityDraft entity = draftRepository.findById(id);
+    private DraftEntity findEntityById(Long id) throws BusinessException {
+        DraftEntity entity = draftRepository.findById(id);
         if (entity == null) {
             throw new BusinessException(messages.get(MsgKey.DRAFT_NOT_FOUND, id));
         }
         return entity;
     }
 
-    private FinanceEventDto mapToFinanceEventDto(EntityDraft entity) {
+    private FinanceEventDto mapToFinanceEventDto(DraftEntity entity) {
         try {
             FinanceEventDto dto = objectMapper.readValue(entity.getRawPayloadJson(), FinanceEventDto.class);
             return dto.fromDraft(entity.getOriginalEntityId(), entity.id);

@@ -4,11 +4,11 @@ import com.mypaybyday.ai.AgentFinanceEventCreator;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.FinanceEventExtractionDto;
 import com.mypaybyday.dto.RawTextEventRequestDto;
-import com.mypaybyday.entity.Category;
-import com.mypaybyday.entity.FinanceEvent;
-import com.mypaybyday.entity.FinanceLineItem;
-import com.mypaybyday.entity.FinanceNode;
-import com.mypaybyday.entity.FinanceTransaction;
+import com.mypaybyday.entity.CategoryEntity;
+import com.mypaybyday.entity.FinanceEventEntity;
+import com.mypaybyday.entity.FinanceLineItemEntity;
+import com.mypaybyday.entity.FinanceNodeEntity;
+import com.mypaybyday.entity.FinanceTransactionEntity;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.LanguageContext;
@@ -108,20 +108,20 @@ public class IntelligentEventService {
         log.infof("AI generated description: %s", description);
 
         // Map the extracted DTO to the entities
-        FinanceEvent event = new FinanceEvent();
+        FinanceEventEntity event = new FinanceEventEntity();
         event.name = extraction.getName();
         event.description = description;
         event.type = EventType.OUTBOUND;
 
-        // Map Category
+        // Map CategoryEntity
         if (extraction.getCategoryId() != null) {
-            Category category = new Category();
+            CategoryEntity category = new CategoryEntity();
             category.id = extraction.getCategoryId();
             event.category = category;
         }
 
         // Map Transaction and Line Items
-        FinanceTransaction transaction = new FinanceTransaction();
+        FinanceTransactionEntity transaction = new FinanceTransactionEntity();
 
         // Parse the extracted date
         LocalDateTime transactionDate = LocalDateTime.now();
@@ -139,18 +139,18 @@ public class IntelligentEventService {
         transaction.transactionDate = transactionDate;
         event.transaction = transaction;
 
-        List<FinanceLineItem> lineItems = new ArrayList<>();
+        List<FinanceLineItemEntity> lineItems = new ArrayList<>();
         BigDecimal amount = extraction.getAmount();
         boolean amountOk = amount != null && amount.compareTo(BigDecimal.ZERO) > 0;
 
         // Always create Source Line Item
-        FinanceLineItem sourceItem = new FinanceLineItem();
+        FinanceLineItemEntity sourceItem = new FinanceLineItemEntity();
         if (amountOk) {
             sourceItem.setAmount(amount.negate());
         }
 
         if (extraction.getSourceNodeId() != null) {
-            FinanceNode sourceNode = new FinanceNode();
+            FinanceNodeEntity sourceNode = new FinanceNodeEntity();
             sourceNode.id = extraction.getSourceNodeId();
             sourceItem.financeNode = sourceNode;
         }
@@ -159,13 +159,13 @@ public class IntelligentEventService {
         lineItems.add(sourceItem);
 
         // Always create Destination Line Item
-        FinanceLineItem destItem = new FinanceLineItem();
+        FinanceLineItemEntity destItem = new FinanceLineItemEntity();
         if (amountOk) {
             destItem.setAmount(amount);
         }
 
         if (extraction.getDestinationNodeId() != null) {
-            FinanceNode destNode = new FinanceNode();
+            FinanceNodeEntity destNode = new FinanceNodeEntity();
             destNode.id = extraction.getDestinationNodeId();
             destItem.financeNode = destNode;
         }
@@ -196,7 +196,7 @@ public class IntelligentEventService {
     }
 
     private String buildNodesContext() {
-        List<FinanceNode> nodes = financeNodeRepository.find("archived", false).list();
+        List<FinanceNodeEntity> nodes = financeNodeRepository.find("archived", false).list();
         if (nodes.isEmpty()) {
             return "No finance nodes available.";
         }
@@ -206,7 +206,7 @@ public class IntelligentEventService {
     }
 
     private String buildCategoriesContext() {
-        List<Category> categories = categoryRepository.listAll();
+        List<CategoryEntity> categories = categoryRepository.listAll();
         if (categories.isEmpty()) {
             return "No categories available.";
         }
@@ -225,9 +225,9 @@ CONTEXT:
 - User's primary language: %s
 
 DATA MODEL OVERVIEW:
-1. **FinanceEvent**: The financial transaction.
-2. **FinanceNode**: Any entity that holds, sends, or receives money.
-3. **Category**: Budget classification bucket.
+1. **FinanceEventEntity**: The financial transaction.
+2. **FinanceNodeEntity**: Any entity that holds, sends, or receives money.
+3. **CategoryEntity**: Budget classification bucket.
 
 STRICT EXTRACTION RULES:
 1. NEVER reply with conversational text, greetings, apologies, or explanations. Just output the structured data.

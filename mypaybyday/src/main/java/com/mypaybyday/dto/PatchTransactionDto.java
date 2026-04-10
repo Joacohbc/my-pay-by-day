@@ -1,8 +1,8 @@
 package com.mypaybyday.dto;
 
-import com.mypaybyday.entity.FinanceLineItem;
-import com.mypaybyday.entity.FinanceNode;
-import com.mypaybyday.entity.FinanceTransaction;
+import com.mypaybyday.entity.FinanceLineItemEntity;
+import com.mypaybyday.entity.FinanceNodeEntity;
+import com.mypaybyday.entity.FinanceTransactionEntity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,11 +20,11 @@ public record PatchTransactionDto(
     ) {
         public record FinanceNodeRef(Long id) {}
 
-        public FinanceLineItem toEntity() {
-            FinanceLineItem item = new FinanceLineItem();
+        public FinanceLineItemEntity toEntity() {
+            FinanceLineItemEntity item = new FinanceLineItemEntity();
             item.amount = this.amount;
             if (this.financeNode != null) {
-                FinanceNode node = new FinanceNode();
+                FinanceNodeEntity node = new FinanceNodeEntity();
                 node.id = this.financeNode.id();
                 item.financeNode = node;
             }
@@ -32,8 +32,8 @@ public record PatchTransactionDto(
         }
     }
 
-    public FinanceTransaction toEntity() {
-        FinanceTransaction tx = new FinanceTransaction();
+    public FinanceTransactionEntity toEntity() {
+        FinanceTransactionEntity tx = new FinanceTransactionEntity();
         tx.transactionDate = this.transactionDate;
         if (this.lineItems != null) {
             tx.lineItems = new ArrayList<>();

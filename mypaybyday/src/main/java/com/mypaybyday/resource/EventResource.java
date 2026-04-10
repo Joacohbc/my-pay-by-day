@@ -5,7 +5,7 @@ import com.mypaybyday.dto.EventQuery.DateField;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.PatchEventDto;
-import com.mypaybyday.entity.FinanceEvent;
+import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.EventService;
 import jakarta.inject.Inject;
@@ -75,7 +75,7 @@ public class EventResource {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
             @APIResponse(responseCode = "400", description = "Validation error (e.g. zero-sum violated)")
     })
-    public Response create(FinanceEvent event) throws BusinessException {
+    public Response create(FinanceEventEntity event) throws BusinessException {
         return Response.status(Response.Status.CREATED).entity(eventService.create(event)).build();
     }
 

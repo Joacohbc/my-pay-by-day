@@ -1,6 +1,6 @@
 package com.mypaybyday.dto;
 
-import com.mypaybyday.entity.FinanceEvent;
+import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.enums.EventType;
 
 import java.math.BigDecimal;
@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Minimal read-only projection of a {@link FinanceEvent}.
+ * Minimal read-only projection of a {@link FinanceEventEntity}.
  *
  * @param id              event identifier
  * @param name            human-readable event name
@@ -58,7 +58,7 @@ public record FinanceEventDto(
             this.files
         );
     }
-    public static FinanceEventDto from(FinanceEvent event) {
+    public static FinanceEventDto from(FinanceEventEntity event) {
         // Flatten transaction details if present
         Long txId = null;
         LocalDateTime txDate = null;

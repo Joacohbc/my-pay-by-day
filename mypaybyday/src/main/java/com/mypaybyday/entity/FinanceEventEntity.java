@@ -31,23 +31,23 @@ import lombok.Setter;
  *
  * <p>
  * This is the primary entity exposed to the user. Users do not create
- * {@link FinanceTransaction}s
+ * {@link FinanceTransactionEntity}s
  * directly; they create Events (e.g., "Dinner with friends", "Paid Rent"). The
  * Event holds
  * all human context — description, receipt, and the logical date of occurrence
  * — while the
- * underlying {@link FinanceTransaction} and its {@link FinanceLineItem}s are
+ * underlying {@link FinanceTransactionEntity} and its {@link FinanceLineItemEntity}s are
  * managed exclusively by the
  * backend engine.
  */
-@Entity
+@Entity(name = "FinanceEvent")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table
-public class FinanceEvent extends BaseEntity {
+@Table(name = "FinanceEvent")
+public class FinanceEventEntity extends BaseEntity {
 
     /**
      * Human-readable name for the event (e.g., "Dinner with friends", "Paid Rent").
@@ -100,15 +100,15 @@ public class FinanceEvent extends BaseEntity {
      * The accounting envelope generated for this event.
      *
      * <p>
-     * Exactly one {@link FinanceTransaction} is associated per Event. The
+     * Exactly one {@link FinanceTransactionEntity} is associated per Event. The
      * Transaction enforces
-     * the Zero-Sum Rule: the sum of all origin {@link FinanceLineItem} amounts must
+     * the Zero-Sum Rule: the sum of all origin {@link FinanceLineItemEntity} amounts must
      * equal the sum
      * of all destination amounts.
      */
     @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "transaction_id")
-    public FinanceTransaction transaction;
+    public FinanceTransactionEntity transaction;
 
     /**
      * The budget bucket this event is assigned to (e.g., "Food", "Transport",
@@ -117,11 +117,11 @@ public class FinanceEvent extends BaseEntity {
      * <p>
      * Together with {@code tags}, this is the only place where classification
      * lives.
-     * The underlying {@link FinanceLineItem}s carry no category of their own.
+     * The underlying {@link FinanceLineItemEntity}s carry no category of their own.
      */
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
-    public Category category;
+    public CategoryEntity category;
 
     /**
      * Transversal labels applied to this event (e.g., {@code #Vacation2026},
@@ -130,7 +130,7 @@ public class FinanceEvent extends BaseEntity {
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "event_tag", joinColumns = @JoinColumn(name = "event_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
     @Builder.Default
-    public List<Tag> tags = new ArrayList<>();
+    public List<TagEntity> tags = new ArrayList<>();
 
     /**
      * Bidirectional relationship to other FinanceEvents.
@@ -142,14 +142,14 @@ public class FinanceEvent extends BaseEntity {
         inverseJoinColumns = @JoinColumn(name = "related_event_id")
     )
     @Builder.Default
-    public List<FinanceEvent> relatedEvents = new ArrayList<>();
+    public List<FinanceEventEntity> relatedEvents = new ArrayList<>();
 
     /**
      * Optional link to the subscription that generated this event or is associated with it.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subscription_id")
-    public Subscription subscription;
+    public SubscriptionEntity subscription;
 
     /**
      * Transient property to hold file IDs during request parsing.

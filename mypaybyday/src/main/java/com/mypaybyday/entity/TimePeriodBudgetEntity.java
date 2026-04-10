@@ -13,24 +13,24 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity
+@Entity(name = "TimePeriodBudget")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table
-public class TimePeriodBudget extends BaseEntity {
+@Table(name = "TimePeriodBudget")
+public class TimePeriodBudgetEntity extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "time_period_id")
     @NotNull
-    public TimePeriod timePeriod;
+    public TimePeriodEntity timePeriod;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
     @NotNull
-    public Category category;
+    public CategoryEntity category;
 
     @NotNull
     public BigDecimal budgetedAmount;

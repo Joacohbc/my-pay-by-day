@@ -1,6 +1,6 @@
 package com.mypaybyday.dto;
 
-import com.mypaybyday.entity.FinanceLineItem;
+import com.mypaybyday.entity.FinanceLineItemEntity;
 
 import java.math.BigDecimal;
 
@@ -10,7 +10,7 @@ public record FinanceLineItemDto(
         String financeNodeName,
         BigDecimal amount
 ) {
-    public static FinanceLineItemDto from(FinanceLineItem item) {
+    public static FinanceLineItemDto from(FinanceLineItemEntity item) {
         return new FinanceLineItemDto(
                 item.id,
                 item.financeNode != null ? item.financeNode.id : null,

@@ -1,6 +1,6 @@
 package com.mypaybyday.dto;
 
-import com.mypaybyday.entity.FinanceNode;
+import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.enums.FinanceNodeType;
 
 public record FinanceNodeDto(
@@ -9,12 +9,12 @@ public record FinanceNodeDto(
         FinanceNodeType type,
         boolean archived
 ) {
-    public static FinanceNodeDto from(FinanceNode node) {
+    public static FinanceNodeDto from(FinanceNodeEntity node) {
         return new FinanceNodeDto(node.id, node.name, node.type, node.archived);
     }
 
-    public FinanceNode to() {
-        FinanceNode node = new FinanceNode();
+    public FinanceNodeEntity to() {
+        FinanceNodeEntity node = new FinanceNodeEntity();
         node.id = this.id;
         node.name = this.name;
         node.type = this.type;

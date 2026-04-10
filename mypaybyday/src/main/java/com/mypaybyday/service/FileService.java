@@ -6,7 +6,7 @@ import com.mypaybyday.dto.FileDto;
 import com.mypaybyday.dto.FileWithEventDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.FileEntity;
-import com.mypaybyday.entity.FinanceEvent;
+import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.exception.BusinessException;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Page;
@@ -112,7 +112,7 @@ public class FileService {
         query.page(Page.of(page, size));
 
         List<FileWithEventDto> dtos = query.list().stream().map(file -> {
-            List<FinanceEvent> associatedEvents = getAssociatedEvents(file.id);
+            List<FinanceEventEntity> associatedEvents = getAssociatedEvents(file.id);
             boolean isOrphanStatus = associatedEvents.isEmpty();
             List<EventSummaryDto> eventSummaries = associatedEvents.stream()
                 .map(EventSummaryDto::from)
@@ -157,7 +157,7 @@ public class FileService {
     }
 
     @SuppressWarnings("unchecked")
-    private List<FinanceEvent> getAssociatedEvents(Long fileId) {
+    private List<FinanceEventEntity> getAssociatedEvents(Long fileId) {
         return FileEntity.getEntityManager()
             .createQuery("select e from FinanceEvent e join e.files f where f.id = :fileId")
             .setParameter("fileId", fileId)

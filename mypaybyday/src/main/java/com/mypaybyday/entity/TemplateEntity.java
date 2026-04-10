@@ -1,13 +1,18 @@
 package com.mypaybyday.entity;
 
 import com.mypaybyday.enums.EventType;
-import com.mypaybyday.enums.RecurrenceFrequency;
-import com.mypaybyday.enums.SubscriptionStatus;
-import jakarta.persistence.*;
+import com.mypaybyday.enums.ModifierType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -16,13 +21,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity
+@Entity(name = "Template")
+@Table(name = "Template")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Subscription extends BaseEntity {
+public class TemplateEntity extends BaseEntity {
 
     @NotBlank
     public String name;
@@ -31,37 +37,28 @@ public class Subscription extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "origin_node_id")
-    public FinanceNode originNode;
+    public FinanceNodeEntity originNode;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "destination_node_id")
-    public FinanceNode destinationNode;
+    public FinanceNodeEntity destinationNode;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
-    public Category category;
+    public CategoryEntity category;
 
     @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "subscription_tag", joinColumns = @JoinColumn(name = "subscription_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
+    @JoinTable(name = "template_tag", joinColumns = @JoinColumn(name = "template_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
     @Builder.Default
-    public List<Tag> tags = new ArrayList<>();
+    public List<TagEntity> tags = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     public EventType eventType;
 
+    @Enumerated(EnumType.STRING)
+    public ModifierType modifierType;
+
     public BigDecimal modifierValue;
-
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    public RecurrenceFrequency recurrence;
-
-    @NotNull
-    public LocalDate nextExecutionDate;
-
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    @Builder.Default
-    public SubscriptionStatus status = SubscriptionStatus.ACTIVE;
 
 }
 

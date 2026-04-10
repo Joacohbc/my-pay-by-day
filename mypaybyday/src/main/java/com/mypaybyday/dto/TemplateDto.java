@@ -1,6 +1,6 @@
 package com.mypaybyday.dto;
 
-import com.mypaybyday.entity.Template;
+import com.mypaybyday.entity.TemplateEntity;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.enums.ModifierType;
 
@@ -21,7 +21,7 @@ public record TemplateDto(
         ModifierType modifierType,
         BigDecimal modifierValue) {
 
-    public static TemplateDto from(Template t) {
+    public static TemplateDto from(TemplateEntity t) {
         return new TemplateDto(
                 t.id,
                 t.name,

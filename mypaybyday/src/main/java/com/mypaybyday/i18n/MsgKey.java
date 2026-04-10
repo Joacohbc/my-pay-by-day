@@ -11,11 +11,11 @@ package com.mypaybyday.i18n;
  */
 public enum MsgKey {
 
-    // ── Category ─────────────────────────────────────────
+    // ── CategoryEntity ─────────────────────────────────────────
     CATEGORY_NOT_FOUND("error.category.not_found"),
     CATEGORY_NAME_REQUIRED("error.category.name_required"),
 
-    // ── Tag ──────────────────────────────────────────────
+    // ── TagEntity ──────────────────────────────────────────────
     TAG_NOT_FOUND("error.tag.not_found"),
     TAG_NAME_REQUIRED("error.tag.name_required"),
 
@@ -36,7 +36,7 @@ public enum MsgKey {
     NODE_ARCHIVED_IN_USE("error.node.archived_in_use"),
     NODE_IN_TEMPLATE("error.node.in_template"),
 
-    // ── Template ──────────────────────────────────────────
+    // ── TemplateEntity ──────────────────────────────────────────
     TEMPLATE_NOT_FOUND("error.template.not_found"),
     TEMPLATE_NAME_REQUIRED("error.template.name_required"),
     TEMPLATE_IN_USE("error.template.in_use"),
@@ -59,7 +59,7 @@ public enum MsgKey {
     TRANSACTION_LINE_ITEM_NODES_NOT_FOUND("error.transaction.line_item_nodes_not_found"),
     TRANSACTION_DATE_IN_FUTURE("error.transaction.date_in_future"),
 
-    // ── Subscription ─────────────────────────────────────
+    // ── SubscriptionEntity ─────────────────────────────────────
     SUBSCRIPTION_NOT_FOUND("error.subscription.not_found"),
     SUBSCRIPTION_NAME_REQUIRED("error.subscription.name_required"),
     SUBSCRIPTION_TEMPLATE_REQUIRED("error.subscription.template_required"),

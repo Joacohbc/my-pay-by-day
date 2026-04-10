@@ -17,14 +17,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity
+@Entity(name = "TimePeriod")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table
-public class TimePeriod extends BaseEntity {
+@Table(name = "TimePeriod")
+public class TimePeriodEntity extends BaseEntity {
 
     @NotBlank
     public String name;
@@ -37,7 +37,7 @@ public class TimePeriod extends BaseEntity {
 
     @OneToMany(mappedBy = "timePeriod", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @Builder.Default
-    public List<TimePeriodBudget> budgets = new ArrayList<>();
+    public List<TimePeriodBudgetEntity> budgets = new ArrayList<>();
 
     public BigDecimal savingsPercentageGoal;
 

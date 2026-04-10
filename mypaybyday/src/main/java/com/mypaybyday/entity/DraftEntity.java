@@ -26,7 +26,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "entity_draft")
-public class EntityDraft extends BaseEntity {
+public class DraftEntity extends BaseEntity {
 
     /**
      * Optional link to the original entity if this draft represents an edit of a pre-existing

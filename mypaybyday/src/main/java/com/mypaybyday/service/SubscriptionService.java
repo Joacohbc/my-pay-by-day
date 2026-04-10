@@ -5,14 +5,14 @@ import com.mypaybyday.dto.FinanceLineItemDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.SubscriptionDto;
 import com.mypaybyday.dto.TagDto;
-import com.mypaybyday.entity.Category;
-import com.mypaybyday.entity.FinanceEvent;
-import com.mypaybyday.entity.FinanceLineItem;
-import com.mypaybyday.entity.FinanceNode;
-import com.mypaybyday.entity.FinanceTransaction;
-import com.mypaybyday.entity.Subscription;
-import com.mypaybyday.entity.SystemJob;
-import com.mypaybyday.entity.Tag;
+import com.mypaybyday.entity.CategoryEntity;
+import com.mypaybyday.entity.FinanceEventEntity;
+import com.mypaybyday.entity.FinanceLineItemEntity;
+import com.mypaybyday.entity.FinanceNodeEntity;
+import com.mypaybyday.entity.FinanceTransactionEntity;
+import com.mypaybyday.entity.SubscriptionEntity;
+import com.mypaybyday.entity.SystemJobEntity;
+import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.enums.JobCategory;
 import com.mypaybyday.enums.JobStatus;
 import com.mypaybyday.enums.SubscriptionStatus;
@@ -76,7 +76,7 @@ public class SubscriptionService {
 
     @Transactional
     public SubscriptionDto findById(Long id) throws BusinessException {
-        Subscription subscription = subscriptionRepository.findById(id);
+        SubscriptionEntity subscription = subscriptionRepository.findById(id);
         if (subscription == null) {
             throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NOT_FOUND, id));
         }
@@ -95,7 +95,7 @@ public class SubscriptionService {
             throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_RECURRENCE_REQUIRED));
         }
 
-        Subscription subscription = new Subscription();
+        SubscriptionEntity subscription = new SubscriptionEntity();
         subscription.name = dto.name();
         subscription.description = dto.description();
         subscription.eventType = dto.eventType();
@@ -120,14 +120,14 @@ public class SubscriptionService {
                 if (tagDto.id() == null) {
                     throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
                 }
-                Tag tag = tagService.findTagEntity(tagDto.id());
+                TagEntity tag = tagService.findTagEntity(tagDto.id());
                 subscription.tags.add(tag);
             }
         }
 
         subscriptionRepository.persist(subscription);
         
-        SystemJob job = new SystemJob();
+        SystemJobEntity job = new SystemJobEntity();
         job.jobCategory = JobCategory.SUBSCRIPTION_PROCESSOR;
         job.status = JobStatus.PENDING;
         job.nextExecutionDate = subscription.nextExecutionDate;
@@ -139,7 +139,7 @@ public class SubscriptionService {
 
     @Transactional
     public SubscriptionDto update(Long id, SubscriptionDto dto) throws BusinessException {
-        Subscription subscription = subscriptionRepository.findById(id);
+        SubscriptionEntity subscription = subscriptionRepository.findById(id);
         if (subscription == null) {
             throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NOT_FOUND, id));
         }
@@ -196,12 +196,12 @@ public class SubscriptionService {
                 if (tagDto.id() == null) {
                     throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
                 }
-                Tag tag = tagService.findTagEntity(tagDto.id());
+                TagEntity tag = tagService.findTagEntity(tagDto.id());
                 subscription.tags.add(tag);
             }
         }
 
-        SystemJob pendingJob = systemJobRepository.findPendingJobByEntityId(JobCategory.SUBSCRIPTION_PROCESSOR, String.valueOf(subscription.id));
+        SystemJobEntity pendingJob = systemJobRepository.findPendingJobByEntityId(JobCategory.SUBSCRIPTION_PROCESSOR, String.valueOf(subscription.id));
         if (pendingJob != null) {
             if (subscription.status != SubscriptionStatus.ACTIVE) {
                 pendingJob.status = JobStatus.COMPLETED;
@@ -213,7 +213,7 @@ public class SubscriptionService {
             }
         } else if (subscription.status == SubscriptionStatus.ACTIVE) {
             // Re-activate or recreate if didn't exist
-            SystemJob job = new SystemJob();
+            SystemJobEntity job = new SystemJobEntity();
             job.jobCategory = JobCategory.SUBSCRIPTION_PROCESSOR;
             job.status = JobStatus.PENDING;
             job.nextExecutionDate = subscription.nextExecutionDate;
@@ -226,12 +226,12 @@ public class SubscriptionService {
 
     @Transactional
     public void delete(Long id) throws BusinessException {
-        Subscription subscription = subscriptionRepository.findById(id);
+        SubscriptionEntity subscription = subscriptionRepository.findById(id);
         if (subscription == null) {
             throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NOT_FOUND, id));
         }
         
-        SystemJob pendingJob = systemJobRepository.findPendingJobByEntityId(JobCategory.SUBSCRIPTION_PROCESSOR, String.valueOf(subscription.id));
+        SystemJobEntity pendingJob = systemJobRepository.findPendingJobByEntityId(JobCategory.SUBSCRIPTION_PROCESSOR, String.valueOf(subscription.id));
         if (pendingJob != null) {
             pendingJob.status = JobStatus.COMPLETED;
             pendingJob.message = "Subscription deleted";
@@ -243,7 +243,7 @@ public class SubscriptionService {
 
     @Transactional
     public void processSubscription(Long subscriptionId) throws BusinessException {
-        Subscription sub = subscriptionRepository.findById(subscriptionId);
+        SubscriptionEntity sub = subscriptionRepository.findById(subscriptionId);
         if (sub == null) {
             throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NOT_FOUND, subscriptionId));
         }
@@ -266,7 +266,7 @@ public class SubscriptionService {
             }
             subscriptionRepository.persist(sub);
 
-            SystemJob nextJob = new SystemJob();
+            SystemJobEntity nextJob = new SystemJobEntity();
             nextJob.jobCategory = JobCategory.SUBSCRIPTION_PROCESSOR;
             nextJob.status = JobStatus.PENDING;
             nextJob.nextExecutionDate = sub.nextExecutionDate;
@@ -279,7 +279,7 @@ public class SubscriptionService {
         }
     }
 
-    private void createEventFromSubscription(Subscription sub) {
+    private void createEventFromSubscription(SubscriptionEntity sub) {
         if (sub.eventType == null || sub.modifierValue == null || sub.originNode == null) {
             LOG.warnf("Subscription %d is missing required fields (eventType, modifierValue, originNode) for event generation. Skipping.", sub.id);
             return;
@@ -308,13 +308,13 @@ public class SubscriptionService {
             }
         }
 
-        FinanceTransaction transaction = new FinanceTransaction();
+        FinanceTransactionEntity transaction = new FinanceTransactionEntity();
         transaction.transactionDate = LocalDateTime.now();
         transaction.lineItems = new ArrayList<>();
 
         for (FinanceLineItemDto dto : lineItems) {
-            FinanceLineItem item = new FinanceLineItem();
-            FinanceNode node = new FinanceNode();
+            FinanceLineItemEntity item = new FinanceLineItemEntity();
+            FinanceNodeEntity node = new FinanceNodeEntity();
             node.id = dto.financeNodeId();
             item.financeNode = node;
             item.amount = dto.amount();
@@ -322,9 +322,9 @@ public class SubscriptionService {
             transaction.lineItems.add(item);
         }
 
-        FinanceEvent previousEvent = eventRepository.find("subscription.id = ?1 order by id DESC", sub.id).firstResult();
+        FinanceEventEntity previousEvent = eventRepository.find("subscription.id = ?1 order by id DESC", sub.id).firstResult();
 
-        FinanceEvent event = new FinanceEvent();
+        FinanceEventEntity event = new FinanceEventEntity();
         event.name = "[Sub] " + sub.name;
         event.subscription = sub;
         event.description = sub.description != null ? sub.description : "Auto-generated from subscription";
@@ -332,15 +332,15 @@ public class SubscriptionService {
         event.transaction = transaction;
 
         if (sub.category != null) {
-            Category category = new Category();
+            CategoryEntity category = new CategoryEntity();
             category.id = sub.category.id;
             event.category = category;
         }
 
         event.tags = new ArrayList<>();
         if (sub.tags != null) {
-            for (Tag tag : sub.tags) {
-                Tag stub = new Tag();
+            for (TagEntity tag : sub.tags) {
+                TagEntity stub = new TagEntity();
                 stub.id = tag.id;
                 event.tags.add(stub);
             }

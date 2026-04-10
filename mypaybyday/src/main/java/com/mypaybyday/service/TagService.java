@@ -2,7 +2,7 @@ package com.mypaybyday.service;
 
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TagDto;
-import com.mypaybyday.entity.Tag;
+import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
@@ -44,11 +44,11 @@ public class TagService {
     }
 
     /**
-     * Internal method used by other services that need a managed {@link Tag} entity
+     * Internal method used by other services that need a managed {@link TagEntity} entity
      * (e.g. {@link EventService} when resolving tag references).
      */
-    Tag findTagEntity(Long id) throws BusinessException {
-        Tag tag = tagRepository.findById(id);
+    TagEntity findTagEntity(Long id) throws BusinessException {
+        TagEntity tag = tagRepository.findById(id);
         if (tag == null) {
             throw new BusinessException(messages.get(MsgKey.TAG_NOT_FOUND, id));
         }
@@ -64,7 +64,7 @@ public class TagService {
         if (dto.name() == null || dto.name().isBlank()) {
             throw new BusinessException(messages.get(MsgKey.TAG_NAME_REQUIRED));
         }
-        Tag tag = new Tag();
+        TagEntity tag = new TagEntity();
         tag.name = dto.name();
         tag.description = dto.description();
         tagRepository.persist(tag);
@@ -73,7 +73,7 @@ public class TagService {
 
     @Transactional
     public TagDto update(Long id, TagDto dto) throws BusinessException {
-        Tag tag = findTagEntity(id);
+        TagEntity tag = findTagEntity(id);
         if (dto.name() == null || dto.name().isBlank()) {
             throw new BusinessException(messages.get(MsgKey.TAG_NAME_REQUIRED));
         }
@@ -84,7 +84,7 @@ public class TagService {
 
     @Transactional
     public void delete(Long id) throws BusinessException {
-        Tag tag = findTagEntity(id);
+        TagEntity tag = findTagEntity(id);
         tagRepository.delete(tag);
     }
 }

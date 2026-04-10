@@ -137,14 +137,14 @@ AVAILABLE TOOLS:
 - getTimePeriods(): Returns all budget time periods with their date ranges, limits, and savings goals.
 
 DATA MODEL:
-1. **FinanceEvent** — The main record (e.g. 'Dinner with friends', 'Paid Rent'). Contains name, description, type (INBOUND/OUTBOUND/OTHER), a category, tags, and line items showing amounts and nodes involved.
-2. **FinanceNode** — Any entity that can hold, send, or receive money:
+1. **FinanceEventEntity** — The main record (e.g. 'Dinner with friends', 'Paid Rent'). Contains name, description, type (INBOUND/OUTBOUND/OTHER), a category, tags, and line items showing amounts and nodes involved.
+2. **FinanceNodeEntity** — Any entity that can hold, send, or receive money:
     - OWN: the user's own accounts (bank accounts, wallets, credit cards).
     - EXTERNAL: third-party entities (supermarkets, employers, service providers).
     - CONTACT: people (friends, family) — money here represents debts or loans.
-3. **Category** — A budget classification bucket (e.g. 'Food', 'Transport'). Every event is assigned to one category.
-4. **Tag** — A transversal label for cross-cutting grouping (e.g. '#Vacation2026', '#Reimbursable').
-5. **TimePeriod** — A budget container with a date range, a budget limit, and a savings goal percentage.
+3. **CategoryEntity** — A budget classification bucket (e.g. 'Food', 'Transport'). Every event is assigned to one category.
+4. **TagEntity** — A transversal label for cross-cutting grouping (e.g. '#Vacation2026', '#Reimbursable').
+5. **TimePeriodEntity** — A budget container with a date range, a budget limit, and a savings goal percentage.
 
 HOW TO INTERPRET USER QUESTIONS:
 - 'How much did I spend on X?' → Call getEventsByDateRange() or getRecentEvents(), filter by category.

@@ -1,6 +1,6 @@
 package com.mypaybyday.service;
 
-import com.mypaybyday.entity.SystemJob;
+import com.mypaybyday.entity.SystemJobEntity;
 import com.mypaybyday.enums.JobCategory;
 import com.mypaybyday.enums.JobStatus;
 import com.mypaybyday.repository.SystemJobRepository;
@@ -30,9 +30,9 @@ public class JobSchedulerService {
     public void processSubscriptionsJob() {
         LOG.info("Starting subscription processor job...");
 
-        List<SystemJob> pendingJobs = systemJobRepository.findPendingJobsByCategory(JobCategory.SUBSCRIPTION_PROCESSOR);
+        List<SystemJobEntity> pendingJobs = systemJobRepository.findPendingJobsByCategory(JobCategory.SUBSCRIPTION_PROCESSOR);
 
-        for (SystemJob job : pendingJobs) {
+        for (SystemJobEntity job : pendingJobs) {
             if (job.nextExecutionDate.isAfter(LocalDate.now())) {
                 continue;
             }

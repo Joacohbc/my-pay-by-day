@@ -1,6 +1,6 @@
 package com.mypaybyday.dto;
 
-import com.mypaybyday.entity.FinanceTransaction;
+import com.mypaybyday.entity.FinanceTransactionEntity;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -13,7 +13,7 @@ public record FinanceTransactionDto(
         Instant updatedAt,
         List<FinanceLineItemDto> lineItems
 ) {
-    public static FinanceTransactionDto from(FinanceTransaction tx) {
+    public static FinanceTransactionDto from(FinanceTransactionEntity tx) {
         return new FinanceTransactionDto(
                 tx.id,
                 tx.transactionDate,

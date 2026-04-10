@@ -1,6 +1,6 @@
 package com.mypaybyday.dto;
 
-import com.mypaybyday.entity.Subscription;
+import com.mypaybyday.entity.SubscriptionEntity;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.enums.RecurrenceFrequency;
 import com.mypaybyday.enums.SubscriptionStatus;
@@ -23,7 +23,7 @@ public record SubscriptionDto(
         RecurrenceFrequency recurrence,
         LocalDate nextExecutionDate,
         SubscriptionStatus status) {
-    public static SubscriptionDto from(Subscription s) {
+    public static SubscriptionDto from(SubscriptionEntity s) {
         return new SubscriptionDto(
                 s.id,
                 s.name,

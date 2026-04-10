@@ -2,7 +2,7 @@ package com.mypaybyday.service;
 
 import com.mypaybyday.dto.FinanceNodeDto;
 import com.mypaybyday.dto.PagedResponse;
-import com.mypaybyday.entity.FinanceNode;
+import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
@@ -58,7 +58,7 @@ public class FinanceNodeService {
 
     @Transactional
     public FinanceNodeDto findById(Long id) {
-        FinanceNode node = financeNodeRepository.findById(id);
+        FinanceNodeEntity node = financeNodeRepository.findById(id);
         if (node == null || node.archived) {
             return null;
         }
@@ -67,12 +67,12 @@ public class FinanceNodeService {
 
     /**
      * Internal method used by other services that need a managed
-     * {@link FinanceNode} entity
+     * {@link FinanceNodeEntity} entity
      * (e.g. {@link TransactionService} when resolving node references on line
      * items).
      */
-    FinanceNode findNodeEntity(Long id) throws BusinessException {
-        FinanceNode node = financeNodeRepository.findById(id);
+    FinanceNodeEntity findNodeEntity(Long id) throws BusinessException {
+        FinanceNodeEntity node = financeNodeRepository.findById(id);
         if (node == null || node.archived) {
             throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND_ARCHIVED, id));
         }
@@ -81,7 +81,7 @@ public class FinanceNodeService {
 
     @Transactional
     public FinanceNodeDto create(FinanceNodeDto dto) {
-        FinanceNode node = new FinanceNode();
+        FinanceNodeEntity node = new FinanceNodeEntity();
         node.name = dto.name();
         node.type = dto.type();
         financeNodeRepository.persist(node);
@@ -90,7 +90,7 @@ public class FinanceNodeService {
 
     @Transactional
     public FinanceNodeDto update(Long id, FinanceNodeDto dto) throws BusinessException {
-        FinanceNode node = financeNodeRepository.findById(id);
+        FinanceNodeEntity node = financeNodeRepository.findById(id);
         if (node == null || node.archived) {
             throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND_ARCHIVED_GENERIC));
         }
@@ -101,7 +101,7 @@ public class FinanceNodeService {
 
     @Transactional
     public void archive(Long id) throws BusinessException {
-        FinanceNode node = financeNodeRepository.findById(id);
+        FinanceNodeEntity node = financeNodeRepository.findById(id);
         if (node == null) {
             throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
         }
@@ -117,7 +117,7 @@ public class FinanceNodeService {
 
     @Transactional
     public void unarchive(Long id) throws BusinessException {
-        FinanceNode node = financeNodeRepository.findById(id);
+        FinanceNodeEntity node = financeNodeRepository.findById(id);
         if (node == null) {
             throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
         }
@@ -126,7 +126,7 @@ public class FinanceNodeService {
 
     @Transactional
     public void delete(Long id) throws BusinessException {
-        FinanceNode node = financeNodeRepository.findById(id);
+        FinanceNodeEntity node = financeNodeRepository.findById(id);
         if (node == null) {
             throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
         }
@@ -145,7 +145,7 @@ public class FinanceNodeService {
 
     @Transactional
     public BigDecimal calculateBalance(Long id) throws BusinessException {
-        FinanceNode node = financeNodeRepository.findById(id);
+        FinanceNodeEntity node = financeNodeRepository.findById(id);
         if (node == null) {
             throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
         }

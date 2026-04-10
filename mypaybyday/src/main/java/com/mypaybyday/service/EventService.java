@@ -4,12 +4,12 @@ import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.EventQuery.DateField;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.PagedResponse;
-import com.mypaybyday.entity.FinanceEvent;
+import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.dto.CategoryBalanceDto;
-import com.mypaybyday.entity.Category;
-import com.mypaybyday.entity.FinanceLineItem;
-import com.mypaybyday.entity.Tag;
-import com.mypaybyday.entity.FinanceTransaction;
+import com.mypaybyday.entity.CategoryEntity;
+import com.mypaybyday.entity.FinanceLineItemEntity;
+import com.mypaybyday.entity.TagEntity;
+import com.mypaybyday.entity.FinanceTransactionEntity;
 import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.enums.EntityType;
@@ -41,10 +41,10 @@ import java.util.stream.Collectors;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 
 /**
- * Service responsible for managing {@link FinanceEvent} lifecycle.
+ * Service responsible for managing {@link FinanceEventEntity} lifecycle.
  *
  * <p>This service is the single entry point for all Event-related operations.
- * Per the Wrapper Isolation Rule, all {@link FinanceTransaction} and {@link FinanceLineItem}
+ * Per the Wrapper Isolation Rule, all {@link FinanceTransactionEntity} and {@link FinanceLineItemEntity}
  * creation/mutation must go through this service — never directly through the
  * operational-layer repositories.
  */
@@ -124,9 +124,9 @@ public class EventService {
 
         query.append(" ORDER BY ").append(dateFieldExpr).append(" DESC");
 
-        PanacheQuery<FinanceEvent> panacheQuery = eventRepository.find(query.toString(), params);
+        PanacheQuery<FinanceEventEntity> panacheQuery = eventRepository.find(query.toString(), params);
 
-        List<FinanceEvent> events;
+        List<FinanceEventEntity> events;
 
         // If we have an in-memory search, we have to fetch all matches from DB and filter manually
         if (q.search() != null && !q.search().isBlank()) {
@@ -166,7 +166,7 @@ public class EventService {
 
     @Transactional
     public FinanceEventDto findById(Long id) throws BusinessException {
-        FinanceEvent event = eventRepository.findById(id);
+        FinanceEventEntity event = eventRepository.findById(id);
         if (event == null) {
             throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
         }
@@ -190,13 +190,13 @@ public class EventService {
      */
     @Transactional
     public CategoryBalanceDto getCategoryBalance(Long categoryId, LocalDateTime from, LocalDateTime to) throws BusinessException {
-        Category category = categoryService.findEntityById(categoryId);
-        List<FinanceEvent> events = findEventEntitiesByDateRangeAndCategory(categoryId, from, to);
+        CategoryEntity category = categoryService.findEntityById(categoryId);
+        List<FinanceEventEntity> events = findEventEntitiesByDateRangeAndCategory(categoryId, from, to);
 
         BigDecimal income = BigDecimal.ZERO;
         BigDecimal outbound = BigDecimal.ZERO;
 
-        for (FinanceEvent event : events) {
+        for (FinanceEventEntity event : events) {
             if (event.transaction == null || event.transaction.lineItems == null) {
                 continue;
             }
@@ -221,10 +221,10 @@ public class EventService {
     // -------------------------------------------------------------------------
 
     /**
-     * Creates a new {@link FinanceEvent} together with its inner {@link FinanceTransaction}.
+     * Creates a new {@link FinanceEventEntity} together with its inner {@link FinanceTransactionEntity}.
      *
      * <p>The caller must supply a fully populated Event that includes a non-null
-     * {@link FinanceTransaction} with at least one {@link FinanceLineItem}. The service validates the
+     * {@link FinanceTransactionEntity} with at least one {@link FinanceLineItemEntity}. The service validates the
      * Zero-Sum Rule before persisting anything.
      *
      * <p>If a {@code category} or {@code tags} are supplied by ID, they are resolved and
@@ -234,20 +234,20 @@ public class EventService {
      * @return the persisted Event with generated IDs
      */
     @Transactional
-    public FinanceEventDto create(FinanceEvent event) throws BusinessException {
+    public FinanceEventDto create(FinanceEventEntity event) throws BusinessException {
         if (event.transaction == null) {
             throw new BusinessException(messages.get(MsgKey.EVENT_TRANSACTION_REQUIRED));
         }
 
         // Delegate to TransactionService
-        FinanceTransaction tx = transactionService.create(event.transaction);
+        FinanceTransactionEntity tx = transactionService.create(event.transaction);
 
-        // Resolve Category reference (only the ID is trusted from clients)
+        // Resolve CategoryEntity reference (only the ID is trusted from clients)
         if (event.category != null && event.category.id != null) {
             event.category = categoryService.findEntityById(event.category.id);
         }
 
-        // Resolve Tag references
+        // Resolve TagEntity references
         event.tags = resolveTags(event.tags);
 
         // Resolve File references
@@ -286,7 +286,7 @@ public class EventService {
      */
     @Transactional
     public FinanceEventDto update(Long id, PatchEventDto patch) throws BusinessException {
-        FinanceEvent event = eventRepository.findById(id);
+        FinanceEventEntity event = eventRepository.findById(id);
         if (event == null) {
             throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
         }
@@ -311,7 +311,7 @@ public class EventService {
             }
         }
 
-        // --- Category ---
+        // --- CategoryEntity ---
         if (patch.getCategory().isPresent()) {
             CategoryDto catDto = patch.getCategory().get();
             if (catDto == null) {
@@ -330,7 +330,7 @@ public class EventService {
             if (tagDtos == null || tagDtos.isEmpty()) {
                 event.tags = new ArrayList<>();
             } else {
-                List<Tag> resolved = new ArrayList<>();
+                List<TagEntity> resolved = new ArrayList<>();
                 for (TagDto tagDto : tagDtos) {
                     if (tagDto.id() == null) {
                         throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
@@ -366,7 +366,7 @@ public class EventService {
      */
     @Transactional
     public void delete(Long id) throws BusinessException {
-        FinanceEvent event = eventRepository.findById(id);
+        FinanceEventEntity event = eventRepository.findById(id);
         if (event == null) {
             throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
         }
@@ -379,10 +379,10 @@ public class EventService {
     // -------------------------------------------------------------------------
 
     /**
-     * Internal method used by other services that need managed {@link FinanceEvent} entities
+     * Internal method used by other services that need managed {@link FinanceEventEntity} entities
      * with their full graph loaded (e.g. {@link TimePeriodService} for balance calculations).
      */
-    private List<FinanceEvent> findEventEntitiesByDateRange(LocalDateTime from, LocalDateTime to) throws BusinessException {
+    private List<FinanceEventEntity> findEventEntitiesByDateRange(LocalDateTime from, LocalDateTime to) throws BusinessException {
         if (from == null || to == null) {
             throw new BusinessException(messages.get(MsgKey.EVENT_DATE_RANGE_NULL));
         }
@@ -394,7 +394,7 @@ public class EventService {
                 from, to);
     }
 
-    private List<FinanceEvent> findEventEntitiesByDateRangeAndCategory(Long categoryId, LocalDateTime from, LocalDateTime to) throws BusinessException {
+    private List<FinanceEventEntity> findEventEntitiesByDateRangeAndCategory(Long categoryId, LocalDateTime from, LocalDateTime to) throws BusinessException {
         if (from == null || to == null) {
             throw new BusinessException(messages.get(MsgKey.EVENT_DATE_RANGE_NULL));
         }
@@ -407,15 +407,15 @@ public class EventService {
     }
 
     /**
-     * Resolves a list of Tag stubs (containing only IDs) into managed Tag entities.
+     * Resolves a list of TagEntity stubs (containing only IDs) into managed TagEntity entities.
      * Returns an empty list if the input is null.
      */
-    private List<Tag> resolveTags(List<Tag> stubs) throws BusinessException {
+    private List<TagEntity> resolveTags(List<TagEntity> stubs) throws BusinessException {
         if (stubs == null || stubs.isEmpty()) {
             return new ArrayList<>();
         }
-        List<Tag> resolved = new ArrayList<>();
-        for (Tag stub : stubs) {
+        List<TagEntity> resolved = new ArrayList<>();
+        for (TagEntity stub : stubs) {
             if (stub.id == null) {
                 throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
             }
@@ -445,12 +445,12 @@ public class EventService {
 
     @Transactional
     public FinanceEventDto addRelations(Long eventId, List<Long> relatedIds) throws BusinessException {
-        FinanceEvent event = eventRepository.findById(eventId);
+        FinanceEventEntity event = eventRepository.findById(eventId);
         if (event == null) throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
 
-        List<FinanceEvent> existingRelated = validateAndFetchRelatedEvents(relatedIds);
+        List<FinanceEventEntity> existingRelated = validateAndFetchRelatedEvents(relatedIds);
 
-        for (FinanceEvent fe : existingRelated) {
+        for (FinanceEventEntity fe : existingRelated) {
             if (fe.id.equals(eventId)) continue;
             if (!event.relatedEvents.contains(fe)) event.relatedEvents.add(fe);
             if (!fe.relatedEvents.contains(event)) fe.relatedEvents.add(event);
@@ -463,14 +463,14 @@ public class EventService {
 
     @Transactional
     public FinanceEventDto removeRelations(Long eventId, List<Long> relatedIds) throws BusinessException {
-        FinanceEvent event = eventRepository.findById(eventId);
+        FinanceEventEntity event = eventRepository.findById(eventId);
         if (event == null) {
             throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
         }
 
-        List<FinanceEvent> existingRelated = validateAndFetchRelatedEvents(relatedIds);
+        List<FinanceEventEntity> existingRelated = validateAndFetchRelatedEvents(relatedIds);
 
-        for (FinanceEvent relEvent : existingRelated) {
+        for (FinanceEventEntity relEvent : existingRelated) {
             if (relEvent.id.equals(eventId)) {
                 continue;
             }
@@ -490,15 +490,15 @@ public class EventService {
         return removeRelations(eventId, List.of(relatedId));
     }
 
-    private List<FinanceEvent> validateAndFetchRelatedEvents(List<Long> relatedIds) throws BusinessException {
-        List<FinanceEvent> fetchedRelated = eventRepository.findByIds(relatedIds);
+    private List<FinanceEventEntity> validateAndFetchRelatedEvents(List<Long> relatedIds) throws BusinessException {
+        List<FinanceEventEntity> fetchedRelated = eventRepository.findByIds(relatedIds);
 
         // The default method findByIds return nulls for missing IDs, so we need to check which ones were not found
-        List<FinanceEvent> existingRelated = new ArrayList<>(relatedIds.size());
+        List<FinanceEventEntity> existingRelated = new ArrayList<>(relatedIds.size());
         List<Long> missingIds = new ArrayList<>();
 
         for (int i = 0; i < relatedIds.size(); i++) {
-            FinanceEvent related = i < fetchedRelated.size() ? fetchedRelated.get(i) : null;
+            FinanceEventEntity related = i < fetchedRelated.size() ? fetchedRelated.get(i) : null;
             if (related == null) {
                 missingIds.add(relatedIds.get(i));
                 continue;

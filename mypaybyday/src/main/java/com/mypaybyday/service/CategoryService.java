@@ -2,7 +2,7 @@ package com.mypaybyday.service;
 
 import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.dto.PagedResponse;
-import com.mypaybyday.entity.Category;
+import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
@@ -44,11 +44,11 @@ public class CategoryService {
     }
 
     /**
-     * Internal method used by other services that need a managed {@link Category} entity
+     * Internal method used by other services that need a managed {@link CategoryEntity} entity
      * (e.g. {@link EventService} when resolving a category reference).
      */
-    Category findEntityById(Long id) throws BusinessException {
-        Category category = categoryRepository.findById(id);
+    CategoryEntity findEntityById(Long id) throws BusinessException {
+        CategoryEntity category = categoryRepository.findById(id);
         if (category == null) {
             throw new BusinessException(messages.get(MsgKey.CATEGORY_NOT_FOUND, id));
         }
@@ -64,7 +64,7 @@ public class CategoryService {
         if (dto.name() == null || dto.name().isBlank()) {
             throw new BusinessException(messages.get(MsgKey.CATEGORY_NAME_REQUIRED));
         }
-        Category category = new Category();
+        CategoryEntity category = new CategoryEntity();
         category.name = dto.name();
         category.description = dto.description();
         category.icon = dto.icon();
@@ -74,7 +74,7 @@ public class CategoryService {
 
     @Transactional
     public CategoryDto update(Long id, CategoryDto dto) throws BusinessException {
-        Category category = findEntityById(id);
+        CategoryEntity category = findEntityById(id);
         if (dto.name() == null || dto.name().isBlank()) {
             throw new BusinessException(messages.get(MsgKey.CATEGORY_NAME_REQUIRED));
         }
@@ -86,7 +86,7 @@ public class CategoryService {
 
     @Transactional
     public void delete(Long id) throws BusinessException {
-        Category category = findEntityById(id);
+        CategoryEntity category = findEntityById(id);
         categoryRepository.delete(category);
     }
 }

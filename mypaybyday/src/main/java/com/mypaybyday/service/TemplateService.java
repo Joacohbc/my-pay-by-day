@@ -2,8 +2,8 @@ package com.mypaybyday.service;
 
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TemplateDto;
-import com.mypaybyday.entity.Tag;
-import com.mypaybyday.entity.Template;
+import com.mypaybyday.entity.TagEntity;
+import com.mypaybyday.entity.TemplateEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
@@ -59,11 +59,11 @@ public class TemplateService {
     }
 
     /**
-     * Internal method used by other services that need a managed {@link Template} entity
+     * Internal method used by other services that need a managed {@link TemplateEntity} entity
      * (e.g. {@link SubscriptionService} when resolving a template reference).
      */
-    Template findEntityById(Long id) throws BusinessException {
-        Template template = templateRepository.findById(id);
+    TemplateEntity findEntityById(Long id) throws BusinessException {
+        TemplateEntity template = templateRepository.findById(id);
         if (template == null) {
             throw new BusinessException(messages.get(MsgKey.TEMPLATE_NOT_FOUND, id));
         }
@@ -83,7 +83,7 @@ public class TemplateService {
             (dto.modifierType() == null && dto.modifierValue() != null)) {
             throw new BusinessException(messages.get(MsgKey.TEMPLATE_MODIFIER_VALIDATION));
         }
-        Template template = new Template();
+        TemplateEntity template = new TemplateEntity();
         applyDto(template, dto);
         templateRepository.persist(template);
         return TemplateDto.from(template);
@@ -91,7 +91,7 @@ public class TemplateService {
 
     @Transactional
     public TemplateDto update(Long id, TemplateDto dto) throws BusinessException {
-        Template template = findEntityById(id);
+        TemplateEntity template = findEntityById(id);
         if (dto.name() == null || dto.name().isBlank()) {
             throw new BusinessException(messages.get(MsgKey.TEMPLATE_NAME_REQUIRED));
         }
@@ -105,7 +105,7 @@ public class TemplateService {
 
     @Transactional
     public void delete(Long id) throws BusinessException {
-        Template template = findEntityById(id);
+        TemplateEntity template = findEntityById(id);
         long usageCount = subscriptionRepository.count("template.id", id);
         if (usageCount > 0) {
             throw new BusinessException(messages.get(MsgKey.TEMPLATE_IN_USE, usageCount));
@@ -117,7 +117,7 @@ public class TemplateService {
     // Internal helpers
     // -------------------------------------------------------------------------
 
-    private void applyDto(Template template, TemplateDto dto) throws BusinessException {
+    private void applyDto(TemplateEntity template, TemplateDto dto) throws BusinessException {
         template.name = dto.name();
         template.description = dto.description();
         template.eventType = dto.eventType();
@@ -136,7 +136,7 @@ public class TemplateService {
                 ? categoryService.findEntityById(dto.category().id())
                 : null;
 
-        List<Tag> tags = new ArrayList<>();
+        List<TagEntity> tags = new ArrayList<>();
         if (dto.tags() != null) {
             for (var tagDto : dto.tags()) {
                 tags.add(tagService.findTagEntity(tagDto.id()));

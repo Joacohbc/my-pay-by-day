@@ -1,6 +1,6 @@
 package com.mypaybyday.dto;
 
-import com.mypaybyday.entity.TimePeriod;
+import com.mypaybyday.entity.TimePeriodEntity;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -16,7 +16,7 @@ public record TimePeriodDto(
         BigDecimal savingsPercentageGoal,
         BigDecimal budgetLimit
 ) {
-    public static TimePeriodDto from(TimePeriod tp) {
+    public static TimePeriodDto from(TimePeriodEntity tp) {
         return new TimePeriodDto(
                 tp.id,
                 tp.name,
@@ -29,11 +29,11 @@ public record TimePeriodDto(
     }
 
     /**
-     * Converts this DTO to a {@link TimePeriod} entity with scalar fields populated.
+     * Converts this DTO to a {@link TimePeriodEntity} entity with scalar fields populated.
      * The budgets association is left empty and should be handled by the service layer.
      */
-    public TimePeriod to() {
-        TimePeriod tp = new TimePeriod();
+    public TimePeriodEntity to() {
+        TimePeriodEntity tp = new TimePeriodEntity();
         tp.id = this.id;
         tp.name = this.name;
         tp.startDate = this.startDate;

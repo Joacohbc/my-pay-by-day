@@ -7,10 +7,10 @@ import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TimePeriodBalanceDto;
 import com.mypaybyday.dto.TimePeriodBudgetDto;
 import com.mypaybyday.dto.TimePeriodDto;
-import com.mypaybyday.entity.Category;
-import com.mypaybyday.entity.FinanceEvent;
-import com.mypaybyday.entity.TimePeriod;
-import com.mypaybyday.entity.TimePeriodBudget;
+import com.mypaybyday.entity.CategoryEntity;
+import com.mypaybyday.entity.FinanceEventEntity;
+import com.mypaybyday.entity.TimePeriodEntity;
+import com.mypaybyday.entity.TimePeriodBudgetEntity;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
@@ -69,7 +69,7 @@ public class TimePeriodService {
     /**
      * Returns a balance summary for the given time period.
      *
-     * <p>Events are associated dynamically: any {@link FinanceEvent} whose transaction date
+     * <p>Events are associated dynamically: any {@link FinanceEventEntity} whose transaction date
      * falls within [{@code startDate}, {@code endDate}] (both endpoints inclusive) is included.
      *
      * <p>Income is the sum of positive line-item amounts across all {@code INBOUND} events;
@@ -81,7 +81,7 @@ public class TimePeriodService {
      */
     @Transactional
     public TimePeriodBalanceDto getBalance(Long id) throws BusinessException {
-        TimePeriod timePeriod = findTimePeriodEntity(id);
+        TimePeriodEntity timePeriod = findTimePeriodEntity(id);
 
         LocalDateTime from = timePeriod.startDate.atStartOfDay();
         LocalDateTime to   = timePeriod.endDate.atTime(LocalTime.MAX);
@@ -115,7 +115,7 @@ public class TimePeriodService {
         return new TimePeriodBalanceDto(timePeriod, income, outbound, categoryBudgets, events);
     }
 
-    private List<CategoryBudgetSummaryDto> calculateCategoryBudgets(List<TimePeriodBudget> budgets, List<FinanceEventDto> events) {
+    private List<CategoryBudgetSummaryDto> calculateCategoryBudgets(List<TimePeriodBudgetEntity> budgets, List<FinanceEventDto> events) {
         if (budgets == null || budgets.isEmpty()) {
             return List.of();
         }
@@ -188,12 +188,12 @@ public class TimePeriodService {
 
     @Transactional
     public TimePeriodDto create(TimePeriodDto dto) throws BusinessException {
-        TimePeriod timePeriod = dto.to();
+        TimePeriodEntity timePeriod = dto.to();
         if (dto.budgets() != null) {
             for (TimePeriodBudgetDto budgetDto : dto.budgets()) {
                 if (budgetDto.category() != null && budgetDto.category().id() != null) {
-                    Category category = categoryService.findEntityById(budgetDto.category().id());
-                    TimePeriodBudget budget = new TimePeriodBudget();
+                    CategoryEntity category = categoryService.findEntityById(budgetDto.category().id());
+                    TimePeriodBudgetEntity budget = new TimePeriodBudgetEntity();
                     budget.timePeriod = timePeriod;
                     budget.category = category;
                     budget.budgetedAmount = budgetDto.budgetedAmount() != null ? budgetDto.budgetedAmount() : BigDecimal.ZERO;
@@ -208,7 +208,7 @@ public class TimePeriodService {
 
     @Transactional
     public TimePeriodDto patch(Long id, TimePeriodDto dto) throws BusinessException {
-        TimePeriod timePeriod = findTimePeriodEntity(id);
+        TimePeriodEntity timePeriod = findTimePeriodEntity(id);
 
         if (dto.name() != null) {
             if (dto.name().isBlank()) {
@@ -229,8 +229,8 @@ public class TimePeriodService {
             timePeriod.budgets.clear();
             for (TimePeriodBudgetDto budgetDto : dto.budgets()) {
                 if (budgetDto.category() != null && budgetDto.category().id() != null) {
-                    Category category = categoryService.findEntityById(budgetDto.category().id());
-                    TimePeriodBudget budget = new TimePeriodBudget();
+                    CategoryEntity category = categoryService.findEntityById(budgetDto.category().id());
+                    TimePeriodBudgetEntity budget = new TimePeriodBudgetEntity();
                     budget.timePeriod = timePeriod;
                     budget.category = category;
                     budget.budgetedAmount = budgetDto.budgetedAmount() != null ? budgetDto.budgetedAmount() : BigDecimal.ZERO;
@@ -256,7 +256,7 @@ public class TimePeriodService {
 
     @Transactional
     public void delete(Long id) throws BusinessException {
-        TimePeriod timePeriod = findTimePeriodEntity(id);
+        TimePeriodEntity timePeriod = findTimePeriodEntity(id);
         timePeriodRepository.delete(timePeriod);
     }
 
@@ -264,15 +264,15 @@ public class TimePeriodService {
     // Internal helpers
     // -------------------------------------------------------------------------
 
-    private TimePeriod findTimePeriodEntity(Long id) throws BusinessException {
-        TimePeriod timePeriod = timePeriodRepository.findById(id);
+    private TimePeriodEntity findTimePeriodEntity(Long id) throws BusinessException {
+        TimePeriodEntity timePeriod = timePeriodRepository.findById(id);
         if (timePeriod == null) {
             throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NOT_FOUND, id));
         }
         return timePeriod;
     }
 
-    private void validatePeriod(TimePeriod tp) throws BusinessException {
+    private void validatePeriod(TimePeriodEntity tp) throws BusinessException {
         if (tp.name == null || tp.name.isBlank()) {
             throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NAME_REQUIRED));
         }

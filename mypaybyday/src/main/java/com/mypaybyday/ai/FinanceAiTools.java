@@ -1,9 +1,9 @@
 package com.mypaybyday.ai;
 
-import com.mypaybyday.entity.Category;
-import com.mypaybyday.entity.FinanceNode;
-import com.mypaybyday.entity.Tag;
-import com.mypaybyday.entity.TimePeriod;
+import com.mypaybyday.entity.CategoryEntity;
+import com.mypaybyday.entity.FinanceNodeEntity;
+import com.mypaybyday.entity.TagEntity;
+import com.mypaybyday.entity.TimePeriodEntity;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.FinanceNodeRepository;
@@ -67,7 +67,7 @@ public class FinanceAiTools {
             "Use this tool when the user asks about nodes, accounts, wallets, or when you need to map a node name to its ID.")
     @Transactional
     public String getFinanceNodes() {
-        List<FinanceNode> nodes = financeNodeRepository.find("archived", false).list();
+        List<FinanceNodeEntity> nodes = financeNodeRepository.find("archived", false).list();
         if (nodes.isEmpty()) {
             return "No finance nodes found.";
         }
@@ -80,7 +80,7 @@ public class FinanceAiTools {
             "Use this tool when the user asks about categories or when you need to map a category name to its ID.")
     @Transactional
     public String getCategories() {
-        List<Category> categories = categoryRepository.listAll();
+        List<CategoryEntity> categories = categoryRepository.listAll();
         if (categories.isEmpty()) {
             return "No categories found.";
         }
@@ -93,7 +93,7 @@ public class FinanceAiTools {
             "Use this tool when the user asks about tags or when you need to resolve tag names to IDs.")
     @Transactional
     public String getTags() {
-        List<Tag> tags = tagRepository.listAll();
+        List<TagEntity> tags = tagRepository.listAll();
         if (tags.isEmpty()) {
             return "No tags found.";
         }
@@ -174,7 +174,7 @@ public class FinanceAiTools {
             "Use this tool when the user asks about budgets, spending limits, or savings goals for a period.")
     @Transactional
     public String getTimePeriods() {
-        List<TimePeriod> periods = timePeriodRepository.listAll();
+        List<TimePeriodEntity> periods = timePeriodRepository.listAll();
         
         if (periods.isEmpty()) {
             return "No time periods found.";
