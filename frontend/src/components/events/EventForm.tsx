@@ -201,28 +201,32 @@ export function EventForm({
   const [savingDraft, setSavingDraft] = useState(false);
   const [deletingDraft, setDeletingDraft] = useState(false);
   
-  const handleSaveDraft = async () => {
+  const saveDraftCore = async () => {
     if (!onSaveDraft) return;
+    const values = getValues();
+    const draftDto = toDraftDto(values, t);
+    const resultId = await onSaveDraft(draftDto);
+    if (typeof resultId === 'number') {
+      setValue('draftId', resultId);
+      setValue('isDraft', true);
+    }
+  };
+
+  const handleSaveDraft = async () => {
     setSavingDraft(true);
     try {
-      const values = getValues();
-      const draftDto = toDraftDto(values, t);
-      
-      const resultId = await onSaveDraft(draftDto);
-      if (typeof resultId === 'number') {
-        setValue('draftId', resultId);
-        setValue('isDraft', true);
-      }
+      await saveDraftCore();
     } finally {
       setSavingDraft(false);
     }
   };
-  
+
   const hasUserInteracted = useRef(false);
 
   // The user may close the browser or navigate away mid-form. Every change is automatically
   // persisted as a draft so they can resume exactly where they left off.
-  const debouncedSaveDraft = useDebounceCallback(handleSaveDraft, 1000);
+  // Uses saveDraftCore (no loading state) to avoid flashing buttons on auto-save.
+  const debouncedSaveDraft = useDebounceCallback(saveDraftCore, 1000);
   useEffect(() => {
     if (!onSaveDraft) return;
 

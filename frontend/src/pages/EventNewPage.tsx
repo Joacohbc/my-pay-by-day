@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Icon } from '@/components/ui/Icon';
+import { DraftBadge } from '@/components/ui/DraftBadge';
 import { useCreateEvent } from '@/hooks/useEvents';
 import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft } from '@/hooks/useDrafts';
 import type { CreateEventDto, PatchEventDto, Template, FinanceEvent, FinanceLineItem } from '@/models';
@@ -75,14 +75,7 @@ export function EventNewPage() {
     <div className="space-y-4">
       <PageHeader title={t('events.newEventTitle')} back />
       
-      {draft && (
-        <div className="fixed top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-dn-text-muted bg-dn-surface/80 backdrop-blur-md border border-white/5 shadow-sm px-3 py-1 rounded-pill whitespace-nowrap">
-            <Icon name="edit_document" className="text-[14px]" />
-            {t('drafts.editingDraft')}
-          </span>
-        </div>
-      )}
+      {draft && <DraftBadge saving={createDraft.isPending || updateDraft.isPending} />}
 
       {template && (
         <div className="px-5">
@@ -101,7 +94,7 @@ export function EventNewPage() {
           onSaveDraft={handleSaveDraft}
           onDeleteDraft={handleDeleteDraft}
           submitLabel={t('events.createEvent')}
-          loading={createEvent.isPending || createDraft.isPending || updateDraft.isPending || deleteDraft.isPending}
+          loading={createEvent.isPending || deleteDraft.isPending}
         />
       </div>
     </div>

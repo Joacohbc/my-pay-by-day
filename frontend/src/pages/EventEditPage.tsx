@@ -3,7 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { FullPageSpinner } from '@/components/ui/Spinner';
-import { Icon } from '@/components/ui/Icon';
+import { DraftBadge } from '@/components/ui/DraftBadge';
 import { useEvent, useUpdateEvent } from '@/hooks/useEvents';
 import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft, useFinanceEventDraftByEntityId } from '@/hooks/useDrafts';
 import type { CreateEventDto, PatchEventDto, FinanceEvent } from '@/models';
@@ -59,14 +59,7 @@ export function EventEditPage() {
   return (
     <div className="space-y-4">
       <PageHeader title={t('events.editEvent')} back />
-      {draft && (
-        <div className="fixed top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-dn-text-muted bg-dn-surface/80 backdrop-blur-md border border-white/5 shadow-sm px-3 py-1 rounded-pill whitespace-nowrap">
-            <Icon name="edit_document" className="text-[14px]" />
-            {t('drafts.editingDraft')}
-          </span>
-        </div>
-      )}
+      {draft && <DraftBadge saving={createDraft.isPending || updateDraft.isPending} />}
       <div className="px-5 pb-6">
         <EventForm
           mode="edit"
@@ -77,7 +70,7 @@ export function EventEditPage() {
           onSaveDraft={handleSaveDraft}
           onDeleteDraft={handleDeleteDraft}
           submitLabel={t('events.updateEvent')}
-          loading={updateEvent.isPending || createDraft.isPending || updateDraft.isPending || deleteDraft.isPending}
+          loading={updateEvent.isPending || deleteDraft.isPending}
         />
       </div>
     </div>
