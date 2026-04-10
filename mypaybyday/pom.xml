@@ -167,6 +167,26 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>net.revelc.code.formatter</groupId>
+                <artifactId>formatter-maven-plugin</artifactId>
+                <version>2.24.1</version>
+                <configuration>
+                    <configFile>${project.basedir}/formatter.xml</configFile>
+                    <removeTrailingWhitespace>true</removeTrailingWhitespace>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>net.revelc.code</groupId>
+                <artifactId>impsort-maven-plugin</artifactId>
+                <version>1.12.0</version>
+                <configuration>
+                    <groups>java.,javax.,jakarta.,*</groups>
+                    <staticGroups>java.,javax.,jakarta.,*</staticGroups>
+                    <removeUnused>true</removeUnused>
+                    <staticAfter>true</staticAfter>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
