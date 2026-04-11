@@ -47,8 +47,6 @@ public enum MsgKey {
 	TIME_PERIOD_NAME_REQUIRED("error.time_period.name_required"),
 	TIME_PERIOD_START_DATE_REQUIRED("error.time_period.start_date_required"),
 	TIME_PERIOD_END_DATE_REQUIRED("error.time_period.end_date_required"),
-	TIME_PERIOD_END_BEFORE_START("error.time_period.end_before_start"),
-	TIME_PERIOD_SAVINGS_GOAL_RANGE("error.time_period.savings_goal_range"),
 	TIME_PERIOD_BUDGET_LIMIT_MINIMUM("error.time_period.budget_limit_minimum"),
 
 	// ── Transaction ───────────────────────────────────────
@@ -57,7 +55,6 @@ public enum MsgKey {
 	TRANSACTION_LINE_ITEM_AMOUNT_NULL("error.transaction.line_item_amount_null"),
 	TRANSACTION_ZERO_SUM_VIOLATED("error.transaction.zero_sum_violated"),
 	TRANSACTION_LINE_ITEM_NODES_NOT_FOUND("error.transaction.line_item_nodes_not_found"),
-	TRANSACTION_DATE_IN_FUTURE("error.transaction.date_in_future"),
 
 	// ── SubscriptionEntity ─────────────────────────────────────
 	SUBSCRIPTION_NOT_FOUND("error.subscription.not_found"),
