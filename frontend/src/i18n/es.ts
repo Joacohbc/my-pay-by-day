@@ -120,7 +120,6 @@ const es = {
     confirmRemoveRelation: '¿Eliminar la relación con este evento?',
     category: 'Categoría',
     date: 'Fecha',
-    receipt: 'Recibo',
     lineItems: 'Partidas',
     noLineItems: 'Sin partidas',
     editEvent: 'Editar Evento',

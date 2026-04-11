@@ -7,6 +7,7 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
+import com.mypaybyday.validation.DateValidator;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -28,6 +29,9 @@ public class TransactionValidator {
 
 	@Inject
 	Messages messages;
+
+	@Inject
+	DateValidator dateValidator;
 
 	/**
 	* Validates the Zero-Sum Rule: the algebraic sum of all line-item amounts must equal 0.
@@ -85,8 +89,6 @@ public class TransactionValidator {
 	* @throws BusinessException if the transaction date is in the future
 	*/
 	public void validateDateNotInFuture(FinanceTransactionEntity transaction) throws BusinessException {
-		if (transaction.transactionDate != null && transaction.transactionDate.isAfter(LocalDateTime.now())) {
-			throw new BusinessException(messages.get(MsgKey.TRANSACTION_DATE_IN_FUTURE));
-		}
+		dateValidator.validateNotFuture(transaction.transactionDate);
 	}
 }

@@ -11,9 +11,16 @@ public class EventValidator {
     @Inject
     RegexValidator regexValidator;
 
+    @Inject
+    DateValidator dateValidator;
+
     public void validate(FinanceEventEntity event) throws BusinessException {
         if (event == null) return;
         regexValidator.validateName(event.name);
         regexValidator.validateDescription(event.description);
+
+        if (event.transaction != null) {
+            dateValidator.validateNotFuture(event.transaction.transactionDate);
+        }
     }
 }

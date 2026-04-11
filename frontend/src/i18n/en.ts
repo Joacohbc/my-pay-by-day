@@ -120,7 +120,6 @@ const en = {
     confirmRemoveRelation: 'Remove relation with this event?',
     category: 'Category',
     date: 'Date',
-    receipt: 'Receipt',
     lineItems: 'Line Items',
     noLineItems: 'No line items',
     editEvent: 'Edit Event',

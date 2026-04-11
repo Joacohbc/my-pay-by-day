@@ -17,6 +17,7 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TimePeriodRepository;
 import com.mypaybyday.validation.TimePeriodValidator;
+import com.mypaybyday.validation.DateValidator;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -49,6 +50,9 @@ public class TimePeriodService {
 
 	@Inject
 	TimePeriodValidator timePeriodValidator;
+
+	@Inject
+	DateValidator dateValidator;
 
 	// -------------------------------------------------------------------------
 	// Queries
@@ -154,9 +158,7 @@ public class TimePeriodService {
 		if (startDate == null || endDate == null) {
 			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_START_DATE_REQUIRED)); // or appropriate generic date message
 		}
-		if (endDate.isBefore(startDate)) {
-			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
-		}
+		dateValidator.validateDateRange(startDate, endDate);
 
 		LocalDateTime from = startDate.atStartOfDay();
 		LocalDateTime to = endDate.atTime(LocalTime.MAX);
@@ -226,9 +228,6 @@ public class TimePeriodService {
 		if (dto.endDate() != null) {
 			timePeriod.endDate = dto.endDate();
 		}
-		if (timePeriod.endDate.isBefore(timePeriod.startDate)) {
-			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
-		}
 		if (dto.budgets() != null) {
 			timePeriod.budgets.clear();
 			for (TimePeriodBudgetDto budgetDto : dto.budgets()) {
@@ -243,10 +242,6 @@ public class TimePeriodService {
 			}
 		}
 		if (dto.savingsPercentageGoal() != null) {
-			if (dto.savingsPercentageGoal().compareTo(BigDecimal.ZERO) < 0
-					|| dto.savingsPercentageGoal().compareTo(new BigDecimal("100")) > 0) {
-				throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_SAVINGS_GOAL_RANGE));
-			}
 			timePeriod.savingsPercentageGoal = dto.savingsPercentageGoal();
 		}
 		if (dto.budgetLimit() != null) {
@@ -288,14 +283,6 @@ public class TimePeriodService {
 		}
 		if (tp.endDate == null) {
 			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_DATE_REQUIRED));
-		}
-		if (tp.endDate.isBefore(tp.startDate)) {
-			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
-		}
-		if (tp.savingsPercentageGoal != null
-				&& (tp.savingsPercentageGoal.compareTo(BigDecimal.ZERO) < 0
-					|| tp.savingsPercentageGoal.compareTo(new BigDecimal("100")) > 0)) {
-				throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_SAVINGS_GOAL_RANGE));
 		}
 
 		BigDecimal sumOfCategoryBudgets = tp.budgets.stream()

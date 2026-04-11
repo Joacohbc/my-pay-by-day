@@ -79,7 +79,13 @@ public enum MsgKey {
 	VALIDATION_ICON_INVALID_CHARS("error.validation.icon_invalid_chars"),
 	VALIDATION_NAME_MAX_LENGTH("error.validation.name_max_length"),
 	VALIDATION_DESCRIPTION_MAX_LENGTH("error.validation.description_max_length"),
-	VALIDATION_ICON_MAX_LENGTH("error.validation.icon_max_length");
+	VALIDATION_ICON_MAX_LENGTH("error.validation.icon_max_length"),
+	VALIDATION_DATE_RANGE_INVALID("error.validation.date_range_invalid"),
+	VALIDATION_DATE_IN_FUTURE("error.validation.date_in_future"),
+	VALIDATION_DATE_IN_PAST("error.validation.date_in_past"),
+	VALIDATION_NUMBER_POSITIVE("error.validation.number_positive"),
+	VALIDATION_NUMBER_NON_NEGATIVE("error.validation.number_non_negative"),
+	VALIDATION_NUMBER_RANGE("error.validation.number_range");
 
 	/** The property key used to look up this message in the resource bundle. */
 	public final String key;
