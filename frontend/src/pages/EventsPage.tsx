@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { Routes } from '@/lib/routes';
 import { useEvents } from '@/hooks/useEvents';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
@@ -106,9 +107,9 @@ export function EventsPage() {
   const handlePickTemplate = (template: Template | null) => {
     setShowPicker(false);
     if (template) {
-      navigate('/events/new', { state: { template } });
+      navigate(Routes.EVENT_NEW, { state: { template } });
     } else {
-      navigate('/events/new');
+      navigate(Routes.EVENT_NEW);
     }
   };
 
