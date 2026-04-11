@@ -23,7 +23,8 @@ import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { formatCurrencyShort, eventNetAmount } from '@/lib/format';
-import type { DateField } from '@/services/events.service';
+import { eventsService, type DateField } from '@/services/events.service';
+import { draftsService } from '@/services/drafts.service';
 
 type FilterType = 'ALL' | EventType | 'DRAFT';
 
@@ -129,8 +130,6 @@ export function EventsPage() {
     if (!filteredDrafts.length || isConfirming) return;
     setIsConfirming(true);
     try {
-      const { eventsService } = await import('@/services/events.service');
-      const { draftsService } = await import('@/services/drafts.service');
       // Process drafts sequentially to avoid overwhelming the backend
       for (const draft of filteredDrafts) {
         if (!draft.id || !draft.draftId) continue;
