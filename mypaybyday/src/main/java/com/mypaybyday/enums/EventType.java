@@ -1,7 +1,7 @@
 package com.mypaybyday.enums;
 
 /**
- * Classifies the directional nature of an {@link com.mypaybyday.entity.FinanceEvent}.
+ * Classifies the directional nature of an {@link com.mypaybyday.entity.FinanceEventEntity}.
  *
  * <ul>
  *   <li>{@link #INBOUND} — money flowing into an own account (e.g., salary, refund).</li>
@@ -10,7 +10,7 @@ package com.mypaybyday.enums;
  * </ul>
  */
 public enum EventType {
-    INBOUND,
-    OUTBOUND,
-    OTHER
+	INBOUND,
+	OUTBOUND,
+	OTHER
 }

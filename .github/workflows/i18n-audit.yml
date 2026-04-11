@@ -1,0 +1,52 @@
+name: i18n Audit
+
+on:
+  push:
+    paths:
+      - 'frontend/src/i18n/**'
+      - 'frontend/src/**/*.ts'
+      - 'frontend/src/**/*.tsx'
+      - 'frontend/scripts/i18n-audit.mjs'
+      - 'mypaybyday/src/main/resources/i18n/**'
+      - 'mypaybyday/src/main/java/com/mypaybyday/i18n/**'
+      - 'mypaybyday/src/main/java/com/mypaybyday/**'
+      - 'mypaybyday/scripts/i18n-audit.mjs'
+  pull_request:
+    paths:
+      - 'frontend/src/i18n/**'
+      - 'frontend/src/**/*.ts'
+      - 'frontend/src/**/*.tsx'
+      - 'frontend/scripts/i18n-audit.mjs'
+      - 'mypaybyday/src/main/resources/i18n/**'
+      - 'mypaybyday/src/main/java/com/mypaybyday/i18n/**'
+      - 'mypaybyday/src/main/java/com/mypaybyday/**'
+      - 'mypaybyday/scripts/i18n-audit.mjs'
+
+jobs:
+  frontend:
+    name: Frontend i18n
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Audit frontend translations
+        working-directory: frontend
+        run: node scripts/i18n-audit.mjs --ci --summary
+
+  backend:
+    name: Backend i18n
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Audit backend translations
+        working-directory: mypaybyday
+        run: node scripts/i18n-audit.mjs --ci --summary

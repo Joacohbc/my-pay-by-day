@@ -17,31 +17,30 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity
+@Entity(name = "TimePeriod")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table
-public class TimePeriod extends BaseEntity {
+@Table(name = "TimePeriod")
+public class TimePeriodEntity extends BaseEntity {
 
-    @NotBlank
-    public String name;
+	@NotBlank
+	public String name;
 
-    @NotNull
-    public LocalDate startDate;
+	@NotNull
+	public LocalDate startDate;
 
-    @NotNull
-    public LocalDate endDate;
+	@NotNull
+	public LocalDate endDate;
 
-    @OneToMany(mappedBy = "timePeriod", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @Builder.Default
-    public List<TimePeriodBudget> budgets = new ArrayList<>();
+	@OneToMany(mappedBy = "timePeriod", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+	@Builder.Default
+	public List<TimePeriodBudgetEntity> budgets = new ArrayList<>();
 
-    public BigDecimal savingsPercentageGoal;
+	public BigDecimal savingsPercentageGoal;
 
-    public BigDecimal budgetLimit;
+	public BigDecimal budgetLimit;
 
 }
-

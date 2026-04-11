@@ -17,16 +17,16 @@ import java.util.Set;
 @Provider
 public class LangFilter implements ContainerRequestFilter {
 
-    private static final Set<String> SUPPORTED = Set.of("en", "es");
+	private static final Set<String> SUPPORTED = Set.of("en", "es");
 
-    @Inject
-    LanguageContext languageContext;
+	@Inject
+	LanguageContext languageContext;
 
-    @Override
-    public void filter(ContainerRequestContext requestContext) {
-        String lang = requestContext.getUriInfo().getQueryParameters().getFirst("lang");
-        if (lang != null && SUPPORTED.contains(lang.toLowerCase())) {
-            languageContext.setLang(lang.toLowerCase());
-        }
-    }
+	@Override
+	public void filter(ContainerRequestContext requestContext) {
+		String lang = requestContext.getUriInfo().getQueryParameters().getFirst("lang");
+		if (lang != null && SUPPORTED.contains(lang.toLowerCase())) {
+			languageContext.setLang(lang.toLowerCase());
+		}
+	}
 }

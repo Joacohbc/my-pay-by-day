@@ -1,80 +1,53 @@
-# mypaybyday
+# mypaybyday (Backend)
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+Backend del proyecto, construido con [Quarkus](https://quarkus.io/) (Java 17).
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+## Correr en modo desarrollo
 
-## Running the application in dev mode
-
-You can run your application in dev mode that enables live coding using:
-
-```shell script
+```bash
 ./mvnw quarkus:dev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+Dev UI disponible en: http://localhost:8080/q/dev/
 
-## Packaging and running the application
+## Empaquetar
 
-The application can be packaged using:
-
-```shell script
+```bash
 ./mvnw package
+java -jar target/quarkus-app/quarkus-run.jar
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+## Formateo
 
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
+Las reglas de formato estan definidas en [FORMATTER.md](FORMATTER.md). A continuacion un resumen de como aplicarlas:
 
-If you want to build an _über-jar_, execute the following command:
+### EditorConfig (automatico)
 
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
+El `.editorconfig` aplica indentacion y trailing whitespace automaticamente en el IDE. Para aplicarlo masivamente:
+
+```bash
+npx editorconfig-checker   # validar
+npx eclint fix              # corregir
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+### Import sorting (automatico)
 
-## Creating a native executable
-
-You can create a native executable using:
-
-```shell script
-./mvnw package -Dnative
+```bash
+./mvnw impsort:sort    # ordenar imports
+./mvnw impsort:check   # solo validar
 ```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
+### Reglas manuales de Java
 
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
-```
+Estas reglas se aplican manualmente al escribir codigo. Ver [FORMATTER.md](FORMATTER.md) para ejemplos detallados:
 
-You can then execute your native executable with: `./target/mypaybyday-1.0.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
-
-## Related Guides
-
-- REST ([guide](https://quarkus.io/guides/rest)): A Jakarta REST implementation utilizing build time processing and Vert.x. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it.
-- Hibernate Validator ([guide](https://quarkus.io/guides/validation)): Validate object properties (field, getter) and method parameters for your beans (REST, CDI, Jakarta Persistence)
-- REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
-- Hibernate ORM with Panache ([guide](https://quarkus.io/guides/hibernate-orm-panache)): Simplify your persistence code for Hibernate ORM via the active record or the repository pattern
-- LangChain4j Ollama ([guide](https://docs.quarkiverse.io/quarkus-langchain4j/dev/guide-ollama.html)): Provides the basic integration of Ollama with LangChain4j
-
-## Provided Code
-
-### Hibernate ORM
-
-Create your first JPA entity
-
-[Related guide section...](https://quarkus.io/guides/hibernate-orm)
-
-
-[Related Hibernate with Panache section...](https://quarkus.io/guides/hibernate-orm-panache)
-
-
-### REST
-
-Easily start your REST Web Services
-
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+1. Llaves K&R (misma linea)
+2. Sin limite de ancho de linea
+3. Espacio despues de coma y antes de parentesis en control de flujo
+4. Dos lineas en blanco entre metodos
+5. Linea en blanco despues de la llave de apertura de clase
+6. Sin linea en blanco antes de `return`
+7. Sin llaves en `if`/`for`/`while` de una sola linea
+8. Cada anotacion en su propia linea
+9. Method chaining: cada llamada en su propia linea
+10. Javadoc: `@throws`/`@param` en la misma linea que su descripcion

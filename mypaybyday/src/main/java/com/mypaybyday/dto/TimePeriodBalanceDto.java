@@ -3,11 +3,11 @@ package com.mypaybyday.dto;
 import java.math.BigDecimal;
 import java.util.List;
 
-import com.mypaybyday.entity.TimePeriod;
+import com.mypaybyday.entity.TimePeriodEntity;
 
 /**
  * Read-only projection returned by the "get balance" operation on a
- * {@link com.mypaybyday.entity.TimePeriod}.
+ * {@link com.mypaybyday.entity.TimePeriodEntity}.
  *
  * <ul>
  * <li>{@code timePeriod} — the budget container itself.</li>
@@ -28,7 +28,7 @@ public record TimePeriodBalanceDto(
 		List<CategoryBudgetSummaryDto> categoryBudgets,
 		List<FinanceEventDto> events) {
 
-	public TimePeriodBalanceDto(TimePeriod tp, BigDecimal income, BigDecimal outbound,
+	public TimePeriodBalanceDto(TimePeriodEntity tp, BigDecimal income, BigDecimal outbound,
 			List<CategoryBudgetSummaryDto> categoryBudgets,
 			List<FinanceEventDto> events) {
 		this(TimePeriodDto.from(tp), income, outbound, categoryBudgets, events);

@@ -33,7 +33,6 @@ const en = {
     filters: 'Filters',
     category: 'Category',
     tag: 'Tag',
-    confirmDelete: 'Delete this {{item}}?',
     confirmDeleteNamed: 'Delete "{{name}}"?',
     nameRequired: 'Name is required',
     loading: 'Loading…',
@@ -63,21 +62,14 @@ const en = {
   // ─── Chat ────────────────────────────────────────────────────────────────
   chat: {
     title: 'Finance Assistant',
-    placeholder: 'Ask me about your finances...',
     placeholderAgent: 'Describe a transaction or upload a receipt...',
     newChat: 'New Chat',
     emptyState: 'Ask me anything about your categories or periods!',
     imageHint: 'You can also upload receipt or invoice images to create events automatically.',
-    send: 'Send',
-    loading: 'Thinking...',
     error: 'Failed to send message. Please try again.',
     uploadImage: 'Upload receipt image',
     imageUploaded: 'Image uploaded',
     processingImage: 'Analyzing image...',
-    modeQuery: 'Query',
-    modeAgent: 'Agent',
-    modeQueryHint: 'Read-only: ask questions about your finances',
-    modeAgentHint: 'Create events and drafts from text or images',
     clearMemory: 'Clear Memory',
     confirmClearMemory: 'Are you sure you want to clear the AI\'s memory? The conversation history will be lost.',
     user: 'You',
@@ -276,8 +268,6 @@ const en = {
     modifierValue: 'Modifier Value',
     percentage: 'Percentage',
     fixed: 'Fixed Amount',
-    percentageModifier: '{{value}}% modifier',
-    fixedModifier: '+${{value}} fixed',
   },
 
   // ─── Subscriptions ──────────────────────────────────────────────────────
@@ -309,8 +299,6 @@ const en = {
     amountToPay: 'Amount to Pay',
     frequency: 'Frequency',
     nextPayment: 'Next Payment',
-    destination: 'Destination',
-    paymentMethod: 'Payment Method',
   },
 
   // ─── Time Periods ───────────────────────────────────────────────────────
@@ -394,7 +382,6 @@ const en = {
     orphan: 'Orphan',
     orphanHint: 'Not linked to any event',
     orphanSummary: '{{count}} orphan file(s) — click to review',
-    associatedEvents: 'Associated events',
     noAssociatedEvents: 'No events',
     deleteConfirm: 'Permanently delete this file?',
     all: 'All',
@@ -437,7 +424,6 @@ const en = {
     discard: 'Discard',
     discardAll: 'Discard all',
     savedLocally: 'Not sent',
-    queuedFeedback: 'Saved offline — confirm sync when you reconnect',
     noConnectionToSend: 'No connection — reconnect to send',
   },
 
@@ -462,7 +448,6 @@ const en = {
 
   // ─── Errors ──────────────────────────────────────────────────────────────
   errors: {
-    somethingWentWrong: 'Something went wrong',
     eventNotFound: 'Event not found',
     couldNotLoadPeriod: 'Could not load period data',
   },

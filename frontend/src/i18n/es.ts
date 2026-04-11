@@ -33,7 +33,6 @@ const es = {
     filters: 'Filtros',
     category: 'Categoría',
     tag: 'Etiqueta',
-    confirmDelete: '¿Eliminar este {{item}}?',
     confirmDeleteNamed: '¿Eliminar "{{name}}"?',
     nameRequired: 'El nombre es requerido',
     loading: 'Cargando…',
@@ -63,21 +62,14 @@ const es = {
   // ─── Chat ────────────────────────────────────────────────────────────────
   chat: {
     title: 'Asistente Financiero',
-    placeholder: 'Pregúntame sobre tus finanzas...',
     placeholderAgent: 'Describe una transacción o sube un recibo...',
     newChat: 'Nuevo Chat',
     emptyState: '¡Pregúntame cualquier cosa sobre tus categorías o períodos!',
     imageHint: 'También puedes subir imágenes de recibos o facturas para crear eventos automáticamente.',
-    send: 'Enviar',
-    loading: 'Pensando...',
     error: 'Error al enviar el mensaje. Por favor, inténtalo de nuevo.',
     uploadImage: 'Subir imagen de recibo',
     imageUploaded: 'Imagen subida',
     processingImage: 'Analizando imagen...',
-    modeQuery: 'Consulta',
-    modeAgent: 'Agente',
-    modeQueryHint: 'Solo lectura: pregunta sobre tus finanzas',
-    modeAgentHint: 'Crea eventos y borradores desde texto o imágenes',
     clearMemory: 'Borrar Memoria',
     confirmClearMemory: '¿Estás seguro de que deseas borrar la memoria del IA? El historial de la conversación se perderá.',
     user: 'Tú',
@@ -276,8 +268,6 @@ const es = {
     modifierValue: 'Valor del Modificador',
     percentage: 'Porcentaje',
     fixed: 'Monto Fijo',
-    percentageModifier: '{{value}}% modificador',
-    fixedModifier: '+${{value}} fijo',
   },
 
   // ─── Subscriptions ──────────────────────────────────────────────────────
@@ -309,8 +299,6 @@ const es = {
     amountToPay: 'Monto a Pagar',
     frequency: 'Frecuencia',
     nextPayment: 'Próximo Pago',
-    destination: 'Destino',
-    paymentMethod: 'Método de Pago',
   },
 
   // ─── Time Periods ───────────────────────────────────────────────────────
@@ -394,7 +382,6 @@ const es = {
     orphan: 'Huérfano',
     orphanHint: 'No está vinculado a ningún evento',
     orphanSummary: '{{count}} archivo(s) huérfano(s) — clic para revisar',
-    associatedEvents: 'Eventos asociados',
     noAssociatedEvents: 'Sin eventos',
     deleteConfirm: '¿Eliminar este archivo permanentemente?',
     all: 'Todos',
@@ -437,7 +424,6 @@ const es = {
     discard: 'Descartar',
     discardAll: 'Descartar todos',
     savedLocally: 'No enviado',
-    queuedFeedback: 'Guardado sin conexión — confirmá el envío al reconectarte',
     noConnectionToSend: 'Sin conexión — reconectáte para enviar',
   },
 
@@ -462,7 +448,6 @@ const es = {
 
   // ─── Errors ──────────────────────────────────────────────────────────────
   errors: {
-    somethingWentWrong: 'Algo salió mal',
     eventNotFound: 'Evento no encontrado',
     couldNotLoadPeriod: 'No se pudieron cargar los datos del período',
   },

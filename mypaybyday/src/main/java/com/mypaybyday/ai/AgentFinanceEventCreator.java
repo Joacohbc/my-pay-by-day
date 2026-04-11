@@ -37,61 +37,61 @@ import jakarta.inject.Named;
 @ApplicationScoped
 public class AgentFinanceEventCreator {
 
-    private static final Logger log = Logger.getLogger(AgentFinanceEventCreator.class);
+	private static final Logger log = Logger.getLogger(AgentFinanceEventCreator.class);
 
-    /** Context for handling multi-language support and user language preferences. */
-    private final LanguageContext languageContext;
+	/** Context for handling multi-language support and user language preferences. */
+	private final LanguageContext languageContext;
 
-    /** The main language model used for text generation and processing. */
-    private final ChatModel primaryModel;
+	/** The main language model used for text generation and processing. */
+	private final ChatModel primaryModel;
 
-    /** A language model specialized in processing and analyzing image data. */
-    private final ChatModel visionModel;
+	/** A language model specialized in processing and analyzing image data. */
+	private final ChatModel visionModel;
 
-    /** In-memory storage for maintaining conversation context and history. */
-    private final ChatMemoryOnRAM chatMemoryOnRAM;
+	/** In-memory storage for maintaining conversation context and history. */
+	private final ChatMemoryOnRAM chatMemoryOnRAM;
 
-    /** Set of tools that enable the AI to interact with the application's domain logic. */
-    private final FinanceAiTools financeAiTools;
+	/** Set of tools that enable the AI to interact with the application's domain logic. */
+	private final FinanceAiTools financeAiTools;
 
-    private ChatAgent chatAgent;
+	private ChatAgent chatAgent;
 
-    @Inject
-    public AgentFinanceEventCreator(
-            LanguageContext languageContext,
-            @Named("primaryChatModel") ChatModel primaryModel,
-            @Named("visionChatModel") ChatModel visionModel,
-            ChatMemoryOnRAM chatMemoryOnRAM,
-            FinanceAiTools financeAiTools) {
-        this.languageContext = languageContext;
-        this.primaryModel = primaryModel;
-        this.visionModel = visionModel;
-        this.chatMemoryOnRAM = chatMemoryOnRAM;
-        this.financeAiTools = financeAiTools;
-    }
+	@Inject
+	public AgentFinanceEventCreator(
+			LanguageContext languageContext,
+			@Named("primaryChatModel") ChatModel primaryModel,
+			@Named("visionChatModel") ChatModel visionModel,
+			ChatMemoryOnRAM chatMemoryOnRAM,
+			FinanceAiTools financeAiTools) {
+		this.languageContext = languageContext;
+		this.primaryModel = primaryModel;
+		this.visionModel = visionModel;
+		this.chatMemoryOnRAM = chatMemoryOnRAM;
+		this.financeAiTools = financeAiTools;
+	}
 
-    @PostConstruct
-    void init() {
-        Map<ToolSpecification, ToolExecutor> toolMap = buildToolMap(financeAiTools, FinanceAiTools.class);
-        this.chatAgent = AiServices.builder(ChatAgent.class)
-                .chatModel(primaryModel)
-                .tools(toolMap)
-                .chatMemoryProvider(chatMemoryOnRAM.get())
-                .build();
-    }
+	@PostConstruct
+	void init() {
+		Map<ToolSpecification, ToolExecutor> toolMap = buildToolMap(financeAiTools, FinanceAiTools.class);
+		this.chatAgent = AiServices.builder(ChatAgent.class)
+				.chatModel(primaryModel)
+				.tools(toolMap)
+				.chatMemoryProvider(chatMemoryOnRAM.get())
+				.build();
+	}
 
-    private static Map<ToolSpecification, ToolExecutor> buildToolMap(Object toolInstance, Class<?> toolClass) {
-        Map<ToolSpecification, ToolExecutor> map = new LinkedHashMap<>();
-        for (Method method : toolClass.getDeclaredMethods()) {
-            if (method.isAnnotationPresent(Tool.class)) {
-                ToolSpecification spec = ToolSpecifications.toolSpecificationFrom(method);
-                map.put(spec, new DefaultToolExecutor(toolInstance, method));
-            }
-        }
-        return map;
-    }
+	private static Map<ToolSpecification, ToolExecutor> buildToolMap(Object toolInstance, Class<?> toolClass) {
+		Map<ToolSpecification, ToolExecutor> map = new LinkedHashMap<>();
+		for (Method method : toolClass.getDeclaredMethods()) {
+			if (method.isAnnotationPresent(Tool.class)) {
+				ToolSpecification spec = ToolSpecifications.toolSpecificationFrom(method);
+				map.put(spec, new DefaultToolExecutor(toolInstance, method));
+			}
+		}
+		return map;
+	}
 
-    final String SYSTEM_PROMPT_FOR_IMAGES = """
+	final String SYSTEM_PROMPT_FOR_IMAGES = """
 Analyze the provided image and determine its type (receipt, invoice, ticket, etc.).
 Extract the maximum amount of information possible to allow for the creation of one or more finance events.
 
@@ -110,7 +110,7 @@ Current date and time: %s
 LANGUAGE: ALWAYS respond in %s. Never switch to another language.
 """;
 
-    final String SYSTEM_PROMPT_FOR_CHAT = """
+	final String SYSTEM_PROMPT_FOR_CHAT = """
 You are a personal finance assistant embedded in a budgeting application called MyPayByDay.
 Your personality: concise, precise, and helpful. Skip pleasantries and get straight to the point.
 
@@ -137,14 +137,14 @@ AVAILABLE TOOLS:
 - getTimePeriods(): Returns all budget time periods with their date ranges, limits, and savings goals.
 
 DATA MODEL:
-1. **FinanceEvent** — The main record (e.g. 'Dinner with friends', 'Paid Rent'). Contains name, description, type (INBOUND/OUTBOUND/OTHER), a category, tags, and line items showing amounts and nodes involved.
-2. **FinanceNode** — Any entity that can hold, send, or receive money:
-    - OWN: the user's own accounts (bank accounts, wallets, credit cards).
-    - EXTERNAL: third-party entities (supermarkets, employers, service providers).
-    - CONTACT: people (friends, family) — money here represents debts or loans.
-3. **Category** — A budget classification bucket (e.g. 'Food', 'Transport'). Every event is assigned to one category.
-4. **Tag** — A transversal label for cross-cutting grouping (e.g. '#Vacation2026', '#Reimbursable').
-5. **TimePeriod** — A budget container with a date range, a budget limit, and a savings goal percentage.
+1. **FinanceEventEntity** — The main record (e.g. 'Dinner with friends', 'Paid Rent'). Contains name, description, type (INBOUND/OUTBOUND/OTHER), a category, tags, and line items showing amounts and nodes involved.
+2. **FinanceNodeEntity** — Any entity that can hold, send, or receive money:
+	- OWN: the user's own accounts (bank accounts, wallets, credit cards).
+	- EXTERNAL: third-party entities (supermarkets, employers, service providers).
+	- CONTACT: people (friends, family) — money here represents debts or loans.
+3. **CategoryEntity** — A budget classification bucket (e.g. 'Food', 'Transport'). Every event is assigned to one category.
+4. **TagEntity** — A transversal label for cross-cutting grouping (e.g. '#Vacation2026', '#Reimbursable').
+5. **TimePeriodEntity** — A budget container with a date range, a budget limit, and a savings goal percentage.
 
 HOW TO INTERPRET USER QUESTIONS:
 - 'How much did I spend on X?' → Call getEventsByDateRange() or getRecentEvents(), filter by category.
@@ -162,66 +162,66 @@ GOLDEN RULES:
 6. When summarizing expenses, group by category when possible.
 """;
 
-    public Image buildImage(String base64Data, String mimeType) {
-        return Image.builder()
-            .base64Data(base64Data)
-            .mimeType(mimeType)
-            .build();
-    }
+	public Image buildImage(String base64Data, String mimeType) {
+		return Image.builder()
+			.base64Data(base64Data)
+			.mimeType(mimeType)
+			.build();
+	}
 
-    public String processImages(String chatId, List<Image> images, String text) {
-        String desc = viewImages(buildSystemPrompt(SYSTEM_PROMPT_FOR_IMAGES), images);
-        log.infof("Description: %s", desc);
-        String message = (text != null && !text.isBlank() ? "USER TEXT: " + text + "\n\n" : "") +
-                         "IMAGE DESCRIPTIONS:\n-----------------------\n" + desc + "\n-----------------------\n";
-        return processText(chatId, message);
-    }
+	public String processImages(String chatId, List<Image> images, String text) {
+		String desc = viewImages(buildSystemPrompt(SYSTEM_PROMPT_FOR_IMAGES), images);
+		log.infof("Description: %s", desc);
+		String message = (text != null && !text.isBlank() ? "USER TEXT: " + text + "\n\n" : "") +
+						"IMAGE DESCRIPTIONS:\n-----------------------\n" + desc + "\n-----------------------\n";
+		return processText(chatId, message);
+	}
 
-    public String processText(String chatId, String text) {
-        String prompt = buildSystemPrompt(SYSTEM_PROMPT_FOR_CHAT);
-        return chatAgent.chat(chatId, prompt, text);
-    }
+	public String processText(String chatId, String text) {
+		String prompt = buildSystemPrompt(SYSTEM_PROMPT_FOR_CHAT);
+		return chatAgent.chat(chatId, prompt, text);
+	}
 
-    private String viewImages(String systemPrompt, List<Image> images) {
-        var systemMessage = dev.langchain4j.data.message.SystemMessage.from(systemPrompt);
-        List<dev.langchain4j.data.message.Content> contents = new java.util.ArrayList<>();
-        contents.add(TextContent.from("Please analyze these images."));
-        for (Image img : images) {
-            contents.add(ImageContent.from(img));
-        }
-        var userMessage = dev.langchain4j.data.message.UserMessage.from(contents);
-        List<ChatMessage> messages = List.of(systemMessage, userMessage);
-        ChatResponse response = visionModel.chat(messages);
-        return response.aiMessage().text();
-    }
+	private String viewImages(String systemPrompt, List<Image> images) {
+		var systemMessage = dev.langchain4j.data.message.SystemMessage.from(systemPrompt);
+		List<dev.langchain4j.data.message.Content> contents = new java.util.ArrayList<>();
+		contents.add(TextContent.from("Please analyze these images."));
+		for (Image img : images) {
+			contents.add(ImageContent.from(img));
+		}
+		var userMessage = dev.langchain4j.data.message.UserMessage.from(contents);
+		List<ChatMessage> messages = List.of(systemMessage, userMessage);
+		ChatResponse response = visionModel.chat(messages);
+		return response.aiMessage().text();
+	}
 
-    public FinanceEventExtractionDto extractEvent(String text, String systemPrompt) {
-        return chatAgent.extractEvent(systemPrompt, text);
-    }
+	public FinanceEventExtractionDto extractEvent(String text, String systemPrompt) {
+		return chatAgent.extractEvent(systemPrompt, text);
+	}
 
-    public String generateDescription(String originalText, String lang) {
-        String systemPrompt = """
+	public String generateDescription(String originalText, String lang) {
+		String systemPrompt = """
 You are a personal finance assistant. Generate a short, human-readable description (1-2 sentences) for a financial transaction, written in %s.
 Summarize what happened, who was involved, and any relevant context extracted from the user's input.
 PLAIN TEXT ONLY. No markdown, no bullet points. Return only the description text, nothing else.
 """.formatted(lang);
-        var systemMessage = dev.langchain4j.data.message.SystemMessage.from(systemPrompt);
-        var userMessage = dev.langchain4j.data.message.UserMessage.from(originalText);
-        ChatResponse response = primaryModel.chat(List.of(systemMessage, userMessage));
-        return response.aiMessage().text();
-    }
+		var systemMessage = dev.langchain4j.data.message.SystemMessage.from(systemPrompt);
+		var userMessage = dev.langchain4j.data.message.UserMessage.from(originalText);
+		ChatResponse response = primaryModel.chat(List.of(systemMessage, userMessage));
+		return response.aiMessage().text();
+	}
 
-    private String buildSystemPrompt(String prompt) {
-        String now = LocalDateTime.now().toString();
-        String lang = languageContext.getLang();
-        return prompt.formatted(now, lang);
-    }
+	private String buildSystemPrompt(String prompt) {
+		String now = LocalDateTime.now().toString();
+		String lang = languageContext.getLang();
+		return prompt.formatted(now, lang);
+	}
 
-    interface ChatAgent {
-        @SystemMessage("{systemMessage}")
-        String chat(@MemoryId String chatId, @V("systemMessage") String systemMessage, @UserMessage String userMessage);
+	interface ChatAgent {
+		@SystemMessage("{systemMessage}")
+		String chat(@MemoryId String chatId, @V("systemMessage") String systemMessage, @UserMessage String userMessage);
 
-        @SystemMessage("{systemPrompt}")
-        FinanceEventExtractionDto extractEvent(@V("systemPrompt") String systemPrompt, @UserMessage String text);
-    }
+		@SystemMessage("{systemPrompt}")
+		FinanceEventExtractionDto extractEvent(@V("systemPrompt") String systemPrompt, @UserMessage String text);
+	}
 }

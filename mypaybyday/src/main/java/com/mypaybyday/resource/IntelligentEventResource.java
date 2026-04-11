@@ -26,33 +26,33 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 @org.eclipse.microprofile.openapi.annotations.tags.Tag(name = "Intelligent Events", description = "AI-powered endpoints for creating events.")
 public class IntelligentEventResource {
 
-    private final IntelligentEventService intelligentEventService;
+	private final IntelligentEventService intelligentEventService;
 
-    @Inject
-    public IntelligentEventResource(IntelligentEventService intelligentEventService) {
-        this.intelligentEventService = intelligentEventService;
-    }
+	@Inject
+	public IntelligentEventResource(IntelligentEventService intelligentEventService) {
+		this.intelligentEventService = intelligentEventService;
+	}
 
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Operation(summary = "Create an event from raw text (JSON)", description = "Uses the AI model to interpret raw text and automatically create the corresponding FinanceEvent (or a Draft if incomplete).")
-    @APIResponse(responseCode = "201", description = "Event or Draft successfully created", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = IntelligentEventResponseDto.class)))
-    @APIResponse(responseCode = "400", description = "Invalid text or generated event validation failed")
-    public Response createFromText(@Valid RawTextEventRequestDto request) throws BusinessException {
-        IntelligentEventResponseDto result = intelligentEventService.createFromText(request);
-        return Response.status(Response.Status.CREATED).entity(result).build();
-    }
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Operation(summary = "Create an event from raw text (JSON)", description = "Uses the AI model to interpret raw text and automatically create the corresponding FinanceEvent (or a Draft if incomplete).")
+	@APIResponse(responseCode = "201", description = "Event or Draft successfully created", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = IntelligentEventResponseDto.class)))
+	@APIResponse(responseCode = "400", description = "Invalid text or generated event validation failed")
+	public Response createFromText(@Valid RawTextEventRequestDto request) throws BusinessException {
+		IntelligentEventResponseDto result = intelligentEventService.createFromText(request);
+		return Response.status(Response.Status.CREATED).entity(result).build();
+	}
 
-    @POST
-    @Path("/plain")
-    @Consumes(MediaType.TEXT_PLAIN)
-    @Operation(summary = "Create an event from plain text", description = "Accepts a plain-text string (no JSON encoding required) and uses the AI model to create the corresponding FinanceEvent (or a Draft if incomplete).")
-    @APIResponse(responseCode = "201", description = "Event or Draft successfully created", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = IntelligentEventResponseDto.class)))
-    @APIResponse(responseCode = "400", description = "Invalid text or generated event validation failed")
-    public Response createFromPlainText(@NotBlank String text) throws BusinessException {
-        RawTextEventRequestDto request = new RawTextEventRequestDto();
-        request.setText(text);
-        IntelligentEventResponseDto result = intelligentEventService.createFromText(request);
-        return Response.status(Response.Status.CREATED).entity(result).build();
-    }
+	@POST
+	@Path("/plain")
+	@Consumes(MediaType.TEXT_PLAIN)
+	@Operation(summary = "Create an event from plain text", description = "Accepts a plain-text string (no JSON encoding required) and uses the AI model to create the corresponding FinanceEvent (or a Draft if incomplete).")
+	@APIResponse(responseCode = "201", description = "Event or Draft successfully created", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = IntelligentEventResponseDto.class)))
+	@APIResponse(responseCode = "400", description = "Invalid text or generated event validation failed")
+	public Response createFromPlainText(@NotBlank String text) throws BusinessException {
+		RawTextEventRequestDto request = new RawTextEventRequestDto();
+		request.setText(text);
+		IntelligentEventResponseDto result = intelligentEventService.createFromText(request);
+		return Response.status(Response.Status.CREATED).entity(result).build();
+	}
 }

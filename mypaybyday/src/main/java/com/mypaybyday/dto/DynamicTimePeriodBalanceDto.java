@@ -5,10 +5,10 @@ import java.time.LocalDate;
 import java.util.List;
 
 public record DynamicTimePeriodBalanceDto(
-        LocalDate startDate,
-        LocalDate endDate,
-        BigDecimal income,
-        BigDecimal outbound,
-        List<FinanceEventDto> events
+	LocalDate startDate,
+	LocalDate endDate,
+	BigDecimal income,
+	BigDecimal outbound,
+	List<FinanceEventDto> events
 ) {
 }

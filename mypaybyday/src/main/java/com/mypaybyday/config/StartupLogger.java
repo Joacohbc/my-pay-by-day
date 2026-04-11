@@ -12,54 +12,54 @@ import java.time.format.DateTimeFormatter;
 @ApplicationScoped
 public class StartupLogger {
 
-    private static final Logger LOG = Logger.getLogger(StartupLogger.class);
+	private static final Logger LOG = Logger.getLogger(StartupLogger.class);
 
-    @ConfigProperty(name = "quarkus.datasource.jdbc.url")
-    String jdbcUrl;
+	@ConfigProperty(name = "quarkus.datasource.jdbc.url")
+	String jdbcUrl;
 
-    @ConfigProperty(name = "quarkus.datasource.jdbc.max-size")
-    int jdbcMaxSize;
+	@ConfigProperty(name = "quarkus.datasource.jdbc.max-size")
+	int jdbcMaxSize;
 
-    @ConfigProperty(name = "quarkus.datasource.jdbc.min-size")
-    int jdbcMinSize;
+	@ConfigProperty(name = "quarkus.datasource.jdbc.min-size")
+	int jdbcMinSize;
 
-    @ConfigProperty(name = "db.field.encryption.key")
-    String encryptionKey;
+	@ConfigProperty(name = "db.field.encryption.key")
+	String encryptionKey;
 
-    @ConfigProperty(name = "ai.primary.base-url")
-    String aiBaseUrl;
+	@ConfigProperty(name = "ai.primary.base-url")
+	String aiBaseUrl;
 
-    @ConfigProperty(name = "ai.primary.model-name")
-    String primaryModelName;
+	@ConfigProperty(name = "ai.primary.model-name")
+	String primaryModelName;
 
-    @ConfigProperty(name = "ai.vision.model-name")
-    String visionModelName;
+	@ConfigProperty(name = "ai.vision.model-name")
+	String visionModelName;
 
-    @ConfigProperty(name = "mypaybyday.timezone")
-    String timezone;
+	@ConfigProperty(name = "mypaybyday.timezone")
+	String timezone;
 
 
-    void onStart(@Observes StartupEvent event) {
-        LOG.info("\n" +
-                "  __  __         _____             ____        _____              \n" +
-                " |  \\/  |       |  __ \\           |  _ \\      |  __ \\             \n" +
-                " | \\  / |_   _  | |__) |_ _ _   _ | |_) |_   _| |  | | __ _ _   _ \n" +
-                " | |\\/| | | | | |  ___/ _` | | | ||  _ <| | | | |  | |/ _` | | | |\n" +
-                " | |  | | |_| | | |  | (_| | |_| || |_) | |_| | |__| | (_| | |_| |\n" +
-                " |_|  |_|\\__, | |_|   \\__,_|\\__, ||____/ \\__, |_____/ \\__,_|\\__, |\n" +
-                "          __/ |              __/ |        __/ |              __/ |\n" +
-                "         |___/              |___/        |___/              |___/ \n");
+	void onStart(@Observes StartupEvent event) {
+		LOG.info("\n" +
+				"  __  __         _____             ____        _____              \n" +
+				" |  \\/  |       |  __ \\           |  _ \\      |  __ \\             \n" +
+				" | \\  / |_   _  | |__) |_ _ _   _ | |_) |_   _| |  | | __ _ _   _ \n" +
+				" | |\\/| | | | | |  ___/ _` | | | ||  _ <| | | | |  | |/ _` | | | |\n" +
+				" | |  | | |_| | | |  | (_| | |_| || |_) | |_| | |__| | (_| | |_| |\n" +
+				" |_|  |_|\\__, | |_|   \\__,_|\\__, ||____/ \\__, |_____/ \\__,_|\\__, |\n" +
+				"          __/ |              __/ |        __/ |              __/ |\n" +
+				"         |___/              |___/        |___/              |___/ \n");
 
-        LOG.info("=== Startup Configuration ===");
-        LOG.infof("  SQLite URL         : %s", jdbcUrl);
-        LOG.infof("  SQLite pool        : min=%d, max=%d", jdbcMinSize, jdbcMaxSize);
-        LOG.infof("  AI Base URL        : %s", aiBaseUrl);
-        LOG.infof("  AI Primary Model   : %s", primaryModelName);
-        LOG.infof("  AI Vision Model    : %s", visionModelName);
-        LOG.infof("  Encryption key set : %b", encryptionKey != null && !encryptionKey.isBlank());
-        LOG.infof("  Timezone           : %s", timezone);
-        LOG.infof("  Server Time        : %s", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-        LOG.info("=============================");
+		LOG.info("=== Startup Configuration ===");
+		LOG.infof("  SQLite URL         : %s", jdbcUrl);
+		LOG.infof("  SQLite pool        : min=%d, max=%d", jdbcMinSize, jdbcMaxSize);
+		LOG.infof("  AI Base URL        : %s", aiBaseUrl);
+		LOG.infof("  AI Primary Model   : %s", primaryModelName);
+		LOG.infof("  AI Vision Model    : %s", visionModelName);
+		LOG.infof("  Encryption key set : %b", encryptionKey != null && !encryptionKey.isBlank());
+		LOG.infof("  Timezone           : %s", timezone);
+		LOG.infof("  Server Time        : %s", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+		LOG.info("=============================");
 
-    }
+	}
 }

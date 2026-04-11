@@ -24,18 +24,18 @@ import lombok.Setter;
 @Table(name = "file_entity")
 public class FileEntity extends BaseEntity {
 
-    @NotBlank
-    public String fileName;
+	@NotBlank
+	public String fileName;
 
-    @NotBlank
-    public String mimeType;
+	@NotBlank
+	public String mimeType;
 
-    public long size;
+	public long size;
 
-    @Column(columnDefinition = "BLOB")
-    @Basic(fetch = FetchType.LAZY)
-    public byte[] data;
+	@Column(columnDefinition = "BLOB")
+	@Basic(fetch = FetchType.LAZY)
+	public byte[] data;
 
-    public String hash;
+	public String hash;
 
 }

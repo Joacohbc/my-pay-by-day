@@ -12,13 +12,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class IntelligentEventResponseDto {
 
-    public enum ResponseType {
-        EVENT, DRAFT
-    }
+	public enum ResponseType {
+		EVENT, DRAFT
+	}
 
-    @Schema(description = "Indicates if the result is a finalized Event or a work-in-progress Draft")
-    private ResponseType type;
+	@Schema(description = "Indicates if the result is a finalized Event or a work-in-progress Draft")
+	private ResponseType type;
 
-    @Schema(description = "The created event (if type is EVENT)")
-    private FinanceEventDto event;
+	@Schema(description = "The created event (if type is EVENT)")
+	private FinanceEventDto event;
 }
