@@ -73,6 +73,7 @@ if (args.includes('--help') || args.includes('-h')) {
     --top <n>       Number of most-used MsgKeys to show (default: 15)
     --summary       Compact output: skip the full usage map
     --json          Output raw JSON instead of the formatted report
+    --ci            Exit with code 1 if unused keys or parity issues are found
     -h, --help      Show this help message
 
   Examples:
@@ -87,6 +88,7 @@ if (args.includes('--help') || args.includes('-h')) {
 const TOP_N = Number(flag('top', '15'));
 const JSON_OUT = args.includes('--json');
 const SUMMARY = args.includes('--summary');
+const CI_MODE = args.includes('--ci');
 
 // ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -328,6 +330,9 @@ function run() {
       },
     };
     console.log(JSON.stringify(report, null, 2));
+    if (CI_MODE && (unusedPropKeys.length > 0 || unusedEnumEntries.length > 0 || orphanProps.length > 0 || parityIssues.length > 0)) {
+      process.exit(1);
+    }
     return;
   }
 
@@ -495,6 +500,12 @@ function run() {
   console.log('  END OF REPORT');
   console.log(HEADER);
   console.log();
+
+  // ── CI exit code ──────────────────────────────────────────────────────
+
+  if (CI_MODE && (unusedPropKeys.length > 0 || unusedEnumEntries.length > 0 || orphanProps.length > 0 || parityIssues.length > 0)) {
+    process.exit(1);
+  }
 }
 
 run();
