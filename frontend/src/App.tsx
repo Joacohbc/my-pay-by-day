@@ -5,6 +5,8 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from '@/router';
 import { AlertProvider } from '@/contexts/AlertContext';
 
+import { queryStorage } from '@/lib/idbStorage';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -16,11 +18,7 @@ const queryClient = new QueryClient({
 });
 
 const persister = createAsyncStoragePersister({
-  storage: {
-    getItem: (key) => Promise.resolve(localStorage.getItem(key)),
-    setItem: (key, value) => Promise.resolve(localStorage.setItem(key, value)),
-    removeItem: (key) => Promise.resolve(localStorage.removeItem(key)),
-  },
+  storage: queryStorage,
   key: 'mpbd-query-cache',
 });
 
