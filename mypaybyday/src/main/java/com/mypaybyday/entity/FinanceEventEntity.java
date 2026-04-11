@@ -72,16 +72,6 @@ public class FinanceEventEntity extends BaseEntity {
 	public String description;
 
 	/**
-	* URL pointing to an attached receipt or supporting document for this event.
-	*
-	* <p>
-	* <b>Encrypted at rest</b> via AES-256-GCM. Cannot be used in JPQL/SQL
-	* {@code WHERE} clauses — compare in memory after loading.
-	*/
-	@Convert(converter = StringEncryptionConverter.class)
-	public String receiptUrl;
-
-	/**
 	* Directional nature of this event.
 	*
 	* <ul>

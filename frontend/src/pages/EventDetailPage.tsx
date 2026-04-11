@@ -165,20 +165,6 @@ export function EventDetailPage() {
               </span>
             </div>
           )}
-          {event.receiptUrl && (
-            <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-              <span className="text-sm text-dn-text-muted">{t('events.receipt')}</span>
-              <a
-                href={event.receiptUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-dn-primary flex items-center gap-1"
-              >
-                {t('common.view')}
-                <Icon name="open_in_new" className="text-sm" />
-              </a>
-            </div>
-          )}
         </Card>
       </div>
 

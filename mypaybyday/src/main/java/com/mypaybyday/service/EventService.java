@@ -17,6 +17,7 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
+import com.mypaybyday.validation.EventValidator;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -65,6 +66,9 @@ public class EventService {
 
 	@Inject
 	Messages messages;
+
+	@Inject
+	EventValidator eventValidator;
 
 	@Inject
 	FileService fileService;
@@ -235,6 +239,8 @@ public class EventService {
 	*/
 	@Transactional
 	public FinanceEventDto create(FinanceEventEntity event) throws BusinessException {
+		eventValidator.validate(event);
+
 		if (event.transaction == null) {
 			throw new BusinessException(messages.get(MsgKey.EVENT_TRANSACTION_REQUIRED));
 		}
@@ -301,9 +307,9 @@ public class EventService {
 		if (patch.getDescription().isPresent()) {
 			event.description = patch.getDescription().get();
 		}
-		if (patch.getReceiptUrl().isPresent()) {
-			event.receiptUrl = patch.getReceiptUrl().get();
-		}
+
+		eventValidator.validate(event);
+
 		if (patch.getType().isPresent()) {
 			EventType type = patch.getType().get();
 			if (type != null) {

@@ -16,6 +16,7 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TimePeriodRepository;
+import com.mypaybyday.validation.TimePeriodValidator;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -45,6 +46,9 @@ public class TimePeriodService {
 
 	@Inject
 	Messages messages;
+
+	@Inject
+	TimePeriodValidator timePeriodValidator;
 
 	// -------------------------------------------------------------------------
 	// Queries
@@ -276,6 +280,9 @@ public class TimePeriodService {
 		if (tp.name == null || tp.name.isBlank()) {
 			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NAME_REQUIRED));
 		}
+
+		timePeriodValidator.validate(tp);
+
 		if (tp.startDate == null) {
 			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_START_DATE_REQUIRED));
 		}

@@ -157,8 +157,6 @@ const es = {
     addLineItem: 'Agregar',
     selectNode: 'Seleccionar nodo',
     amount: 'Monto',
-    receiptUrl: 'URL del Recibo',
-    receiptUrlPlaceholder: 'https://...',
     amountPlaceholder: '0.00',
     amountPlaceholderEg: 'ej. 5.00',
     signedAmountHint:

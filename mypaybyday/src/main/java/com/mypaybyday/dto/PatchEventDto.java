@@ -13,7 +13,6 @@ public class PatchEventDto {
 
 	private JsonNullable<String> name = JsonNullable.undefined();
 	private JsonNullable<String> description = JsonNullable.undefined();
-	private JsonNullable<String> receiptUrl = JsonNullable.undefined();
 	private JsonNullable<EventType> type = JsonNullable.undefined();
 	private JsonNullable<CategoryDto> category = JsonNullable.undefined();
 	private JsonNullable<List<TagDto>> tags = JsonNullable.undefined();

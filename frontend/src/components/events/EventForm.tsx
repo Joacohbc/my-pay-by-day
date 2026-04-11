@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/contexts/AlertContext';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
@@ -98,7 +97,6 @@ function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormValues {
   return {
     name: defaultValues?.name ?? '',
     description: defaultValues?.description ?? '',
-    receiptUrl: defaultValues?.receiptUrl ?? '',
     type: (defaultValues?.type as EventType) ?? 'OUTBOUND',
     transactionDate,
     categoryId,
@@ -157,7 +155,6 @@ export function EventForm({
 
   
   const {
-    register,
     handleSubmit,
     control,
     setValue,
@@ -289,13 +286,6 @@ export function EventForm({
         />
 
         <LineItemsEditor nodeOptions={nodeOptions} />
-
-        <Input
-          label={t('eventForm.receiptUrl')}
-          placeholder={t('eventForm.receiptUrlPlaceholder')}
-          type="url"
-          {...register('receiptUrl')}
-        />
 
         <div className="flex flex-col gap-3">
           {onSaveDraft && (

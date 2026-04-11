@@ -7,6 +7,7 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TagRepository;
+import com.mypaybyday.validation.TagValidator;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -22,6 +23,9 @@ public class TagService {
 
 	@Inject
 	Messages messages;
+
+	@Inject
+	TagValidator tagValidator;
 
 	// -------------------------------------------------------------------------
 	// Queries
@@ -67,6 +71,9 @@ public class TagService {
 		TagEntity tag = new TagEntity();
 		tag.name = dto.name();
 		tag.description = dto.description();
+
+		tagValidator.validate(tag);
+
 		tagRepository.persist(tag);
 		return TagDto.from(tag);
 	}
@@ -79,6 +86,9 @@ public class TagService {
 		}
 		tag.name = dto.name();
 		tag.description = dto.description();
+
+		tagValidator.validate(tag);
+
 		return TagDto.from(tag);
 	}
 

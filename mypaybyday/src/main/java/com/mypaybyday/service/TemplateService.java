@@ -9,6 +9,7 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TemplateRepository;
+import com.mypaybyday.validation.TemplateValidator;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -37,6 +38,9 @@ public class TemplateService {
 
 	@Inject
 	Messages messages;
+
+	@Inject
+	TemplateValidator templateValidator;
 
 	// -------------------------------------------------------------------------
 	// Queries
@@ -120,6 +124,9 @@ public class TemplateService {
 	private void applyDto(TemplateEntity template, TemplateDto dto) throws BusinessException {
 		template.name = dto.name();
 		template.description = dto.description();
+
+		templateValidator.validate(template);
+
 		template.eventType = dto.eventType();
 		template.modifierType = dto.modifierType();
 		template.modifierValue = dto.modifierValue();

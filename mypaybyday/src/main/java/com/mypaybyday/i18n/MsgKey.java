@@ -71,7 +71,15 @@ public enum MsgKey {
 	DRAFT_INVALID_PAYLOAD("error.draft.invalid_payload"),
 
 	// ── Intelligent Event ────────────────────────────────
-	INTELLIGENT_EVENT_DRAFT_CREATION_FAILED("error.intelligent_event.draft_creation_failed");
+	INTELLIGENT_EVENT_DRAFT_CREATION_FAILED("error.intelligent_event.draft_creation_failed"),
+
+	// ── Validation ───────────────────────────────────────
+	VALIDATION_NAME_INVALID_CHARS("error.validation.name_invalid_chars"),
+	VALIDATION_DESCRIPTION_INVALID_CHARS("error.validation.description_invalid_chars"),
+	VALIDATION_ICON_INVALID_CHARS("error.validation.icon_invalid_chars"),
+	VALIDATION_NAME_MAX_LENGTH("error.validation.name_max_length"),
+	VALIDATION_DESCRIPTION_MAX_LENGTH("error.validation.description_max_length"),
+	VALIDATION_ICON_MAX_LENGTH("error.validation.icon_max_length");
 
 	/** The property key used to look up this message in the resource bundle. */
 	public final String key;

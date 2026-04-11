@@ -117,7 +117,6 @@ export interface FinanceEvent extends Identifiable {
   transactionId: number;
   name: string;
   description?: string;
-  receiptUrl?: string;
   type: EventType;
   transactionDate: string; // ISO-8601 date-time
   lineItems: FinanceLineItem[];
@@ -132,7 +131,6 @@ export interface FinanceEvent extends Identifiable {
 export interface CreateEventDto {
   name: string;
   description?: string;
-  receiptUrl?: string;
   type: EventType;
   transaction: CreateTransactionDto;
   category?: { id: number };
@@ -146,7 +144,6 @@ export interface CreateEventDto {
 export interface PatchEventDto {
   name?: string;
   description?: string | null;
-  receiptUrl?: string | null;
   type?: EventType;
   category?: { id: number } | null;
   tags?: { id: number }[] | null;

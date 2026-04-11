@@ -157,8 +157,6 @@ const en = {
     addLineItem: 'Add',
     selectNode: 'Select node',
     amount: 'Amount',
-    receiptUrl: 'Receipt URL',
-    receiptUrlPlaceholder: 'https://...',
     amountPlaceholder: '0.00',
     amountPlaceholderEg: 'e.g. 5.00',
     signedAmountHint:

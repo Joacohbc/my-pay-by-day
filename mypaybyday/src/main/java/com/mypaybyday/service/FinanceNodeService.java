@@ -9,6 +9,7 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.LineItemRepository;
 import com.mypaybyday.repository.TemplateRepository;
+import com.mypaybyday.validation.FinanceNodeValidator;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -31,6 +32,9 @@ public class FinanceNodeService {
 
 	@Inject
 	Messages messages;
+
+	@Inject
+	FinanceNodeValidator financeNodeValidator;
 
 	@Transactional
 	public PagedResponse<FinanceNodeDto> listAll(int page, int size, Boolean archived) {
@@ -80,10 +84,13 @@ public class FinanceNodeService {
 	}
 
 	@Transactional
-	public FinanceNodeDto create(FinanceNodeDto dto) {
+	public FinanceNodeDto create(FinanceNodeDto dto) throws BusinessException {
 		FinanceNodeEntity node = new FinanceNodeEntity();
 		node.name = dto.name();
 		node.type = dto.type();
+
+		financeNodeValidator.validate(node);
+
 		financeNodeRepository.persist(node);
 		return FinanceNodeDto.from(node);
 	}
@@ -96,6 +103,9 @@ public class FinanceNodeService {
 		}
 		node.name = dto.name();
 		node.type = dto.type();
+
+		financeNodeValidator.validate(node);
+
 		return FinanceNodeDto.from(node);
 	}
 

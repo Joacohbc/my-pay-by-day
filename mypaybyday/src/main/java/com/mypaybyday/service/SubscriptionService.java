@@ -22,6 +22,7 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.SystemJobRepository;
+import com.mypaybyday.validation.SubscriptionValidator;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -56,6 +57,9 @@ public class SubscriptionService {
 
 	@Inject
 	Messages messages;
+
+	@Inject
+	SubscriptionValidator subscriptionValidator;
 
 	@Inject
 	EventService eventService;
@@ -98,6 +102,9 @@ public class SubscriptionService {
 		SubscriptionEntity subscription = new SubscriptionEntity();
 		subscription.name = dto.name();
 		subscription.description = dto.description();
+
+		subscriptionValidator.validate(subscription);
+
 		subscription.eventType = dto.eventType();
 		subscription.modifierValue = dto.modifierValue();
 		subscription.recurrence = dto.recurrence();
@@ -150,6 +157,9 @@ public class SubscriptionService {
 		if (dto.description() != null) {
 			subscription.description = dto.description();
 		}
+
+		subscriptionValidator.validate(subscription);
+
 		if (dto.eventType() != null) {
 			subscription.eventType = dto.eventType();
 		}
