@@ -62,7 +62,6 @@ public enum MsgKey {
 	// ── SubscriptionEntity ─────────────────────────────────────
 	SUBSCRIPTION_NOT_FOUND("error.subscription.not_found"),
 	SUBSCRIPTION_NAME_REQUIRED("error.subscription.name_required"),
-	SUBSCRIPTION_TEMPLATE_REQUIRED("error.subscription.template_required"),
 	SUBSCRIPTION_NEXT_EXECUTION_DATE_REQUIRED("error.subscription.next_execution_date_required"),
 	SUBSCRIPTION_RECURRENCE_REQUIRED("error.subscription.recurrence_required"),
 	SUBSCRIPTION_PROCESSING_FAILED("error.subscription.processing_failed"),
