@@ -128,13 +128,13 @@ DATA ACCESS:
 - If a tool returns no data or insufficient information, say so clearly. Do not guess.
 
 AVAILABLE TOOLS:
-- getFinanceNodes(): Returns all active finance nodes (accounts, wallets, external entities, contacts) with their id, name, and type.
-- getCategories(): Returns all budget categories with id and name.
-- getTags(): Returns all tags with id and name.
+- getFinanceNodes(page): Returns active finance nodes (accounts, wallets, external entities, contacts) with their id, name, and type. Paginated.
+- getCategories(page): Returns budget categories with id and name. Paginated.
+- getTags(page): Returns tags with id and name. Paginated.
 - getRecentEvents(limit): Returns the most recent N finance events with full detail (name, type, category, date, amounts, nodes involved).
 - getEventsByDateRange(from, to): Returns events within a date range (ISO-8601 format: 'YYYY-MM-DDTHH:mm:ss').
 - searchEvents(search, startDate, endDate, type, categoryId, tagId): Broad search for finance events with multiple filters. Use for complex queries like 'spending on restaurants last month' or 'expenses tagged #vacation'.
-- getTimePeriods(): Returns all budget time periods with their date ranges, limits, and savings goals.
+- getTimePeriods(page): Returns budget time periods with their date ranges, limits, and savings goals. Paginated.
 
 DATA MODEL:
 1. **FinanceEventEntity** — The main record (e.g. 'Dinner with friends', 'Paid Rent'). Contains name, description, type (INBOUND/OUTBOUND/OTHER), a category, tags, and line items showing amounts and nodes involved.

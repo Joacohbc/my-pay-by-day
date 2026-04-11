@@ -16,8 +16,9 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.dto.IntelligentEventResponseDto;
 import com.mypaybyday.enums.EntityType;
-import com.mypaybyday.repository.CategoryRepository;
-import com.mypaybyday.repository.FinanceNodeRepository;
+import com.mypaybyday.ai.AiToolUtils;
+import com.mypaybyday.dto.CategoryDto;
+import com.mypaybyday.dto.FinanceNodeDto;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -40,21 +41,21 @@ public class IntelligentEventService {
 	private final EventService eventService;
 	private final EntityDraftService draftService;
 	private final LanguageContext languageContext;
-	private final FinanceNodeRepository financeNodeRepository;
-	private final CategoryRepository categoryRepository;
+	private final FinanceNodeService financeNodeService;
+	private final CategoryService categoryService;
 	private final Messages messages;
 
 	@Inject
 	public IntelligentEventService(AgentFinanceEventCreator agentFinanceEventCreator, EventService eventService,
 			EntityDraftService draftService, LanguageContext languageContext,
-			FinanceNodeRepository financeNodeRepository, CategoryRepository categoryRepository,
+			FinanceNodeService financeNodeService, CategoryService categoryService,
 			Messages messages) {
 		this.agentFinanceEventCreator = agentFinanceEventCreator;
 		this.eventService = eventService;
 		this.draftService = draftService;
 		this.languageContext = languageContext;
-		this.financeNodeRepository = financeNodeRepository;
-		this.categoryRepository = categoryRepository;
+		this.financeNodeService = financeNodeService;
+		this.categoryService = categoryService;
 		this.messages = messages;
 	}
 
@@ -196,23 +197,13 @@ public class IntelligentEventService {
 	}
 
 	private String buildNodesContext() {
-		List<FinanceNodeEntity> nodes = financeNodeRepository.find("archived", false).list();
-		if (nodes.isEmpty()) {
-			return "No finance nodes available.";
-		}
-		return nodes.stream()
-				.map(n -> String.format("  - id=%d, name=%s, type=%s", n.id, n.name, n.type))
-				.collect(Collectors.joining("\n"));
+		List<FinanceNodeDto> nodes = financeNodeService.listAll(0, 1000, false).content();
+		return AiToolUtils.formatFinanceNodes(nodes, "No finance nodes available.");
 	}
 
 	private String buildCategoriesContext() {
-		List<CategoryEntity> categories = categoryRepository.listAll();
-		if (categories.isEmpty()) {
-			return "No categories available.";
-		}
-		return categories.stream()
-				.map(c -> String.format("  - id=%d, name=%s", c.id, c.name))
-				.collect(Collectors.joining("\n"));
+		List<CategoryDto> categories = categoryService.listAll(0, 1000).content();
+		return AiToolUtils.formatCategories(categories, "No categories available.");
 	}
 
 	private static String buildSystemPrompt(String now, String lang) {

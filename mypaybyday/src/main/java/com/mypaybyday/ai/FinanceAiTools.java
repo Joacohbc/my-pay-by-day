@@ -1,14 +1,14 @@
 package com.mypaybyday.ai;
 
-import com.mypaybyday.entity.CategoryEntity;
-import com.mypaybyday.entity.FinanceNodeEntity;
-import com.mypaybyday.entity.TagEntity;
-import com.mypaybyday.entity.TimePeriodEntity;
+import com.mypaybyday.dto.CategoryDto;
+import com.mypaybyday.dto.FinanceNodeDto;
+import com.mypaybyday.dto.TagDto;
+import com.mypaybyday.dto.TimePeriodDto;
 import com.mypaybyday.enums.EventType;
-import com.mypaybyday.repository.CategoryRepository;
-import com.mypaybyday.repository.FinanceNodeRepository;
-import com.mypaybyday.repository.TagRepository;
-import com.mypaybyday.repository.TimePeriodRepository;
+import com.mypaybyday.service.CategoryService;
+import com.mypaybyday.service.FinanceNodeService;
+import com.mypaybyday.service.TagService;
+import com.mypaybyday.service.TimePeriodService;
 import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.IntelligentEventResponseDto;
 import com.mypaybyday.dto.RawTextEventRequestDto;
@@ -45,16 +45,16 @@ public class FinanceAiTools {
 	private static final Logger log = Logger.getLogger(FinanceAiTools.class);
 
 	@Inject
-	FinanceNodeRepository financeNodeRepository;
+	FinanceNodeService financeNodeService;
 
 	@Inject
-	CategoryRepository categoryRepository;
+	CategoryService categoryService;
 
 	@Inject
-	TagRepository tagRepository;
+	TagService tagService;
 
 	@Inject
-	TimePeriodRepository timePeriodRepository;
+	TimePeriodService timePeriodService;
 
 	@Inject
 	EventService eventService;
@@ -62,44 +62,34 @@ public class FinanceAiTools {
 	@Inject
 	IntelligentEventService intelligentEventService;
 
-	@Tool("Returns all active (non-archived) finance nodes: accounts, wallets, credit cards, external entities, and contacts. " +
+	private static final int PAGE_SIZE = 50;
+
+	@Tool("Returns active (non-archived) finance nodes: accounts, wallets, credit cards, external entities, and contacts. " +
 			"Each entry contains id, name, and type (OWN, EXTERNAL, or CONTACT). " +
-			"Use this tool when the user asks about nodes, accounts, wallets, or when you need to map a node name to its ID.")
+			"Use this tool when the user asks about nodes, accounts, wallets, or when you need to map a node name to its ID. " +
+			"Paginated: pass 'page' starting at 0. Call multiple times with increasing 'page' if you need more records.")
 	@Transactional
-	public String getFinanceNodes() {
-		List<FinanceNodeEntity> nodes = financeNodeRepository.find("archived", false).list();
-		if (nodes.isEmpty()) {
-			return "No finance nodes found.";
-		}
-		return nodes.stream()
-				.map(n -> String.format("[id=%d, name=%s, type=%s]", n.id, n.name, n.type))
-				.collect(Collectors.joining(", ", "Finance nodes: ", ""));
+	public String getFinanceNodes(int page) {
+		List<FinanceNodeDto> nodes = financeNodeService.listAll(page, PAGE_SIZE, false).content();
+		return AiToolUtils.formatFinanceNodes(nodes, "No finance nodes found on this page.");
 	}
 
-	@Tool("Returns all budget categories. Each entry contains id and name. " +
-			"Use this tool when the user asks about categories or when you need to map a category name to its ID.")
+	@Tool("Returns budget categories. Each entry contains id and name. " +
+			"Use this tool when the user asks about categories or when you need to map a category name to its ID. " +
+			"Paginated: pass 'page' starting at 0. Call multiple times with increasing 'page' if you need more records.")
 	@Transactional
-	public String getCategories() {
-		List<CategoryEntity> categories = categoryRepository.listAll();
-		if (categories.isEmpty()) {
-			return "No categories found.";
-		}
-		return categories.stream()
-				.map(c -> String.format("[id=%d, name=%s]", c.id, c.name))
-				.collect(Collectors.joining(", ", "Categories: ", ""));
+	public String getCategories(int page) {
+		List<CategoryDto> categories = categoryService.listAll(page, PAGE_SIZE).content();
+		return AiToolUtils.formatCategories(categories, "No categories found on this page.");
 	}
 
-	@Tool("Returns all available tags. Each entry contains id and name. " +
-			"Use this tool when the user asks about tags or when you need to resolve tag names to IDs.")
+	@Tool("Returns available tags. Each entry contains id and name. " +
+			"Use this tool when the user asks about tags or when you need to resolve tag names to IDs. " +
+			"Paginated: pass 'page' starting at 0. Call multiple times with increasing 'page' if you need more records.")
 	@Transactional
-	public String getTags() {
-		List<TagEntity> tags = tagRepository.listAll();
-		if (tags.isEmpty()) {
-			return "No tags found.";
-		}
-		return tags.stream()
-				.map(t -> String.format("[id=%d, name=%s]", t.id, t.name))
-				.collect(Collectors.joining(", ", "Tags: ", ""));
+	public String getTags(int page) {
+		List<TagDto> tags = tagService.listAll(page, PAGE_SIZE).content();
+		return AiToolUtils.formatTags(tags, "No tags found on this page.");
 	}
 
 	@Tool("Returns the most recent finance events ordered by date descending. " +
@@ -170,24 +160,13 @@ public class FinanceAiTools {
 		}
 	}
 
-	@Tool("Returns all time periods (budget containers) with their start date, end date, name, budget limit, and savings goal percentage. " +
-			"Use this tool when the user asks about budgets, spending limits, or savings goals for a period.")
+	@Tool("Returns time periods (budget containers) with their start date, end date, name, budget limit, and savings goal percentage. " +
+			"Use this tool when the user asks about budgets, spending limits, or savings goals for a period. " +
+			"Paginated: pass 'page' starting at 0. Call multiple times with increasing 'page' if you need more records.")
 	@Transactional
-	public String getTimePeriods() {
-		List<TimePeriodEntity> periods = timePeriodRepository.listAll();
-
-		if (periods.isEmpty()) {
-			return "No time periods found.";
-		}
-
-		return periods.stream()
-				.map(p -> String.format("[id=%d, name=%s, from=%s, to=%s, limit=%s, savingsGoal=%s%%]",
-						p.id, p.name,
-						formatDate(p.startDate),
-						formatDate(p.endDate),
-						formatAmount(p.budgetLimit),
-						formatAmount(p.savingsPercentageGoal)))
-				.collect(Collectors.joining("\n", "Time periods:\n", ""));
+	public String getTimePeriods(int page) {
+		List<TimePeriodDto> periods = timePeriodService.listAll(page, PAGE_SIZE).content();
+		return AiToolUtils.formatTimePeriods(periods, "No time periods found on this page.");
 	}
 
 	@Tool("Creates a finance event from a raw text description. Use this tool when the user wants to log a new financial transaction (e.g., from a receipt, invoice, or verbal description like 'I paid $5 for coffee').\n" +
