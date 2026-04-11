@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
+import { Routes } from '@/lib/routes';
 import { useEvent, useDeleteEvent, useUpdateEvent } from '@/hooks/useEvents';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -63,7 +64,7 @@ export function EventDetailPage() {
     if (cameFromEvents) {
       navigate(-1);
     } else {
-      navigate('/events', { replace: true });
+      navigate(Routes.EVENTS);
     }
   };
 

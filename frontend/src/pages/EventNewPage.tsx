@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Routes } from '@/lib/routes';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { DraftBadge } from '@/components/ui/DraftBadge';
@@ -46,9 +47,9 @@ export function EventNewPage() {
       if (idToDelete) {
         await deleteDraft.mutateAsync(idToDelete);
       }
-      navigate(`/events/${created.id}`, { replace: true });
+      navigate(Routes.EVENT_DETAIL(created.id));
     } else {
-      navigate('/events', { replace: true });
+      navigate(Routes.EVENTS);
     }
   };
 

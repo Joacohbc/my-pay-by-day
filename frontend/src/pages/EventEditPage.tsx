@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { Routes } from '@/lib/routes';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -32,7 +33,7 @@ export function EventEditPage() {
     if (idToDelete) {
       await deleteDraft.mutateAsync(idToDelete);
     }
-    navigate(`/events/${id}`, { replace: true });
+    navigate(Routes.EVENT_DETAIL(id!));
   };
 
   const handleSaveDraft = async (dto: Partial<FinanceEvent>) => {
