@@ -10,6 +10,7 @@ public record FinanceLineItemDto(
 	String financeNodeName,
 	BigDecimal amount
 ) {
+
     public static FinanceLineItemDto from(FinanceLineItemEntity item) {
 	return new FinanceLineItemDto(
 		item.id,

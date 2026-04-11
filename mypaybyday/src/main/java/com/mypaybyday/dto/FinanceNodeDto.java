@@ -9,9 +9,11 @@ public record FinanceNodeDto(
 		FinanceNodeType type,
 		boolean archived
 ) {
+
 	public static FinanceNodeDto from(FinanceNodeEntity node) {
 		return new FinanceNodeDto(node.id, node.name, node.type, node.archived);
 	}
+
 
 	public FinanceNodeEntity to() {
 		FinanceNodeEntity node = new FinanceNodeEntity();

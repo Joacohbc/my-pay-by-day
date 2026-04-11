@@ -17,7 +17,9 @@ public record EventQuery(
 	Long categoryId,
 	Long tagId
 ) {
+
 	public enum DateField { TRANSACTION, CREATED, UPDATED }
+
 
 	public static Builder builder() {
 		return new Builder();
@@ -35,14 +37,31 @@ public record EventQuery(
 		private Long tagId;
 
 		public Builder page(int page)                  { this.page = page; return this; }
+
+
 		public Builder size(int size)                  { this.size = size; return this; }
+
+
 		public Builder search(String search)           { this.search = search; return this; }
+
+
 		public Builder startDate(String startDate)     { this.startDate = startDate; return this; }
+
+
 		public Builder endDate(String endDate)         { this.endDate = endDate; return this; }
+
+
 		public Builder dateField(DateField dateField)  { this.dateField = dateField; return this; }
+
+
 		public Builder type(EventType type)            { this.type = type; return this; }
+
+
 		public Builder categoryId(Long categoryId)     { this.categoryId = categoryId; return this; }
+
+
 		public Builder tagId(Long tagId)               { this.tagId = tagId; return this; }
+
 
 		public EventQuery build() {
 			return new EventQuery(page, size, search, startDate, endDate, dateField, type, categoryId, tagId);

@@ -40,6 +40,7 @@ public record FinanceEventDto(
 	Long draftId,
 	List<FileDto> files
 ) {
+
 	public FinanceEventDto fromDraft(Long id, Long draftId) {
 		return new FinanceEventDto(
 			id,
@@ -58,6 +59,8 @@ public record FinanceEventDto(
 			this.files
 		);
 	}
+
+
 	public static FinanceEventDto from(FinanceEventEntity event) {
 		// Flatten transaction details if present
 		Long txId = null;

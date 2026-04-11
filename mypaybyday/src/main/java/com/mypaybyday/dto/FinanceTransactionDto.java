@@ -13,6 +13,7 @@ public record FinanceTransactionDto(
 	Instant updatedAt,
 	List<FinanceLineItemDto> lineItems
 ) {
+
     public static FinanceTransactionDto from(FinanceTransactionEntity tx) {
 	return new FinanceTransactionDto(
 		tx.id,

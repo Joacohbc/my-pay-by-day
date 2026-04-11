@@ -9,6 +9,7 @@ public record FileDto(
 	long size,
 	boolean isOrphan
 ) {
+
 	public static FileDto from(FileEntity file) {
 		return new FileDto(
 			file.id,
@@ -18,6 +19,7 @@ public record FileDto(
 			false
 		);
 	}
+
 
 	public static FileDto from(FileEntity file, boolean isOrphan) {
 		return new FileDto(

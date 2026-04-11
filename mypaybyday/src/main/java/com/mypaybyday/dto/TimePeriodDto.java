@@ -16,6 +16,7 @@ public record TimePeriodDto(
 	BigDecimal savingsPercentageGoal,
 	BigDecimal budgetLimit
 ) {
+
     public static TimePeriodDto from(TimePeriodEntity tp) {
 	return new TimePeriodDto(
 		tp.id,
@@ -27,6 +28,7 @@ public record TimePeriodDto(
 		tp.budgetLimit
 	);
     }
+
 
     /**
 	* Converts this DTO to a {@link TimePeriodEntity} entity with scalar fields populated.

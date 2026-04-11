@@ -11,6 +11,7 @@ public record FileWithEventDto(
 	boolean isOrphan,
 	List<EventSummaryDto> events
 ) {
+
 	public static FileWithEventDto from(FileEntity file, boolean isOrphan, List<EventSummaryDto> events) {
 		return new FileWithEventDto(
 			file.id,

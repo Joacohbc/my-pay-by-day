@@ -15,6 +15,7 @@ public record RelatedEventDto(
 	EventType type,
 	CategoryDto category
 ) {
+
     public static RelatedEventDto from(FinanceEventEntity event) {
 	LocalDateTime txDate = null;
 	BigDecimal calculatedAmount = BigDecimal.ZERO;
@@ -28,7 +29,6 @@ public record RelatedEventDto(
 			.reduce(BigDecimal.ZERO, BigDecimal::add);
 	}
 	}
-
 	return new RelatedEventDto(
 		event.id,
 		event.name,

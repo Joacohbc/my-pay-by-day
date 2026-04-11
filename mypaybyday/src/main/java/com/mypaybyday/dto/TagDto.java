@@ -7,9 +7,11 @@ public record TagDto(
 		String name,
 		String description
 ) {
+
 	public static TagDto from(TagEntity tag) {
 		return new TagDto(tag.id, tag.name, tag.description);
 	}
+
 
 	public TagEntity to() {
 		TagEntity t = new TagEntity();

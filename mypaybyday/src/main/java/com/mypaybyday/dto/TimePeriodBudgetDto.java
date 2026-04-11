@@ -9,6 +9,7 @@ public record TimePeriodBudgetDto(
 	CategoryDto category,
 	BigDecimal budgetedAmount
 ) {
+
     public static TimePeriodBudgetDto from(TimePeriodBudgetEntity budget) {
 	return new TimePeriodBudgetDto(
 		budget.id,

@@ -32,6 +32,7 @@ public record PatchTransactionDto(
 		}
 	}
 
+
 	public FinanceTransactionEntity toEntity() {
 		FinanceTransactionEntity tx = new FinanceTransactionEntity();
 		tx.transactionDate = this.transactionDate;

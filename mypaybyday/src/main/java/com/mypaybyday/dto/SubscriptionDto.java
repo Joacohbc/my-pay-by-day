@@ -23,6 +23,7 @@ public record SubscriptionDto(
 	RecurrenceFrequency recurrence,
 	LocalDate nextExecutionDate,
 	SubscriptionStatus status) {
+
     public static SubscriptionDto from(SubscriptionEntity s) {
 	return new SubscriptionDto(
 		s.id,
