@@ -216,6 +216,7 @@ When modifying any Dockerfile, always open and review all three to ensure they r
 3. **OpenAPI annotations on every endpoint:** All public REST methods must carry `@Operation` with a summary, and `@APIResponse`/`@APIResponses` for every possible HTTP status code returned.
 4. **Service layer uses DTOs:** Every public method in `service/` must receive and return DTOs (`dto/` package), never raw JPA entities. Internal (package-private) methods used only for intra-service entity resolution are exempt.
 5. **Compile check:** After any code change, the build must pass without errors by running `./mvnw clean compile` from the `mypaybyday/` directory.
+6. **Always use imports, never fully qualified names:** In Java source files, always add an `import` statement for each class and reference it by its simple name. Never use fully qualified class names (e.g., `com.mypaybyday.entity.Event`) inline in the code unless it is explicitly necessary to resolve an ambiguity between two classes with the same simple name.
 
 ---
 
