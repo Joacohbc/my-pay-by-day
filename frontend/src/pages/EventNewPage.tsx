@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Routes } from '@/lib/routes';
+import { Routes, eventsRoute } from '@/lib/routes';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { DraftBadge } from '@/components/ui/DraftBadge';
@@ -50,10 +50,10 @@ export function EventNewPage() {
       // If offline (created === null), the event is only queued locally — keep the draft.
       const idToDelete = formDraftId || draft?.draftId;
       if (idToDelete) deleteDraft.mutate(idToDelete);
-      navigate(Routes.EVENT_DETAIL(created.id));
+      navigate(Routes.EVENT_DETAIL(created.id), { replace: true });
     } else {
       // Offline fallback navigation — draft is preserved intentionally
-      navigate(Routes.EVENTS);
+      navigate(eventsRoute());
     }
   };
 
@@ -74,7 +74,7 @@ export function EventNewPage() {
       await deleteDraft.mutateAsync(idToDelete);
     }
     if (shouldExit) {
-      navigate(Routes.EVENTS);
+      navigate(eventsRoute());
     }
   };
 

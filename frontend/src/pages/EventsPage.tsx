@@ -1,7 +1,7 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import { Routes } from '@/lib/routes';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Routes, saveEventsSearch } from '@/lib/routes';
 import { useEvents } from '@/hooks/useEvents';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
@@ -44,8 +44,13 @@ const FILTER_PARAMS = {
 export function EventsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { values, setValues, clearAll } = useSearchParamsBatch(FILTER_PARAMS);
+
+  useEffect(() => {
+    saveEventsSearch(location.search);
+  }, [location.search]);
 
   const page = values.page as number | undefined;
   const search = values.search as string;
