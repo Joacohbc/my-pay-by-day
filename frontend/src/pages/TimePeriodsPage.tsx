@@ -18,6 +18,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Input } from '@/components/ui/Input';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Button } from '@/components/ui/Button';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
@@ -437,7 +438,7 @@ export function TimePeriodsPage() {
             {...register('endDate', { required: t('periods.endDateRequired') })}
           />
 
-          <div className="space-y-2 border-t border-white/10 pt-4 mt-4">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-dn-text-main">{t('periods.budgetsTitle')}</label>
               <button
@@ -498,56 +499,24 @@ export function TimePeriodsPage() {
 
           <input type="hidden" {...register('budgetLimitMode')} />
 
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-dn-text-main">{t('periods.budgetLimitModeLabel')}</label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setValue('budgetLimitMode', 'auto', { shouldDirty: true, shouldValidate: true })}
-                className={`px-3 py-2 rounded-input text-xs font-medium border transition-colors ${budgetLimitMode === 'auto'
-                    ? 'border-dn-primary bg-dn-primary/15 text-dn-primary'
-                    : 'border-white/10 bg-dn-surface-low text-dn-text-muted hover:text-dn-text-main'
-                  }`}
-              >
-                {t('periods.budgetLimitModeAuto')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setValue('budgetLimitMode', 'fixed', { shouldDirty: true, shouldValidate: true });
-                  const currentLimit = control._getWatch('budgetLimit');
-                  if (!currentLimit || isNaN(parseFloat(String(currentLimit)))) {
-                    setValue('budgetLimit', '0', { shouldDirty: true, shouldValidate: true });
-                  }
-                }}
-                className={`px-3 py-2 rounded-input text-xs font-medium border transition-colors ${budgetLimitMode === 'fixed'
-                    ? 'border-dn-primary bg-dn-primary/15 text-dn-primary'
-                    : 'border-white/10 bg-dn-surface-low text-dn-text-muted hover:text-dn-text-main'
-                  }`}
-              >
-                {t('periods.budgetLimitModeFixed')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setValue('budgetLimitMode', 'none', { shouldDirty: true, shouldValidate: true })}
-                className={`px-3 py-2 rounded-input text-xs font-medium border transition-colors ${budgetLimitMode === 'none'
-                    ? 'border-dn-primary bg-dn-primary/15 text-dn-primary'
-                    : 'border-white/10 bg-dn-surface-low text-dn-text-muted hover:text-dn-text-main'
-                  }`}
-              >
-                {t('periods.budgetLimitModeNone')}
-              </button>
-            </div>
-            {budgetLimitMode === 'auto' && (
-              <p className="text-xs text-dn-text-muted">{t('periods.budgetLimitAutoHelp')}</p>
-            )}
-            {budgetLimitMode === 'fixed' && (
-              <p className="text-xs text-dn-text-muted">{t('periods.budgetLimitModeFixedHelp')}</p>
-            )}
-            {budgetLimitMode === 'none' && (
-              <p className="text-xs text-dn-text-muted">{t('periods.budgetLimitModeNoneHelp')}</p>
-            )}
-          </div>
+          <SegmentedControl
+            label={t('periods.budgetLimitModeLabel')}
+            value={budgetLimitMode}
+            onChange={(mode) => {
+              setValue('budgetLimitMode', mode as BudgetLimitMode, { shouldDirty: true, shouldValidate: true });
+              if (mode === 'fixed') {
+                const currentLimit = control._getWatch('budgetLimit');
+                if (!currentLimit || isNaN(parseFloat(String(currentLimit)))) {
+                  setValue('budgetLimit', '0', { shouldDirty: true, shouldValidate: true });
+                }
+              }
+            }}
+            options={[
+              { value: 'auto', label: t('periods.budgetLimitModeAuto'), hint: t('periods.budgetLimitAutoHelp') },
+              { value: 'fixed', label: t('periods.budgetLimitModeFixed'), hint: t('periods.budgetLimitModeFixedHelp') },
+              { value: 'none', label: t('periods.budgetLimitModeNone'), hint: t('periods.budgetLimitModeNoneHelp') },
+            ]}
+          />
 
           {budgetLimitMode !== 'none' && (
             <Input
