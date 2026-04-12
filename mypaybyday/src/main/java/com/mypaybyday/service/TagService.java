@@ -6,7 +6,10 @@ import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
+import com.mypaybyday.repository.EventRepository;
+import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TagRepository;
+import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.validation.TagValidator;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -26,6 +29,12 @@ public class TagService {
 
 	@Inject
 	TagValidator tagValidator;
+	@Inject
+	EventRepository eventRepository;
+	@Inject
+	TemplateRepository templateRepository;
+	@Inject
+	SubscriptionRepository subscriptionRepository;
 
 	// -------------------------------------------------------------------------
 	// Queries
@@ -95,6 +104,15 @@ public class TagService {
 	@Transactional
 	public void delete(Long id) throws BusinessException {
 		TagEntity tag = findTagEntity(id);
+
+		boolean inUse = eventRepository.countByTag(tag) > 0
+				|| templateRepository.countByTag(tag) > 0
+				|| subscriptionRepository.countByTag(tag) > 0;
+
+		if (inUse) {
+			throw new BusinessException(messages.get(MsgKey.TAG_IN_USE));
+		}
+
 		tagRepository.delete(tag);
 	}
 }

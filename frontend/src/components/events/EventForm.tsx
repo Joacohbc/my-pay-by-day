@@ -259,6 +259,7 @@ export function EventForm({
               categories={categories}
               value={field.value ?? ''}
               onChange={field.onChange}
+              showAdd={true}
             />
           )}
         />
@@ -271,9 +272,11 @@ export function EventForm({
               tags={tags}
               value={field.value ?? []}
               onChange={field.onChange}
+              showAdd={true}
             />
           )}
         />
+
 
         <LineItemsEditor nodeOptions={nodeOptions} />
 
