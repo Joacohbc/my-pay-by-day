@@ -294,9 +294,9 @@ public class TimePeriodService {
 				.map(b -> b.budgetedAmount)
 				.reduce(BigDecimal.ZERO, BigDecimal::add);
 
-		if (tp.budgetLimit == null) {
-			tp.budgetLimit = sumOfCategoryBudgets;
-		} else if (tp.budgetLimit.compareTo(sumOfCategoryBudgets) < 0) {
+		// If the user set 'null' means that user doesn't want to set a budget limit.
+		// If the user set a value, it must be greater than or equal to the sum of category budgets.
+		if (tp.budgetLimit != null && tp.budgetLimit.compareTo(sumOfCategoryBudgets) < 0) {
 			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_BUDGET_LIMIT_MINIMUM, sumOfCategoryBudgets));
 		}
 	}
