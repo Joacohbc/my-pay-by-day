@@ -440,7 +440,6 @@ const en = {
   drafts: {
     title: 'Drafts',
     confirmAll: 'Confirm All',
-    save: 'Save as Draft',
     untitledDraft: 'Untitled Draft',
     delete: 'Delete Draft',
     editingDraft: 'Editing Draft',

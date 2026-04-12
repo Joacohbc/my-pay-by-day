@@ -440,7 +440,6 @@ const es = {
   drafts: {
     title: 'Borradores',
     confirmAll: 'Confirmar Todos',
-    save: 'Guardar como Borrador',
     untitledDraft: 'Borrador sin título',
     delete: 'Eliminar borrador',
     editingDraft: 'Editando borrador guardado',
