@@ -13,7 +13,7 @@ export const draftsService = {
     api.post<EntityDraft>('/drafts/finance-events', dto),
 
   updateFinanceEventDraft: (id: number, dto: Partial<FinanceEvent>) =>
-    api.patch<EntityDraft>(`/drafts/finance-events/${id}`, dto),
+    api.put<EntityDraft>(`/drafts/finance-events/${id}`, dto),
 
   delete: (id: number) => api.delete(`/drafts/${id}`),
 };
