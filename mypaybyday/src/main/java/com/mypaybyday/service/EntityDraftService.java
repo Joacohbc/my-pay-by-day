@@ -99,9 +99,11 @@ public class EntityDraftService {
 	}
 
 	@Transactional
-	public void delete(Long id) throws BusinessException {
-		DraftEntity entity = findEntityById(id);
-		draftRepository.delete(entity);
+	public void delete(Long id) {
+		DraftEntity entity = draftRepository.findById(id);
+		if (entity != null) {
+			draftRepository.delete(entity);
+		}
 	}
 
 	@Transactional
