@@ -68,8 +68,15 @@ public class IntelligentEventService {
 				"AVAILABLE CATEGORIES (pick categoryId from these):\n" +
 				categoriesContext + "\n\n" +
 				"TASK:\n" +
-				"Extract the transaction details from the user's text using the context provided above.\n\n" +
-				"RULES FOR FIELDS:\n" +
+				"Extract the transaction details from the user's text using the context provided above.\n\n";
+
+		if (request.getInstructions() != null && !request.getInstructions().trim().isEmpty()) {
+			extractionPrompt += "ADDITIONAL USER INSTRUCTIONS (HIGHEST PRIORITY — these override the default rules below):\n" +
+					request.getInstructions() + "\n\n";
+		}
+
+		extractionPrompt +=
+				"DEFAULT RULES FOR FIELDS (apply these unless overridden by ADDITIONAL USER INSTRUCTIONS above):\n" +
 				"- name: Must be a descriptive and meaningful title. Include the business/service name and context (e.g., 'Dinner at Burger King', 'Monthly Salary from TechCorp').\n" +
 				"- amount: Total absolute amount of the transaction. Always positive, no currency symbols.\n" +
 				"- sourceNodeId: The ID of the node where money comes FROM. Pick from the AVAILABLE FINANCE NODES list above.\n" +
@@ -79,13 +86,8 @@ public class IntelligentEventService {
 				"CRITICAL OUTPUT RULES:\n" +
 				"- Return ONLY valid JSON matching the expected schema.\n" +
 				"- Do NOT include conversational text, greetings, explanations, or any markdown formatting (no ```json).\n" +
-				"- If the text lacks meaningful transaction data, return a JSON with null fields rather than an error message.\n\n";
-
-		if (request.getInstructions() != null && !request.getInstructions().trim().isEmpty()) {
-			extractionPrompt += "ADDITIONAL USER INSTRUCTIONS (MANDATORY):\n" + request.getInstructions() + "\n\n";
-		}
-
-		extractionPrompt += "Now process the user request.";
+				"- If the text lacks meaningful transaction data, return a JSON with null fields rather than an error message.\n\n" +
+				"Now process the user request.";
 
 		// Call the Langchain4j structured output extraction
 		FinanceEventExtractionDto extraction = agentFinanceEventCreator.extractEvent(request.getText(), extractionPrompt);
@@ -230,6 +232,7 @@ STRICT EXTRACTION RULES:
 2. NEVER use markdown formatting like ```json or ```.
 3. IF the user's text DOES NOT contain a recognizable financial transaction, output empty/null fields instead of a conversational error.
 4. Your output will be consumed directly by a JSON parser. Any conversational text will cause a Fatal System Crash.
+5. All text fields in the output (e.g. 'name') MUST be written in the user's primary language indicated above.
 """.formatted(now, lang);
 	}
 }

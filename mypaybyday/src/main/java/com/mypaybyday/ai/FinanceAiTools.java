@@ -193,15 +193,22 @@ public class FinanceAiTools {
 	}
 
 	@Tool("Creates a finance event from a raw text description. Use this tool when the user wants to log a new financial transaction (e.g., from a receipt, invoice, or verbal description like 'I paid $5 for coffee').\n" +
-			"CRITICAL INSTRUCTIONS:\n" +
-			"1. The 'description' parameter MUST contain the ACTUAL transaction details (e.g. 'Coffee at Starbucks $5').\n" +
-			"2. NEVER pass a placeholder like '{text}', empty strings, or conversational filler. The AI strictly requires real transaction data.\n" +
-			"3. If the user provided an image or receipt, pass the complete summarized details of that receipt.\n" +
-			"Returns a summary of the created event or draft (if data was incomplete). Call this ONCE per individual transaction.")
-	public String createEventFromText(@P("The exact, literal text containing the transaction details to be extracted. NEVER use placeholders.") String description) {
+			"Parameters:\n" +
+			"- description: The exact transaction details (e.g. 'Coffee at Starbucks $5'). NEVER pass placeholders or empty strings.\n" +
+			"- instructions: Optional user-provided directives that customize how the event is created (e.g. 'use my Visa card', 'categorize as food', 'split equally'). " +
+			"  Extract these from the user's message when present; pass null if the user gave no special directives.\n" +
+			"CRITICAL RULES:\n" +
+			"1. 'description' MUST contain ACTUAL transaction data. The AI strictly requires real data.\n" +
+			"2. If the user provided an image or receipt, pass the complete summarized details as 'description'.\n" +
+			"3. Call this ONCE per individual transaction.\n" +
+			"Returns a summary of the created event or draft (if data was incomplete).")
+	public String createEventFromText(
+			@P("The exact, literal text containing the transaction details to be extracted. NEVER use placeholders.") String description,
+			@P("Optional user directives for how to process the event (e.g. which node/account to use, how to categorize, how to split). Pass null if the user provided no special instructions.") String instructions) {
 		try {
 			RawTextEventRequestDto request = new RawTextEventRequestDto();
 			request.setText(description);
+			request.setInstructions(instructions);
 
 			IntelligentEventResponseDto result = intelligentEventService.createFromText(request);
 
