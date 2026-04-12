@@ -74,7 +74,7 @@ public class EventService {
 	FileService fileService;
 
 	@Inject
-	EntityDraftService entityDraftService;
+	DraftService entityDraftService;
 
 	// -------------------------------------------------------------------------
 	// Queries

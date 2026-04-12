@@ -3,7 +3,7 @@ package com.mypaybyday.resource;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.entity.DraftEntity;
 import com.mypaybyday.enums.EntityType;
-import com.mypaybyday.service.EntityDraftService;
+import com.mypaybyday.service.DraftService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -20,21 +20,21 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import java.util.List;
 
-@Path("/entity-drafts")
+@Path("/drafts")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-@Tag(name = "Entity Drafts", description = "Operations related to incomplete entities bypassing strict validations using original DTOs")
-public class EntityDraftResource {
+@Tag(name = "Drafts", description = "Operations related to incomplete entities bypassing strict validations using original DTOs")
+public class DraftResource {
 
-	private final EntityDraftService draftService;
+	private final DraftService draftService;
 
 	@Inject
-	public EntityDraftResource(EntityDraftService draftService) {
+	public DraftResource(DraftService draftService) {
 		this.draftService = draftService;
 	}
 
 	@GET
-	@Operation(summary = "List all entity drafts")
+	@Operation(summary = "List all drafts")
 	@APIResponse(responseCode = "200", description = "List of all drafts")
 	public List<DraftEntity> listAll() {
 		return draftService.listAll();

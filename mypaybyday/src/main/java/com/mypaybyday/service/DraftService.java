@@ -20,14 +20,14 @@ import java.util.List;
 import java.util.Optional;
 
 @ApplicationScoped
-public class EntityDraftService {
+public class DraftService {
 
 	private final EntityDraftRepository draftRepository;
 	private final Messages messages;
 	private final ObjectMapper objectMapper;
 
 	@Inject
-	public EntityDraftService(EntityDraftRepository draftRepository, Messages messages, ObjectMapper objectMapper) {
+	public DraftService(EntityDraftRepository draftRepository, Messages messages, ObjectMapper objectMapper) {
 		this.draftRepository = draftRepository;
 		this.messages = messages;
 		this.objectMapper = objectMapper;
