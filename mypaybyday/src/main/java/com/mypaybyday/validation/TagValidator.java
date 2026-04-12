@@ -1,7 +1,6 @@
 package com.mypaybyday.validation;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.exception.BusinessException;
@@ -9,8 +8,11 @@ import com.mypaybyday.exception.BusinessException;
 @ApplicationScoped
 public class TagValidator {
 
-    @Inject
-    RegexValidator regexValidator;
+    private final RegexValidator regexValidator;
+
+    public TagValidator(RegexValidator regexValidator) {
+        this.regexValidator = regexValidator;
+    }
 
     public void validate(TagEntity tag) throws BusinessException {
         if (tag == null) return;

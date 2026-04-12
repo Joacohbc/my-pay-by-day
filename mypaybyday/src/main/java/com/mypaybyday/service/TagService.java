@@ -3,7 +3,6 @@ package com.mypaybyday.service;
 import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.PagedResponse;
@@ -22,20 +21,27 @@ import io.quarkus.panache.common.Page;
 @ApplicationScoped
 public class TagService {
 
-	@Inject
-	TagRepository tagRepository;
+	private final TagRepository tagRepository;
+	private final Messages messages;
+	private final TagValidator tagValidator;
+	private final EventRepository eventRepository;
+	private final TemplateRepository templateRepository;
+	private final SubscriptionRepository subscriptionRepository;
 
-	@Inject
-	Messages messages;
-
-	@Inject
-	TagValidator tagValidator;
-	@Inject
-	EventRepository eventRepository;
-	@Inject
-	TemplateRepository templateRepository;
-	@Inject
-	SubscriptionRepository subscriptionRepository;
+	public TagService(
+			TagRepository tagRepository,
+			Messages messages,
+			TagValidator tagValidator,
+			EventRepository eventRepository,
+			TemplateRepository templateRepository,
+			SubscriptionRepository subscriptionRepository) {
+		this.tagRepository = tagRepository;
+		this.messages = messages;
+		this.tagValidator = tagValidator;
+		this.eventRepository = eventRepository;
+		this.templateRepository = templateRepository;
+		this.subscriptionRepository = subscriptionRepository;
+	}
 
 	// -------------------------------------------------------------------------
 	// Queries

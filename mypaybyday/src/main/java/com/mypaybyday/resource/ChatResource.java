@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
-import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.POST;
@@ -44,14 +43,18 @@ public class ChatResource {
 
 	private static final Logger log = Logger.getLogger(ChatResource.class);
 
-	@Inject
-	AgentFinanceEventCreator agentFinanceEventCreator;
+	private final AgentFinanceEventCreator agentFinanceEventCreator;
+	private final LanguageContext languageContext;
+	private final ChatMemoryOnRAM chatMemoryBean;
 
-	@Inject
-	LanguageContext languageContext;
-
-	@Inject
-	ChatMemoryOnRAM chatMemoryBean;
+	public ChatResource(
+			AgentFinanceEventCreator agentFinanceEventCreator,
+			LanguageContext languageContext,
+			ChatMemoryOnRAM chatMemoryBean) {
+		this.agentFinanceEventCreator = agentFinanceEventCreator;
+		this.languageContext = languageContext;
+		this.chatMemoryBean = chatMemoryBean;
+	}
 
 	@POST
 	@Consumes(MediaType.MULTIPART_FORM_DATA)

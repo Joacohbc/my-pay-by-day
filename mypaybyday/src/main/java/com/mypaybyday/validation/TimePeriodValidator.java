@@ -3,7 +3,6 @@ package com.mypaybyday.validation;
 import java.math.BigDecimal;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 import com.mypaybyday.entity.TimePeriodEntity;
 import com.mypaybyday.exception.BusinessException;
@@ -11,14 +10,15 @@ import com.mypaybyday.exception.BusinessException;
 @ApplicationScoped
 public class TimePeriodValidator {
 
-    @Inject
-    RegexValidator regexValidator;
+    private final RegexValidator regexValidator;
+    private final DateValidator dateValidator;
+    private final NumberValidator numberValidator;
 
-    @Inject
-    DateValidator dateValidator;
-
-    @Inject
-    NumberValidator numberValidator;
+    public TimePeriodValidator(RegexValidator regexValidator, DateValidator dateValidator, NumberValidator numberValidator) {
+        this.regexValidator = regexValidator;
+        this.dateValidator = dateValidator;
+        this.numberValidator = numberValidator;
+    }
 
     public void validate(TimePeriodEntity timePeriod) throws BusinessException {
         if (timePeriod == null) return;

@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
@@ -13,8 +12,11 @@ import com.mypaybyday.i18n.MsgKey;
 @ApplicationScoped
 public class DateValidator {
 
-    @Inject
-    Messages messages;
+    private final Messages messages;
+
+    public DateValidator(Messages messages) {
+        this.messages = messages;
+    }
 
     public void validateDateRange(LocalDate startDate, LocalDate endDate) throws BusinessException {
         if (startDate != null && endDate != null && endDate.isBefore(startDate)) {

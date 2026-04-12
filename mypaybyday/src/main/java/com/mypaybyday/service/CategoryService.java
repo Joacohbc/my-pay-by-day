@@ -3,7 +3,6 @@ package com.mypaybyday.service;
 import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.CategoryDto;
@@ -22,20 +21,27 @@ import io.quarkus.panache.common.Page;
 @ApplicationScoped
 public class CategoryService {
 
-	@Inject
-	CategoryRepository categoryRepository;
+	private final CategoryRepository categoryRepository;
+	private final Messages messages;
+	private final CategoryValidator categoryValidator;
+	private final EventRepository eventRepository;
+	private final TemplateRepository templateRepository;
+	private final SubscriptionRepository subscriptionRepository;
 
-	@Inject
-	Messages messages;
-
-	@Inject
-	CategoryValidator categoryValidator;
-	@Inject
-	EventRepository eventRepository;
-	@Inject
-	TemplateRepository templateRepository;
-	@Inject
-	SubscriptionRepository subscriptionRepository;
+	public CategoryService(
+			CategoryRepository categoryRepository,
+			Messages messages,
+			CategoryValidator categoryValidator,
+			EventRepository eventRepository,
+			TemplateRepository templateRepository,
+			SubscriptionRepository subscriptionRepository) {
+		this.categoryRepository = categoryRepository;
+		this.messages = messages;
+		this.categoryValidator = categoryValidator;
+		this.eventRepository = eventRepository;
+		this.templateRepository = templateRepository;
+		this.subscriptionRepository = subscriptionRepository;
+	}
 
 	// -------------------------------------------------------------------------
 	// Queries

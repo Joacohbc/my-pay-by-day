@@ -2,7 +2,6 @@ package com.mypaybyday.resource;
 
 import java.math.BigDecimal;
 
-import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -25,8 +24,11 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Tag(name = "Finance Nodes", description = "Core entities capable of holding, sending, or receiving value (accounts, external entities, contacts)")
 public class FinanceNodeResource {
 
-    @Inject
-    FinanceNodeService financeNodeService;
+    private final FinanceNodeService financeNodeService;
+
+    public FinanceNodeResource(FinanceNodeService financeNodeService) {
+        this.financeNodeService = financeNodeService;
+    }
 
     @GET
     @Operation(summary = "List active finance nodes (paginated)", description = "Returns only non-archived nodes. Use ?page=0&size=20 to control pagination.")

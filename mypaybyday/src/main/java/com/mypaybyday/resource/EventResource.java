@@ -1,6 +1,5 @@
 package com.mypaybyday.resource;
 
-import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -27,8 +26,11 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Tag(name = "Events", description = "Experience-layer wrapper: human-readable financial events that encapsulate a Transaction")
 public class EventResource {
 
-    @Inject
-    EventService eventService;
+    private final EventService eventService;
+
+    public EventResource(EventService eventService) {
+        this.eventService = eventService;
+    }
 
     @GET
     @Operation(summary = "List events (paginated)", description = "Returns a paginated page of FinanceEvents with optional filtering.")

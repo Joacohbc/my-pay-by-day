@@ -3,7 +3,6 @@ package com.mypaybyday.validation;
 import java.math.BigDecimal;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
@@ -12,8 +11,11 @@ import com.mypaybyday.i18n.MsgKey;
 @ApplicationScoped
 public class NumberValidator {
 
-    @Inject
-    Messages messages;
+    private final Messages messages;
+
+    public NumberValidator(Messages messages) {
+        this.messages = messages;
+    }
 
     public void validatePositive(BigDecimal value) throws BusinessException {
         if (value != null && value.compareTo(BigDecimal.ZERO) <= 0) {

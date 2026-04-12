@@ -3,7 +3,6 @@ package com.mypaybyday.service;
 import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.FinanceTransactionDto;
@@ -18,17 +17,21 @@ import com.mypaybyday.repository.TransactionRepository;
 @ApplicationScoped
 public class TransactionService {
 
-	@Inject
-	TransactionRepository transactionRepository;
+	private final TransactionRepository transactionRepository;
+	private final FinanceNodeRepository financeNodeRepository;
+	private final TransactionValidator transactionValidator;
+	private final Messages messages;
 
-	@Inject
-	FinanceNodeRepository financeNodeRepository;
-
-	@Inject
-	TransactionValidator transactionValidator;
-
-	@Inject
-	Messages messages;
+	public TransactionService(
+			TransactionRepository transactionRepository,
+			FinanceNodeRepository financeNodeRepository,
+			TransactionValidator transactionValidator,
+			Messages messages) {
+		this.transactionRepository = transactionRepository;
+		this.financeNodeRepository = financeNodeRepository;
+		this.transactionValidator = transactionValidator;
+		this.messages = messages;
+	}
 
 	@Transactional
 	public List<FinanceTransactionDto> listAll() {
