@@ -453,6 +453,16 @@ const en = {
     bulkActions: 'Bulk Actions',
   },
 
+  // ─── Validation ──────────────────────────────────────────────────────────
+  validation: {
+    nameRequired: 'Name is required',
+    nameTooLong: 'Name must be at most 255 characters',
+    nameInvalidChars: 'Name can only contain letters, numbers, spaces, dashes and dots',
+    descriptionTooLong: 'Description must be at most 5100 characters',
+    descriptionInvalidChars: 'Description contains invalid characters',
+    modifierValueRequired: 'Modifier value is required when a modifier type is selected',
+  },
+
   // ─── Errors ──────────────────────────────────────────────────────────────
   errors: {
     eventNotFound: 'Event not found',

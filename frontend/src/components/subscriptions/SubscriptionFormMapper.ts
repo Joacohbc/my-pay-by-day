@@ -1,0 +1,84 @@
+import { z } from 'zod/v4';
+import {
+  nameField,
+  descriptionField,
+  optionalEventTypeField,
+  optionalNodeIdField,
+  optionalCategoryIdField,
+  optionalTagIdsField,
+} from '@/lib/validation';
+import type { Subscription, CreateSubscriptionDto, EventType, RecurrenceFrequency, SubscriptionStatus } from '@/models';
+
+// ─── Schema ──────────────────────────────────────────────────────────────────
+
+export function buildSchema(t: (key: string) => string) {
+  return z.object({
+    name: nameField(t),
+    description: descriptionField(t),
+    eventType: optionalEventTypeField(),
+    originNodeId: optionalNodeIdField(),
+    destinationNodeId: optionalNodeIdField(),
+    categoryId: optionalCategoryIdField(),
+    tagIds: optionalTagIdsField(),
+    modifierValue: z.string().optional(),
+    recurrence: z.enum(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'], {
+      error: t('common.required'),
+    }),
+    nextExecutionDate: z.string().min(1, t('common.required')),
+    status: z.enum(['ACTIVE', 'CANCELLED'], {
+      error: t('common.required'),
+    }),
+  });
+}
+
+export type FormValues = z.infer<ReturnType<typeof buildSchema>>;
+
+// ─── Defaults ────────────────────────────────────────────────────────────────
+
+export const DEFAULT_VALUES: FormValues = {
+  name: '',
+  description: '',
+  eventType: '',
+  originNodeId: '',
+  destinationNodeId: '',
+  categoryId: '',
+  tagIds: [],
+  modifierValue: '',
+  recurrence: 'MONTHLY',
+  nextExecutionDate: new Date().toISOString().split('T')[0],
+  status: 'ACTIVE',
+};
+
+// ─── Mappers ─────────────────────────────────────────────────────────────────
+
+export function fromSubscription(subscription: Subscription): FormValues {
+  return {
+    name: subscription.name,
+    description: subscription.description ?? '',
+    eventType: subscription.eventType ?? '',
+    originNodeId: subscription.originNodeId ? String(subscription.originNodeId) : '',
+    destinationNodeId: subscription.destinationNodeId ? String(subscription.destinationNodeId) : '',
+    categoryId: subscription.category ? String(subscription.category.id) : '',
+    tagIds: subscription.tags ? subscription.tags.map((tag) => String(tag.id)) : [],
+    modifierValue: subscription.modifierValue != null ? String(subscription.modifierValue) : '',
+    recurrence: subscription.recurrence,
+    nextExecutionDate: subscription.nextExecutionDate.slice(0, 10),
+    status: subscription.status,
+  };
+}
+
+export function toCreateDto(values: FormValues): CreateSubscriptionDto {
+  return {
+    name: values.name,
+    description: values.description || undefined,
+    originNodeId: values.originNodeId ? Number(values.originNodeId) : undefined,
+    destinationNodeId: values.destinationNodeId ? Number(values.destinationNodeId) : undefined,
+    category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
+    tags: values.tagIds?.map((id) => ({ id: Number(id) })),
+    eventType: (values.eventType as EventType) || undefined,
+    modifierValue: values.modifierValue ? Number(values.modifierValue) : undefined,
+    recurrence: values.recurrence as RecurrenceFrequency,
+    nextExecutionDate: values.nextExecutionDate,
+    status: values.status as SubscriptionStatus,
+  };
+}

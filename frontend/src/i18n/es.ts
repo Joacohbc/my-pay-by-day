@@ -453,6 +453,16 @@ const es = {
     bulkActions: 'Acciones masivas',
   },
 
+  // ─── Validation ──────────────────────────────────────────────────────────
+  validation: {
+    nameRequired: 'El nombre es requerido',
+    nameTooLong: 'El nombre debe tener como máximo 255 caracteres',
+    nameInvalidChars: 'El nombre solo puede contener letras, números, espacios, guiones y puntos',
+    descriptionTooLong: 'La descripción debe tener como máximo 5100 caracteres',
+    descriptionInvalidChars: 'La descripción contiene caracteres no válidos',
+    modifierValueRequired: 'El valor del modificador es requerido cuando se selecciona un tipo de modificador',
+  },
+
   // ─── Errors ──────────────────────────────────────────────────────────────
   errors: {
     eventNotFound: 'Evento no encontrado',
