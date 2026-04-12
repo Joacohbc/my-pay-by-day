@@ -1,5 +1,13 @@
 package com.mypaybyday.service;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.FinanceLineItemDto;
 import com.mypaybyday.dto.PagedResponse;
@@ -22,16 +30,8 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.SystemJobRepository;
+import com.mypaybyday.validation.SubscriptionValidator;
 import io.quarkus.panache.common.Page;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
@@ -56,6 +56,9 @@ public class SubscriptionService {
 
 	@Inject
 	Messages messages;
+
+	@Inject
+	SubscriptionValidator subscriptionValidator;
 
 	@Inject
 	EventService eventService;
@@ -98,6 +101,9 @@ public class SubscriptionService {
 		SubscriptionEntity subscription = new SubscriptionEntity();
 		subscription.name = dto.name();
 		subscription.description = dto.description();
+
+		subscriptionValidator.validate(subscription);
+
 		subscription.eventType = dto.eventType();
 		subscription.modifierValue = dto.modifierValue();
 		subscription.recurrence = dto.recurrence();
@@ -150,6 +156,9 @@ public class SubscriptionService {
 		if (dto.description() != null) {
 			subscription.description = dto.description();
 		}
+
+		subscriptionValidator.validate(subscription);
+
 		if (dto.eventType() != null) {
 			subscription.eventType = dto.eventType();
 		}
@@ -290,17 +299,17 @@ public class SubscriptionService {
 
 		switch (sub.eventType) {
 			case INBOUND -> {
-				lineItems.add(new FinanceLineItemDto(null, sub.originNode.id, sub.originNode.name, sub.modifierValue.negate()));
-				lineItems.add(new FinanceLineItemDto(null, sub.destinationNode.id, sub.destinationNode.name, sub.modifierValue));
+				lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, sub.modifierValue.negate()));
+				lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, sub.modifierValue));
 			}
 			case OUTBOUND -> {
-				lineItems.add(new FinanceLineItemDto(null, sub.originNode.id, sub.originNode.name, sub.modifierValue.negate()));
-				lineItems.add(new FinanceLineItemDto(null, sub.destinationNode.id, sub.destinationNode.name, sub.modifierValue));
+				lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, sub.modifierValue.negate()));
+				lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, sub.modifierValue));
 			}
 			case OTHER -> {
 				if (sub.destinationNode != null) {
-					lineItems.add(new FinanceLineItemDto(null, sub.originNode.id, sub.originNode.name, sub.modifierValue.negate()));
-					lineItems.add(new FinanceLineItemDto(null, sub.destinationNode.id, sub.destinationNode.name, sub.modifierValue));
+					lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, sub.modifierValue.negate()));
+					lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, sub.modifierValue));
 				} else {
 					LOG.warnf("Subscription %d is type OTHER but missing destinationNode. Skipping.", sub.id);
 					return;

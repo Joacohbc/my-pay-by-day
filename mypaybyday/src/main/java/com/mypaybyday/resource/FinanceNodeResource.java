@@ -1,13 +1,16 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.dto.FinanceNodeDto;
-import com.mypaybyday.dto.PagedResponse;
-import com.mypaybyday.exception.BusinessException;
-import com.mypaybyday.service.FinanceNodeService;
+import java.math.BigDecimal;
+
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+
+import com.mypaybyday.dto.FinanceNodeDto;
+import com.mypaybyday.dto.PagedResponse;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.service.FinanceNodeService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -15,8 +18,6 @@ import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-
-import java.math.BigDecimal;
 
 @Path("/finance-nodes")
 @Produces(MediaType.APPLICATION_JSON)
@@ -66,7 +67,7 @@ public class FinanceNodeResource {
 	return Response.status(Response.Status.CREATED).entity(financeNodeService.create(node)).build();
     }
 
-    @PATCH
+    @PUT
     @Path("/{id}")
     @Operation(summary = "Update a finance node")
     @APIResponses({
@@ -81,7 +82,7 @@ public class FinanceNodeResource {
 	return Response.ok(financeNodeService.update(id, nodeDetails)).build();
     }
 
-    @PATCH
+    @POST
     @Path("/{id}/archive")
     @Operation(summary = "Archive a finance node",
 	description = "Soft-deletes the node. Archived nodes are excluded from listings and cannot be used in new transactions. " +
@@ -97,7 +98,7 @@ public class FinanceNodeResource {
 	return Response.noContent().build();
     }
 
-    @PATCH
+    @POST
     @Path("/{id}/unarchive")
     @Operation(summary = "Unarchive a finance node",
 	description = "Restores an archived node to active state.")

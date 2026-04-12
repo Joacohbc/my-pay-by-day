@@ -1,5 +1,11 @@
 package com.mypaybyday.service;
 
+import java.util.List;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+
 import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.CategoryEntity;
@@ -7,12 +13,11 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.CategoryRepository;
+import com.mypaybyday.repository.EventRepository;
+import com.mypaybyday.repository.SubscriptionRepository;
+import com.mypaybyday.repository.TemplateRepository;
+import com.mypaybyday.validation.CategoryValidator;
 import io.quarkus.panache.common.Page;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
-import java.util.List;
 
 @ApplicationScoped
 public class CategoryService {
@@ -22,6 +27,15 @@ public class CategoryService {
 
 	@Inject
 	Messages messages;
+
+	@Inject
+	CategoryValidator categoryValidator;
+	@Inject
+	EventRepository eventRepository;
+	@Inject
+	TemplateRepository templateRepository;
+	@Inject
+	SubscriptionRepository subscriptionRepository;
 
 	// -------------------------------------------------------------------------
 	// Queries
@@ -68,6 +82,9 @@ public class CategoryService {
 		category.name = dto.name();
 		category.description = dto.description();
 		category.icon = dto.icon();
+
+		categoryValidator.validate(category);
+
 		categoryRepository.persist(category);
 		return CategoryDto.from(category);
 	}
@@ -81,12 +98,24 @@ public class CategoryService {
 		category.name = dto.name();
 		category.description = dto.description();
 		category.icon = dto.icon();
+
+		categoryValidator.validate(category);
+
 		return CategoryDto.from(category);
 	}
 
 	@Transactional
 	public void delete(Long id) throws BusinessException {
 		CategoryEntity category = findEntityById(id);
+
+		boolean inUse = eventRepository.countByCategory(category) > 0
+				|| templateRepository.countByCategory(category) > 0
+				|| subscriptionRepository.countByCategory(category) > 0;
+
+		if (inUse) {
+			throw new BusinessException(messages.get(MsgKey.CATEGORY_IN_USE));
+		}
+
 		categoryRepository.delete(category);
 	}
 }

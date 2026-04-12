@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Routes } from '@/lib/routes';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 
@@ -18,7 +19,7 @@ export function NewEventFab({ onNewEvent }: NewEventFabProps) {
           {t('dashboard.newEvent')}
         </Button>
       ) : (
-        <Link to="/events/new">
+        <Link to={Routes.EVENT_NEW}>
           <Button size="lg" className="rounded-pill shadow-lg shadow-dn-primary/20 gap-2">
             <Icon name="add" />
             {t('dashboard.newEvent')}

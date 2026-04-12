@@ -17,31 +17,55 @@ function openDB(): Promise<IDBDatabase> {
 
 const dbPromise = openDB();
 
-export const idbStorage: StateStorage = {
-  async getItem(name) {
-    const db = await dbPromise;
-    return new Promise((resolve, reject) => {
-      const req = db.transaction(STORE_NAME).objectStore(STORE_NAME).get(name);
-      req.onsuccess = () => resolve(req.result ?? null);
-      req.onerror = () => reject(req.error);
-    });
-  },
-  async setItem(name, value) {
-    const db = await dbPromise;
-    return new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      const req = tx.objectStore(STORE_NAME).put(value, name);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
-  },
-  async removeItem(name) {
-    const db = await dbPromise;
-    return new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      const req = tx.objectStore(STORE_NAME).delete(name);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
-  },
+// --- Core Reusable IDB Methods ---
+
+export async function idbGet(name: string): Promise<string | null> {
+  const db = await dbPromise;
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(STORE_NAME).objectStore(STORE_NAME).get(name);
+    req.onsuccess = () => resolve(req.result ?? null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function idbSet(name: string, value: string): Promise<void> {
+  const db = await dbPromise;
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const req = tx.objectStore(STORE_NAME).put(value, name);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function idbRemove(name: string): Promise<void> {
+  const db = await dbPromise;
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const req = tx.objectStore(STORE_NAME).delete(name);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// --- Specific Implementations ---
+
+/**
+ * Interface implementation for Zustand's `persist` middleware.
+ */
+export const zustandStorage: StateStorage = {
+  getItem: idbGet,
+  setItem: idbSet,
+  removeItem: idbRemove,
+};
+
+/**
+ * Interface implementation for React Query's `createAsyncStoragePersister`.
+ * The storage interface requires values to be returned and accepts string | null 
+ * and requires methods getItem, setItem, removeItem to return promises.
+ */
+export const queryStorage = {
+  getItem: idbGet,
+  setItem: idbSet,
+  removeItem: idbRemove,
 };

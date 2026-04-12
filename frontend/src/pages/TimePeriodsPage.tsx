@@ -22,6 +22,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
 import type { TimePeriod, CreateTimePeriodDto } from '@/models';
+import { getBudgetLimitMode, type BudgetLimitMode } from '@/lib/timePeriods';
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -32,8 +33,8 @@ interface FormValues {
   budgets: { categoryId: string; budgetedAmount: string }[];
   savingsPercentageGoal: string;
 
-  // auto: derived from category budget sum, fixed: user-entered explicit value.
-  budgetLimitMode: 'auto' | 'fixed';
+  // auto: derived from category budget sum, fixed: user-entered explicit value, none: no overall cap.
+  budgetLimitMode: BudgetLimitMode;
   budgetLimit: string;
 }
 
@@ -173,27 +174,14 @@ export function TimePeriodsPage() {
       budgetedAmount: String(b.budgetedAmount),
     })) || [];
 
-    // Full sum of category budgets for this period, used to determine if stored limit matches sum (auto) or differs (fixed).
-    const tpBudgetSum = tpBudgets.reduce((acc, b) => {
-      const val = parseFloat(String(b.budgetedAmount || '0'));
-      return acc + (isNaN(val) ? 0 : val);
-    }, 0);
-
-    // The limit value stored in the backend for this period, used to determine if it matches sum (auto) or differs (fixed).
-    const tpBudgetLimit = tp.budgetLimit != null ? Number(tp.budgetLimit) : NaN;
-
-    // If persisted limit matches category sum, treat it as auto-managed.
-    // If it differs, open in fixed mode to preserve the explicit stored value.
-    const isAutoMode =
-      tp.budgetLimit == null ||
-      (!isNaN(tpBudgetLimit) && Math.abs(tpBudgetLimit - tpBudgetSum) < 0.0001);
+    const detectMode = getBudgetLimitMode(tp);
 
     setValue('name', tp.name);
     setValue('startDate', tp.startDate);
     setValue('endDate', tp.endDate);
     setValue('budgets', tpBudgets);
     setValue('savingsPercentageGoal', tp.savingsPercentageGoal != null ? String(tp.savingsPercentageGoal) : '');
-    setValue('budgetLimitMode', isAutoMode ? 'auto' : 'fixed');
+    setValue('budgetLimitMode', detectMode);
     setValue('budgetLimit', tp.budgetLimit != null ? String(tp.budgetLimit) : '');
     setShowModal(true);
   };
@@ -212,10 +200,15 @@ export function TimePeriodsPage() {
       ? parseFloat(values.budgetLimit)
       : undefined;
 
-    // Auto: persist computed sum. Fixed: persist user-entered numeric value.
-    const effectiveBudgetLimit = values.budgetLimitMode === 'auto'
-      ? (computedBudgetSum > 0 ? computedBudgetSum : undefined)
-      : (parsedBudgetLimit != null && !isNaN(parsedBudgetLimit) ? parsedBudgetLimit : undefined);
+    // Auto: persist computed sum. Fixed: persist user-entered numeric value. None: persist null.
+    let effectiveBudgetLimit: number | null = null;
+    if (values.budgetLimitMode === 'auto') {
+      effectiveBudgetLimit = computedBudgetSum > 0 ? computedBudgetSum : null;
+    } else if (values.budgetLimitMode === 'fixed') {
+      effectiveBudgetLimit = parsedBudgetLimit != null && !isNaN(parsedBudgetLimit) ? parsedBudgetLimit : 0;
+    } else {
+      effectiveBudgetLimit = null;
+    }
 
     const dto = {
       name: values.name,
@@ -224,7 +217,7 @@ export function TimePeriodsPage() {
       budgets,
       savingsPercentageGoal: values.savingsPercentageGoal
         ? parseFloat(values.savingsPercentageGoal)
-        : undefined,
+        : null,
       budgetLimit: effectiveBudgetLimit,
     };
     if (editTarget) {
@@ -456,7 +449,7 @@ export function TimePeriodsPage() {
               </button>
             </div>
             {budgetFields.map((field, index) => (
-              <div key={field.id} className="flex items-start gap-2">
+              <div key={field.id} className="flex items-center gap-2">
                 <div className="flex-1">
                   <Controller
                     name={`budgets.${index}.categoryId` as const}
@@ -485,7 +478,7 @@ export function TimePeriodsPage() {
                 <button
                   type="button"
                   onClick={() => removeBudget(index)}
-                  className="p-2 text-dn-text-muted hover:text-dn-error mt-6"
+                  className="p-2 text-dn-text-muted hover:text-dn-error"
                 >
                   <Icon name="close" className="text-sm" />
                 </button>
@@ -507,7 +500,7 @@ export function TimePeriodsPage() {
 
           <div className="space-y-2">
             <label className="text-xs font-medium text-dn-text-main">{t('periods.budgetLimitModeLabel')}</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setValue('budgetLimitMode', 'auto', { shouldDirty: true, shouldValidate: true })}
@@ -520,7 +513,13 @@ export function TimePeriodsPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setValue('budgetLimitMode', 'fixed', { shouldDirty: true, shouldValidate: true })}
+                onClick={() => {
+                  setValue('budgetLimitMode', 'fixed', { shouldDirty: true, shouldValidate: true });
+                  const currentLimit = control._getWatch('budgetLimit');
+                  if (!currentLimit || isNaN(parseFloat(String(currentLimit)))) {
+                    setValue('budgetLimit', '0', { shouldDirty: true, shouldValidate: true });
+                  }
+                }}
                 className={`px-3 py-2 rounded-input text-xs font-medium border transition-colors ${budgetLimitMode === 'fixed'
                     ? 'border-dn-primary bg-dn-primary/15 text-dn-primary'
                     : 'border-white/10 bg-dn-surface-low text-dn-text-muted hover:text-dn-text-main'
@@ -528,35 +527,47 @@ export function TimePeriodsPage() {
               >
                 {t('periods.budgetLimitModeFixed')}
               </button>
+              <button
+                type="button"
+                onClick={() => setValue('budgetLimitMode', 'none', { shouldDirty: true, shouldValidate: true })}
+                className={`px-3 py-2 rounded-input text-xs font-medium border transition-colors ${budgetLimitMode === 'none'
+                    ? 'border-dn-primary bg-dn-primary/15 text-dn-primary'
+                    : 'border-white/10 bg-dn-surface-low text-dn-text-muted hover:text-dn-text-main'
+                  }`}
+              >
+                {t('periods.budgetLimitModeNone')}
+              </button>
             </div>
             {budgetLimitMode === 'auto' && (
               <p className="text-xs text-dn-text-muted">{t('periods.budgetLimitAutoHelp')}</p>
             )}
           </div>
 
-          <Input
-            label={t('periods.budgetLimit')}
-            type="number"
-            placeholder={t('periods.budgetLimitPlaceholder')}
-            min="0"
-            step="0.01"
-            disabled={budgetLimitMode === 'auto'}
-            readOnly={budgetLimitMode === 'auto'}
-            hint={budgetLimitMode === 'auto' ? t('periods.budgetLimitReadOnlyAuto') : undefined}
-            error={errors.budgetLimit?.message}
-            {...register('budgetLimit', {
-              validate: (value) => {
-                if (budgetLimitMode === 'auto') return true;
-                if (!value || String(value).trim() === '') return true;
-                const numValue = parseFloat(String(value));
-                if (isNaN(numValue)) return true;
-                if (numValue < sumOfCategoryBudgets) {
-                  return t('periods.budgetLimitMinimum', { min: sumOfCategoryBudgets.toFixed(2) });
+          {budgetLimitMode !== 'none' && (
+            <Input
+              label={t('periods.budgetLimit')}
+              type="number"
+              placeholder={t('periods.budgetLimitPlaceholder')}
+              min="0"
+              step="0.01"
+              disabled={budgetLimitMode === 'auto'}
+              readOnly={budgetLimitMode === 'auto'}
+              hint={budgetLimitMode === 'auto' ? t('periods.budgetLimitReadOnlyAuto') : undefined}
+              error={errors.budgetLimit?.message}
+              {...register('budgetLimit', {
+                validate: (value) => {
+                  if (budgetLimitMode === 'auto') return true;
+                  if (!value || String(value).trim() === '') return true;
+                  const numValue = parseFloat(String(value));
+                  if (isNaN(numValue)) return true;
+                  if (numValue < sumOfCategoryBudgets) {
+                    return t('periods.budgetLimitMinimum', { min: sumOfCategoryBudgets.toFixed(2) });
+                  }
+                  return true;
                 }
-                return true;
-              }
-            })}
-          />
+              })}
+            />
+          )}
         </form>
       </Modal>
     </div>

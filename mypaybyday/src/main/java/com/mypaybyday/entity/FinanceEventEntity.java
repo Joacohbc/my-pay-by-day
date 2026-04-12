@@ -1,7 +1,7 @@
 package com.mypaybyday.entity;
 
-import com.mypaybyday.crypto.StringEncryptionConverter;
-import com.mypaybyday.enums.EventType;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -15,11 +15,12 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
-import java.util.ArrayList;
-import java.util.List;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.mypaybyday.crypto.StringEncryptionConverter;
+import com.mypaybyday.enums.EventType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -70,16 +71,6 @@ public class FinanceEventEntity extends BaseEntity {
 	*/
 	@Convert(converter = StringEncryptionConverter.class)
 	public String description;
-
-	/**
-	* URL pointing to an attached receipt or supporting document for this event.
-	*
-	* <p>
-	* <b>Encrypted at rest</b> via AES-256-GCM. Cannot be used in JPQL/SQL
-	* {@code WHERE} clauses — compare in memory after loading.
-	*/
-	@Convert(converter = StringEncryptionConverter.class)
-	public String receiptUrl;
 
 	/**
 	* Directional nature of this event.

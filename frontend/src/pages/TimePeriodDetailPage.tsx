@@ -5,6 +5,7 @@ import { useDefaultTimePeriod } from '@/hooks/useDefaultTimePeriod';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { Routes } from '@/lib/routes';
 
 export function TimePeriodDetailPage() {
   const { t } = useTranslation();
@@ -28,7 +29,7 @@ export function TimePeriodDetailPage() {
     <div>
       <div className="flex items-center justify-between px-5 pt-5 gap-2">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(Routes.DASHBOARD)}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-dn-surface-low text-dn-text-main hover:bg-dn-surface transition-colors shrink-0"
         >
           <Icon name="arrow_back" className="text-[18px]" />

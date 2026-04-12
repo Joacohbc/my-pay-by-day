@@ -41,7 +41,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
     }
     throw new Error(message);
   }
-  if (res.status === 204) return undefined as T;
+  if (res.status === 204) return null as T;
   const data = await res.json();
   // Transform all UTC date strings from the server to the user's timezone
   return transformDates(data, fromServerDate) as T;

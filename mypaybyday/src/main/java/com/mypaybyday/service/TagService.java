@@ -1,18 +1,23 @@
 package com.mypaybyday.service;
 
+import java.util.List;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
+import com.mypaybyday.repository.EventRepository;
+import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TagRepository;
+import com.mypaybyday.repository.TemplateRepository;
+import com.mypaybyday.validation.TagValidator;
 import io.quarkus.panache.common.Page;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
-import java.util.List;
 
 @ApplicationScoped
 public class TagService {
@@ -22,6 +27,15 @@ public class TagService {
 
 	@Inject
 	Messages messages;
+
+	@Inject
+	TagValidator tagValidator;
+	@Inject
+	EventRepository eventRepository;
+	@Inject
+	TemplateRepository templateRepository;
+	@Inject
+	SubscriptionRepository subscriptionRepository;
 
 	// -------------------------------------------------------------------------
 	// Queries
@@ -67,6 +81,9 @@ public class TagService {
 		TagEntity tag = new TagEntity();
 		tag.name = dto.name();
 		tag.description = dto.description();
+
+		tagValidator.validate(tag);
+
 		tagRepository.persist(tag);
 		return TagDto.from(tag);
 	}
@@ -79,12 +96,24 @@ public class TagService {
 		}
 		tag.name = dto.name();
 		tag.description = dto.description();
+
+		tagValidator.validate(tag);
+
 		return TagDto.from(tag);
 	}
 
 	@Transactional
 	public void delete(Long id) throws BusinessException {
 		TagEntity tag = findTagEntity(id);
+
+		boolean inUse = eventRepository.countByTag(tag) > 0
+				|| templateRepository.countByTag(tag) > 0
+				|| subscriptionRepository.countByTag(tag) > 0;
+
+		if (inUse) {
+			throw new BusinessException(messages.get(MsgKey.TAG_IN_USE));
+		}
+
 		tagRepository.delete(tag);
 	}
 }

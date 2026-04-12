@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Routes } from '@/lib/routes';
 import { useEvent, useDeleteEvent, useUpdateEvent } from '@/hooks/useEvents';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -45,12 +46,11 @@ export function EventDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
+
   const { data: event, isLoading, error } = useEvent(Number(id));
   const deleteEvent = useDeleteEvent();
   const updateEvent = useUpdateEvent();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const cameFromEvents = location.key !== 'default';
 
   if (isLoading) return <FullPageSpinner />;
   if (error || !event) return <ErrorState message={t('errors.eventNotFound')} />;
@@ -60,11 +60,7 @@ export function EventDetailPage() {
 
   const confirmDelete = async () => {
     await deleteEvent.mutateAsync(event.id);
-    if (cameFromEvents) {
-      navigate(-1);
-    } else {
-      navigate('/events', { replace: true });
-    }
+    navigate(Routes.EVENTS);
   };
 
   const handleAddFile = async (file: FileDto) => {
@@ -165,20 +161,6 @@ export function EventDetailPage() {
               </span>
             </div>
           )}
-          {event.receiptUrl && (
-            <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-              <span className="text-sm text-dn-text-muted">{t('events.receipt')}</span>
-              <a
-                href={event.receiptUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-dn-primary flex items-center gap-1"
-              >
-                {t('common.view')}
-                <Icon name="open_in_new" className="text-sm" />
-              </a>
-            </div>
-          )}
         </Card>
       </div>
 
@@ -187,8 +169,8 @@ export function EventDetailPage() {
         <h3 className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">{t('events.lineItems')}</h3>
         {event.lineItems?.length ? (
           <Card className="divide-y divide-white/5">
-            {event.lineItems.map((li) => (
-              <div key={li.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+            {event.lineItems.map((li, index) => (
+              <div key={`${li.financeNodeId}_${index}`} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                 <div>
                   <p className="text-sm font-medium text-dn-text-main">{li.financeNodeName}</p>
                 </div>

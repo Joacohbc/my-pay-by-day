@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Routes } from '@/lib/routes';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { DraftBadge } from '@/components/ui/DraftBadge';
@@ -9,11 +10,11 @@ import type { CreateEventDto, PatchEventDto, Template, FinanceEvent, FinanceLine
 
 function mapTemplateToEventValues(template: Template): Partial<FinanceEvent> {
   const originLineItem: FinanceLineItem | undefined = template.originNodeId
-    ? { id: 0, financeNodeId: template.originNodeId, financeNodeName: template.originNodeName ?? '', amount: 0 }
+    ? { financeNodeId: template.originNodeId, financeNodeName: template.originNodeName ?? '', amount: 0 }
     : undefined;
 
   const destinationLineItem: FinanceLineItem | undefined = template.destinationNodeId
-    ? { id: 0, financeNodeId: template.destinationNodeId, financeNodeName: template.destinationNodeName ?? '', amount: 0 }
+    ? { financeNodeId: template.destinationNodeId, financeNodeName: template.destinationNodeName ?? '', amount: 0 }
     : undefined;
 
   return {
@@ -40,15 +41,19 @@ export function EventNewPage() {
   const initialValues = draft ?? (template ? mapTemplateToEventValues(template) : undefined);
 
   const handleSubmit = async (dto: CreateEventDto | PatchEventDto, formDraftId?: number) => {
+    // saveAsync will throw if the API request fails, halting execution.
+    // If it succeeds online, it returns the Event. If offline, it queues and returns null.
     const created = await createEvent.saveAsync(dto as CreateEventDto);
+    
     if (created) {
+      // Only delete the draft when the event is confirmed by the server.
+      // If offline (created === null), the event is only queued locally — keep the draft.
       const idToDelete = formDraftId || draft?.draftId;
-      if (idToDelete) {
-        await deleteDraft.mutateAsync(idToDelete);
-      }
-      navigate(`/events/${created.id}`, { replace: true });
+      if (idToDelete) deleteDraft.mutate(idToDelete);
+      navigate(Routes.EVENT_DETAIL(created.id));
     } else {
-      navigate('/events', { replace: true });
+      // Offline fallback navigation — draft is preserved intentionally
+      navigate(Routes.EVENTS);
     }
   };
 
@@ -63,12 +68,14 @@ export function EventNewPage() {
     }
   };
 
-  const handleDeleteDraft = async (formDraftId?: number) => {
+  const handleDeleteDraft = async (formDraftId?: number, shouldExit = true) => {
     const idToDelete = formDraftId || draft?.draftId;
     if (idToDelete) {
       await deleteDraft.mutateAsync(idToDelete);
     }
-    navigate(-1);
+    if (shouldExit) {
+      navigate(Routes.EVENTS);
+    }
   };
 
   return (

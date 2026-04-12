@@ -1,4 +1,8 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Modal } from '@/components/ui/Modal';
+import { TagForm } from '@/components/tags/TagForm';
+import { Icon } from '@/components/ui/Icon';
 import type { Tag } from '@/models';
 
 interface TagSelectorProps {
@@ -7,6 +11,7 @@ interface TagSelectorProps {
   onChange: (ids: string[]) => void;
   label?: string;
   className?: string;
+  showAdd?: boolean;
 }
 
 export function TagSelector({
@@ -15,10 +20,10 @@ export function TagSelector({
   onChange,
   label,
   className = '',
+  showAdd = false,
 }: TagSelectorProps) {
   const { t } = useTranslation();
-
-  if (tags.length === 0) return null;
+  const [showModal, setShowModal] = useState(false);
 
   const resolvedLabel = label ?? t('eventForm.tags');
 
@@ -53,7 +58,33 @@ export function TagSelector({
             </button>
           );
         })}
+
+        {showAdd && (
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="px-3 py-1.5 rounded-pill text-xs font-medium border border-dashed border-white/10 bg-dn-surface-low text-dn-text-muted hover:border-dn-primary/30 hover:text-dn-primary transition-all cursor-pointer flex items-center gap-1"
+          >
+            <Icon name="add" className="text-sm" />
+            {t('common.new')}
+          </button>
+        )}
       </div>
+
+      <Modal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title={t('tags.newTag')}
+      >
+        <TagForm
+          onSuccess={(newTag) => {
+            onChange([...(value ?? []), String(newTag.id)]);
+            setShowModal(false);
+          }}
+          onCancel={() => setShowModal(false)}
+        />
+      </Modal>
     </div>
   );
 }
+

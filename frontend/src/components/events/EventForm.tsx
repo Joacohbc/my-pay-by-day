@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/contexts/AlertContext';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
@@ -52,7 +51,7 @@ interface EventFormProps {
    * so the form can store it internally and reuse it on subsequent saves.
    */
   onSaveDraft?: (dto: Partial<FinanceEvent>) => Promise<number | void>;
-  onDeleteDraft?: (draftId?: number) => Promise<void>;
+  onDeleteDraft?: (draftId?: number, shouldExit?: boolean) => Promise<void>;
   /**
    * Controls only the visibility of the "Delete draft" button — it does not affect form
    * behaviour. Must be true when the form is loaded from an existing persisted draft.
@@ -98,7 +97,6 @@ function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormValues {
   return {
     name: defaultValues?.name ?? '',
     description: defaultValues?.description ?? '',
-    receiptUrl: defaultValues?.receiptUrl ?? '',
     type: (defaultValues?.type as EventType) ?? 'OUTBOUND',
     transactionDate,
     categoryId,
@@ -157,7 +155,6 @@ export function EventForm({
 
   
   const {
-    register,
     handleSubmit,
     control,
     setValue,
@@ -198,7 +195,6 @@ export function EventForm({
     alert.error(errorMessage);
   };
   
-  const [savingDraft, setSavingDraft] = useState(false);
   const [deletingDraft, setDeletingDraft] = useState(false);
   
   const saveDraftCore = async () => {
@@ -209,15 +205,6 @@ export function EventForm({
     if (typeof resultId === 'number') {
       setValue('draftId', resultId);
       setValue('isDraft', true);
-    }
-  };
-
-  const handleSaveDraft = async () => {
-    setSavingDraft(true);
-    try {
-      await saveDraftCore();
-    } finally {
-      setSavingDraft(false);
     }
   };
 
@@ -242,12 +229,12 @@ export function EventForm({
     return () => subscription.unsubscribe();
   }, [watch, onSaveDraft, debouncedSaveDraft]);
 
-  const handleDeleteDraft = async () => {
+  const handleDeleteDraft = async (shouldExit = true) => {
     if (!onDeleteDraft) return;
     setDeletingDraft(true);
     try {
       const values = getValues();
-      await onDeleteDraft(values.draftId ?? undefined);
+      await onDeleteDraft(values.draftId ?? undefined, shouldExit);
     } finally {
       setDeletingDraft(false);
     }
@@ -255,7 +242,7 @@ export function EventForm({
 
   const nodeOptions = activeNodes.map((n) => ({ value: String(n.id), label: n.name }));
 
-  if (!formReady) return <FullPageSpinner />;
+  if (!formReady) return <FullPageSpinner />
 
   return (
     <FormProvider {...methods}>
@@ -272,6 +259,7 @@ export function EventForm({
               categories={categories}
               value={field.value ?? ''}
               onChange={field.onChange}
+              showAdd={true}
             />
           )}
         />
@@ -284,46 +272,39 @@ export function EventForm({
               tags={tags}
               value={field.value ?? []}
               onChange={field.onChange}
+              showAdd={true}
             />
           )}
         />
 
+
         <LineItemsEditor nodeOptions={nodeOptions} />
 
-        <Input
-          label={t('eventForm.receiptUrl')}
-          placeholder={t('eventForm.receiptUrlPlaceholder')}
-          type="url"
-          {...register('receiptUrl')}
-        />
-
-        <div className="flex flex-col gap-3">
-          {onSaveDraft && (
-            <div className="flex gap-3">
+        <div className="flex flex-col gap-2">
+          {isDraft && onDeleteDraft && (
+            <div className="flex gap-2">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={handleSaveDraft}
-                loading={savingDraft}
-                className="flex-1"
+                onClick={() => handleDeleteDraft(true)}
+                loading={deletingDraft}
+                className="flex-1 text-dn-error hover:bg-dn-error/10"
               >
-                <Icon name="save" className="mr-2" />
-                {t('drafts.save')}
+                <Icon name="logout" className="mr-2" />
+                {t('drafts.deleteAndExit')}
               </Button>
-              {isDraft && onDeleteDraft && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDeleteDraft}
-                  loading={deletingDraft}
-                  className="flex-1 text-dn-error hover:bg-dn-error/10"
-                >
-                  <Icon name="delete" className="mr-2" />
-                  {t('drafts.delete')}
-                </Button>
-              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDeleteDraft(false)}
+                loading={deletingDraft}
+                className="flex-1 text-dn-error/80 hover:bg-dn-error/10"
+              >
+                <Icon name="refresh" className="mr-2" />
+                {t('drafts.deleteAndReset')}
+              </Button>
             </div>
           )}
           <Button

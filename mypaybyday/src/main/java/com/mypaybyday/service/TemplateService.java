@@ -1,5 +1,12 @@
 package com.mypaybyday.service;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TemplateDto;
 import com.mypaybyday.entity.TagEntity;
@@ -9,13 +16,8 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TemplateRepository;
+import com.mypaybyday.validation.TemplateValidator;
 import io.quarkus.panache.common.Page;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @ApplicationScoped
 public class TemplateService {
@@ -37,6 +39,9 @@ public class TemplateService {
 
 	@Inject
 	Messages messages;
+
+	@Inject
+	TemplateValidator templateValidator;
 
 	// -------------------------------------------------------------------------
 	// Queries
@@ -120,6 +125,9 @@ public class TemplateService {
 	private void applyDto(TemplateEntity template, TemplateDto dto) throws BusinessException {
 		template.name = dto.name();
 		template.description = dto.description();
+
+		templateValidator.validate(template);
+
 		template.eventType = dto.eventType();
 		template.modifierType = dto.modifierType();
 		template.modifierValue = dto.modifierValue();
