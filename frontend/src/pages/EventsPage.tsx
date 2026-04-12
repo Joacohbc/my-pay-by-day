@@ -6,11 +6,12 @@ import { useEvents } from '@/hooks/useEvents';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useFinanceEventDrafts } from '@/hooks/useDrafts';
+import { useFinanceEventDrafts, useDeleteAllDrafts } from '@/hooks/useDrafts';
 import { useSearchParamsBatch } from '@/hooks/useSearchParamsState';
 import type { ParamConfig } from '@/hooks/useSearchParamsState';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import { PendingEventsSync } from '@/components/events/PendingEventsSync';
+import { BulkActionsModal } from '@/components/events/BulkActionsModal';
 import type { Template, EventType } from '@/models';
 import { EventCard } from '@/components/events/EventCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -97,6 +98,7 @@ export function EventsPage() {
   });
 
   const { data: draftEvents, isLoading: isDraftsLoading, error: draftsError } = useFinanceEventDrafts();
+  const deleteAllDrafts = useDeleteAllDrafts();
 
   const { data: categoriesResponse } = useCategories();
   const categories = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.content || []);
@@ -126,6 +128,7 @@ export function EventsPage() {
   );
 
   const [isConfirming, setIsConfirming] = useState(false);
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
   const handleConfirmAll = async () => {
     if (!filteredDrafts.length || isConfirming) return;
@@ -144,11 +147,13 @@ export function EventsPage() {
       }
       // Refresh the page or invalidate queries
       window.location.reload(); 
-    } catch (err) {
-      console.error('Failed to confirm all drafts', err);
-      alert(t('common.error'));
+    } catch {
       setIsConfirming(false);
     }
+  };
+
+  const handleDeleteAll = async () => {
+    await deleteAllDrafts.mutateAsync();
   };
 
   const allEvents = useMemo(
@@ -194,9 +199,9 @@ export function EventsPage() {
         action={
           <div className="flex gap-2">
             {isDraftFilter && filteredDrafts.length > 0 && (
-              <Button size="sm" variant="secondary" onClick={handleConfirmAll} disabled={isConfirming}>
-                <Icon name="checklist_rtl" className="text-sm" />
-                {isConfirming ? t('common.loading') : t('drafts.confirmAll')}
+              <Button size="sm" variant="secondary" onClick={() => setShowBulkActions(true)}>
+                <Icon name="bolt" className="text-sm" />
+                {t('drafts.bulkActions')}
               </Button>
             )}
             <Button size="sm" onClick={() => setShowPicker(true)}>
@@ -230,7 +235,7 @@ export function EventsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('events.searchPlaceholder')}
-            className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 [color-scheme:dark]"
+            className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 scheme-dark"
           />
         </div>
         <Button
@@ -368,6 +373,16 @@ export function EventsPage() {
         open={showPicker}
         onClose={() => setShowPicker(false)}
         onSelect={handlePickTemplate}
+      />
+
+      <BulkActionsModal
+        open={showBulkActions}
+        onClose={() => setShowBulkActions(false)}
+        onConfirmAll={handleConfirmAll}
+        onDeleteAll={handleDeleteAll}
+        isConfirming={isConfirming}
+        isDeleting={deleteAllDrafts.isPending}
+        draftCount={filteredDrafts.length}
       />
     </div>
   );

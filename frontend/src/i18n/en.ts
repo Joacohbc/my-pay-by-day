@@ -11,6 +11,7 @@ const en = {
     close: 'Close',
     cancel: 'Cancel',
     confirm: 'Confirm',
+    holdToConfirm: 'Keep holding to confirm...',
     edit: 'Edit',
     archive: 'Archive',
     archived: 'Archived',
@@ -437,9 +438,15 @@ const en = {
   drafts: {
     title: 'Drafts',
     confirmAll: 'Confirm All',
+    confirmAllDesc: 'Confirm all drafts as permanent events',
     untitledDraft: 'Untitled Draft',
-    delete: 'Delete Draft',
+    deleteAndExit: 'Delete & exit',
+    deleteAndReset: 'Solo delete',
+    deleteAll: 'Delete All Drafts',
+    deleteAllDesc: 'Permanently remove all current drafts',
+    allDeleted: 'All event drafts deleted successfully',
     editingDraft: 'Editing Draft',
+    bulkActions: 'Bulk Actions',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

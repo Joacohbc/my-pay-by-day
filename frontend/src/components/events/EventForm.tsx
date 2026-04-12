@@ -51,7 +51,7 @@ interface EventFormProps {
    * so the form can store it internally and reuse it on subsequent saves.
    */
   onSaveDraft?: (dto: Partial<FinanceEvent>) => Promise<number | void>;
-  onDeleteDraft?: (draftId?: number) => Promise<void>;
+  onDeleteDraft?: (draftId?: number, shouldExit?: boolean) => Promise<void>;
   /**
    * Controls only the visibility of the "Delete draft" button — it does not affect form
    * behaviour. Must be true when the form is loaded from an existing persisted draft.
@@ -229,12 +229,12 @@ export function EventForm({
     return () => subscription.unsubscribe();
   }, [watch, onSaveDraft, debouncedSaveDraft]);
 
-  const handleDeleteDraft = async () => {
+  const handleDeleteDraft = async (shouldExit = true) => {
     if (!onDeleteDraft) return;
     setDeletingDraft(true);
     try {
       const values = getValues();
-      await onDeleteDraft(values.draftId ?? undefined);
+      await onDeleteDraft(values.draftId ?? undefined, shouldExit);
     } finally {
       setDeletingDraft(false);
     }
@@ -277,19 +277,32 @@ export function EventForm({
 
         <LineItemsEditor nodeOptions={nodeOptions} />
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {isDraft && onDeleteDraft && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleDeleteDraft}
-              loading={deletingDraft}
-              className="w-full text-dn-error hover:bg-dn-error/10"
-            >
-              <Icon name="delete" className="mr-2" />
-              {t('drafts.delete')}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDeleteDraft(true)}
+                loading={deletingDraft}
+                className="flex-1 text-dn-error hover:bg-dn-error/10"
+              >
+                <Icon name="logout" className="mr-2" />
+                {t('drafts.deleteAndExit')}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDeleteDraft(false)}
+                loading={deletingDraft}
+                className="flex-1 text-dn-error/80 hover:bg-dn-error/10"
+              >
+                <Icon name="refresh" className="mr-2" />
+                {t('drafts.deleteAndReset')}
+              </Button>
+            </div>
           )}
           <Button
             type="submit"

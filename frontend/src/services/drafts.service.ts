@@ -16,4 +16,6 @@ export const draftsService = {
     api.put<EntityDraft>(`/drafts/finance-events/${id}`, dto),
 
   delete: (id: number) => api.delete(`/drafts/${id}`),
+
+  deleteFinanceEventDrafts: () => api.delete('/drafts/finance-events'),
 };

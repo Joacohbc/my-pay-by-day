@@ -59,6 +59,15 @@ public class DraftResource {
 		return Response.noContent().build();
 	}
 
+	@DELETE
+	@Path("/finance-events")
+	@Operation(summary = "Delete all finance event drafts")
+	@APIResponse(responseCode = "204", description = "All finance event drafts deleted successfully")
+	public Response deleteFinanceEventDrafts() {
+		draftService.deleteFinanceEventDrafts();
+		return Response.noContent().build();
+	}
+
 	// ── Endpoints specific to Finance Events using FinanceEventDto ──
 
 	@GET

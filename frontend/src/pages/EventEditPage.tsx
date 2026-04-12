@@ -53,12 +53,14 @@ export function EventEditPage() {
     return created.id;
   };
 
-  const handleDeleteDraft = async (formDraftId?: number) => {
+  const handleDeleteDraft = async (formDraftId?: number, shouldExit = true) => {
     const draftId = formDraftId ?? draft?.draftId;
     if (draftId) {
       await deleteDraft.mutateAsync(draftId);
     }
-    navigate(-1);
+    if (shouldExit) {
+      navigate(-1);
+    }
   };
 
   return (

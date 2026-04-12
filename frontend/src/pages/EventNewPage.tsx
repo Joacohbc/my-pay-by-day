@@ -68,12 +68,14 @@ export function EventNewPage() {
     }
   };
 
-  const handleDeleteDraft = async (formDraftId?: number) => {
+  const handleDeleteDraft = async (formDraftId?: number, shouldExit = true) => {
     const idToDelete = formDraftId || draft?.draftId;
     if (idToDelete) {
       await deleteDraft.mutateAsync(idToDelete);
     }
-    navigate(-1);
+    if (shouldExit) {
+      navigate(-1);
+    }
   };
 
   return (
