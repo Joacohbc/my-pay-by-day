@@ -71,12 +71,12 @@ public enum MsgKey {
 	INTELLIGENT_EVENT_DRAFT_CREATION_FAILED("error.intelligent_event.draft_creation_failed"),
 
 	// ── Validation ───────────────────────────────────────
-	VALIDATION_NAME_INVALID_CHARS("error.validation.name_invalid_chars"),
-	VALIDATION_DESCRIPTION_INVALID_CHARS("error.validation.description_invalid_chars"),
+	VALIDATION_ONLY_LETTERS_INVALID_CHARS("error.validation.only_letters_invalid_chars"),
+	VALIDATION_ONLY_NUMBERS_INVALID_CHARS("error.validation.only_numbers_invalid_chars"),
+	VALIDATION_LETTERS_AND_NUMBERS_INVALID_CHARS("error.validation.letters_and_numbers_invalid_chars"),
+	VALIDATION_LETTERS_NUMBERS_EXTRAS_INVALID_CHARS("error.validation.letters_numbers_extras_invalid_chars"),
 	VALIDATION_ICON_INVALID_CHARS("error.validation.icon_invalid_chars"),
-	VALIDATION_NAME_MAX_LENGTH("error.validation.name_max_length"),
-	VALIDATION_DESCRIPTION_MAX_LENGTH("error.validation.description_max_length"),
-	VALIDATION_ICON_MAX_LENGTH("error.validation.icon_max_length"),
+	VALIDATION_MAX_LENGTH("error.validation.max_length"),
 	VALIDATION_DATE_RANGE_INVALID("error.validation.date_range_invalid"),
 	VALIDATION_DATE_IN_FUTURE("error.validation.date_in_future"),
 	VALIDATION_DATE_IN_PAST("error.validation.date_in_past"),

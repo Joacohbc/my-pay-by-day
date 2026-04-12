@@ -13,6 +13,6 @@ public class FinanceNodeValidator {
 
     public void validate(FinanceNodeEntity node) throws BusinessException {
         if (node == null) return;
-        regexValidator.validateName(node.name);
+        regexValidator.validateLettersAndNumbers(node.name, RegexValidator.SHORT_MAX_LENGTH);
     }
 }

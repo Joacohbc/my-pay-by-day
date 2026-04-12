@@ -16,8 +16,8 @@ public class EventValidator {
 
     public void validate(FinanceEventEntity event) throws BusinessException {
         if (event == null) return;
-        regexValidator.validateName(event.name);
-        regexValidator.validateDescription(event.description);
+        regexValidator.validateLettersAndNumbers(event.name, RegexValidator.SHORT_MAX_LENGTH);
+        regexValidator.validateLettersNumbersAndExtras(event.description, RegexValidator.LONG_MAX_LENGTH);
 
         if (event.transaction != null) {
             dateValidator.validateNotFuture(event.transaction.transactionDate);

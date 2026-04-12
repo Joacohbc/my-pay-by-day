@@ -20,7 +20,7 @@ public class TimePeriodValidator {
 
     public void validate(TimePeriodEntity timePeriod) throws BusinessException {
         if (timePeriod == null) return;
-        regexValidator.validateName(timePeriod.name);
+        regexValidator.validateLettersAndNumbers(timePeriod.name, RegexValidator.SHORT_MAX_LENGTH);
         dateValidator.validateDateRange(timePeriod.startDate, timePeriod.endDate);
         if (timePeriod.savingsPercentageGoal != null) {
             numberValidator.validateRange(timePeriod.savingsPercentageGoal, BigDecimal.ZERO, new BigDecimal("100"));

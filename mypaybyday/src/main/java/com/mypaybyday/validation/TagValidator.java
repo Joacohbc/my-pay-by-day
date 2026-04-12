@@ -13,7 +13,7 @@ public class TagValidator {
 
     public void validate(TagEntity tag) throws BusinessException {
         if (tag == null) return;
-        regexValidator.validateName(tag.name);
-        regexValidator.validateDescription(tag.description);
+        regexValidator.validateLettersAndNumbers(tag.name, RegexValidator.SHORT_MAX_LENGTH);
+        regexValidator.validateLettersNumbersAndExtras(tag.description, RegexValidator.LONG_MAX_LENGTH);
     }
 }

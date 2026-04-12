@@ -13,8 +13,8 @@ public class CategoryValidator {
 
     public void validate(CategoryEntity category) throws BusinessException {
         if (category == null) return;
-        regexValidator.validateName(category.name);
-        regexValidator.validateDescription(category.description);
+        regexValidator.validateLettersAndNumbers(category.name, RegexValidator.SHORT_MAX_LENGTH);
+        regexValidator.validateLettersNumbersAndExtras(category.description, RegexValidator.LONG_MAX_LENGTH);
         regexValidator.validateIcon(category.icon);
     }
 }
