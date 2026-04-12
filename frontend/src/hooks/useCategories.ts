@@ -11,7 +11,7 @@ import {
   removeItemFromLists,
 } from '@/hooks/optimistic';
 
-const ONE_HOUR_MS = 1000 * 60 * 60;
+const FIVE_MINUTES_MS = 1000 * 60 * 5;
 
 export const categoryKeys = {
   all: ['categories'] as const,
@@ -31,7 +31,7 @@ export function useCategories(page = 0, size = 20) {
   return useQuery({
     queryKey: categoryKeys.list(page, size),
     queryFn: () => categoriesService.getAll(page, size),
-    staleTime: ONE_HOUR_MS,
+    staleTime: FIVE_MINUTES_MS,
   });
 }
 
@@ -40,7 +40,7 @@ export function useCategory(id: number) {
     queryKey: categoryKeys.detail(id),
     queryFn: () => categoriesService.getById(id),
     enabled: !!id,
-    staleTime: ONE_HOUR_MS,
+    staleTime: FIVE_MINUTES_MS,
   });
 }
 

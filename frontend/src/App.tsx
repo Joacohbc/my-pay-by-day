@@ -10,7 +10,7 @@ import { queryStorage } from '@/lib/idbStorage';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,
+      staleTime: 30_000, // 30 seconds
       retry: 1,
       gcTime: 1000 * 60 * 60 * 24, // 24h — keep cache for offline use
     },
