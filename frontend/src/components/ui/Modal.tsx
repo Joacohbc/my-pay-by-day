@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from '@/components/ui/Icon';
 
 interface ModalProps {
@@ -22,8 +23,11 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
 
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onSubmit={(e) => e.stopPropagation()}
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -53,6 +57,8 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
           <div className="px-5 pb-5 pt-3 border-t border-dn-bg/30">{footer}</div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
+

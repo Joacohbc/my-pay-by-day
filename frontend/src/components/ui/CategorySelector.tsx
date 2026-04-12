@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { Modal } from '@/components/ui/Modal';
+import { CategoryForm } from '@/components/categories/CategoryForm';
+import { Icon } from '@/components/ui/Icon';
 import type { Category } from '@/models';
 
 interface CategorySelectorProps {
@@ -11,6 +15,7 @@ interface CategorySelectorProps {
   variant?: 'grid' | 'select';
   label?: string;
   className?: string;
+  showAdd?: boolean;
 }
 
 export function CategorySelector({
@@ -20,26 +25,55 @@ export function CategorySelector({
   variant = 'grid',
   label,
   className = '',
+  showAdd = false,
 }: CategorySelectorProps) {
   const { t } = useTranslation();
-
-  if (categories.length === 0) return null;
+  const [showModal, setShowModal] = useState(false);
 
   const resolvedLabel = label ?? t('eventForm.category');
 
   if (variant === 'select') {
     const options = categories.map((c) => ({ value: String(c.id), label: c.name }));
     return (
-      <SearchableSelect
-        label={resolvedLabel}
-        placeholder={t('common.none')}
-        options={options}
-        value={value}
-        onChange={(val) => onChange(String(val))}
-        className={className}
-      />
+      <div className={className}>
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <SearchableSelect
+              label={resolvedLabel}
+              placeholder={t('common.none')}
+              options={options}
+              value={value}
+              onChange={(val) => onChange(String(val))}
+            />
+          </div>
+          {showAdd && (
+            <button
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="mt-6 p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
+              title={t('categories.addCategory')}
+            >
+              <Icon name="add_circle" className="text-xl" />
+            </button>
+          )}
+        </div>
+        <Modal
+          open={showModal}
+          onClose={() => setShowModal(false)}
+          title={t('categories.newCategory')}
+        >
+          <CategoryForm
+            onSuccess={(newCat) => {
+              onChange(String(newCat.id));
+              setShowModal(false);
+            }}
+            onCancel={() => setShowModal(false)}
+          />
+        </Modal>
+      </div>
     );
   }
+
 
   // variant === 'grid'
   return (
@@ -74,7 +108,37 @@ export function CategorySelector({
             </button>
           );
         })}
+
+        {showAdd && (
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="flex flex-col items-center gap-2"
+          >
+            <div className="w-12 h-12 rounded-full bg-dn-surface-low text-dn-text-muted flex items-center justify-center border border-dashed border-white/10 hover:border-dn-primary/30 hover:text-dn-primary transition-all active:scale-95">
+              <Icon name="add" className="text-xl" />
+            </div>
+            <span className="text-xs text-center font-medium leading-tight text-dn-text-muted">
+              {t('common.new')}
+            </span>
+          </button>
+        )}
       </div>
+
+      <Modal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title={t('categories.newCategory')}
+      >
+        <CategoryForm
+          onSuccess={(newCat) => {
+            onChange(String(newCat.id));
+            setShowModal(false);
+          }}
+          onCancel={() => setShowModal(false)}
+        />
+      </Modal>
     </div>
   );
 }
+

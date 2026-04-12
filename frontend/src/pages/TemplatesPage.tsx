@@ -23,6 +23,7 @@ import { TagSelector } from '@/components/ui/TagSelector';
 import { Pagination } from '@/components/ui/Pagination';
 import { truncate } from '@/lib/format';
 import type { Template, EventType, ModifierType } from '@/models';
+import { NodeForm } from '@/components/nodes/NodeForm';
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
   INBOUND: 'Income',
@@ -79,6 +80,7 @@ export function TemplatesPage() {
   const [editTarget, setEditTarget] = useState<Template | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [showNodeModal, setShowNodeModal] = useState<'origin' | 'destination' | null>(null);
 
   const activeNodes = nodes.filter((n) => !n.archived);
 
@@ -312,31 +314,56 @@ export function TemplatesPage() {
           />
 
           <div className="grid grid-cols-2 gap-3">
-            <Controller
-              name="originNodeId"
-              control={control}
-              render={({ field }) => (
-                <SearchableSelect
-                  label={t('templates.originNode')}
-                  placeholder={t('common.none')}
-                  options={nodeOptions}
-                  {...field}
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <Controller
+                  name="originNodeId"
+                  control={control}
+                  render={({ field }) => (
+                    <SearchableSelect
+                      label={t('templates.originNode')}
+                      placeholder={t('common.none')}
+                      options={nodeOptions}
+                      {...field}
+                    />
+                  )}
                 />
-              )}
-            />
-            <Controller
-              name="destinationNodeId"
-              control={control}
-              render={({ field }) => (
-                <SearchableSelect
-                  label={t('templates.destinationNode')}
-                  placeholder={t('common.none')}
-                  options={nodeOptions}
-                  {...field}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNodeModal('origin')}
+                className="mt-6 p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
+                title={t('nodes.addNode')}
+              >
+                <Icon name="add_circle" className="text-xl" />
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <Controller
+                  name="destinationNodeId"
+                  control={control}
+                  render={({ field }) => (
+                    <SearchableSelect
+                      label={t('templates.destinationNode')}
+                      placeholder={t('common.none')}
+                      options={nodeOptions}
+                      {...field}
+                    />
+                  )}
                 />
-              )}
-            />
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNodeModal('destination')}
+                className="mt-6 p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
+                title={t('nodes.addNode')}
+              >
+                <Icon name="add_circle" className="text-xl" />
+              </button>
+            </div>
           </div>
+
 
           <Controller
             name="categoryId"
@@ -347,6 +374,7 @@ export function TemplatesPage() {
                 value={field.value}
                 onChange={(val) => field.onChange(val)}
                 variant="select"
+                showAdd={true}
               />
             )}
           />
@@ -359,9 +387,11 @@ export function TemplatesPage() {
                 tags={tags}
                 value={field.value ?? []}
                 onChange={field.onChange}
+                showAdd={true}
               />
             )}
           />
+
 
           <div className="grid grid-cols-2 gap-3">
             <Controller
@@ -398,6 +428,23 @@ export function TemplatesPage() {
             )}
           </div>
         </form>
+      </Modal>
+      <Modal
+        open={showNodeModal !== null}
+        onClose={() => setShowNodeModal(null)}
+        title={t('nodes.newNode')}
+      >
+        <NodeForm
+          onSuccess={(newNode) => {
+            if (showNodeModal === 'origin') {
+              setValue('originNodeId', String(newNode.id));
+            } else if (showNodeModal === 'destination') {
+              setValue('destinationNodeId', String(newNode.id));
+            }
+            setShowNodeModal(null);
+          }}
+          onCancel={() => setShowNodeModal(null)}
+        />
       </Modal>
     </div>
   );

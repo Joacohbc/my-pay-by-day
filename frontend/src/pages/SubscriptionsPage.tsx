@@ -28,6 +28,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Pagination } from '@/components/ui/Pagination';
 import type { Subscription, EventType, RecurrenceFrequency, SubscriptionStatus } from '@/models';
+import { NodeForm } from '@/components/nodes/NodeForm';
 
 // EVENT_TYPE_COLORS provides the tailwind classes for each event type
 const EVENT_TYPE_COLORS: Record<string, string> = {
@@ -214,11 +215,13 @@ export function SubscriptionsPage() {
   const [editTarget, setEditTarget] = useState<Subscription | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [showNodeModal, setShowNodeModal] = useState<'origin' | 'destination' | null>(null);
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     control,
     formState: { errors },
   } = useForm<FormValues>({ defaultValues: DEFAULT_FORM });
@@ -448,31 +451,56 @@ export function SubscriptionsPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Controller
-              name="originNodeId"
-              control={control}
-              render={({ field }) => (
-                <SearchableSelect
-                  label={t('templates.originNode')}
-                  placeholder={t('common.none')}
-                  options={nodeOptions}
-                  {...field}
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <Controller
+                  name="originNodeId"
+                  control={control}
+                  render={({ field }) => (
+                    <SearchableSelect
+                      label={t('templates.originNode')}
+                      placeholder={t('common.none')}
+                      options={nodeOptions}
+                      {...field}
+                    />
+                  )}
                 />
-              )}
-            />
-            <Controller
-              name="destinationNodeId"
-              control={control}
-              render={({ field }) => (
-                <SearchableSelect
-                  label={t('templates.destinationNode')}
-                  placeholder={t('common.none')}
-                  options={nodeOptions}
-                  {...field}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNodeModal('origin')}
+                className="mt-6 p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
+                title={t('nodes.addNode')}
+              >
+                <Icon name="add_circle" className="text-xl" />
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <Controller
+                  name="destinationNodeId"
+                  control={control}
+                  render={({ field }) => (
+                    <SearchableSelect
+                      label={t('templates.destinationNode')}
+                      placeholder={t('common.none')}
+                      options={nodeOptions}
+                      {...field}
+                    />
+                  )}
                 />
-              )}
-            />
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNodeModal('destination')}
+                className="mt-6 p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
+                title={t('nodes.addNode')}
+              >
+                <Icon name="add_circle" className="text-xl" />
+              </button>
+            </div>
           </div>
+
 
           <Controller
             name="categoryId"
@@ -483,6 +511,7 @@ export function SubscriptionsPage() {
                 value={field.value}
                 onChange={(val) => field.onChange(val)}
                 variant="select"
+                showAdd={true}
               />
             )}
           />
@@ -495,9 +524,11 @@ export function SubscriptionsPage() {
                 tags={tags}
                 value={field.value ?? []}
                 onChange={field.onChange}
+                showAdd={true}
               />
             )}
           />
+
 
           <Input
             label={t('eventForm.amount')}
@@ -508,6 +539,23 @@ export function SubscriptionsPage() {
             {...register('modifierValue')}
           />
         </form>
+      </Modal>
+      <Modal
+        open={showNodeModal !== null}
+        onClose={() => setShowNodeModal(null)}
+        title={t('nodes.newNode')}
+      >
+        <NodeForm
+          onSuccess={(newNode) => {
+            if (showNodeModal === 'origin') {
+              setValue('originNodeId', String(newNode.id));
+            } else if (showNodeModal === 'destination') {
+              setValue('destinationNodeId', String(newNode.id));
+            }
+            setShowNodeModal(null);
+          }}
+          onCancel={() => setShowNodeModal(null)}
+        />
       </Modal>
     </div>
   );
