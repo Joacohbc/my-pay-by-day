@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Routes } from '@/lib/routes';
 import { useTranslation } from 'react-i18next';
 import { useFiles, useDeleteFile } from '@/hooks/useFiles';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -182,7 +183,7 @@ export function FilesPage() {
 
       <PageHeader
         title={t('files.title')}
-        back
+        back={Routes.SETTINGS}
         subtitle={t('files.count', { count: paged?.totalElements ?? 0 })}
       />
 

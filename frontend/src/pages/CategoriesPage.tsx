@@ -14,6 +14,7 @@ import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { Pagination } from '@/components/ui/Pagination';
 import type { Category } from '@/models';
 import { CategoryForm } from '@/components/categories/CategoryForm';
+import { Routes } from '@/lib/routes';
 
 export function CategoriesPage() {
   const { t } = useTranslation();
@@ -67,7 +68,7 @@ export function CategoriesPage() {
 
       <PageHeader
         title={t('categories.title')}
-        back
+        back={Routes.SETTINGS}
         subtitle={t('categories.count', { count: paged?.totalElements ?? 0 })}
         action={
           <Button size="sm" onClick={openCreate}>

@@ -15,6 +15,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { truncate } from '@/lib/format';
 import type { Template, CreateTemplateDto } from '@/models';
 import { TemplateForm } from '@/components/templates/TemplateForm';
+import { Routes } from '@/lib/routes';
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
   INBOUND: 'Income',
@@ -92,7 +93,7 @@ export function TemplatesPage() {
 
       <PageHeader
         title={t('templates.title')}
-        back
+        back={Routes.SETTINGS}
         subtitle={t('templates.count', { count: paged?.totalElements ?? 0 })}
         action={
           <Button size="sm" onClick={openCreate}>

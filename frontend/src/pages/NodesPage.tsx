@@ -14,6 +14,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Pagination } from '@/components/ui/Pagination';
 import type { FinanceNode, FinanceNodeType } from '@/models';
 import { NodeForm } from '@/components/nodes/NodeForm';
+import { Routes } from '@/lib/routes';
 
 
 function NodeBalanceBadge({ nodeId }: { nodeId: number }) {
@@ -186,7 +187,7 @@ export function NodesPage() {
 
       <PageHeader
         title={t('nodes.title')}
-        back
+        back={Routes.SETTINGS}
         subtitle={t('nodes.activeCount', { count: paged?.totalElements ?? 0 })}
         action={
           <Button size="sm" onClick={openNewModal}>

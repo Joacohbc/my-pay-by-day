@@ -80,7 +80,7 @@ export function EventNewPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title={t('events.newEventTitle')} back />
+      <PageHeader title={t('events.newEventTitle')} back={eventsRoute()} />
       
       {draft && <DraftBadge saving={createDraft.isPending || updateDraft.isPending} />}
 
