@@ -163,7 +163,6 @@ const es = {
       'Ingresa montos positivos — los signos se asignan automáticamente por posición. La suma debe ser cero.',
     manualAmountHint:
       'Positivo = entrada al nodo, Negativo = salida del nodo. La suma debe ser cero.',
-    nameRequired: 'El nombre es requerido',
     dateRequired: 'La fecha es requerida',
     nodeRequired: 'Requerido',
     amountNonZero: 'Debe ser un número distinto de cero',

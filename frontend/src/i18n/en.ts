@@ -163,7 +163,6 @@ const en = {
       'Enter positive amounts — signs are assigned automatically by position. Sum must equal zero.',
     manualAmountHint:
       'Positive = inflow to node, Negative = outflow from node. Sum must equal zero.',
-    nameRequired: 'Name is required',
     dateRequired: 'Date is required',
     nodeRequired: 'Required',
     amountNonZero: 'Must be a non-zero number',
