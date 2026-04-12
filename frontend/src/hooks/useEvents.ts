@@ -111,6 +111,10 @@ export function useEvents(filters: EventFilters = {}, options?: { enabled?: bool
     queryKey: eventKeys.list(filters),
     queryFn: () => eventsService.getAll(filters),
     enabled: options?.enabled,
+    staleTime: 30_000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+    refetchOnReconnect: 'always',
   });
 }
 
@@ -119,6 +123,10 @@ export function useEvent(id: number) {
     queryKey: eventKeys.detail(id),
     queryFn: () => eventsService.getById(id),
     enabled: !!id,
+    staleTime: 30_000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+    refetchOnReconnect: 'always',
   });
 }
 
