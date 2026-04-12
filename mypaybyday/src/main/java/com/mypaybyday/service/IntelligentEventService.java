@@ -36,19 +36,17 @@ public class IntelligentEventService {
 	private static final Logger log = Logger.getLogger(IntelligentEventService.class);
 
 	private final AgentFinanceEventCreator agentFinanceEventCreator;
-	private final EventService eventService;
 	private final DraftService draftService;
 	private final LanguageContext languageContext;
 	private final FinanceNodeRepository financeNodeRepository;
 	private final CategoryRepository categoryRepository;
 	private final Messages messages;
 
-	public IntelligentEventService(AgentFinanceEventCreator agentFinanceEventCreator, EventService eventService,
+	public IntelligentEventService(AgentFinanceEventCreator agentFinanceEventCreator,
 			DraftService draftService, LanguageContext languageContext,
 			FinanceNodeRepository financeNodeRepository, CategoryRepository categoryRepository,
 			Messages messages) {
 		this.agentFinanceEventCreator = agentFinanceEventCreator;
-		this.eventService = eventService;
 		this.draftService = draftService;
 		this.languageContext = languageContext;
 		this.financeNodeRepository = financeNodeRepository;
@@ -84,7 +82,7 @@ public class IntelligentEventService {
 				"- If the text lacks meaningful transaction data, return a JSON with null fields rather than an error message.\n\n";
 
 		if (request.getInstructions() != null && !request.getInstructions().trim().isEmpty()) {
-			extractionPrompt += "ADDITIONAL USER INSTRUCTIONS:\n" + request.getInstructions() + "\n\n";
+			extractionPrompt += "ADDITIONAL USER INSTRUCTIONS (MANDATORY):\n" + request.getInstructions() + "\n\n";
 		}
 
 		extractionPrompt += "Now process the user request.";
@@ -102,7 +100,7 @@ public class IntelligentEventService {
 			extraction.getTransactionDate()
 		);
 
-		String description = agentFinanceEventCreator.generateDescription(request.getText(), languageContext.getLang());
+		String description = agentFinanceEventCreator.generateDescription(request.getText(), request.getInstructions(), languageContext.getLang());
 		log.infof("AI generated description: %s", description);
 
 		// Map the extracted DTO to the entities

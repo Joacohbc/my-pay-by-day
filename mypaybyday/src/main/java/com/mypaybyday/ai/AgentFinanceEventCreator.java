@@ -18,14 +18,15 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.MemoryId;
-import dev.langchain4j.service.SystemMessage;
-import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 import dev.langchain4j.service.tool.DefaultToolExecutor;
 import dev.langchain4j.service.tool.ToolExecutor;
@@ -180,13 +181,13 @@ GOLDEN RULES:
 	}
 
 	private String viewImages(String systemPrompt, List<Image> images) {
-		var systemMessage = dev.langchain4j.data.message.SystemMessage.from(systemPrompt);
-		List<dev.langchain4j.data.message.Content> contents = new java.util.ArrayList<>();
+		var systemMessage = SystemMessage.from(systemPrompt);
+		List<Content> contents = new java.util.ArrayList<>();
 		contents.add(TextContent.from("Please analyze these images."));
 		for (Image img : images) {
 			contents.add(ImageContent.from(img));
 		}
-		var userMessage = dev.langchain4j.data.message.UserMessage.from(contents);
+		var userMessage = UserMessage.from(contents);
 		List<ChatMessage> messages = List.of(systemMessage, userMessage);
 		ChatResponse response = visionModel.chat(messages);
 		return response.aiMessage().text();
@@ -196,14 +197,19 @@ GOLDEN RULES:
 		return chatAgent.extractEvent(systemPrompt, text);
 	}
 
-	public String generateDescription(String originalText, String lang) {
+	public String generateDescription(String originalText, String instructions, String lang) {
 		String systemPrompt = """
 You are a personal finance assistant. Generate a short, human-readable description (1-2 sentences) for a financial transaction, written in %s.
 Summarize what happened, who was involved, and any relevant context extracted from the user's input.
 PLAIN TEXT ONLY. No markdown, no bullet points. Return only the description text, nothing else.
 """.formatted(lang);
-		var systemMessage = dev.langchain4j.data.message.SystemMessage.from(systemPrompt);
-		var userMessage = dev.langchain4j.data.message.UserMessage.from(originalText);
+		
+		if (instructions != null && !instructions.trim().isEmpty()) {
+			systemPrompt += "\nADDITIONAL USER INSTRUCTIONS:\n" + instructions + "\n";
+		}
+		
+		var systemMessage = SystemMessage.from(systemPrompt);
+		var userMessage = UserMessage.from(originalText);
 		ChatResponse response = primaryModel.chat(List.of(systemMessage, userMessage));
 		return response.aiMessage().text();
 	}
@@ -215,10 +221,10 @@ PLAIN TEXT ONLY. No markdown, no bullet points. Return only the description text
 	}
 
 	interface ChatAgent {
-		@SystemMessage("{systemMessage}")
-		String chat(@MemoryId String chatId, @V("systemMessage") String systemMessage, @UserMessage String userMessage);
+		@dev.langchain4j.service.SystemMessage("{systemMessage}")
+		String chat(@MemoryId String chatId, @V("systemMessage") String systemMessage, @dev.langchain4j.service.UserMessage String userMessage);
 
-		@SystemMessage("{systemPrompt}")
-		FinanceEventExtractionDto extractEvent(@V("systemPrompt") String systemPrompt, @UserMessage String text);
+		@dev.langchain4j.service.SystemMessage("{systemPrompt}")
+		FinanceEventExtractionDto extractEvent(@V("systemPrompt") String systemPrompt, @dev.langchain4j.service.UserMessage String text);
 	}
 }
