@@ -1,15 +1,15 @@
 package com.mypaybyday.entity;
 
-import com.mypaybyday.crypto.StringEncryptionConverter;
-import com.mypaybyday.enums.FinanceNodeType;
-
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
+import com.mypaybyday.crypto.StringEncryptionConverter;
+import com.mypaybyday.enums.FinanceNodeType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

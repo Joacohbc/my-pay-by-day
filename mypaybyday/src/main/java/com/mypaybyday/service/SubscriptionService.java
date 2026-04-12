@@ -1,5 +1,13 @@
 package com.mypaybyday.service;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.FinanceLineItemDto;
 import com.mypaybyday.dto.PagedResponse;
@@ -24,14 +32,6 @@ import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.SystemJobRepository;
 import com.mypaybyday.validation.SubscriptionValidator;
 import io.quarkus.panache.common.Page;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.jboss.logging.Logger;
 
 @ApplicationScoped

@@ -1,12 +1,13 @@
 package com.mypaybyday.validation;
 
-import com.mypaybyday.exception.BusinessException;
-import com.mypaybyday.i18n.Messages;
-import com.mypaybyday.i18n.MsgKey;
+import java.util.regex.Pattern;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import java.util.regex.Pattern;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 
 @ApplicationScoped
 public class RegexValidator {

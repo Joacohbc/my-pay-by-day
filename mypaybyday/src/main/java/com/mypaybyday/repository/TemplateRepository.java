@@ -1,10 +1,11 @@
 package com.mypaybyday.repository;
 
+import jakarta.enterprise.context.ApplicationScoped;
+
 import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.entity.TemplateEntity;
 import io.quarkus.hibernate.orm.panache.PanacheRepository;
-import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
 public class TemplateRepository implements PanacheRepository<TemplateEntity> {

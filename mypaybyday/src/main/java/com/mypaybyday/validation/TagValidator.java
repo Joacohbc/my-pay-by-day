@@ -1,9 +1,10 @@
 package com.mypaybyday.validation;
 
-import com.mypaybyday.entity.TagEntity;
-import com.mypaybyday.exception.BusinessException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+
+import com.mypaybyday.entity.TagEntity;
+import com.mypaybyday.exception.BusinessException;
 
 @ApplicationScoped
 public class TagValidator {
