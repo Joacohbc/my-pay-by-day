@@ -1,15 +1,13 @@
 package com.mypaybyday.entity;
 
-import java.time.LocalDate;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotNull;
-
 import com.mypaybyday.enums.JobCategory;
 import com.mypaybyday.enums.JobStatus;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

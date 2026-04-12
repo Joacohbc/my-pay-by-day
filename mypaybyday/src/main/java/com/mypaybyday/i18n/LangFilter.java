@@ -1,11 +1,11 @@
 package com.mypaybyday.i18n;
 
-import java.util.Set;
-
 import jakarta.inject.Inject;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.ext.Provider;
+
+import java.util.Set;
 
 /**
  * JAX-RS filter that reads the {@code ?lang=} query parameter from every request

@@ -1,27 +1,14 @@
 package com.mypaybyday.service;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-
 import com.mypaybyday.ai.AgentFinanceEventCreator;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.FinanceEventExtractionDto;
-import com.mypaybyday.dto.IntelligentEventResponseDto;
 import com.mypaybyday.dto.RawTextEventRequestDto;
 import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.entity.FinanceTransactionEntity;
-import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.LanguageContext;
@@ -52,7 +39,7 @@ public class IntelligentEventService {
 
 	private final AgentFinanceEventCreator agentFinanceEventCreator;
 	private final EventService eventService;
-	private final DraftService draftService;
+	private final EntityDraftService draftService;
 	private final LanguageContext languageContext;
 	private final FinanceNodeService financeNodeService;
 	private final CategoryService categoryService;

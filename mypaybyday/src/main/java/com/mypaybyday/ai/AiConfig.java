@@ -1,14 +1,13 @@
 package com.mypaybyday.ai;
 
-import java.time.Duration;
-
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.openai.OpenAiChatModel;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Named;
-
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.openai.OpenAiChatModel;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import java.time.Duration;
 
 /**
  * Manually wires LangChain4j models as CDI beans.

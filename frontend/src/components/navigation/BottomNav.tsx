@@ -1,15 +1,14 @@
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
-import { Routes } from '@/lib/routes';
 
 const navItems = [
-  { to: Routes.DASHBOARD, labelKey: 'nav.home', icon: 'home', end: true },
-  { to: Routes.EVENTS, labelKey: 'nav.activity', icon: 'pie_chart' },
-  { to: Routes.CHAT, labelKey: 'nav.chat', icon: 'chat' },
-  { to: Routes.PERIODS, labelKey: 'nav.periods', icon: 'calendar_month' },
-  { to: Routes.SUBSCRIPTIONS, labelKey: 'nav.subs', icon: 'repeat' },
-  { to: Routes.SETTINGS, labelKey: 'nav.profile', icon: 'person' },
+  { to: '/', labelKey: 'nav.home', icon: 'home', end: true },
+  { to: '/events', labelKey: 'nav.activity', icon: 'pie_chart' },
+  { to: '/chat', labelKey: 'nav.chat', icon: 'chat' },
+  { to: '/periods', labelKey: 'nav.periods', icon: 'calendar_month' },
+  { to: '/subscriptions', labelKey: 'nav.subs', icon: 'repeat' },
+  { to: '/settings', labelKey: 'nav.profile', icon: 'person' },
 ];
 
 export function BottomNav() {

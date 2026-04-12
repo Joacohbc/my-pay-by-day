@@ -14,12 +14,10 @@ public enum MsgKey {
 	// ── CategoryEntity ─────────────────────────────────────────
 	CATEGORY_NOT_FOUND("error.category.not_found"),
 	CATEGORY_NAME_REQUIRED("error.category.name_required"),
-	CATEGORY_IN_USE("error.category.in_use"),
 
 	// ── TagEntity ──────────────────────────────────────────────
 	TAG_NOT_FOUND("error.tag.not_found"),
 	TAG_NAME_REQUIRED("error.tag.name_required"),
-	TAG_IN_USE("error.tag.in_use"),
 
 	// ── Event ─────────────────────────────────────────────
 	EVENT_NOT_FOUND("error.event.not_found"),
@@ -49,6 +47,8 @@ public enum MsgKey {
 	TIME_PERIOD_NAME_REQUIRED("error.time_period.name_required"),
 	TIME_PERIOD_START_DATE_REQUIRED("error.time_period.start_date_required"),
 	TIME_PERIOD_END_DATE_REQUIRED("error.time_period.end_date_required"),
+	TIME_PERIOD_END_BEFORE_START("error.time_period.end_before_start"),
+	TIME_PERIOD_SAVINGS_GOAL_RANGE("error.time_period.savings_goal_range"),
 	TIME_PERIOD_BUDGET_LIMIT_MINIMUM("error.time_period.budget_limit_minimum"),
 
 	// ── Transaction ───────────────────────────────────────
@@ -57,7 +57,7 @@ public enum MsgKey {
 	TRANSACTION_LINE_ITEM_AMOUNT_NULL("error.transaction.line_item_amount_null"),
 	TRANSACTION_ZERO_SUM_VIOLATED("error.transaction.zero_sum_violated"),
 	TRANSACTION_LINE_ITEM_NODES_NOT_FOUND("error.transaction.line_item_nodes_not_found"),
-	TRANSACTION_DUPLICATE_NODE("error.transaction.duplicate_node"),
+	TRANSACTION_DATE_IN_FUTURE("error.transaction.date_in_future"),
 
 	// ── SubscriptionEntity ─────────────────────────────────────
 	SUBSCRIPTION_NOT_FOUND("error.subscription.not_found"),
@@ -71,21 +71,7 @@ public enum MsgKey {
 	DRAFT_INVALID_PAYLOAD("error.draft.invalid_payload"),
 
 	// ── Intelligent Event ────────────────────────────────
-	INTELLIGENT_EVENT_DRAFT_CREATION_FAILED("error.intelligent_event.draft_creation_failed"),
-
-	// ── Validation ───────────────────────────────────────
-	VALIDATION_ONLY_LETTERS_INVALID_CHARS("error.validation.only_letters_invalid_chars"),
-	VALIDATION_ONLY_NUMBERS_INVALID_CHARS("error.validation.only_numbers_invalid_chars"),
-	VALIDATION_LETTERS_AND_NUMBERS_INVALID_CHARS("error.validation.letters_and_numbers_invalid_chars"),
-	VALIDATION_LETTERS_NUMBERS_EXTRAS_INVALID_CHARS("error.validation.letters_numbers_extras_invalid_chars"),
-	VALIDATION_ICON_INVALID_CHARS("error.validation.icon_invalid_chars"),
-	VALIDATION_MAX_LENGTH("error.validation.max_length"),
-	VALIDATION_DATE_RANGE_INVALID("error.validation.date_range_invalid"),
-	VALIDATION_DATE_IN_FUTURE("error.validation.date_in_future"),
-	VALIDATION_DATE_IN_PAST("error.validation.date_in_past"),
-	VALIDATION_NUMBER_POSITIVE("error.validation.number_positive"),
-	VALIDATION_NUMBER_NON_NEGATIVE("error.validation.number_non_negative"),
-	VALIDATION_NUMBER_RANGE("error.validation.number_range");
+	INTELLIGENT_EVENT_DRAFT_CREATION_FAILED("error.intelligent_event.draft_creation_failed");
 
 	/** The property key used to look up this message in the resource bundle. */
 	public final String key;

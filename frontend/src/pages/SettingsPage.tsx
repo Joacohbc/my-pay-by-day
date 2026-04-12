@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { Routes } from '@/lib/routes';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
@@ -150,35 +149,35 @@ export function SettingsPage() {
         </p>
         <Card padding={false} className="overflow-hidden divide-y divide-white/5">
           <SettingRow
-            to={Routes.SETTINGS_NODES}
+            to="/settings/nodes"
             icon="account_balance_wallet"
             title={t('nodes.title')}
             subtitle={t('settings.nodesDesc')}
             count={nodesPaged?.totalElements}
           />
           <SettingRow
-            to={Routes.SETTINGS_CATEGORIES}
+            to="/settings/categories"
             icon="folder_open"
             title={t('categories.title')}
             subtitle={t('settings.categoriesDesc')}
             count={categoriesPaged?.totalElements}
           />
           <SettingRow
-            to={Routes.SETTINGS_TAGS}
+            to="/settings/tags"
             icon="tag"
             title={t('tags.title')}
             subtitle={t('settings.tagsDesc')}
             count={tagsPaged?.totalElements}
           />
           <SettingRow
-            to={Routes.SETTINGS_TEMPLATES}
+            to="/settings/templates"
             icon="auto_fix_high"
             title={t('templates.title')}
             subtitle={t('settings.templatesDesc')}
             count={templatesPaged?.totalElements}
           />
           <SettingRow
-            to={Routes.SETTINGS_FILES}
+            to="/settings/files"
             icon="attach_file"
             title={t('files.title')}
             subtitle={t('settings.filesDesc')}

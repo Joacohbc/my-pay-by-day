@@ -1,11 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Controller, useFormContext, useFieldArray, useWatch } from 'react-hook-form';
 import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
-import { Modal } from '@/components/ui/Modal';
-import { NodeForm } from '@/components/nodes/NodeForm';
 import type { FormValues } from '@/components/events/EventFormMapper';
 
 interface LineItemsEditorProps {
@@ -21,8 +19,6 @@ export function LineItemsEditor({ nodeOptions }: LineItemsEditorProps) {
   const firstAmount = useWatch({ control, name: 'lineItems.0.amount' });
 
   const setIsSimplifiedMode = (val: boolean) => setValue('isSimplifiedMode', val);
-
-  const [showNodeModal, setShowNodeModal] = useState<number | null>(null);
 
   // Sync all line item amounts to the first amount in simplified mode
   useEffect(() => {
@@ -80,29 +76,19 @@ export function LineItemsEditor({ nodeOptions }: LineItemsEditorProps) {
                 <span className={`text-sm font-bold w-4 shrink-0 ${i === 0 ? 'text-dn-error' : 'text-dn-success'}`}>
                   {i === 0 ? '−' : '+'}
                 </span>
-                <div className="flex-1 flex items-center gap-2">
-                  <div className="flex-1">
-                    <Controller
-                      name={`lineItems.${i}.nodeId`}
-                      control={control}
-                      render={({ field: f }) => (
-                        <SearchableSelect
-                          placeholder={t('eventForm.selectNode')}
-                          options={nodeOptions}
-                          error={errors.lineItems?.[i]?.nodeId?.message}
-                          {...f}
-                        />
-                      )}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowNodeModal(i)}
-                    className="p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
-                    title={t('nodes.addNode')}
-                  >
-                    <Icon name="add_circle" className="text-xl" />
-                  </button>
+                <div className="flex-1">
+                  <Controller
+                    name={`lineItems.${i}.nodeId`}
+                    control={control}
+                    render={({ field: f }) => (
+                      <SearchableSelect
+                        placeholder={t('eventForm.selectNode')}
+                        options={nodeOptions}
+                        error={errors.lineItems?.[i]?.nodeId?.message}
+                        {...f}
+                      />
+                    )}
+                  />
                 </div>
               </div>
             ))}
@@ -120,29 +106,19 @@ export function LineItemsEditor({ nodeOptions }: LineItemsEditorProps) {
         <div className="space-y-2">
           {fields.map((field, i) => (
             <div key={field.id} className="flex gap-2 items-center">
-              <div className="flex-1 flex items-center gap-2">
-                <div className="flex-1">
-                  <Controller
-                    name={`lineItems.${i}.nodeId`}
-                    control={control}
-                    render={({ field: f }) => (
-                      <SearchableSelect
-                        placeholder={t('eventForm.selectNode')}
-                        options={nodeOptions}
-                        error={errors.lineItems?.[i]?.nodeId?.message}
-                        {...f}
-                      />
-                    )}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowNodeModal(i)}
-                  className="p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors shrink-0"
-                  title={t('nodes.addNode')}
-                >
-                  <Icon name="add_circle" className="text-xl" />
-                </button>
+              <div className="flex-1">
+                <Controller
+                  name={`lineItems.${i}.nodeId`}
+                  control={control}
+                  render={({ field: f }) => (
+                    <SearchableSelect
+                      placeholder={t('eventForm.selectNode')}
+                      options={nodeOptions}
+                      error={errors.lineItems?.[i]?.nodeId?.message}
+                      {...f}
+                    />
+                  )}
+                />
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <div className="w-24">
@@ -172,23 +148,6 @@ export function LineItemsEditor({ nodeOptions }: LineItemsEditorProps) {
       <p className="text-xs text-dn-text-muted mt-2">
         {isSimplifiedMode ? t('eventForm.signedAmountHint') : t('eventForm.manualAmountHint')}
       </p>
-
-      <Modal
-        open={showNodeModal !== null}
-        onClose={() => setShowNodeModal(null)}
-        title={t('nodes.newNode')}
-      >
-        <NodeForm
-          onSuccess={(newNode) => {
-            if (showNodeModal !== null) {
-              setValue(`lineItems.${showNodeModal}.nodeId`, String(newNode.id), { shouldDirty: true });
-            }
-            setShowNodeModal(null);
-          }}
-          onCancel={() => setShowNodeModal(null)}
-        />
-      </Modal>
     </div>
   );
 }
-

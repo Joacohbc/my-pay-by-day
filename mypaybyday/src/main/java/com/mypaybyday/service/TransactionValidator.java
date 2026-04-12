@@ -1,21 +1,18 @@
 package com.mypaybyday.service;
 
-import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-
-import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
+import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceTransactionEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
-import com.mypaybyday.validation.DateValidator;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Stateless validator for {@link FinanceTransactionEntity} integrity rules.
@@ -31,9 +28,6 @@ public class TransactionValidator {
 
 	@Inject
 	Messages messages;
-
-	@Inject
-	DateValidator dateValidator;
 
 	/**
 	* Validates the Zero-Sum Rule: the algebraic sum of all line-item amounts must equal 0.
@@ -91,35 +85,8 @@ public class TransactionValidator {
 	* @throws BusinessException if the transaction date is in the future
 	*/
 	public void validateDateNotInFuture(FinanceTransactionEntity transaction) throws BusinessException {
-		dateValidator.validateNotFuture(transaction.transactionDate);
-	}
-
-	/**
-	 * Validates that each node appears only once in the transaction.
-	 *
-	 * @throws BusinessException if a duplicate node is found
-	 */
-	public void validateUniqueNodes(FinanceTransactionEntity transaction) throws BusinessException {
-		if (transaction.lineItems == null) return;
-		Set<Long> nodeIds = new HashSet<>();
-		for (FinanceLineItemEntity item : transaction.lineItems) {
-			if (item.financeNode != null && item.financeNode.id != null) {
-				if (!nodeIds.add(item.financeNode.id)) {
-					throw new BusinessException(messages.get(MsgKey.TRANSACTION_DUPLICATE_NODE));
-				}
-			}
+		if (transaction.transactionDate != null && transaction.transactionDate.isAfter(LocalDateTime.now())) {
+			throw new BusinessException(messages.get(MsgKey.TRANSACTION_DATE_IN_FUTURE));
 		}
-	}
-
-	/**
-	 * Orchestrates all transaction integrity validations.
-	 *
-	 * @throws BusinessException if any validation rule is violated
-	 */
-	public void validate(FinanceTransactionEntity transaction) throws BusinessException {
-		validateZeroSum(transaction);
-		validateUniqueNodes(transaction);
-		validateNodesExist(transaction);
-		validateDateNotInFuture(transaction);
 	}
 }

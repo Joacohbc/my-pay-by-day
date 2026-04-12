@@ -1,13 +1,12 @@
 package com.mypaybyday.dto;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-
 import com.mypaybyday.entity.SubscriptionEntity;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.enums.RecurrenceFrequency;
 import com.mypaybyday.enums.SubscriptionStatus;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 
 public record SubscriptionDto(
 	Long id,

@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Routes } from '@/lib/routes';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -22,45 +21,39 @@ export function EventEditPage() {
   const deleteDraft = useDeleteDraft();
 
   const state = useLocation().state as { draft?: FinanceEvent } | null;
-  const draft = state?.draft ?? fetchedDraft ?? undefined;
+  const draft = state?.draft || fetchedDraft || undefined;
 
   if (isLoading || isLoadingDraft) return <FullPageSpinner />;
   if (!event) return null;
 
   const handleSubmit = async (dto: CreateEventDto | PatchEventDto, formDraftId?: number) => {
-    const draftId = formDraftId ?? draft?.draftId;
-
-    // Navigate immediately to optimistically update the UI
-    navigate(Routes.EVENT_DETAIL(id!));
-
-    try {
-      // Update the event, it is async so the unmount would happen before the mutation completes
-      await updateEvent.mutateAsync({ id: Number(id), dto: dto as PatchEventDto });
-      if (draftId) deleteDraft.mutate(draftId);
-    } catch {
-      // useUpdateEvent.onError handles cache rollback and the error toast
+    await updateEvent.mutateAsync({ id: Number(id), dto: dto as PatchEventDto });
+    const idToDelete = formDraftId || draft?.draftId;
+    if (idToDelete) {
+      await deleteDraft.mutateAsync(idToDelete);
     }
+    navigate(`/events/${id}`, { replace: true });
   };
 
   const handleSaveDraft = async (dto: Partial<FinanceEvent>) => {
-    const existingDraftId = dto.draftId ?? draft?.draftId;
-    if (existingDraftId) {
-      await updateDraft.mutateAsync({ id: existingDraftId, dto });
-      return existingDraftId;
+    const targetDraftId = dto.draftId || draft?.draftId;
+    if (targetDraftId) {
+      await updateDraft.mutateAsync({ id: targetDraftId, dto });
+      return targetDraftId;
+    } else {
+      // Create a draft linked to the current event
+      const payload = { ...dto, id: Number(id) };
+      const created = await createDraft.mutateAsync(payload);
+      return created.id;
     }
-    const payload = { ...dto, id: Number(id) };
-    const created = await createDraft.mutateAsync(payload);
-    return created.id;
   };
 
-  const handleDeleteDraft = async (formDraftId?: number, shouldExit = true) => {
-    const draftId = formDraftId ?? draft?.draftId;
-    if (draftId) {
-      await deleteDraft.mutateAsync(draftId);
+  const handleDeleteDraft = async (formDraftId?: number) => {
+    const idToDelete = formDraftId || draft?.draftId;
+    if (idToDelete) {
+      await deleteDraft.mutateAsync(idToDelete);
     }
-    if (shouldExit) {
-      navigate(Routes.EVENT_DETAIL(Number(id)));
-    }
+    navigate(-1);
   };
 
   return (

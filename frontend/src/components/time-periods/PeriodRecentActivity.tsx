@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Routes } from '@/lib/routes';
 import { EventCard } from '@/components/events/EventCard';
 import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
@@ -17,7 +16,7 @@ export function PeriodRecentActivity({ recentEvents }: PeriodRecentActivityProps
     <section>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-medium text-dn-text-muted uppercase tracking-wider">{t('periods.activity')}</h2>
-        <Link to={Routes.EVENTS} className="text-xs text-dn-primary flex items-center gap-0.5">
+        <Link to="/events" className="text-xs text-dn-primary flex items-center gap-0.5">
           {t('periods.viewAll')}
           <Icon name="chevron_right" className="text-sm" />
         </Link>

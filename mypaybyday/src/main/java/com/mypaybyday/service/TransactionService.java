@@ -1,11 +1,5 @@
 package com.mypaybyday.service;
 
-import java.util.List;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
 import com.mypaybyday.dto.FinanceTransactionDto;
 import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceTransactionEntity;
@@ -14,6 +8,11 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.TransactionRepository;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+
+import java.util.List;
 
 @ApplicationScoped
 public class TransactionService {
@@ -46,7 +45,9 @@ public class TransactionService {
 
 	@Transactional
 	FinanceTransactionEntity create(FinanceTransactionEntity transaction) throws BusinessException {
-		transactionValidator.validate(transaction);
+		transactionValidator.validateZeroSum(transaction);
+		transactionValidator.validateNodesExist(transaction);
+		transactionValidator.validateDateNotInFuture(transaction);
 
 		// Link bidirectional mapping and resolve FinanceNodeEntity references
 		if (transaction.lineItems != null) {
@@ -62,7 +63,9 @@ public class TransactionService {
 
 	@Transactional
 	FinanceTransactionEntity update(Long id, FinanceTransactionEntity transactionDetails) throws BusinessException {
-		transactionValidator.validate(transactionDetails);
+		transactionValidator.validateZeroSum(transactionDetails);
+		transactionValidator.validateNodesExist(transactionDetails);
+		transactionValidator.validateDateNotInFuture(transactionDetails);
 
 		FinanceTransactionEntity transaction = transactionRepository.findById(id);
 		if (transaction == null) {

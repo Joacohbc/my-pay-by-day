@@ -1,11 +1,11 @@
 package com.mypaybyday.dto;
 
+import com.mypaybyday.entity.FinanceEventEntity;
+import com.mypaybyday.enums.EventType;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-
-import com.mypaybyday.entity.FinanceEventEntity;
-import com.mypaybyday.enums.EventType;
 
 /**
  * Minimal read-only projection of a {@link FinanceEventEntity}.

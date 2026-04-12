@@ -1,14 +1,13 @@
 package com.mypaybyday.filter;
 
-import java.time.Instant;
-
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.ext.Provider;
-
 import org.jboss.logging.Logger;
+
+import java.time.Instant;
 
 /**
  * JAX-RS filter that logs every request/response with:

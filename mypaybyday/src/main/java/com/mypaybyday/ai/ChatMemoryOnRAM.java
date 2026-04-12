@@ -1,15 +1,14 @@
 package com.mypaybyday.ai;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
-
-import jakarta.enterprise.context.ApplicationScoped;
-
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 /**
  * Provides ChatMemory for AI Services using @MemoryId.

@@ -1,8 +1,8 @@
 package com.mypaybyday.dto;
 
-import java.math.BigDecimal;
-
 import com.mypaybyday.entity.TimePeriodBudgetEntity;
+
+import java.math.BigDecimal;
 
 public record TimePeriodBudgetDto(
 	Long id,

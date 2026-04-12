@@ -1,10 +1,10 @@
 package com.mypaybyday.dto;
 
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 @Data
 @Builder

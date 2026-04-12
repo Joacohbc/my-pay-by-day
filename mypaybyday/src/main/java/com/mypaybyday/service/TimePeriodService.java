@@ -1,38 +1,35 @@
 package com.mypaybyday.service;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
 import com.mypaybyday.dto.CategoryBudgetSummaryDto;
 import com.mypaybyday.dto.DynamicTimePeriodBalanceDto;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.PagedResponse;
-import com.mypaybyday.dto.PatchTimePeriodDto;
 import com.mypaybyday.dto.TimePeriodBalanceDto;
 import com.mypaybyday.dto.TimePeriodBudgetDto;
 import com.mypaybyday.dto.TimePeriodDto;
 import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
-import com.mypaybyday.entity.TimePeriodBudgetEntity;
 import com.mypaybyday.entity.TimePeriodEntity;
+import com.mypaybyday.entity.TimePeriodBudgetEntity;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TimePeriodRepository;
-import com.mypaybyday.validation.DateValidator;
-import com.mypaybyday.validation.TimePeriodValidator;
 import io.quarkus.panache.common.Page;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class TimePeriodService {
@@ -48,12 +45,6 @@ public class TimePeriodService {
 
 	@Inject
 	Messages messages;
-
-	@Inject
-	TimePeriodValidator timePeriodValidator;
-
-	@Inject
-	DateValidator dateValidator;
 
 	// -------------------------------------------------------------------------
 	// Queries
@@ -159,7 +150,9 @@ public class TimePeriodService {
 		if (startDate == null || endDate == null) {
 			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_START_DATE_REQUIRED)); // or appropriate generic date message
 		}
-		dateValidator.validateDateRange(startDate, endDate);
+		if (endDate.isBefore(startDate)) {
+			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
+		}
 
 		LocalDateTime from = startDate.atStartOfDay();
 		LocalDateTime to = endDate.atTime(LocalTime.MAX);
@@ -214,43 +207,46 @@ public class TimePeriodService {
 	}
 
 	@Transactional
-	public TimePeriodDto patch(Long id, PatchTimePeriodDto dto) throws BusinessException {
+	public TimePeriodDto patch(Long id, TimePeriodDto dto) throws BusinessException {
 		TimePeriodEntity timePeriod = findTimePeriodEntity(id);
 
-		if (dto.getName().isPresent()) {
-			String name = dto.getName().get();
-			if (name == null || name.isBlank()) {
+		if (dto.name() != null) {
+			if (dto.name().isBlank()) {
 				throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NAME_REQUIRED));
 			}
-			timePeriod.name = name;
+			timePeriod.name = dto.name();
 		}
-		if (dto.getStartDate().isPresent()) {
-			timePeriod.startDate = dto.getStartDate().get();
+		if (dto.startDate() != null) {
+			timePeriod.startDate = dto.startDate();
 		}
-		if (dto.getEndDate().isPresent()) {
-			timePeriod.endDate = dto.getEndDate().get();
+		if (dto.endDate() != null) {
+			timePeriod.endDate = dto.endDate();
 		}
-		if (dto.getBudgets().isPresent()) {
+		if (timePeriod.endDate.isBefore(timePeriod.startDate)) {
+			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
+		}
+		if (dto.budgets() != null) {
 			timePeriod.budgets.clear();
-			List<TimePeriodBudgetDto> budgets = dto.getBudgets().get();
-			if (budgets != null) {
-				for (TimePeriodBudgetDto budgetDto : budgets) {
-					if (budgetDto.category() != null && budgetDto.category().id() != null) {
-						CategoryEntity category = categoryService.findEntityById(budgetDto.category().id());
-						TimePeriodBudgetEntity budget = new TimePeriodBudgetEntity();
-						budget.timePeriod = timePeriod;
-						budget.category = category;
-						budget.budgetedAmount = budgetDto.budgetedAmount() != null ? budgetDto.budgetedAmount() : BigDecimal.ZERO;
-						timePeriod.budgets.add(budget);
-					}
+			for (TimePeriodBudgetDto budgetDto : dto.budgets()) {
+				if (budgetDto.category() != null && budgetDto.category().id() != null) {
+					CategoryEntity category = categoryService.findEntityById(budgetDto.category().id());
+					TimePeriodBudgetEntity budget = new TimePeriodBudgetEntity();
+					budget.timePeriod = timePeriod;
+					budget.category = category;
+					budget.budgetedAmount = budgetDto.budgetedAmount() != null ? budgetDto.budgetedAmount() : BigDecimal.ZERO;
+					timePeriod.budgets.add(budget);
 				}
 			}
 		}
-		if (dto.getSavingsPercentageGoal().isPresent()) {
-			timePeriod.savingsPercentageGoal = dto.getSavingsPercentageGoal().get();
+		if (dto.savingsPercentageGoal() != null) {
+			if (dto.savingsPercentageGoal().compareTo(BigDecimal.ZERO) < 0
+					|| dto.savingsPercentageGoal().compareTo(new BigDecimal("100")) > 0) {
+				throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_SAVINGS_GOAL_RANGE));
+			}
+			timePeriod.savingsPercentageGoal = dto.savingsPercentageGoal();
 		}
-		if (dto.getBudgetLimit().isPresent()) {
-			timePeriod.budgetLimit = dto.getBudgetLimit().get();
+		if (dto.budgetLimit() != null) {
+			timePeriod.budgetLimit = dto.budgetLimit();
 		}
 
 		validatePeriod(timePeriod);
@@ -280,23 +276,28 @@ public class TimePeriodService {
 		if (tp.name == null || tp.name.isBlank()) {
 			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NAME_REQUIRED));
 		}
-
-		timePeriodValidator.validate(tp);
-
 		if (tp.startDate == null) {
 			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_START_DATE_REQUIRED));
 		}
 		if (tp.endDate == null) {
 			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_DATE_REQUIRED));
 		}
+		if (tp.endDate.isBefore(tp.startDate)) {
+			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_BEFORE_START));
+		}
+		if (tp.savingsPercentageGoal != null
+				&& (tp.savingsPercentageGoal.compareTo(BigDecimal.ZERO) < 0
+					|| tp.savingsPercentageGoal.compareTo(new BigDecimal("100")) > 0)) {
+				throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_SAVINGS_GOAL_RANGE));
+		}
 
 		BigDecimal sumOfCategoryBudgets = tp.budgets.stream()
 				.map(b -> b.budgetedAmount)
 				.reduce(BigDecimal.ZERO, BigDecimal::add);
 
-		// If the user set 'null' means that user doesn't want to set a budget limit.
-		// If the user set a value, it must be greater than or equal to the sum of category budgets.
-		if (tp.budgetLimit != null && tp.budgetLimit.compareTo(sumOfCategoryBudgets) < 0) {
+		if (tp.budgetLimit == null) {
+			tp.budgetLimit = sumOfCategoryBudgets;
+		} else if (tp.budgetLimit.compareTo(sumOfCategoryBudgets) < 0) {
 			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_BUDGET_LIMIT_MINIMUM, sumOfCategoryBudgets));
 		}
 	}

@@ -1,9 +1,8 @@
 package com.mypaybyday.dto;
 
-import java.math.BigDecimal;
-
 import dev.langchain4j.model.output.structured.Description;
 import lombok.Data;
+import java.math.BigDecimal;
 
 @Data
 public class FinanceEventExtractionDto {

@@ -15,11 +15,10 @@ import { TimePeriodsPage } from '@/pages/TimePeriodsPage';
 import { TimePeriodDetailPage } from '@/pages/TimePeriodDetailPage';
 import { ChatPage } from '@/pages/ChatPage';
 import { FilesPage } from '@/pages/FilesPage';
-import { Routes } from '@/lib/routes';
 
 export const router = createBrowserRouter([
   {
-    path: Routes.DASHBOARD,
+    path: '/',
     element: <AppLayout />,
     children: [
       { index: true, element: <DashboardPage /> },
@@ -49,7 +48,7 @@ export const router = createBrowserRouter([
       { path: 'settings/files', element: <FilesPage /> },
 
       // Fallback
-      { path: '*', element: <Navigate to={Routes.DASHBOARD} replace /> },
+      { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
 ]);

@@ -1,11 +1,11 @@
 package com.mypaybyday.dto;
 
-import java.math.BigDecimal;
-import java.util.List;
-
 import com.mypaybyday.entity.TemplateEntity;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.enums.ModifierType;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 public record TemplateDto(
 	Long id,

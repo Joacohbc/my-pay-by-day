@@ -1,10 +1,9 @@
 package com.mypaybyday.crypto;
 
-import java.math.BigDecimal;
-
 import jakarta.inject.Inject;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
+import java.math.BigDecimal;
 
 @Converter
 public class BigDecimalEncryptionConverter implements AttributeConverter<BigDecimal, String> {

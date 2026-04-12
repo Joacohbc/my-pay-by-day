@@ -15,6 +15,7 @@ export function buildSchema(t: (key: string) => string) {
   return z.object({
     name: z.string().min(1, t('eventForm.nameRequired')),
     description: z.string().optional(),
+    receiptUrl: z.string().optional(),
     type: z.enum(['INBOUND', 'OUTBOUND', 'OTHER']),
     transactionDate: z.string().min(1, t('eventForm.dateRequired')),
     categoryId: z.string().optional(),
@@ -54,6 +55,7 @@ export function toCreateDto(values: FormValues): CreateEventDto {
   return {
     name: values.name,
     description: values.description || undefined,
+    receiptUrl: values.receiptUrl || undefined,
     type: values.type,
     transaction: toTransactionDto(values),
     category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
@@ -68,6 +70,7 @@ export function toPatchDto(values: FormValues, dirtyFields: Record<string, unkno
 
   if (dirtyFields.name) patch.name = values.name;
   if (dirtyFields.description) patch.description = values.description || null;
+  if (dirtyFields.receiptUrl) patch.receiptUrl = values.receiptUrl || null;
   if (dirtyFields.type) patch.type = values.type;
   
   if (dirtyFields.categoryId) {
@@ -91,6 +94,7 @@ export function toDraftDto(values: FormValues, t: (key: string) => string): Part
   const draftDto: Partial<FinanceEvent> = {
     name: values.name || t('drafts.untitledDraft'),
     description: values.description || undefined,
+    receiptUrl: values.receiptUrl || undefined,
     type: values.type,
   };
 

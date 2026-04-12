@@ -5,12 +5,10 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from '@/router';
 import { AlertProvider } from '@/contexts/AlertContext';
 
-import { queryStorage } from '@/lib/idbStorage';
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000, // 30 seconds
+      staleTime: 30_000,
       retry: 1,
       gcTime: 1000 * 60 * 60 * 24, // 24h — keep cache for offline use
     },
@@ -18,7 +16,11 @@ const queryClient = new QueryClient({
 });
 
 const persister = createAsyncStoragePersister({
-  storage: queryStorage,
+  storage: {
+    getItem: (key) => Promise.resolve(localStorage.getItem(key)),
+    setItem: (key, value) => Promise.resolve(localStorage.setItem(key, value)),
+    removeItem: (key) => Promise.resolve(localStorage.removeItem(key)),
+  },
   key: 'mpbd-query-cache',
 });
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNodes, useArchiveNode, useUnarchiveNode, useDeleteNode, useNodeBalance } from '@/hooks/useNodes';
+import { useNodes, useCreateNode, useUpdateNode, useArchiveNode, useUnarchiveNode, useDeleteNode, useNodeBalance } from '@/hooks/useNodes';
 import { formatCurrency, formatCompactCurrency, formatCompactWitNotCurrency, getCurrency } from '@/lib/format';
 import { NodeCard } from '@/components/nodes/NodeCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -8,13 +8,19 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Pagination } from '@/components/ui/Pagination';
 import type { FinanceNode, FinanceNodeType } from '@/models';
-import { NodeForm } from '@/components/nodes/NodeForm';
+import { useForm, Controller } from 'react-hook-form';
 
+interface NodeFormValues {
+  name: string;
+  type: FinanceNodeType;
+}
 
 function NodeBalanceBadge({ nodeId }: { nodeId: number }) {
   const { data: balance } = useNodeBalance(nodeId);
@@ -99,12 +105,18 @@ export function NodesPage() {
   const [page, setPage] = useState(0);
   const [showArchived, setShowArchived] = useState(false);
   const { data: paged, isLoading, error } = useNodes(page, 20, showArchived);
+  const createNode = useCreateNode();
+  const updateNode = useUpdateNode();
   const archiveNode = useArchiveNode();
   const unarchiveNode = useUnarchiveNode();
   const deleteNode = useDeleteNode();
   const [showModal, setShowModal] = useState(false);
   const [editingNode, setEditingNode] = useState<FinanceNode | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ node: FinanceNode; type: 'archive' | 'unarchive' | 'delete' } | null>(null);
+
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<NodeFormValues>({
+    defaultValues: { name: '', type: 'OWN' },
+  });
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
@@ -116,22 +128,38 @@ export function NodesPage() {
 
   const displayNodes = showArchived ? allNodes : activeNodes;
 
+  const onSubmit = async (values: NodeFormValues) => {
+    if (editingNode) {
+      await updateNode.mutateAsync({ id: editingNode.id, dto: { name: values.name, type: values.type } });
+    } else {
+      await createNode.mutateAsync({ name: values.name, type: values.type });
+    }
+    closeModal();
+  };
 
   const openNewModal = () => {
     setEditingNode(null);
+    reset({ name: '', type: 'OWN' });
     setShowModal(true);
   };
 
   const openEditModal = (node: FinanceNode) => {
     setEditingNode(node);
+    reset({ name: node.name, type: node.type });
     setShowModal(true);
   };
 
   const closeModal = () => {
     setShowModal(false);
     setEditingNode(null);
+    reset({ name: '', type: 'OWN' });
   };
 
+  const nodeTypeOptions = [
+    { value: 'OWN', label: t('nodes.ownAccountType') },
+    { value: 'EXTERNAL', label: t('nodes.externalType') },
+    { value: 'CONTACT', label: t('nodes.contactType') },
+  ];
 
   const handleConfirmAction = async () => {
     if (!confirmAction) return;
@@ -278,18 +306,42 @@ export function NodesPage() {
 
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
+      {/* Create Modal */}
       <Modal
         open={showModal}
         onClose={closeModal}
         title={editingNode ? t('common.edit') : t('nodes.newNode')}
+        footer={
+          <Button fullWidth onClick={handleSubmit(onSubmit)} loading={createNode.isPending || updateNode.isPending}>
+            {editingNode ? t('common.save') : t('nodes.createNode')}
+          </Button>
+        }
       >
-        <NodeForm
-          editTarget={editingNode}
-          onSuccess={() => closeModal()}
-          onCancel={() => closeModal()}
-        />
+        <form className="space-y-4">
+          <Input
+            label={t('common.name')}
+            placeholder={t('nodes.nodeNamePlaceholder')}
+            error={errors.name?.message}
+            {...register('name', { required: t('common.nameRequired') })}
+          />
+          <Controller
+            name="type"
+            control={control}
+            render={({ field }) => (
+              <SearchableSelect
+                label={t('common.type')}
+                options={nodeTypeOptions}
+                {...field}
+              />
+            )}
+          />
+          <div className="bg-dn-surface-low rounded-input p-3 space-y-1 text-xs text-dn-text-muted">
+            <p><span className="text-dn-text-main font-medium">{t('nodeType.OWN')}:</span> {t('nodes.ownDesc')}</p>
+            <p><span className="text-dn-text-main font-medium">{t('nodeType.EXTERNAL')}:</span> {t('nodes.externalDesc')}</p>
+            <p><span className="text-dn-text-main font-medium">{t('nodeType.CONTACT')}:</span> {t('nodes.contactDesc')}</p>
+          </div>
+        </form>
       </Modal>
-
     </div>
   );
 }

@@ -1,10 +1,10 @@
 package com.mypaybyday.dto;
 
+import com.mypaybyday.entity.FinanceTransactionEntity;
+
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
-
-import com.mypaybyday.entity.FinanceTransactionEntity;
 
 public record FinanceTransactionDto(
 	Long id,

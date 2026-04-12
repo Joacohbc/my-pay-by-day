@@ -1,13 +1,12 @@
 package com.mypaybyday.config;
 
-import java.util.TimeZone;
-
+import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
-
-import io.quarkus.runtime.StartupEvent;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
+
+import java.util.TimeZone;
 
 @ApplicationScoped
 public class TimezoneConfig {

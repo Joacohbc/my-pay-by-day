@@ -1,5 +1,6 @@
 package com.mypaybyday.dto;
 
+import java.util.List;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 @Schema(description = "Request object for base64 file upload")

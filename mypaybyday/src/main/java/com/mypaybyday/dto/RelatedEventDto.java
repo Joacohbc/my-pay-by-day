@@ -1,10 +1,11 @@
 package com.mypaybyday.dto;
 
+import com.mypaybyday.entity.FinanceEventEntity;
+import com.mypaybyday.entity.FinanceLineItemEntity;
+import com.mypaybyday.enums.EventType;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
-import com.mypaybyday.entity.FinanceEventEntity;
-import com.mypaybyday.enums.EventType;
 
 public record RelatedEventDto(
 	Long id,

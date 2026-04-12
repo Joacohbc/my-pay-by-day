@@ -1,12 +1,11 @@
 package com.mypaybyday.entity;
 
 import jakarta.persistence.Basic;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

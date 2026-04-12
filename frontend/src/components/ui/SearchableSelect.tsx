@@ -88,7 +88,7 @@ export const SearchableSelect = forwardRef<HTMLDivElement, SearchableSelectProps
               'w-full bg-dn-surface-low rounded-input px-4 py-3 text-sm text-dn-text-main text-left flex items-center justify-between',
               'focus:outline-none focus:ring-2 focus:ring-dn-primary/30',
               'transition-colors cursor-pointer border border-transparent',
-              disabled ? 'opacity-70 cursor-not-allowed border-white/5' : '',
+              disabled ? 'opacity-50 cursor-not-allowed' : '',
               error ? 'ring-2 ring-dn-error/50' : '',
               className,
             ]

@@ -1,29 +1,44 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useCategories, useDeleteCategory } from '@/hooks/useCategories';
+import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from '@/hooks/useCategories';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { IconPicker } from '@/components/ui/IconPicker';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { Pagination } from '@/components/ui/Pagination';
 import type { Category } from '@/models';
-import { CategoryForm } from '@/components/categories/CategoryForm';
+import { useForm, Controller } from 'react-hook-form';
+
+interface FormValues {
+  name: string;
+  description: string;
+  icon: string;
+}
 
 export function CategoriesPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(0);
   const { data: paged, isLoading, error } = useCategories(page);
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
 
   const [editTarget, setEditTarget] = useState<Category | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+
+  const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<FormValues>({
+    defaultValues: { name: '', description: '', icon: '' },
+  });
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
@@ -33,14 +48,27 @@ export function CategoriesPage() {
 
   const openCreate = () => {
     setEditTarget(null);
+    reset({ name: '', description: '', icon: '' });
     setShowModal(true);
   };
 
   const openEdit = (cat: Category) => {
     setEditTarget(cat);
+    setValue('name', cat.name);
+    setValue('description', cat.description ?? '');
+    setValue('icon', cat.icon ?? '');
     setShowModal(true);
   };
 
+  const onSubmit = async (values: FormValues) => {
+    if (editTarget) {
+      await updateCategory.mutateAsync({ id: editTarget.id, dto: values });
+    } else {
+      await createCategory.mutateAsync(values);
+    }
+    reset();
+    setShowModal(false);
+  };
 
   const handleDelete = (id: number) => {
     setConfirmDeleteId(id);
@@ -52,6 +80,7 @@ export function CategoriesPage() {
     setConfirmDeleteId(null);
   };
 
+  const isSubmitting = createCategory.isPending || updateCategory.isPending;
 
   return (
     <div className="space-y-4">
@@ -123,16 +152,39 @@ export function CategoriesPage() {
 
       <Modal
         open={showModal}
-        onClose={() => { setShowModal(false); setEditTarget(null); }}
+        onClose={() => { setShowModal(false); reset(); }}
         title={editTarget ? t('categories.editCategory') : t('categories.newCategory')}
+        footer={
+          <Button fullWidth onClick={handleSubmit(onSubmit)} loading={isSubmitting}>
+            {editTarget ? t('common.update') : t('common.create')}
+          </Button>
+        }
       >
-        <CategoryForm
-          editTarget={editTarget}
-          onSuccess={() => setShowModal(false)}
-          onCancel={() => setShowModal(false)}
-        />
+        <form className="space-y-4">
+          <Input
+            label={t('common.name')}
+            placeholder={t('categories.namePlaceholder')}
+            error={errors.name?.message}
+            {...register('name', { required: t('common.nameRequired') })}
+          />
+          <Textarea
+            label={t('common.description')}
+            placeholder={t('categories.descriptionPlaceholder')}
+            {...register('description')}
+          />
+          <Controller
+            name="icon"
+            control={control}
+            render={({ field }) => (
+              <IconPicker
+                label={t('categories.iconLabel')}
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
+          />
+        </form>
       </Modal>
-
     </div>
   );
 }

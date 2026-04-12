@@ -1,13 +1,5 @@
 package com.mypaybyday.service;
 
-import java.lang.reflect.Field;
-import java.util.List;
-import java.util.Optional;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mypaybyday.dto.FinanceEventDto;
@@ -18,15 +10,24 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EntityDraftRepository;
 
+import io.quarkus.logging.Log;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+
+import java.lang.reflect.Field;
+import java.util.List;
+import java.util.Optional;
+
 @ApplicationScoped
-public class DraftService {
+public class EntityDraftService {
 
 	private final EntityDraftRepository draftRepository;
 	private final Messages messages;
 	private final ObjectMapper objectMapper;
 
 	@Inject
-	public DraftService(EntityDraftRepository draftRepository, Messages messages, ObjectMapper objectMapper) {
+	public EntityDraftService(EntityDraftRepository draftRepository, Messages messages, ObjectMapper objectMapper) {
 		this.draftRepository = draftRepository;
 		this.messages = messages;
 		this.objectMapper = objectMapper;
@@ -98,16 +99,9 @@ public class DraftService {
 	}
 
 	@Transactional
-	public void delete(Long id) {
-		DraftEntity entity = draftRepository.findById(id);
-		if (entity != null) {
-			draftRepository.delete(entity);
-		}
-	}
-
-	@Transactional
-	public void deleteFinanceEventDrafts() {
-		draftRepository.delete("entityType", EntityType.FINANCE_EVENT);
+	public void delete(Long id) throws BusinessException {
+		DraftEntity entity = findEntityById(id);
+		draftRepository.delete(entity);
 	}
 
 	@Transactional

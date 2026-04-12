@@ -23,9 +23,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           className={[
             'w-full bg-dn-surface-low rounded-input px-4 py-3 text-sm text-dn-text-main placeholder-dn-text-muted/50',
             'focus:outline-none focus:ring-2 focus:ring-dn-primary/30',
-            'transition-colors border-none scheme-dark',
+            'transition-colors border-none [color-scheme:dark]',
             error ? 'ring-2 ring-dn-error/50' : '',
-            (props.disabled || props.readOnly) ? 'opacity-70 cursor-not-allowed bg-dn-surface-low border border-white/5' : '',
             className,
           ]
             .filter(Boolean)

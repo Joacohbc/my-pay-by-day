@@ -1,19 +1,20 @@
 package com.mypaybyday.resource;
 
+import com.mypaybyday.dto.RawTextEventRequestDto;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.dto.IntelligentEventResponseDto;
+import com.mypaybyday.service.IntelligentEventService;
+
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.core.Response;
 
-import com.mypaybyday.dto.IntelligentEventResponseDto;
-import com.mypaybyday.dto.RawTextEventRequestDto;
-import com.mypaybyday.exception.BusinessException;
-import com.mypaybyday.service.IntelligentEventService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
