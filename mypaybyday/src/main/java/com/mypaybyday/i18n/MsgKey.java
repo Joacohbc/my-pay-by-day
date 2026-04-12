@@ -14,10 +14,12 @@ public enum MsgKey {
 	// ── CategoryEntity ─────────────────────────────────────────
 	CATEGORY_NOT_FOUND("error.category.not_found"),
 	CATEGORY_NAME_REQUIRED("error.category.name_required"),
+	CATEGORY_IN_USE("error.category.in_use"),
 
 	// ── TagEntity ──────────────────────────────────────────────
 	TAG_NOT_FOUND("error.tag.not_found"),
 	TAG_NAME_REQUIRED("error.tag.name_required"),
+	TAG_IN_USE("error.tag.in_use"),
 
 	// ── Event ─────────────────────────────────────────────
 	EVENT_NOT_FOUND("error.event.not_found"),

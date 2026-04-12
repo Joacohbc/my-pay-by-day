@@ -7,6 +7,9 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.CategoryRepository;
+import com.mypaybyday.repository.EventRepository;
+import com.mypaybyday.repository.SubscriptionRepository;
+import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.validation.CategoryValidator;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -26,6 +29,12 @@ public class CategoryService {
 
 	@Inject
 	CategoryValidator categoryValidator;
+	@Inject
+	EventRepository eventRepository;
+	@Inject
+	TemplateRepository templateRepository;
+	@Inject
+	SubscriptionRepository subscriptionRepository;
 
 	// -------------------------------------------------------------------------
 	// Queries
@@ -97,6 +106,15 @@ public class CategoryService {
 	@Transactional
 	public void delete(Long id) throws BusinessException {
 		CategoryEntity category = findEntityById(id);
+
+		boolean inUse = eventRepository.countByCategory(category) > 0
+				|| templateRepository.countByCategory(category) > 0
+				|| subscriptionRepository.countByCategory(category) > 0;
+
+		if (inUse) {
+			throw new BusinessException(messages.get(MsgKey.CATEGORY_IN_USE));
+		}
+
 		categoryRepository.delete(category);
 	}
 }
