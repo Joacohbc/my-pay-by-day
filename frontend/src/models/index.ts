@@ -53,7 +53,7 @@ export type CreateFinanceNodeDto = Omit<FinanceNode, 'id' | 'archived'>;
 // ─── FinanceLineItem ──────────────────────────────────────────────────────────
 
 /** Read model — matches the flat FinanceLineItemDto from the backend */
-export interface FinanceLineItem extends Identifiable {
+export interface FinanceLineItem {
   financeNodeId: number;
   financeNodeName: string;
   amount: number;

@@ -174,8 +174,8 @@ export function EventDetailPage() {
         <h3 className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">{t('events.lineItems')}</h3>
         {event.lineItems?.length ? (
           <Card className="divide-y divide-white/5">
-            {event.lineItems.map((li) => (
-              <div key={li.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+            {event.lineItems.map((li, index) => (
+              <div key={`${li.financeNodeId}_${index}`} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                 <div>
                   <p className="text-sm font-medium text-dn-text-main">{li.financeNodeName}</p>
                 </div>

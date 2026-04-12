@@ -195,7 +195,6 @@ export function EventForm({
     alert.error(errorMessage);
   };
   
-  const [savingDraft, setSavingDraft] = useState(false);
   const [deletingDraft, setDeletingDraft] = useState(false);
   
   const saveDraftCore = async () => {
@@ -206,15 +205,6 @@ export function EventForm({
     if (typeof resultId === 'number') {
       setValue('draftId', resultId);
       setValue('isDraft', true);
-    }
-  };
-
-  const handleSaveDraft = async () => {
-    setSavingDraft(true);
-    try {
-      await saveDraftCore();
-    } finally {
-      setSavingDraft(false);
     }
   };
 
@@ -252,7 +242,7 @@ export function EventForm({
 
   const nodeOptions = activeNodes.map((n) => ({ value: String(n.id), label: n.name }));
 
-  if (!formReady) return <FullPageSpinner />;
+  if (!formReady) return <FullPageSpinner />
 
   return (
     <FormProvider {...methods}>
@@ -288,33 +278,18 @@ export function EventForm({
         <LineItemsEditor nodeOptions={nodeOptions} />
 
         <div className="flex flex-col gap-3">
-          {onSaveDraft && (
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleSaveDraft}
-                loading={savingDraft}
-                className="flex-1"
-              >
-                <Icon name="save" className="mr-2" />
-                {t('drafts.save')}
-              </Button>
-              {isDraft && onDeleteDraft && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDeleteDraft}
-                  loading={deletingDraft}
-                  className="flex-1 text-dn-error hover:bg-dn-error/10"
-                >
-                  <Icon name="delete" className="mr-2" />
-                  {t('drafts.delete')}
-                </Button>
-              )}
-            </div>
+          {isDraft && onDeleteDraft && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleDeleteDraft}
+              loading={deletingDraft}
+              className="w-full text-dn-error hover:bg-dn-error/10"
+            >
+              <Icon name="delete" className="mr-2" />
+              {t('drafts.delete')}
+            </Button>
           )}
           <Button
             type="submit"

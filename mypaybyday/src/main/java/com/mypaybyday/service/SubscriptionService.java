@@ -28,7 +28,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -300,17 +299,17 @@ public class SubscriptionService {
 
 		switch (sub.eventType) {
 			case INBOUND -> {
-				lineItems.add(new FinanceLineItemDto(null, sub.originNode.id, sub.originNode.name, sub.modifierValue.negate()));
-				lineItems.add(new FinanceLineItemDto(null, sub.destinationNode.id, sub.destinationNode.name, sub.modifierValue));
+				lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, sub.modifierValue.negate()));
+				lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, sub.modifierValue));
 			}
 			case OUTBOUND -> {
-				lineItems.add(new FinanceLineItemDto(null, sub.originNode.id, sub.originNode.name, sub.modifierValue.negate()));
-				lineItems.add(new FinanceLineItemDto(null, sub.destinationNode.id, sub.destinationNode.name, sub.modifierValue));
+				lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, sub.modifierValue.negate()));
+				lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, sub.modifierValue));
 			}
 			case OTHER -> {
 				if (sub.destinationNode != null) {
-					lineItems.add(new FinanceLineItemDto(null, sub.originNode.id, sub.originNode.name, sub.modifierValue.negate()));
-					lineItems.add(new FinanceLineItemDto(null, sub.destinationNode.id, sub.destinationNode.name, sub.modifierValue));
+					lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, sub.modifierValue.negate()));
+					lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, sub.modifierValue));
 				} else {
 					LOG.warnf("Subscription %d is type OTHER but missing destinationNode. Skipping.", sub.id);
 					return;
