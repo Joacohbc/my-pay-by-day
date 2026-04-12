@@ -1,23 +1,29 @@
-import type { TextareaHTMLAttributes } from 'react';
+import type { TextareaHTMLAttributes, ReactNode } from 'react';
 import { forwardRef, useRef } from 'react';
 
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
+  labelRight?: ReactNode;
   error?: string;
   containerClassName?: string;
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ label, error, className = '', containerClassName = '', id, ...props }, ref) => {
+  ({ label, labelRight, error, className = '', containerClassName = '', id, ...props }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
     const innerRef = useRef<HTMLTextAreaElement>(null);
 
     return (
       <div className={['flex flex-col gap-1.5', containerClassName].filter(Boolean).join(' ')}>
-        {label && (
-          <label htmlFor={inputId} className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">
-            {label}
-          </label>
+        {(label || labelRight) && (
+          <div className="flex items-center justify-between">
+            {label && (
+              <label htmlFor={inputId} className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">
+                {label}
+              </label>
+            )}
+            {labelRight}
+          </div>
         )}
         <textarea
           ref={(el) => {

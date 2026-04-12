@@ -390,6 +390,31 @@ const es = {
     linkedOnly: 'Vinculados',
   },
 
+  // ─── AI ──────────────────────────────────────────────────────────────────
+  ai: {
+    actions: {
+      label: 'IA',
+      title: 'Acciones de IA',
+      generate: 'Generar con IA',
+      fixSpelling: 'Corregir ortografía',
+    },
+    settings: {
+      title: 'Prompts de IA',
+      subtitle: 'Personalizá los prompts usados por las acciones de IA en los formularios',
+      description: 'Dejá un prompt vacío para usar el predeterminado. Usá {lang} como marcador del idioma del usuario.',
+      generateNameLabel: 'Prompt para Generar Nombre',
+      generateNamePlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
+      generateDescriptionLabel: 'Prompt para Generar Descripción',
+      generateDescriptionPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
+      fixNameSpellingLabel: 'Prompt para Corregir Ortografía del Nombre',
+      fixNameSpellingPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
+      fixDescriptionSpellingLabel: 'Prompt para Corregir Ortografía de la Descripción',
+      fixDescriptionSpellingPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
+      saved: 'Prompts de IA guardados',
+      reset: 'Restablecer predeterminados',
+    },
+  },
+
   // ─── Settings ────────────────────────────────────────────────────────────
   settings: {
     title: 'Ajustes',
@@ -413,6 +438,7 @@ const es = {
     timezoneDesc: 'Zona horaria para fechas y horas',
     timezoneBrowserDefault: 'Predeterminada del Navegador',
     preferences: 'Preferencias',
+    aiDesc: 'Personalizá los prompts para las acciones de IA en formularios',
   },
 
   // ─── Offline ─────────────────────────────────────────────────────────────

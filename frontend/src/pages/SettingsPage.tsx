@@ -184,6 +184,12 @@ export function SettingsPage() {
             subtitle={t('settings.filesDesc')}
             count={filesPaged?.totalElements}
           />
+          <SettingRow
+            to={Routes.SETTINGS_AI}
+            icon="auto_awesome"
+            title={t('ai.settings.title')}
+            subtitle={t('settings.aiDesc')}
+          />
         </Card>
       </section>
 

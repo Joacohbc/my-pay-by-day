@@ -73,6 +73,9 @@ public enum MsgKey {
 	// ── Intelligent Event ────────────────────────────────
 	INTELLIGENT_EVENT_DRAFT_CREATION_FAILED("error.intelligent_event.draft_creation_failed"),
 
+	// ── AI Text Generation ───────────────────────────────
+	AI_TEXT_GENERATION_FAILED("error.ai_text.generation_failed"),
+
 	// ── Validation ───────────────────────────────────────
 	VALIDATION_ONLY_LETTERS_INVALID_CHARS("error.validation.only_letters_invalid_chars"),
 	VALIDATION_ONLY_NUMBERS_INVALID_CHARS("error.validation.only_numbers_invalid_chars"),

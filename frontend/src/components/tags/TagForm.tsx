@@ -1,9 +1,14 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
+import { AiFieldActions } from '@/components/ui/AiFieldActions';
 import { useCreateTag, useUpdateTag } from '@/hooks/useTags';
+import { aiService } from '@/services/ai.service';
+import { aiPromptsStore } from '@/store/aiPromptsStore';
+import { useAlert } from '@/contexts/AlertContext';
 import type { Tag } from '@/models';
 
 interface TagFormValues {
@@ -19,15 +24,97 @@ interface TagFormProps {
 
 export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
   const { t } = useTranslation();
+  const alert = useAlert();
   const createTag = useCreateTag();
   const updateTag = useUpdateTag();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<TagFormValues>({
+  const [isNameLoading, setIsNameLoading] = useState(false);
+  const [isDescriptionLoading, setIsDescriptionLoading] = useState(false);
+
+  const { register, handleSubmit, getValues, setValue, formState: { errors } } = useForm<TagFormValues>({
     defaultValues: {
       name: editTarget?.name ?? '',
       description: editTarget?.description ?? '',
     },
   });
+
+  const buildContext = () => {
+    const values = getValues();
+    const parts: string[] = ['Entity type: Tag (transversal label for grouping events)'];
+    if (values.name) parts.push(`Name: ${values.name}`);
+    if (values.description) parts.push(`Description: ${values.description}`);
+    return parts.join('\n');
+  };
+
+  const handleGenerateName = async () => {
+    setIsNameLoading(true);
+    try {
+      const result = await aiService.generateText({
+        action: 'GENERATE_NAME',
+        context: buildContext(),
+        customPrompt: aiPromptsStore.getPromptForAction('generateName'),
+      });
+      setValue('name', result.text);
+    } catch (err) {
+      alert.error(err instanceof Error ? err.message : t('common.error'));
+    } finally {
+      setIsNameLoading(false);
+    }
+  };
+
+  const handleFixNameSpelling = async () => {
+    const currentName = getValues('name');
+    if (!currentName) return;
+    setIsNameLoading(true);
+    try {
+      const result = await aiService.generateText({
+        action: 'FIX_NAME_SPELLING',
+        context: buildContext(),
+        currentValue: currentName,
+        customPrompt: aiPromptsStore.getPromptForAction('fixNameSpelling'),
+      });
+      setValue('name', result.text);
+    } catch (err) {
+      alert.error(err instanceof Error ? err.message : t('common.error'));
+    } finally {
+      setIsNameLoading(false);
+    }
+  };
+
+  const handleGenerateDescription = async () => {
+    setIsDescriptionLoading(true);
+    try {
+      const result = await aiService.generateText({
+        action: 'GENERATE_DESCRIPTION',
+        context: buildContext(),
+        customPrompt: aiPromptsStore.getPromptForAction('generateDescription'),
+      });
+      setValue('description', result.text);
+    } catch (err) {
+      alert.error(err instanceof Error ? err.message : t('common.error'));
+    } finally {
+      setIsDescriptionLoading(false);
+    }
+  };
+
+  const handleFixDescriptionSpelling = async () => {
+    const currentDescription = getValues('description');
+    if (!currentDescription) return;
+    setIsDescriptionLoading(true);
+    try {
+      const result = await aiService.generateText({
+        action: 'FIX_DESCRIPTION_SPELLING',
+        context: buildContext(),
+        currentValue: currentDescription,
+        customPrompt: aiPromptsStore.getPromptForAction('fixDescriptionSpelling'),
+      });
+      setValue('description', result.text);
+    } catch (err) {
+      alert.error(err instanceof Error ? err.message : t('common.error'));
+    } finally {
+      setIsDescriptionLoading(false);
+    }
+  };
 
   const onSubmit = async (values: TagFormValues, e?: React.BaseSyntheticEvent) => {
     e?.stopPropagation();
@@ -47,25 +134,39 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
   const isSubmitting = createTag.isPending || updateTag.isPending;
 
   return (
-    <form 
+    <form
       onSubmit={(e) => {
         e.stopPropagation();
         handleSubmit(onSubmit)(e);
-      }} 
+      }}
       className="space-y-4"
     >
       <Input
         label={t('tags.tagName')}
+        labelRight={
+          <AiFieldActions
+            onGenerate={handleGenerateName}
+            onFixSpelling={handleFixNameSpelling}
+            isLoading={isNameLoading}
+          />
+        }
         placeholder={t('tags.namePlaceholder')}
         error={errors.name?.message}
         {...register('name', { required: t('common.nameRequired') })}
       />
       <Textarea
         label={t('common.description')}
+        labelRight={
+          <AiFieldActions
+            onGenerate={handleGenerateDescription}
+            onFixSpelling={handleFixDescriptionSpelling}
+            isLoading={isDescriptionLoading}
+          />
+        }
         placeholder={t('tags.descriptionPlaceholder')}
         {...register('description')}
       />
-      
+
       <div className="pt-2 flex gap-3">
         {onCancel && (
           <Button type="button" variant="ghost" fullWidth onClick={onCancel} disabled={isSubmitting}>
