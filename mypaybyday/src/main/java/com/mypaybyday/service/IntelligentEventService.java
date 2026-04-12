@@ -1,26 +1,5 @@
 package com.mypaybyday.service;
 
-import com.mypaybyday.ai.AgentFinanceEventCreator;
-import com.mypaybyday.dto.FinanceEventDto;
-import com.mypaybyday.dto.FinanceEventExtractionDto;
-import com.mypaybyday.dto.RawTextEventRequestDto;
-import com.mypaybyday.entity.CategoryEntity;
-import com.mypaybyday.entity.FinanceEventEntity;
-import com.mypaybyday.entity.FinanceLineItemEntity;
-import com.mypaybyday.entity.FinanceNodeEntity;
-import com.mypaybyday.entity.FinanceTransactionEntity;
-import com.mypaybyday.enums.EventType;
-import com.mypaybyday.exception.BusinessException;
-import com.mypaybyday.i18n.LanguageContext;
-import com.mypaybyday.i18n.Messages;
-import com.mypaybyday.i18n.MsgKey;
-import com.mypaybyday.dto.IntelligentEventResponseDto;
-import com.mypaybyday.enums.EntityType;
-import com.mypaybyday.repository.CategoryRepository;
-import com.mypaybyday.repository.FinanceNodeRepository;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,6 +8,26 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import jakarta.enterprise.context.ApplicationScoped;
+
+import com.mypaybyday.ai.AgentFinanceEventCreator;
+import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.dto.FinanceEventExtractionDto;
+import com.mypaybyday.dto.IntelligentEventResponseDto;
+import com.mypaybyday.dto.RawTextEventRequestDto;
+import com.mypaybyday.entity.CategoryEntity;
+import com.mypaybyday.entity.FinanceEventEntity;
+import com.mypaybyday.entity.FinanceLineItemEntity;
+import com.mypaybyday.entity.FinanceNodeEntity;
+import com.mypaybyday.entity.FinanceTransactionEntity;
+import com.mypaybyday.enums.EntityType;
+import com.mypaybyday.enums.EventType;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.LanguageContext;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
+import com.mypaybyday.repository.CategoryRepository;
+import com.mypaybyday.repository.FinanceNodeRepository;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
@@ -44,7 +43,7 @@ public class IntelligentEventService {
 	private final CategoryRepository categoryRepository;
 	private final Messages messages;
 
-	@Inject
+
 	public IntelligentEventService(AgentFinanceEventCreator agentFinanceEventCreator, EventService eventService,
 			DraftService draftService, LanguageContext languageContext,
 			FinanceNodeRepository financeNodeRepository, CategoryRepository categoryRepository,

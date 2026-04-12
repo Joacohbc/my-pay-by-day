@@ -1,19 +1,23 @@
 package com.mypaybyday.config;
 
-import io.quarkus.runtime.StartupEvent;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.event.Observes;
-import jakarta.inject.Inject;
-
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.Statement;
+
+import javax.sql.DataSource;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+
+import io.quarkus.runtime.StartupEvent;
 
 @ApplicationScoped
 public class SQLiteConfig {
 
-	@Inject
-	DataSource dataSource;
+	private final DataSource dataSource;
+
+	public SQLiteConfig(DataSource dataSource) {
+		this.dataSource = dataSource;
+	}
 
 	void onStart(@Observes StartupEvent event) {
 		try (Connection conn = dataSource.getConnection();

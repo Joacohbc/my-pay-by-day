@@ -1,13 +1,13 @@
 package com.mypaybyday.resource;
 
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TagService;
-import jakarta.inject.Inject;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -22,8 +22,11 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Tag(name = "Tags", description = "Transversal labels (e.g. #Vacation2026) that can be applied to Events for cross-cutting reporting")
 public class TagResource {
 
-	@Inject
-	TagService tagService;
+	private final TagService tagService;
+
+	public TagResource(TagService tagService) {
+		this.tagService = tagService;
+	}
 
 	@GET
 	@Operation(summary = "List tags (paginated)")

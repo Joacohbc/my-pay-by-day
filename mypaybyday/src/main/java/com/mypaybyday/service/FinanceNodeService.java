@@ -1,5 +1,11 @@
 package com.mypaybyday.service;
 
+import java.math.BigDecimal;
+import java.util.List;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+
 import com.mypaybyday.dto.FinanceNodeDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.FinanceNodeEntity;
@@ -11,30 +17,27 @@ import com.mypaybyday.repository.LineItemRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.validation.FinanceNodeValidator;
 import io.quarkus.panache.common.Page;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
-import java.math.BigDecimal;
-import java.util.List;
 
 @ApplicationScoped
 public class FinanceNodeService {
 
-	@Inject
-	FinanceNodeRepository financeNodeRepository;
+	private final FinanceNodeRepository financeNodeRepository;
 
-	@Inject
-	LineItemRepository lineItemRepository;
+	private final LineItemRepository lineItemRepository;
 
-	@Inject
-	TemplateRepository templateRepository;
+	private final TemplateRepository templateRepository;
 
-	@Inject
-	Messages messages;
+	private final Messages messages;
 
-	@Inject
-	FinanceNodeValidator financeNodeValidator;
+	private final FinanceNodeValidator financeNodeValidator;
+
+	public FinanceNodeService(FinanceNodeRepository financeNodeRepository, LineItemRepository lineItemRepository, TemplateRepository templateRepository, Messages messages, FinanceNodeValidator financeNodeValidator) {
+		this.financeNodeRepository = financeNodeRepository;
+		this.lineItemRepository = lineItemRepository;
+		this.templateRepository = templateRepository;
+		this.messages = messages;
+		this.financeNodeValidator = financeNodeValidator;
+	}
 
 	@Transactional
 	public PagedResponse<FinanceNodeDto> listAll(int page, int size, Boolean archived) {

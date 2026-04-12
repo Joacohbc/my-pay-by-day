@@ -1,24 +1,25 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.dto.FinanceEventDto;
-import com.mypaybyday.entity.DraftEntity;
-import com.mypaybyday.enums.EntityType;
-import com.mypaybyday.service.DraftService;
-import jakarta.inject.Inject;
+import java.util.List;
+
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+
+import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.entity.DraftEntity;
+import com.mypaybyday.enums.EntityType;
+import com.mypaybyday.service.DraftService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import java.util.List;
 
 @Path("/drafts")
 @Produces(MediaType.APPLICATION_JSON)
@@ -28,7 +29,7 @@ public class DraftResource {
 
 	private final DraftService draftService;
 
-	@Inject
+
 	public DraftResource(DraftService draftService) {
 		this.draftService = draftService;
 	}

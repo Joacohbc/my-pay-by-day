@@ -1,5 +1,10 @@
 package com.mypaybyday.service;
 
+import java.util.List;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+
 import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.CategoryEntity;
@@ -9,23 +14,21 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.validation.CategoryValidator;
 import io.quarkus.panache.common.Page;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
-import java.util.List;
 
 @ApplicationScoped
 public class CategoryService {
 
-	@Inject
-	CategoryRepository categoryRepository;
+	private final CategoryRepository categoryRepository;
 
-	@Inject
-	Messages messages;
+	private final Messages messages;
 
-	@Inject
-	CategoryValidator categoryValidator;
+	private final CategoryValidator categoryValidator;
+
+	public CategoryService(CategoryRepository categoryRepository, Messages messages, CategoryValidator categoryValidator) {
+		this.categoryRepository = categoryRepository;
+		this.messages = messages;
+		this.categoryValidator = categoryValidator;
+	}
 
 	// -------------------------------------------------------------------------
 	// Queries

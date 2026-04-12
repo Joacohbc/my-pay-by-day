@@ -1,12 +1,11 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.ai.AgentFinanceEventCreator;
-import com.mypaybyday.ai.ChatMemoryOnRAM;
-import com.mypaybyday.dto.ChatResponseDto;
-import com.mypaybyday.i18n.LanguageContext;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
 
-import dev.langchain4j.data.image.Image;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.POST;
@@ -16,12 +15,11 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.util.Base64;
-import java.util.List;
-import java.util.ArrayList;
-
+import com.mypaybyday.ai.AgentFinanceEventCreator;
+import com.mypaybyday.ai.ChatMemoryOnRAM;
+import com.mypaybyday.dto.ChatResponseDto;
+import com.mypaybyday.i18n.LanguageContext;
+import dev.langchain4j.data.image.Image;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -45,14 +43,17 @@ public class ChatResource {
 
 	private static final Logger log = Logger.getLogger(ChatResource.class);
 
-	@Inject
-	AgentFinanceEventCreator agentFinanceEventCreator;
+	private final AgentFinanceEventCreator agentFinanceEventCreator;
 
-	@Inject
-	LanguageContext languageContext;
+	private final LanguageContext languageContext;
 
-	@Inject
-	ChatMemoryOnRAM chatMemoryBean;
+	private final ChatMemoryOnRAM chatMemoryBean;
+
+	public ChatResource(AgentFinanceEventCreator agentFinanceEventCreator, LanguageContext languageContext, ChatMemoryOnRAM chatMemoryBean) {
+		this.agentFinanceEventCreator = agentFinanceEventCreator;
+		this.languageContext = languageContext;
+		this.chatMemoryBean = chatMemoryBean;
+	}
 
 	@POST
 	@Consumes(MediaType.MULTIPART_FORM_DATA)

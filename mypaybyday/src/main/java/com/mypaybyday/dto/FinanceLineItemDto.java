@@ -1,8 +1,8 @@
 package com.mypaybyday.dto;
 
-import com.mypaybyday.entity.FinanceLineItemEntity;
-
 import java.math.BigDecimal;
+
+import com.mypaybyday.entity.FinanceLineItemEntity;
 
 public record FinanceLineItemDto(
 	Long financeNodeId,

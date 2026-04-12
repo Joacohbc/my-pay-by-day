@@ -1,15 +1,18 @@
 package com.mypaybyday.validation;
 
+import jakarta.enterprise.context.ApplicationScoped;
+
 import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.exception.BusinessException;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class FinanceNodeValidator {
 
-    @Inject
-    RegexValidator regexValidator;
+	private final RegexValidator regexValidator;
+
+	public FinanceNodeValidator(RegexValidator regexValidator) {
+		this.regexValidator = regexValidator;
+	}
 
     public void validate(FinanceNodeEntity node) throws BusinessException {
         if (node == null) return;

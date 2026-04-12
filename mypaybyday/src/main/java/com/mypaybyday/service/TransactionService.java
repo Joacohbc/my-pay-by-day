@@ -1,5 +1,10 @@
 package com.mypaybyday.service;
 
+import java.util.List;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+
 import com.mypaybyday.dto.FinanceTransactionDto;
 import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceTransactionEntity;
@@ -8,26 +13,24 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.TransactionRepository;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
-import java.util.List;
 
 @ApplicationScoped
 public class TransactionService {
 
-	@Inject
-	TransactionRepository transactionRepository;
+	private final TransactionRepository transactionRepository;
 
-	@Inject
-	FinanceNodeRepository financeNodeRepository;
+	private final FinanceNodeRepository financeNodeRepository;
 
-	@Inject
-	TransactionValidator transactionValidator;
+	private final TransactionValidator transactionValidator;
 
-	@Inject
-	Messages messages;
+	private final Messages messages;
+
+	public TransactionService(TransactionRepository transactionRepository, FinanceNodeRepository financeNodeRepository, TransactionValidator transactionValidator, Messages messages) {
+		this.transactionRepository = transactionRepository;
+		this.financeNodeRepository = financeNodeRepository;
+		this.transactionValidator = transactionValidator;
+		this.messages = messages;
+	}
 
 	@Transactional
 	public List<FinanceTransactionDto> listAll() {

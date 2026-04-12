@@ -1,5 +1,10 @@
 package com.mypaybyday.service;
 
+import java.util.List;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.entity.TagEntity;
@@ -9,23 +14,21 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.validation.TagValidator;
 import io.quarkus.panache.common.Page;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
-import java.util.List;
 
 @ApplicationScoped
 public class TagService {
 
-	@Inject
-	TagRepository tagRepository;
+	private final TagRepository tagRepository;
 
-	@Inject
-	Messages messages;
+	private final Messages messages;
 
-	@Inject
-	TagValidator tagValidator;
+	private final TagValidator tagValidator;
+
+	public TagService(TagRepository tagRepository, Messages messages, TagValidator tagValidator) {
+		this.tagRepository = tagRepository;
+		this.messages = messages;
+		this.tagValidator = tagValidator;
+	}
 
 	// -------------------------------------------------------------------------
 	// Queries

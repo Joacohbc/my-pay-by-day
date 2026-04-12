@@ -1,20 +1,20 @@
 package com.mypaybyday.service;
 
-import com.mypaybyday.entity.FinanceNodeEntity;
+import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import jakarta.enterprise.context.ApplicationScoped;
+
 import com.mypaybyday.entity.FinanceLineItemEntity;
+import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.entity.FinanceTransactionEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.validation.DateValidator;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-
-import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Stateless validator for {@link FinanceTransactionEntity} integrity rules.
@@ -25,14 +25,17 @@ import java.util.Set;
 @ApplicationScoped
 public class TransactionValidator {
 
-	@Inject
-	FinanceNodeRepository financeNodeRepository;
+	private final FinanceNodeRepository financeNodeRepository;
 
-	@Inject
-	Messages messages;
+	private final Messages messages;
 
-	@Inject
-	DateValidator dateValidator;
+	private final DateValidator dateValidator;
+
+	public TransactionValidator(FinanceNodeRepository financeNodeRepository, Messages messages, DateValidator dateValidator) {
+		this.financeNodeRepository = financeNodeRepository;
+		this.messages = messages;
+		this.dateValidator = dateValidator;
+	}
 
 	/**
 	* Validates the Zero-Sum Rule: the algebraic sum of all line-item amounts must equal 0.

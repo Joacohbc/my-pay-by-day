@@ -1,5 +1,17 @@
 package com.mypaybyday.ai;
 
+import java.math.BigDecimal;
+import java.time.temporal.Temporal;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+
+import com.mypaybyday.dto.EventQuery;
+import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.dto.IntelligentEventResponseDto;
+import com.mypaybyday.dto.RawTextEventRequestDto;
 import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.entity.TagEntity;
@@ -9,25 +21,11 @@ import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TimePeriodRepository;
-import com.mypaybyday.dto.EventQuery;
-import com.mypaybyday.dto.IntelligentEventResponseDto;
-import com.mypaybyday.dto.RawTextEventRequestDto;
 import com.mypaybyday.service.EventService;
 import com.mypaybyday.service.IntelligentEventService;
-
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import io.quarkus.runtime.annotations.RegisterForReflection;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
-import java.math.BigDecimal;
-import java.time.temporal.Temporal;
-import java.util.List;
-import java.util.stream.Collectors;
-import com.mypaybyday.dto.FinanceEventDto;
-
 import org.jboss.logging.Logger;
 
 /**
@@ -44,23 +42,26 @@ public class FinanceAiTools {
 
 	private static final Logger log = Logger.getLogger(FinanceAiTools.class);
 
-	@Inject
-	FinanceNodeRepository financeNodeRepository;
+	private final FinanceNodeRepository financeNodeRepository;
 
-	@Inject
-	CategoryRepository categoryRepository;
+	private final CategoryRepository categoryRepository;
 
-	@Inject
-	TagRepository tagRepository;
+	private final TagRepository tagRepository;
 
-	@Inject
-	TimePeriodRepository timePeriodRepository;
+	private final TimePeriodRepository timePeriodRepository;
 
-	@Inject
-	EventService eventService;
+	private final EventService eventService;
 
-	@Inject
-	IntelligentEventService intelligentEventService;
+	private final IntelligentEventService intelligentEventService;
+
+	public FinanceAiTools(FinanceNodeRepository financeNodeRepository, CategoryRepository categoryRepository, TagRepository tagRepository, TimePeriodRepository timePeriodRepository, EventService eventService, IntelligentEventService intelligentEventService) {
+		this.financeNodeRepository = financeNodeRepository;
+		this.categoryRepository = categoryRepository;
+		this.tagRepository = tagRepository;
+		this.timePeriodRepository = timePeriodRepository;
+		this.eventService = eventService;
+		this.intelligentEventService = intelligentEventService;
+	}
 
 	@Tool("Returns all active (non-archived) finance nodes: accounts, wallets, credit cards, external entities, and contacts. " +
 			"Each entry contains id, name, and type (OWN, EXTERNAL, or CONTACT). " +

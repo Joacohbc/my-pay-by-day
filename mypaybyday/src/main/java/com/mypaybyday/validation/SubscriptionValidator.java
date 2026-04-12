@@ -1,18 +1,21 @@
 package com.mypaybyday.validation;
 
+import jakarta.enterprise.context.ApplicationScoped;
+
 import com.mypaybyday.entity.SubscriptionEntity;
 import com.mypaybyday.exception.BusinessException;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class SubscriptionValidator {
 
-    @Inject
-    RegexValidator regexValidator;
+	private final RegexValidator regexValidator;
 
-    @Inject
-    DateValidator dateValidator;
+	private final DateValidator dateValidator;
+
+	public SubscriptionValidator(RegexValidator regexValidator, DateValidator dateValidator) {
+		this.regexValidator = regexValidator;
+		this.dateValidator = dateValidator;
+	}
 
     public void validate(SubscriptionEntity subscription) throws BusinessException {
         if (subscription == null) return;

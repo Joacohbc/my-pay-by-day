@@ -1,19 +1,22 @@
 package com.mypaybyday.validation;
 
+import jakarta.enterprise.context.ApplicationScoped;
+
 import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TransactionValidator;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class EventValidator {
 
-    @Inject
-    RegexValidator regexValidator;
+	private final RegexValidator regexValidator;
 
-    @Inject
-    TransactionValidator transactionValidator;
+	private final TransactionValidator transactionValidator;
+
+	public EventValidator(RegexValidator regexValidator, TransactionValidator transactionValidator) {
+		this.regexValidator = regexValidator;
+		this.transactionValidator = transactionValidator;
+	}
 
     public void validate(FinanceEventEntity event) throws BusinessException {
         if (event == null) return;

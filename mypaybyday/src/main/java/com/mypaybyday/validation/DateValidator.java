@@ -1,19 +1,22 @@
 package com.mypaybyday.validation;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+import jakarta.enterprise.context.ApplicationScoped;
+
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @ApplicationScoped
 public class DateValidator {
 
-    @Inject
-    Messages messages;
+	private final Messages messages;
+
+	public DateValidator(Messages messages) {
+		this.messages = messages;
+	}
 
     public void validateDateRange(LocalDate startDate, LocalDate endDate) throws BusinessException {
         if (startDate != null && endDate != null && endDate.isBefore(startDate)) {

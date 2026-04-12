@@ -1,11 +1,12 @@
 package com.mypaybyday.entity;
 
-import com.mypaybyday.enums.EntityType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+
+import com.mypaybyday.enums.EntityType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

@@ -1,11 +1,11 @@
 package com.mypaybyday.dto;
 
-import com.mypaybyday.entity.TimePeriodEntity;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import com.mypaybyday.entity.TimePeriodEntity;
 
 public record TimePeriodDto(
 	Long id,

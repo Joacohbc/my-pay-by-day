@@ -1,13 +1,13 @@
 package com.mypaybyday.resource;
 
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.SubscriptionDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.SubscriptionService;
-import jakarta.inject.Inject;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -22,8 +22,11 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Tag(name = "Subscriptions", description = "Recurring agreement factory: uses a Template to auto-generate Events on each billing cycle")
 public class SubscriptionResource {
 
-    @Inject
-    SubscriptionService subscriptionService;
+	private final SubscriptionService subscriptionService;
+
+	public SubscriptionResource(SubscriptionService subscriptionService) {
+		this.subscriptionService = subscriptionService;
+	}
 
     @GET
     @Operation(summary = "List subscriptions (paginated)")

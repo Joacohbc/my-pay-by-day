@@ -1,33 +1,5 @@
 package com.mypaybyday.service;
 
-import com.mypaybyday.dto.EventQuery;
-import com.mypaybyday.dto.EventQuery.DateField;
-import com.mypaybyday.dto.FinanceEventDto;
-import com.mypaybyday.dto.PagedResponse;
-import com.mypaybyday.entity.FinanceEventEntity;
-import com.mypaybyday.dto.CategoryBalanceDto;
-import com.mypaybyday.entity.CategoryEntity;
-import com.mypaybyday.entity.FinanceLineItemEntity;
-import com.mypaybyday.entity.TagEntity;
-import com.mypaybyday.entity.FinanceTransactionEntity;
-import com.mypaybyday.entity.FileEntity;
-import com.mypaybyday.enums.EventType;
-import com.mypaybyday.enums.EntityType;
-import com.mypaybyday.exception.BusinessException;
-import com.mypaybyday.i18n.Messages;
-import com.mypaybyday.i18n.MsgKey;
-import com.mypaybyday.repository.EventRepository;
-import com.mypaybyday.validation.EventValidator;
-import io.quarkus.panache.common.Page;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
-import com.mypaybyday.dto.CategoryDto;
-import com.mypaybyday.dto.PatchEventDto;
-import com.mypaybyday.dto.TagDto;
-import org.openapitools.jackson.nullable.JsonNullable;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -39,7 +11,34 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+
+import com.mypaybyday.dto.CategoryBalanceDto;
+import com.mypaybyday.dto.CategoryDto;
+import com.mypaybyday.dto.EventQuery;
+import com.mypaybyday.dto.EventQuery.DateField;
+import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.dto.PagedResponse;
+import com.mypaybyday.dto.PatchEventDto;
+import com.mypaybyday.dto.TagDto;
+import com.mypaybyday.entity.CategoryEntity;
+import com.mypaybyday.entity.FileEntity;
+import com.mypaybyday.entity.FinanceEventEntity;
+import com.mypaybyday.entity.FinanceLineItemEntity;
+import com.mypaybyday.entity.FinanceTransactionEntity;
+import com.mypaybyday.entity.TagEntity;
+import com.mypaybyday.enums.EntityType;
+import com.mypaybyday.enums.EventType;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
+import com.mypaybyday.repository.EventRepository;
+import com.mypaybyday.validation.EventValidator;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
+import io.quarkus.panache.common.Page;
+import org.openapitools.jackson.nullable.JsonNullable;
 
 /**
  * Service responsible for managing {@link FinanceEventEntity} lifecycle.
@@ -52,29 +51,32 @@ import io.quarkus.hibernate.orm.panache.PanacheQuery;
 @ApplicationScoped
 public class EventService {
 
-	@Inject
-	EventRepository eventRepository;
+	private final EventRepository eventRepository;
 
-	@Inject
-	TransactionService transactionService;
+	private final TransactionService transactionService;
 
-	@Inject
-	CategoryService categoryService;
+	private final CategoryService categoryService;
 
-	@Inject
-	TagService tagService;
+	private final TagService tagService;
 
-	@Inject
-	Messages messages;
+	private final Messages messages;
 
-	@Inject
-	EventValidator eventValidator;
+	private final EventValidator eventValidator;
 
-	@Inject
-	FileService fileService;
+	private final FileService fileService;
 
-	@Inject
-	DraftService entityDraftService;
+	private final DraftService entityDraftService;
+
+	public EventService(EventRepository eventRepository, TransactionService transactionService, CategoryService categoryService, TagService tagService, Messages messages, EventValidator eventValidator, FileService fileService, DraftService entityDraftService) {
+		this.eventRepository = eventRepository;
+		this.transactionService = transactionService;
+		this.categoryService = categoryService;
+		this.tagService = tagService;
+		this.messages = messages;
+		this.eventValidator = eventValidator;
+		this.fileService = fileService;
+		this.entityDraftService = entityDraftService;
+	}
 
 	// -------------------------------------------------------------------------
 	// Queries

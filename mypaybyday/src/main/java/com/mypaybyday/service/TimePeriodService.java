@@ -1,5 +1,17 @@
 package com.mypaybyday.service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+
 import com.mypaybyday.dto.CategoryBudgetSummaryDto;
 import com.mypaybyday.dto.DynamicTimePeriodBalanceDto;
 import com.mypaybyday.dto.FinanceEventDto;
@@ -9,50 +21,40 @@ import com.mypaybyday.dto.TimePeriodBudgetDto;
 import com.mypaybyday.dto.TimePeriodDto;
 import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
-import com.mypaybyday.entity.TimePeriodEntity;
 import com.mypaybyday.entity.TimePeriodBudgetEntity;
+import com.mypaybyday.entity.TimePeriodEntity;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TimePeriodRepository;
-import com.mypaybyday.validation.TimePeriodValidator;
 import com.mypaybyday.validation.DateValidator;
+import com.mypaybyday.validation.TimePeriodValidator;
 import io.quarkus.panache.common.Page;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class TimePeriodService {
 
-	@Inject
-	TimePeriodRepository timePeriodRepository;
+	private final TimePeriodRepository timePeriodRepository;
 
-	@Inject
-	EventService eventService;
+	private final EventService eventService;
 
-	@Inject
-	CategoryService categoryService;
+	private final CategoryService categoryService;
 
-	@Inject
-	Messages messages;
+	private final Messages messages;
 
-	@Inject
-	TimePeriodValidator timePeriodValidator;
+	private final TimePeriodValidator timePeriodValidator;
 
-	@Inject
-	DateValidator dateValidator;
+	private final DateValidator dateValidator;
+
+	public TimePeriodService(TimePeriodRepository timePeriodRepository, EventService eventService, CategoryService categoryService, Messages messages, TimePeriodValidator timePeriodValidator, DateValidator dateValidator) {
+		this.timePeriodRepository = timePeriodRepository;
+		this.eventService = eventService;
+		this.categoryService = categoryService;
+		this.messages = messages;
+		this.timePeriodValidator = timePeriodValidator;
+		this.dateValidator = dateValidator;
+	}
 
 	// -------------------------------------------------------------------------
 	// Queries

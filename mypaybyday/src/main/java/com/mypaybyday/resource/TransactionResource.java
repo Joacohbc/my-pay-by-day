@@ -1,12 +1,12 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.dto.FinanceTransactionDto;
-import com.mypaybyday.exception.BusinessException;
-import com.mypaybyday.service.TransactionService;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+
+import com.mypaybyday.dto.FinanceTransactionDto;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.service.TransactionService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -21,8 +21,11 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Tag(name = "Transactions", description = "Read-only view of the operational-layer accounting envelopes. Transactions are created, updated, and deleted exclusively through the /events endpoints (Wrapper Isolation Rule).")
 public class TransactionResource {
 
-	@Inject
-	TransactionService transactionService;
+	private final TransactionService transactionService;
+
+	public TransactionResource(TransactionService transactionService) {
+		this.transactionService = transactionService;
+	}
 
 	@GET
 	@Operation(summary = "List all transactions", description = "Returns every Transaction with its LineItems. Read-only audit endpoint.")

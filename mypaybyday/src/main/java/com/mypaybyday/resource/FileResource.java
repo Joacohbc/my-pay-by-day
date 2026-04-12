@@ -1,12 +1,5 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.dto.Base64FileUploadRequestDto;
-import com.mypaybyday.dto.FileDto;
-import com.mypaybyday.dto.PagedResponse;
-import com.mypaybyday.entity.FileEntity;
-import com.mypaybyday.exception.BusinessException;
-import com.mypaybyday.service.FileService;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
@@ -18,6 +11,13 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+
+import com.mypaybyday.dto.Base64FileUploadRequestDto;
+import com.mypaybyday.dto.FileDto;
+import com.mypaybyday.dto.PagedResponse;
+import com.mypaybyday.entity.FileEntity;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.service.FileService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -32,8 +32,11 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Tag(name = "Files", description = "File storage and retrieval for events")
 public class FileResource {
 
-	@Inject
-	FileService fileService;
+	private final FileService fileService;
+
+	public FileResource(FileService fileService) {
+		this.fileService = fileService;
+	}
 
 	@POST
 	@Path("/base64")

@@ -1,5 +1,11 @@
 package com.mypaybyday.service;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TemplateDto;
 import com.mypaybyday.entity.TagEntity;
@@ -11,36 +17,33 @@ import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.validation.TemplateValidator;
 import io.quarkus.panache.common.Page;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @ApplicationScoped
 public class TemplateService {
 
-	@Inject
-	TemplateRepository templateRepository;
+	private final TemplateRepository templateRepository;
 
-	@Inject
-	SubscriptionRepository subscriptionRepository;
+	private final SubscriptionRepository subscriptionRepository;
 
-	@Inject
-	CategoryService categoryService;
+	private final CategoryService categoryService;
 
-	@Inject
-	TagService tagService;
+	private final TagService tagService;
 
-	@Inject
-	FinanceNodeService financeNodeService;
+	private final FinanceNodeService financeNodeService;
 
-	@Inject
-	Messages messages;
+	private final Messages messages;
 
-	@Inject
-	TemplateValidator templateValidator;
+	private final TemplateValidator templateValidator;
+
+	public TemplateService(TemplateRepository templateRepository, SubscriptionRepository subscriptionRepository, CategoryService categoryService, TagService tagService, FinanceNodeService financeNodeService, Messages messages, TemplateValidator templateValidator) {
+		this.templateRepository = templateRepository;
+		this.subscriptionRepository = subscriptionRepository;
+		this.categoryService = categoryService;
+		this.tagService = tagService;
+		this.financeNodeService = financeNodeService;
+		this.messages = messages;
+		this.templateValidator = templateValidator;
+	}
 
 	// -------------------------------------------------------------------------
 	// Queries

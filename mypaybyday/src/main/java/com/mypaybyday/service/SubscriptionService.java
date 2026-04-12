@@ -1,5 +1,12 @@
 package com.mypaybyday.service;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.FinanceLineItemDto;
 import com.mypaybyday.dto.PagedResponse;
@@ -24,14 +31,6 @@ import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.SystemJobRepository;
 import com.mypaybyday.validation.SubscriptionValidator;
 import io.quarkus.panache.common.Page;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
@@ -39,32 +38,35 @@ public class SubscriptionService {
 
 	private static final Logger LOG = Logger.getLogger(SubscriptionService.class);
 
-	@Inject
-	SubscriptionRepository subscriptionRepository;
+	private final SubscriptionRepository subscriptionRepository;
 
-	@Inject
-	EventRepository eventRepository;
+	private final EventRepository eventRepository;
 
-	@Inject
-	FinanceNodeService financeNodeService;
+	private final FinanceNodeService financeNodeService;
 
-	@Inject
-	CategoryService categoryService;
+	private final CategoryService categoryService;
 
-	@Inject
-	TagService tagService;
+	private final TagService tagService;
 
-	@Inject
-	Messages messages;
+	private final Messages messages;
 
-	@Inject
-	SubscriptionValidator subscriptionValidator;
+	private final SubscriptionValidator subscriptionValidator;
 
-	@Inject
-	EventService eventService;
+	private final EventService eventService;
 
-	@Inject
-	SystemJobRepository systemJobRepository;
+	private final SystemJobRepository systemJobRepository;
+
+	public SubscriptionService(SubscriptionRepository subscriptionRepository, EventRepository eventRepository, FinanceNodeService financeNodeService, CategoryService categoryService, TagService tagService, Messages messages, SubscriptionValidator subscriptionValidator, EventService eventService, SystemJobRepository systemJobRepository) {
+		this.subscriptionRepository = subscriptionRepository;
+		this.eventRepository = eventRepository;
+		this.financeNodeService = financeNodeService;
+		this.categoryService = categoryService;
+		this.tagService = tagService;
+		this.messages = messages;
+		this.subscriptionValidator = subscriptionValidator;
+		this.eventService = eventService;
+		this.systemJobRepository = systemJobRepository;
+	}
 
 	@Transactional
 	public PagedResponse<SubscriptionDto> listAll(int page, int size) {

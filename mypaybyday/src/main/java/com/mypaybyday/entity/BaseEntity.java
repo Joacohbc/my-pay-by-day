@@ -1,6 +1,7 @@
 package com.mypaybyday.entity;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import java.time.Instant;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -8,7 +9,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
-import java.time.Instant;
+
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 
 /**
  * Common base for all domain entities.

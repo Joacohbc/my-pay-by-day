@@ -1,22 +1,26 @@
 package com.mypaybyday.validation;
 
+import java.math.BigDecimal;
+
+import jakarta.enterprise.context.ApplicationScoped;
+
 import com.mypaybyday.entity.TimePeriodEntity;
 import com.mypaybyday.exception.BusinessException;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import java.math.BigDecimal;
 
 @ApplicationScoped
 public class TimePeriodValidator {
 
-    @Inject
-    RegexValidator regexValidator;
+	private final RegexValidator regexValidator;
 
-    @Inject
-    DateValidator dateValidator;
+	private final DateValidator dateValidator;
 
-    @Inject
-    NumberValidator numberValidator;
+	private final NumberValidator numberValidator;
+
+	public TimePeriodValidator(RegexValidator regexValidator, DateValidator dateValidator, NumberValidator numberValidator) {
+		this.regexValidator = regexValidator;
+		this.dateValidator = dateValidator;
+		this.numberValidator = numberValidator;
+	}
 
     public void validate(TimePeriodEntity timePeriod) throws BusinessException {
         if (timePeriod == null) return;

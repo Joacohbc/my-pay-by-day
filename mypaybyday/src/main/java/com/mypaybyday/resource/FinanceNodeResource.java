@@ -1,13 +1,15 @@
 package com.mypaybyday.resource;
 
+import java.math.BigDecimal;
+
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+
 import com.mypaybyday.dto.FinanceNodeDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.FinanceNodeService;
-import jakarta.inject.Inject;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -16,16 +18,17 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
-import java.math.BigDecimal;
-
 @Path("/finance-nodes")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @Tag(name = "Finance Nodes", description = "Core entities capable of holding, sending, or receiving value (accounts, external entities, contacts)")
 public class FinanceNodeResource {
 
-    @Inject
-    FinanceNodeService financeNodeService;
+	private final FinanceNodeService financeNodeService;
+
+	public FinanceNodeResource(FinanceNodeService financeNodeService) {
+		this.financeNodeService = financeNodeService;
+	}
 
     @GET
     @Operation(summary = "List active finance nodes (paginated)", description = "Returns only non-archived nodes. Use ?page=0&size=20 to control pagination.")

@@ -1,12 +1,12 @@
 package com.mypaybyday.validation;
 
+import java.util.regex.Pattern;
+
+import jakarta.enterprise.context.ApplicationScoped;
+
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-
-import java.util.regex.Pattern;
 
 @ApplicationScoped
 public class RegexValidator {
@@ -21,8 +21,11 @@ public class RegexValidator {
     private static final Pattern LETTERS_NUMBERS_AND_EXTRAS_PATTERN = Pattern.compile("^[\\p{L}\\p{N}\\s\\p{Punct}]+$");
     private static final Pattern ICON_PATTERN = Pattern.compile("^[a-zA-Z0-9_]+$");
 
-    @Inject
-    Messages messages;
+	private final Messages messages;
+
+	public RegexValidator(Messages messages) {
+		this.messages = messages;
+	}
 
     public void validateOnlyLetters(String value, int maxLength) throws BusinessException {
         if (value == null || value.isBlank()) return;
