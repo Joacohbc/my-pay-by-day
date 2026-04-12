@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.PagedResponse;
@@ -22,26 +21,30 @@ import io.quarkus.panache.common.Page;
 @ApplicationScoped
 public class TemplateService {
 
-	@Inject
-	TemplateRepository templateRepository;
+	private final TemplateRepository templateRepository;
+	private final SubscriptionRepository subscriptionRepository;
+	private final CategoryService categoryService;
+	private final TagService tagService;
+	private final FinanceNodeService financeNodeService;
+	private final Messages messages;
+	private final TemplateValidator templateValidator;
 
-	@Inject
-	SubscriptionRepository subscriptionRepository;
-
-	@Inject
-	CategoryService categoryService;
-
-	@Inject
-	TagService tagService;
-
-	@Inject
-	FinanceNodeService financeNodeService;
-
-	@Inject
-	Messages messages;
-
-	@Inject
-	TemplateValidator templateValidator;
+	public TemplateService(
+			TemplateRepository templateRepository,
+			SubscriptionRepository subscriptionRepository,
+			CategoryService categoryService,
+			TagService tagService,
+			FinanceNodeService financeNodeService,
+			Messages messages,
+			TemplateValidator templateValidator) {
+		this.templateRepository = templateRepository;
+		this.subscriptionRepository = subscriptionRepository;
+		this.categoryService = categoryService;
+		this.tagService = tagService;
+		this.financeNodeService = financeNodeService;
+		this.messages = messages;
+		this.templateValidator = templateValidator;
+	}
 
 	// -------------------------------------------------------------------------
 	// Queries

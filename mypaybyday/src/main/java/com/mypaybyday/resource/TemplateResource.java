@@ -1,6 +1,5 @@
 package com.mypaybyday.resource;
 
-import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -23,8 +22,11 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Tag(name = "Templates", description = "Blueprints for rapid Event creation, with optional mathematical modifiers on amounts")
 public class TemplateResource {
 
-    @Inject
-    TemplateService templateService;
+    private final TemplateService templateService;
+
+    public TemplateResource(TemplateService templateService) {
+        this.templateService = templateService;
+    }
 
     @GET
     @Operation(summary = "List templates (paginated)")

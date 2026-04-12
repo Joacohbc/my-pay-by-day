@@ -1,6 +1,5 @@
 package com.mypaybyday.resource;
 
-import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -26,8 +25,11 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Tag(name = "Time Periods", description = "Flexible budget containers with a date range, spending limit, and savings target. Events are associated dynamically by date, not by foreign key.")
 public class TimePeriodResource {
 
-    @Inject
-    TimePeriodService timePeriodService;
+    private final TimePeriodService timePeriodService;
+
+    public TimePeriodResource(TimePeriodService timePeriodService) {
+        this.timePeriodService = timePeriodService;
+    }
 
     @GET
     @Operation(summary = "List time periods (paginated)")

@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.FinanceEventDto;
@@ -39,32 +38,36 @@ public class SubscriptionService {
 
 	private static final Logger LOG = Logger.getLogger(SubscriptionService.class);
 
-	@Inject
-	SubscriptionRepository subscriptionRepository;
+	private final SubscriptionRepository subscriptionRepository;
+	private final EventRepository eventRepository;
+	private final FinanceNodeService financeNodeService;
+	private final CategoryService categoryService;
+	private final TagService tagService;
+	private final Messages messages;
+	private final SubscriptionValidator subscriptionValidator;
+	private final EventService eventService;
+	private final SystemJobRepository systemJobRepository;
 
-	@Inject
-	EventRepository eventRepository;
-
-	@Inject
-	FinanceNodeService financeNodeService;
-
-	@Inject
-	CategoryService categoryService;
-
-	@Inject
-	TagService tagService;
-
-	@Inject
-	Messages messages;
-
-	@Inject
-	SubscriptionValidator subscriptionValidator;
-
-	@Inject
-	EventService eventService;
-
-	@Inject
-	SystemJobRepository systemJobRepository;
+	public SubscriptionService(
+			SubscriptionRepository subscriptionRepository,
+			EventRepository eventRepository,
+			FinanceNodeService financeNodeService,
+			CategoryService categoryService,
+			TagService tagService,
+			Messages messages,
+			SubscriptionValidator subscriptionValidator,
+			EventService eventService,
+			SystemJobRepository systemJobRepository) {
+		this.subscriptionRepository = subscriptionRepository;
+		this.eventRepository = eventRepository;
+		this.financeNodeService = financeNodeService;
+		this.categoryService = categoryService;
+		this.tagService = tagService;
+		this.messages = messages;
+		this.subscriptionValidator = subscriptionValidator;
+		this.eventService = eventService;
+		this.systemJobRepository = systemJobRepository;
+	}
 
 	@Transactional
 	public PagedResponse<SubscriptionDto> listAll(int page, int size) {

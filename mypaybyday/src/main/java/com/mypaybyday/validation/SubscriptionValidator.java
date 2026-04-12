@@ -1,7 +1,6 @@
 package com.mypaybyday.validation;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 import com.mypaybyday.entity.SubscriptionEntity;
 import com.mypaybyday.exception.BusinessException;
@@ -9,11 +8,13 @@ import com.mypaybyday.exception.BusinessException;
 @ApplicationScoped
 public class SubscriptionValidator {
 
-    @Inject
-    RegexValidator regexValidator;
+    private final RegexValidator regexValidator;
+    private final DateValidator dateValidator;
 
-    @Inject
-    DateValidator dateValidator;
+    public SubscriptionValidator(RegexValidator regexValidator, DateValidator dateValidator) {
+        this.regexValidator = regexValidator;
+        this.dateValidator = dateValidator;
+    }
 
     public void validate(SubscriptionEntity subscription) throws BusinessException {
         if (subscription == null) return;

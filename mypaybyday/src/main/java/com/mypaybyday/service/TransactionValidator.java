@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Set;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
@@ -26,14 +25,18 @@ import com.mypaybyday.validation.DateValidator;
 @ApplicationScoped
 public class TransactionValidator {
 
-	@Inject
-	FinanceNodeRepository financeNodeRepository;
+	private final FinanceNodeRepository financeNodeRepository;
+	private final Messages messages;
+	private final DateValidator dateValidator;
 
-	@Inject
-	Messages messages;
-
-	@Inject
-	DateValidator dateValidator;
+	public TransactionValidator(
+			FinanceNodeRepository financeNodeRepository,
+			Messages messages,
+			DateValidator dateValidator) {
+		this.financeNodeRepository = financeNodeRepository;
+		this.messages = messages;
+		this.dateValidator = dateValidator;
+	}
 
 	/**
 	* Validates the Zero-Sum Rule: the algebraic sum of all line-item amounts must equal 0.

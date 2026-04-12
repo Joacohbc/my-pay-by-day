@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.CategoryBalanceDto;
@@ -52,29 +51,33 @@ import org.openapitools.jackson.nullable.JsonNullable;
 @ApplicationScoped
 public class EventService {
 
-	@Inject
-	EventRepository eventRepository;
+	private final EventRepository eventRepository;
+	private final TransactionService transactionService;
+	private final CategoryService categoryService;
+	private final TagService tagService;
+	private final Messages messages;
+	private final EventValidator eventValidator;
+	private final FileService fileService;
+	private final DraftService entityDraftService;
 
-	@Inject
-	TransactionService transactionService;
-
-	@Inject
-	CategoryService categoryService;
-
-	@Inject
-	TagService tagService;
-
-	@Inject
-	Messages messages;
-
-	@Inject
-	EventValidator eventValidator;
-
-	@Inject
-	FileService fileService;
-
-	@Inject
-	DraftService entityDraftService;
+	public EventService(
+			EventRepository eventRepository,
+			TransactionService transactionService,
+			CategoryService categoryService,
+			TagService tagService,
+			Messages messages,
+			EventValidator eventValidator,
+			FileService fileService,
+			DraftService entityDraftService) {
+		this.eventRepository = eventRepository;
+		this.transactionService = transactionService;
+		this.categoryService = categoryService;
+		this.tagService = tagService;
+		this.messages = messages;
+		this.eventValidator = eventValidator;
+		this.fileService = fileService;
+		this.entityDraftService = entityDraftService;
+	}
 
 	// -------------------------------------------------------------------------
 	// Queries
