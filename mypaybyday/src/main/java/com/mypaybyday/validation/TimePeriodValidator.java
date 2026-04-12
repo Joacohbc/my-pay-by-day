@@ -1,10 +1,12 @@
 package com.mypaybyday.validation;
 
-import com.mypaybyday.entity.TimePeriodEntity;
-import com.mypaybyday.exception.BusinessException;
+import java.math.BigDecimal;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import java.math.BigDecimal;
+
+import com.mypaybyday.entity.TimePeriodEntity;
+import com.mypaybyday.exception.BusinessException;
 
 @ApplicationScoped
 public class TimePeriodValidator {

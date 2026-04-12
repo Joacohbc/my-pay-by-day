@@ -321,6 +321,7 @@ const en = {
     budgetLimitModeLabel: 'Limit type',
     budgetLimitModeAuto: 'Automatic',
     budgetLimitModeFixed: 'Fixed value',
+    budgetLimitModeNone: 'No limit',
     budgetLimitAutoHelp: 'It is calculated automatically from the sum of category budgets.',
     budgetLimitReadOnlyAuto: 'Automatic mode is enabled: this field is read-only.',
     savingsGoal: 'Savings Goal % (optional)',

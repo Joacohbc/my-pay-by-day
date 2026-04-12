@@ -1,11 +1,11 @@
 package com.mypaybyday.dto;
 
+import java.util.List;
+
 import com.mypaybyday.enums.EventType;
 import lombok.Getter;
 import lombok.Setter;
 import org.openapitools.jackson.nullable.JsonNullable;
-
-import java.util.List;
 
 @Getter
 @Setter

@@ -1,15 +1,17 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.dto.PagedResponse;
-import com.mypaybyday.dto.TimePeriodBalanceDto;
-import com.mypaybyday.dto.DynamicTimePeriodBalanceDto;
-import com.mypaybyday.dto.TimePeriodDto;
-import com.mypaybyday.exception.BusinessException;
-import com.mypaybyday.service.TimePeriodService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+
+import com.mypaybyday.dto.DynamicTimePeriodBalanceDto;
+import com.mypaybyday.dto.PagedResponse;
+import com.mypaybyday.dto.PatchTimePeriodDto;
+import com.mypaybyday.dto.TimePeriodBalanceDto;
+import com.mypaybyday.dto.TimePeriodDto;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.service.TimePeriodService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -107,7 +109,7 @@ public class TimePeriodResource {
     })
     public Response update(
 	@Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id,
-	TimePeriodDto timePeriodDetails) throws BusinessException {
+	PatchTimePeriodDto timePeriodDetails) throws BusinessException {
 	return Response.ok(timePeriodService.patch(id, timePeriodDetails)).build();
     }
 

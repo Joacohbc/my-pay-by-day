@@ -321,6 +321,7 @@ const es = {
     budgetLimitModeLabel: 'Tipo de límite',
     budgetLimitModeAuto: 'Automático',
     budgetLimitModeFixed: 'Valor fijo',
+    budgetLimitModeNone: 'Sin límite',
     budgetLimitAutoHelp: 'Se calcula automáticamente con la suma de presupuestos por categoría.',
     budgetLimitReadOnlyAuto: 'Modo automático activo: este campo es de solo lectura.',
     savingsGoal: 'Meta de Ahorro % (opcional)',
