@@ -10,6 +10,10 @@ export function useTemplates(page = 0, size = 20) {
   return useQuery({
     queryKey: [...TEMPLATES_KEY, page, size],
     queryFn: () => templatesService.getAll(page, size),
+    staleTime: 30_000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+    refetchOnReconnect: 'always',
   });
 }
 

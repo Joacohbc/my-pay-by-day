@@ -163,7 +163,6 @@ const es = {
       'Ingresa montos positivos — los signos se asignan automáticamente por posición. La suma debe ser cero.',
     manualAmountHint:
       'Positivo = entrada al nodo, Negativo = salida del nodo. La suma debe ser cero.',
-    nameRequired: 'El nombre es requerido',
     dateRequired: 'La fecha es requerida',
     nodeRequired: 'Requerido',
     amountNonZero: 'Debe ser un número distinto de cero',
@@ -451,6 +450,16 @@ const es = {
     allDeleted: 'Se eliminaron todos los borradores de eventos',
     editingDraft: 'Editando borrador guardado',
     bulkActions: 'Acciones masivas',
+  },
+
+  // ─── Validation ──────────────────────────────────────────────────────────
+  validation: {
+    nameRequired: 'El nombre es requerido',
+    nameTooLong: 'El nombre debe tener como máximo 255 caracteres',
+    nameInvalidChars: 'El nombre solo puede contener letras, números, espacios, guiones y puntos',
+    descriptionTooLong: 'La descripción debe tener como máximo 5100 caracteres',
+    descriptionInvalidChars: 'La descripción contiene caracteres no válidos',
+    modifierValueRequired: 'El valor del modificador es requerido cuando se selecciona un tipo de modificador',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

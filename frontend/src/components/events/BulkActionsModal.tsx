@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
-import { Icon } from '@/components/ui/Icon';
 import { HoldToConfirmButton } from '@/components/ui/HoldToConfirmButton';
 
 interface BulkActionsModalProps {
@@ -46,24 +45,14 @@ export function BulkActionsModal({
         </p>
         
         <div className="space-y-3">
-          <button
-            className="w-full flex items-center gap-4 p-4 text-left bg-dn-bg/50 border border-white/5 rounded-card hover:bg-dn-bg transition-all disabled:opacity-50 disabled:pointer-events-none group"
-            onClick={handleConfirm}
+          <HoldToConfirmButton
+            icon="checklist_rtl"
+            label={isConfirming ? t('common.loading') : t('drafts.confirmAll')}
+            description={t('drafts.confirmAllDesc')}
+            onConfirm={handleConfirm}
             disabled={isConfirming || isDeleting}
-          >
-            <div className="w-12 h-12 rounded-full bg-dn-surface flex items-center justify-center text-dn-primary shrink-0 group-hover:scale-110 transition-transform shadow-sm">
-              <Icon name="checklist_rtl" className="text-2xl" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-dn-text-main text-base">
-                {isConfirming ? t('common.loading') : t('drafts.confirmAll')}
-              </p>
-              <p className="text-xs text-dn-text-muted mt-0.5 leading-relaxed">
-                {t('drafts.confirmAllDesc')}
-              </p>
-            </div>
-            <Icon name="arrow_forward_ios" className="text-dn-text-muted text-[16px] group-hover:translate-x-1 transition-transform" />
-          </button>
+            variant="primary"
+          />
 
           <HoldToConfirmButton
             icon="delete_sweep"

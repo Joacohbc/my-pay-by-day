@@ -65,7 +65,7 @@ export function EventEditPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title={t('events.editEvent')} back />
+      <PageHeader title={t('events.editEvent')} back={Routes.EVENT_DETAIL(id!)} />
       {draft && <DraftBadge saving={createDraft.isPending || updateDraft.isPending} />}
       <div className="px-5 pb-6">
         <EventForm

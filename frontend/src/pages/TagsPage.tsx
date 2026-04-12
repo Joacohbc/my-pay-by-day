@@ -13,6 +13,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
 import type { Tag } from '@/models';
 import { TagForm } from '@/components/tags/TagForm';
+import { Routes } from '@/lib/routes';
 
 export function TagsPage() {
   const { t } = useTranslation();
@@ -66,7 +67,7 @@ export function TagsPage() {
 
       <PageHeader
         title={t('tags.title')}
-        back
+        back={Routes.SETTINGS}
         subtitle={t('tags.count', { count: paged?.totalElements ?? 0 })}
         action={
           <Button size="sm" onClick={openCreate}>

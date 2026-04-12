@@ -16,7 +16,6 @@ public class TemplateValidator {
 
     public void validate(TemplateEntity template) throws BusinessException {
         if (template == null) return;
-        regexValidator.validateLettersAndNumbers(template.name, RegexValidator.SHORT_MAX_LENGTH);
-        regexValidator.validateLettersNumbersAndExtras(template.description, RegexValidator.LONG_MAX_LENGTH);
+        regexValidator.validateNameAndDescription(template.name, template.description);
     }
 }

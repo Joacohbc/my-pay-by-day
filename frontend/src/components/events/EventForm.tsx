@@ -281,6 +281,16 @@ export function EventForm({
         <LineItemsEditor nodeOptions={nodeOptions} />
 
         <div className="flex flex-col gap-2">
+          <Button
+            type="submit"
+            size="sm"
+            loading={loading}
+            disabled={!isDirty && mode === 'edit' && !isDraft}
+            className="w-full"
+          >
+            {submitLabel ?? t('common.save')}
+          </Button>
+
           {isDraft && onDeleteDraft && (
             <div className="flex gap-2">
               <Button
@@ -307,15 +317,6 @@ export function EventForm({
               </Button>
             </div>
           )}
-          <Button
-            type="submit"
-            size="sm"
-            loading={loading}
-            disabled={!isDirty && mode === 'edit' && !isDraft}
-            className="w-full"
-          >
-            {submitLabel ?? t('common.save')}
-          </Button>
         </div>
       </form>
     </FormProvider>

@@ -10,6 +10,10 @@ export function useSubscriptions(page = 0, size = 20) {
   return useQuery({
     queryKey: [...SUBSCRIPTIONS_KEY, page, size],
     queryFn: () => subscriptionsService.getAll(page, size),
+    staleTime: 30_000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+    refetchOnReconnect: 'always',
   });
 }
 

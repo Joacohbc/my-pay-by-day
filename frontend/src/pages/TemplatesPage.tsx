@@ -1,29 +1,21 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useForm, Controller, useWatch } from 'react-hook-form';
 import { useTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate } from '@/hooks/useTemplates';
-import { useCategories } from '@/hooks/useCategories';
-import { useTags } from '@/hooks/useTags';
-import { useNodes } from '@/hooks/useNodes';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/Textarea';
-import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
-import { CategorySelector } from '@/components/ui/CategorySelector';
-import { TagSelector } from '@/components/ui/TagSelector';
 import { Pagination } from '@/components/ui/Pagination';
 import { truncate } from '@/lib/format';
-import type { Template, EventType, ModifierType } from '@/models';
-import { NodeForm } from '@/components/nodes/NodeForm';
+import type { Template, CreateTemplateDto } from '@/models';
+import { TemplateForm } from '@/components/templates/TemplateForm';
+import { Routes } from '@/lib/routes';
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
   INBOUND: 'Income',
@@ -37,41 +29,10 @@ const EVENT_TYPE_COLORS: Record<string, string> = {
   OTHER: 'text-dn-text-muted bg-dn-surface-low',
 };
 
-interface FormValues {
-  name: string;
-  description: string;
-  eventType: string;
-  originNodeId: string;
-  destinationNodeId: string;
-  categoryId: string;
-  tagIds: string[];
-  modifierType: string;
-  modifierValue: string;
-}
-
-const DEFAULT_FORM: FormValues = {
-  name: '',
-  description: '',
-  eventType: '',
-  originNodeId: '',
-  destinationNodeId: '',
-  categoryId: '',
-  tagIds: [],
-  modifierType: '',
-  modifierValue: '',
-};
-
 export function TemplatesPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(0);
   const { data: paged, isLoading, error } = useTemplates(page);
-  // Helper hook calls for dropdown options — always fetch page 0 with a large size
-  const { data: categoriesPaged } = useCategories(0, 200);
-  const { data: tagsPaged } = useTags(0, 200);
-  const { data: nodesPaged } = useNodes(0, 200);
-  const categories = categoriesPaged?.content ?? [];
-  const tags = tagsPaged?.content ?? [];
-  const nodes = nodesPaged?.content ?? [];
 
   const createTemplate = useCreateTemplate();
   const updateTemplate = useUpdateTemplate();
@@ -80,20 +41,6 @@ export function TemplatesPage() {
   const [editTarget, setEditTarget] = useState<Template | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-  const [showNodeModal, setShowNodeModal] = useState<'origin' | 'destination' | null>(null);
-
-  const activeNodes = nodes.filter((n) => !n.archived);
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    control,
-    formState: { errors },
-  } = useForm<FormValues>({ defaultValues: DEFAULT_FORM });
-
-  const watchModifierType = useWatch({ control, name: 'modifierType' });
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
@@ -103,46 +50,20 @@ export function TemplatesPage() {
 
   const openCreate = () => {
     setEditTarget(null);
-    reset(DEFAULT_FORM);
     setShowModal(true);
   };
 
-  const openEdit = (t: Template) => {
-    setEditTarget(t);
-    reset({
-      name: t.name,
-      description: t.description ?? '',
-      eventType: t.eventType ?? '',
-      originNodeId: t.originNodeId ? String(t.originNodeId) : '',
-      destinationNodeId: t.destinationNodeId ? String(t.destinationNodeId) : '',
-      categoryId: t.category ? String(t.category.id) : '',
-      tagIds: t.tags.map((tag) => String(tag.id)),
-      modifierType: t.modifierType ?? '',
-      modifierValue: t.modifierValue != null ? String(t.modifierValue) : '',
-    });
+  const openEdit = (tpl: Template) => {
+    setEditTarget(tpl);
     setShowModal(true);
   };
 
-  const onSubmit = async (values: FormValues) => {
-    const dto = {
-      name: values.name,
-      description: values.description || undefined,
-      originNodeId: values.originNodeId ? Number(values.originNodeId) : undefined,
-      destinationNodeId: values.destinationNodeId ? Number(values.destinationNodeId) : undefined,
-      category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
-      tags: values.tagIds.map((id) => ({ id: Number(id) })),
-      eventType: (values.eventType as EventType) || undefined,
-      modifierType: (values.modifierType as ModifierType) || undefined,
-      modifierValue:
-        values.modifierType && values.modifierValue ? Number(values.modifierValue) : undefined,
-    };
-
+  const handleSubmit = async (dto: CreateTemplateDto) => {
     if (editTarget) {
       await updateTemplate.mutateAsync({ id: editTarget.id, dto });
     } else {
       await createTemplate.mutateAsync(dto);
     }
-    reset(DEFAULT_FORM);
     setShowModal(false);
   };
 
@@ -158,8 +79,6 @@ export function TemplatesPage() {
 
   const isSubmitting = createTemplate.isPending || updateTemplate.isPending;
 
-  const nodeOptions = activeNodes.map((n) => ({ value: String(n.id), label: n.name }));
-
   return (
     <div className="space-y-4">
       <ConfirmModal
@@ -174,7 +93,7 @@ export function TemplatesPage() {
 
       <PageHeader
         title={t('templates.title')}
-        back
+        back={Routes.SETTINGS}
         subtitle={t('templates.count', { count: paged?.totalElements ?? 0 })}
         action={
           <Button size="sm" onClick={openCreate}>
@@ -271,179 +190,14 @@ export function TemplatesPage() {
 
       <Modal
         open={showModal}
-        onClose={() => {
-          setShowModal(false);
-          reset(DEFAULT_FORM);
-        }}
+        onClose={() => setShowModal(false)}
         title={editTarget ? t('templates.editTemplate') : t('templates.newTemplate')}
-        footer={
-          <Button fullWidth onClick={handleSubmit(onSubmit)} loading={isSubmitting}>
-            {editTarget ? t('common.update') : t('common.create')}
-          </Button>
-        }
       >
-        <form className="space-y-4">
-          <Input
-            label={t('common.name')}
-            placeholder={t('templates.namePlaceholder')}
-            error={errors.name?.message}
-            {...register('name', { required: t('common.nameRequired') })}
-          />
-
-          <Textarea
-            label={t('common.description')}
-            placeholder={t('templates.descriptionPlaceholder')}
-            {...register('description')}
-          />
-
-          <Controller
-            name="eventType"
-            control={control}
-            render={({ field }) => (
-              <SearchableSelect
-                label={t('templates.eventType')}
-                placeholder={t('common.none')}
-                options={[
-                  { value: 'INBOUND', label: t('eventType.INBOUND') },
-                  { value: 'OUTBOUND', label: t('eventType.OUTBOUND') },
-                  { value: 'OTHER', label: t('eventType.OTHER') },
-                ]}
-                {...field}
-              />
-            )}
-          />
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <Controller
-                  name="originNodeId"
-                  control={control}
-                  render={({ field }) => (
-                    <SearchableSelect
-                      label={t('templates.originNode')}
-                      placeholder={t('common.none')}
-                      options={nodeOptions}
-                      {...field}
-                    />
-                  )}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowNodeModal('origin')}
-                className="mt-6 p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
-                title={t('nodes.addNode')}
-              >
-                <Icon name="add_circle" className="text-xl" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <Controller
-                  name="destinationNodeId"
-                  control={control}
-                  render={({ field }) => (
-                    <SearchableSelect
-                      label={t('templates.destinationNode')}
-                      placeholder={t('common.none')}
-                      options={nodeOptions}
-                      {...field}
-                    />
-                  )}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowNodeModal('destination')}
-                className="mt-6 p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
-                title={t('nodes.addNode')}
-              >
-                <Icon name="add_circle" className="text-xl" />
-              </button>
-            </div>
-          </div>
-
-
-          <Controller
-            name="categoryId"
-            control={control}
-            render={({ field }) => (
-              <CategorySelector
-                categories={categories}
-                value={field.value}
-                onChange={(val) => field.onChange(val)}
-                variant="select"
-                showAdd={true}
-              />
-            )}
-          />
-
-          <Controller
-            name="tagIds"
-            control={control}
-            render={({ field }) => (
-              <TagSelector
-                tags={tags}
-                value={field.value ?? []}
-                onChange={field.onChange}
-                showAdd={true}
-              />
-            )}
-          />
-
-
-          <div className="grid grid-cols-2 gap-3">
-            <Controller
-              name="modifierType"
-              control={control}
-              render={({ field }) => (
-                <SearchableSelect
-                  label={t('templates.modifierType')}
-                  placeholder={t('common.none')}
-                  options={[
-                    { value: '', label: t('common.none') },
-                    { value: 'PERCENTAGE', label: t('templates.percentage') },
-                    { value: 'FIXED', label: t('templates.fixed') },
-                  ]}
-                  {...field}
-                  onChange={(val) => {
-                    field.onChange(val);
-                    if (!val) {
-                      setValue('modifierValue', '');
-                    }
-                  }}
-                />
-              )}
-            />
-            {watchModifierType && watchModifierType !== '' && (
-              <Input
-                label={t('templates.modifierValue')}
-                placeholder={watchModifierType === 'PERCENTAGE' ? 'e.g. 10' : 'e.g. 5.00'}
-                type="number"
-                step="0.01"
-                min="0"
-                {...register('modifierValue')}
-              />
-            )}
-          </div>
-        </form>
-      </Modal>
-      <Modal
-        open={showNodeModal !== null}
-        onClose={() => setShowNodeModal(null)}
-        title={t('nodes.newNode')}
-      >
-        <NodeForm
-          onSuccess={(newNode) => {
-            if (showNodeModal === 'origin') {
-              setValue('originNodeId', String(newNode.id));
-            } else if (showNodeModal === 'destination') {
-              setValue('destinationNodeId', String(newNode.id));
-            }
-            setShowNodeModal(null);
-          }}
-          onCancel={() => setShowNodeModal(null)}
+        <TemplateForm
+          editTarget={editTarget}
+          onSubmit={handleSubmit}
+          onCancel={() => setShowModal(false)}
+          loading={isSubmitting}
         />
       </Modal>
     </div>

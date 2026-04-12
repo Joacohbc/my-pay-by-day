@@ -1,15 +1,11 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useForm, Controller } from 'react-hook-form';
 import {
   useSubscriptions,
   useCreateSubscription,
   useUpdateSubscription,
   useDeleteSubscription,
 } from '@/hooks/useSubscriptions';
-import { useCategories } from '@/hooks/useCategories';
-import { useTags } from '@/hooks/useTags';
-import { useNodes } from '@/hooks/useNodes';
 import { formatCurrency, formatDateFromParts } from '@/lib/format';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -21,48 +17,15 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
-import { CategorySelector } from '@/components/ui/CategorySelector';
-import { TagSelector } from '@/components/ui/TagSelector';
-import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/Textarea';
-import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Pagination } from '@/components/ui/Pagination';
-import type { Subscription, EventType, RecurrenceFrequency, SubscriptionStatus } from '@/models';
-import { NodeForm } from '@/components/nodes/NodeForm';
+import type { Subscription, CreateSubscriptionDto } from '@/models';
+import { SubscriptionForm } from '@/components/subscriptions/SubscriptionForm';
 
 // EVENT_TYPE_COLORS provides the tailwind classes for each event type
 const EVENT_TYPE_COLORS: Record<string, string> = {
   INBOUND: 'text-dn-success bg-dn-success/10',
   OUTBOUND: 'text-dn-error bg-dn-error/10',
   OTHER: 'text-dn-text-muted bg-dn-surface-low',
-};
-
-interface FormValues {
-  name: string;
-  description: string;
-  eventType: string;
-  originNodeId: string;
-  destinationNodeId: string;
-  categoryId: string;
-  tagIds: string[];
-  modifierValue: string;
-  recurrence: string;
-  nextExecutionDate: string;
-  status: string;
-}
-
-const DEFAULT_FORM: FormValues = {
-  name: '',
-  description: '',
-  eventType: '',
-  originNodeId: '',
-  destinationNodeId: '',
-  categoryId: '',
-  tagIds: [],
-  modifierValue: '',
-  recurrence: 'MONTHLY',
-  nextExecutionDate: new Date().toISOString().split('T')[0],
-  status: 'ACTIVE',
 };
 
 function SubscriptionCard({
@@ -89,7 +52,7 @@ function SubscriptionCard({
             <Icon name="sync" className="text-2xl text-dn-text-muted" />
             <h2 className="text-lg font-bold text-dn-text-main truncate">{sub.name}</h2>
           </div>
-          
+
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             {sub.eventType && (
               <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${EVENT_TYPE_COLORS[sub.eventType] ?? 'text-dn-text-muted bg-dn-surface-low'}`}>
@@ -114,7 +77,7 @@ function SubscriptionCard({
           {/* Details */}
           <div className="flex flex-col gap-3 min-w-0">
             <h3 className="text-xs font-bold text-dn-text-main uppercase tracking-wider">{t('subscriptions.expenseDetails')}</h3>
-            
+
             {sub.category && (
               <div className="flex items-center gap-3">
                 <div className="shrink-0 w-8 h-8 flex items-center justify-center text-dn-text-muted">
@@ -151,7 +114,7 @@ function SubscriptionCard({
           {/* Amount */}
           <div className="flex flex-col gap-3 min-w-0">
             <h3 className="text-xs font-bold text-dn-text-main uppercase tracking-wider">{t('subscriptions.amountToPay')}</h3>
-            
+
             {sub.modifierValue != null && (
               <div className="text-xl font-bold text-[#e1a5e3] tracking-tight break-all">
                 {formatCurrency(sub.modifierValue)}
@@ -199,14 +162,6 @@ export function SubscriptionsPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(0);
   const { data: paged, isLoading, error } = useSubscriptions(page);
-  const { data: categoriesPaged } = useCategories(0, 200);
-  const { data: tagsPaged } = useTags(0, 200);
-  const { data: nodesPaged } = useNodes(0, 200);
-
-  const categories = categoriesPaged?.content ?? [];
-  const tags = tagsPaged?.content ?? [];
-  const nodes = nodesPaged?.content ?? [];
-  const activeNodes = nodes.filter((n) => !n.archived);
 
   const createSub = useCreateSubscription();
   const updateSub = useUpdateSubscription();
@@ -215,16 +170,6 @@ export function SubscriptionsPage() {
   const [editTarget, setEditTarget] = useState<Subscription | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-  const [showNodeModal, setShowNodeModal] = useState<'origin' | 'destination' | null>(null);
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    control,
-    formState: { errors },
-  } = useForm<FormValues>({ defaultValues: DEFAULT_FORM });
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
@@ -234,49 +179,20 @@ export function SubscriptionsPage() {
 
   const openCreate = () => {
     setEditTarget(null);
-    reset(DEFAULT_FORM);
     setShowModal(true);
   };
 
   const openEdit = (sub: Subscription) => {
     setEditTarget(sub);
-    reset({
-      name: sub.name,
-      description: sub.description ?? '',
-      eventType: sub.eventType ?? '',
-      originNodeId: sub.originNodeId ? String(sub.originNodeId) : '',
-      destinationNodeId: sub.destinationNodeId ? String(sub.destinationNodeId) : '',
-      categoryId: sub.category ? String(sub.category.id) : '',
-      tagIds: sub.tags ? sub.tags.map((tag) => String(tag.id)) : [],
-      modifierValue: sub.modifierValue != null ? String(sub.modifierValue) : '',
-      recurrence: sub.recurrence,
-      nextExecutionDate: sub.nextExecutionDate.slice(0, 10),
-      status: sub.status,
-    });
     setShowModal(true);
   };
 
-  const onSubmit = async (values: FormValues) => {
-    const dto = {
-      name: values.name,
-      description: values.description || undefined,
-      originNodeId: values.originNodeId ? Number(values.originNodeId) : undefined,
-      destinationNodeId: values.destinationNodeId ? Number(values.destinationNodeId) : undefined,
-      category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
-      tags: values.tagIds.map((id) => ({ id: Number(id) })),
-      eventType: (values.eventType as EventType) || undefined,
-      modifierValue: values.modifierValue ? Number(values.modifierValue) : undefined,
-      recurrence: values.recurrence as RecurrenceFrequency,
-      nextExecutionDate: values.nextExecutionDate,
-      status: values.status as SubscriptionStatus,
-    };
-
+  const handleSubmit = async (dto: CreateSubscriptionDto) => {
     if (editTarget) {
       await updateSub.mutateAsync({ id: editTarget.id, dto });
     } else {
       await createSub.mutateAsync(dto);
     }
-    reset(DEFAULT_FORM);
     setShowModal(false);
   };
 
@@ -295,7 +211,6 @@ export function SubscriptionsPage() {
   };
 
   const isSubmitting = createSub.isPending || updateSub.isPending;
-  const nodeOptions = activeNodes.map((n) => ({ value: String(n.id), label: n.name }));
 
   return (
     <div className="space-y-4">
@@ -364,197 +279,14 @@ export function SubscriptionsPage() {
 
       <Modal
         open={showModal}
-        onClose={() => {
-          setShowModal(false);
-          reset(DEFAULT_FORM);
-        }}
+        onClose={() => setShowModal(false)}
         title={editTarget ? t('subscriptions.editSubscription') : t('subscriptions.createSubscription')}
-        footer={
-          <Button fullWidth onClick={handleSubmit(onSubmit)} loading={isSubmitting}>
-            {editTarget ? t('common.update') : t('common.create')}
-          </Button>
-        }
       >
-        <form className="space-y-4">
-          <Input
-            label={t('common.name')}
-            placeholder={t('templates.namePlaceholder')}
-            error={errors.name?.message}
-            {...register('name', { required: t('common.nameRequired') })}
-          />
-
-          <Textarea
-            label={t('common.description')}
-            placeholder={t('templates.descriptionPlaceholder')}
-            {...register('description')}
-          />
-
-          <div className="grid grid-cols-2 gap-3">
-            <Controller
-              name="recurrence"
-              control={control}
-              rules={{ required: t('common.required') }}
-              render={({ field }) => (
-                <SearchableSelect
-                  label={t('subscriptions.recurrenceLabel')}
-                  placeholder={t('common.none')}
-                  options={[
-                    { value: 'DAILY', label: t('subscriptions.recurrence.DAILY') },
-                    { value: 'WEEKLY', label: t('subscriptions.recurrence.WEEKLY') },
-                    { value: 'MONTHLY', label: t('subscriptions.recurrence.MONTHLY') },
-                    { value: 'YEARLY', label: t('subscriptions.recurrence.YEARLY') },
-                  ]}
-                  {...field}
-                />
-              )}
-            />
-            <Input
-              label={t('subscriptions.next')}
-              type="date"
-              error={errors.nextExecutionDate?.message}
-              {...register('nextExecutionDate', { required: t('common.required') })}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Controller
-              name="status"
-              control={control}
-              rules={{ required: t('common.required') }}
-              render={({ field }) => (
-                <SearchableSelect
-                  label={t('common.status')}
-                  options={[
-                    { value: 'ACTIVE', label: t('subscriptions.status.ACTIVE') },
-                    { value: 'CANCELLED', label: t('subscriptions.status.CANCELLED') },
-                  ]}
-                  {...field}
-                />
-              )}
-            />
-            <Controller
-              name="eventType"
-              control={control}
-              render={({ field }) => (
-                <SearchableSelect
-                  label={t('templates.eventType')}
-                  placeholder={t('common.none')}
-                  options={[
-                    { value: 'INBOUND', label: t('eventType.INBOUND') },
-                    { value: 'OUTBOUND', label: t('eventType.OUTBOUND') },
-                    { value: 'OTHER', label: t('eventType.OTHER') },
-                  ]}
-                  {...field}
-                />
-              )}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <Controller
-                  name="originNodeId"
-                  control={control}
-                  render={({ field }) => (
-                    <SearchableSelect
-                      label={t('templates.originNode')}
-                      placeholder={t('common.none')}
-                      options={nodeOptions}
-                      {...field}
-                    />
-                  )}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowNodeModal('origin')}
-                className="mt-6 p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
-                title={t('nodes.addNode')}
-              >
-                <Icon name="add_circle" className="text-xl" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <Controller
-                  name="destinationNodeId"
-                  control={control}
-                  render={({ field }) => (
-                    <SearchableSelect
-                      label={t('templates.destinationNode')}
-                      placeholder={t('common.none')}
-                      options={nodeOptions}
-                      {...field}
-                    />
-                  )}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowNodeModal('destination')}
-                className="mt-6 p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
-                title={t('nodes.addNode')}
-              >
-                <Icon name="add_circle" className="text-xl" />
-              </button>
-            </div>
-          </div>
-
-
-          <Controller
-            name="categoryId"
-            control={control}
-            render={({ field }) => (
-              <CategorySelector
-                categories={categories}
-                value={field.value}
-                onChange={(val) => field.onChange(val)}
-                variant="select"
-                showAdd={true}
-              />
-            )}
-          />
-
-          <Controller
-            name="tagIds"
-            control={control}
-            render={({ field }) => (
-              <TagSelector
-                tags={tags}
-                value={field.value ?? []}
-                onChange={field.onChange}
-                showAdd={true}
-              />
-            )}
-          />
-
-
-          <Input
-            label={t('eventForm.amount')}
-            placeholder={t('eventForm.amountPlaceholderEg')}
-            type="number"
-            step="0.01"
-            min="0"
-            {...register('modifierValue')}
-          />
-        </form>
-      </Modal>
-      <Modal
-        open={showNodeModal !== null}
-        onClose={() => setShowNodeModal(null)}
-        title={t('nodes.newNode')}
-      >
-        <NodeForm
-          onSuccess={(newNode) => {
-            if (showNodeModal === 'origin') {
-              setValue('originNodeId', String(newNode.id));
-            } else if (showNodeModal === 'destination') {
-              setValue('destinationNodeId', String(newNode.id));
-            }
-            setShowNodeModal(null);
-          }}
-          onCancel={() => setShowNodeModal(null)}
+        <SubscriptionForm
+          editTarget={editTarget}
+          onSubmit={handleSubmit}
+          onCancel={() => setShowModal(false)}
+          loading={isSubmitting}
         />
       </Modal>
     </div>

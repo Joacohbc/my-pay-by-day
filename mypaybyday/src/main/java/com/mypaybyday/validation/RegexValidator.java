@@ -67,6 +67,15 @@ public class RegexValidator {
         }
     }
 
+    /**
+     * Validates the standard name + description pair shared by Template, Subscription, and Event entities.
+     * Mirrors the shared field builders in frontend/src/lib/validation.ts.
+     */
+    public void validateNameAndDescription(String name, String description) throws BusinessException {
+        validateLettersAndNumbers(name, SHORT_MAX_LENGTH);
+        validateLettersNumbersAndExtras(description, LONG_MAX_LENGTH);
+    }
+
     public void validateIcon(String value) throws BusinessException {
         if (value == null || value.isEmpty()) return;
         if (value.length() > ICON_MAX_LENGTH) {

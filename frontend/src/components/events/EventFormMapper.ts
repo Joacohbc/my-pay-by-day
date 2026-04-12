@@ -1,6 +1,7 @@
 import { z } from 'zod/v4';
 import type { CreateEventDto, PatchEventDto, FinanceEvent, Category, Tag, FinanceLineItem, CreateTransactionDto } from '@/models';
 import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
+import { nameField, descriptionField } from '@/lib/validation';
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
@@ -13,8 +14,8 @@ export function buildSchema(t: (key: string) => string) {
   });
 
   return z.object({
-    name: z.string().min(1, t('eventForm.nameRequired')),
-    description: z.string().optional(),
+    name: nameField(t),
+    description: descriptionField(t),
     type: z.enum(['INBOUND', 'OUTBOUND', 'OTHER']),
     transactionDate: z.string().min(1, t('eventForm.dateRequired')),
     categoryId: z.string().optional(),

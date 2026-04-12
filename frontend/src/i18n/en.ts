@@ -163,7 +163,6 @@ const en = {
       'Enter positive amounts — signs are assigned automatically by position. Sum must equal zero.',
     manualAmountHint:
       'Positive = inflow to node, Negative = outflow from node. Sum must equal zero.',
-    nameRequired: 'Name is required',
     dateRequired: 'Date is required',
     nodeRequired: 'Required',
     amountNonZero: 'Must be a non-zero number',
@@ -451,6 +450,16 @@ const en = {
     allDeleted: 'All event drafts deleted successfully',
     editingDraft: 'Editing Draft',
     bulkActions: 'Bulk Actions',
+  },
+
+  // ─── Validation ──────────────────────────────────────────────────────────
+  validation: {
+    nameRequired: 'Name is required',
+    nameTooLong: 'Name must be at most 255 characters',
+    nameInvalidChars: 'Name can only contain letters, numbers, spaces, dashes and dots',
+    descriptionTooLong: 'Description must be at most 5100 characters',
+    descriptionInvalidChars: 'Description contains invalid characters',
+    modifierValueRequired: 'Modifier value is required when a modifier type is selected',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────
