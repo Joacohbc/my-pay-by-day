@@ -439,6 +439,11 @@ const en = {
     confirmAll: 'Confirm All',
     untitledDraft: 'Untitled Draft',
     delete: 'Delete Draft',
+    deleteAndExit: 'Delete & exit',
+    deleteAndReset: 'Solo delete',
+    deleteAll: 'Delete All Drafts',
+    confirmDeleteAll: 'Are you sure you want to delete all finance event drafts?',
+    allDeleted: 'All event drafts deleted successfully',
     editingDraft: 'Editing Draft',
   },
 

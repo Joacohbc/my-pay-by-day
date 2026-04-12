@@ -439,6 +439,11 @@ const es = {
     confirmAll: 'Confirmar Todos',
     untitledDraft: 'Borrador sin título',
     delete: 'Eliminar borrador',
+    deleteAndExit: 'Eliminar borrador y salir',
+    deleteAndReset: 'Solo eliminar borrador',
+    deleteAll: 'Eliminar todos los borradores',
+    confirmDeleteAll: '¿Estás seguro de que deseas eliminar todos los borradores de eventos financieros?',
+    allDeleted: 'Se eliminaron todos los borradores de eventos',
     editingDraft: 'Editando borrador guardado',
   },
 

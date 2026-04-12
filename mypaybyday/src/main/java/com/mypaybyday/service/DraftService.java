@@ -107,6 +107,11 @@ public class DraftService {
 	}
 
 	@Transactional
+	public void deleteFinanceEventDrafts() {
+		draftRepository.delete("entityType", EntityType.FINANCE_EVENT);
+	}
+
+	@Transactional
 	public long deleteByOriginalEntityId(Long originalEntityId, EntityType entityType) {
 		return draftRepository.deleteByOriginalEntityIdAndType(originalEntityId, entityType);
 	}

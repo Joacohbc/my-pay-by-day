@@ -74,3 +74,18 @@ export function useDeleteDraft() {
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
   });
 }
+
+export function useDeleteAllDrafts() {
+  const qc = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+
+  return useMutation({
+    mutationFn: () => draftsService.deleteFinanceEventDrafts(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: DRAFTS_KEY });
+      alert.success(t('drafts.allDeleted'));
+    },
+    onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
+  });
+}
