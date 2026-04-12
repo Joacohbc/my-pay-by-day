@@ -55,6 +55,7 @@ public enum MsgKey {
 	TRANSACTION_LINE_ITEM_AMOUNT_NULL("error.transaction.line_item_amount_null"),
 	TRANSACTION_ZERO_SUM_VIOLATED("error.transaction.zero_sum_violated"),
 	TRANSACTION_LINE_ITEM_NODES_NOT_FOUND("error.transaction.line_item_nodes_not_found"),
+	TRANSACTION_DUPLICATE_NODE("error.transaction.duplicate_node"),
 
 	// ── SubscriptionEntity ─────────────────────────────────────
 	SUBSCRIPTION_NOT_FOUND("error.subscription.not_found"),

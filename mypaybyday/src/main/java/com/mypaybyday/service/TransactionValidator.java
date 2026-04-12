@@ -12,8 +12,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Stateless validator for {@link FinanceTransactionEntity} integrity rules.
@@ -90,5 +91,34 @@ public class TransactionValidator {
 	*/
 	public void validateDateNotInFuture(FinanceTransactionEntity transaction) throws BusinessException {
 		dateValidator.validateNotFuture(transaction.transactionDate);
+	}
+
+	/**
+	 * Validates that each node appears only once in the transaction.
+	 *
+	 * @throws BusinessException if a duplicate node is found
+	 */
+	public void validateUniqueNodes(FinanceTransactionEntity transaction) throws BusinessException {
+		if (transaction.lineItems == null) return;
+		Set<Long> nodeIds = new HashSet<>();
+		for (FinanceLineItemEntity item : transaction.lineItems) {
+			if (item.financeNode != null && item.financeNode.id != null) {
+				if (!nodeIds.add(item.financeNode.id)) {
+					throw new BusinessException(messages.get(MsgKey.TRANSACTION_DUPLICATE_NODE));
+				}
+			}
+		}
+	}
+
+	/**
+	 * Orchestrates all transaction integrity validations.
+	 *
+	 * @throws BusinessException if any validation rule is violated
+	 */
+	public void validate(FinanceTransactionEntity transaction) throws BusinessException {
+		validateZeroSum(transaction);
+		validateUniqueNodes(transaction);
+		validateNodesExist(transaction);
+		validateDateNotInFuture(transaction);
 	}
 }

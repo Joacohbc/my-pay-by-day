@@ -45,9 +45,7 @@ public class TransactionService {
 
 	@Transactional
 	FinanceTransactionEntity create(FinanceTransactionEntity transaction) throws BusinessException {
-		transactionValidator.validateZeroSum(transaction);
-		transactionValidator.validateNodesExist(transaction);
-		transactionValidator.validateDateNotInFuture(transaction);
+		transactionValidator.validate(transaction);
 
 		// Link bidirectional mapping and resolve FinanceNodeEntity references
 		if (transaction.lineItems != null) {
@@ -63,9 +61,7 @@ public class TransactionService {
 
 	@Transactional
 	FinanceTransactionEntity update(Long id, FinanceTransactionEntity transactionDetails) throws BusinessException {
-		transactionValidator.validateZeroSum(transactionDetails);
-		transactionValidator.validateNodesExist(transactionDetails);
-		transactionValidator.validateDateNotInFuture(transactionDetails);
+		transactionValidator.validate(transactionDetails);
 
 		FinanceTransactionEntity transaction = transactionRepository.findById(id);
 		if (transaction == null) {

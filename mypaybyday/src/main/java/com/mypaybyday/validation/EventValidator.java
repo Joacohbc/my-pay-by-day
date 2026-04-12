@@ -2,6 +2,7 @@ package com.mypaybyday.validation;
 
 import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.service.TransactionValidator;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -12,7 +13,7 @@ public class EventValidator {
     RegexValidator regexValidator;
 
     @Inject
-    DateValidator dateValidator;
+    TransactionValidator transactionValidator;
 
     public void validate(FinanceEventEntity event) throws BusinessException {
         if (event == null) return;
@@ -20,7 +21,7 @@ public class EventValidator {
         regexValidator.validateLettersNumbersAndExtras(event.description, RegexValidator.LONG_MAX_LENGTH);
 
         if (event.transaction != null) {
-            dateValidator.validateNotFuture(event.transaction.transactionDate);
+            transactionValidator.validate(event.transaction);
         }
     }
 }
