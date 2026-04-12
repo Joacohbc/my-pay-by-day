@@ -11,6 +11,7 @@ const es = {
     close: 'Cerrar',
     cancel: 'Cancelar',
     confirm: 'Confirmar',
+    holdToConfirm: 'Mantén presionado para confirmar...',
     edit: 'Editar',
     archive: 'Archivar',
     archived: 'Archivado',
@@ -437,14 +438,17 @@ const es = {
   drafts: {
     title: 'Borradores',
     confirmAll: 'Confirmar Todos',
+    confirmAllDesc: 'Convertir todos los borradores en eventos permanentes',
     untitledDraft: 'Borrador sin título',
     delete: 'Eliminar borrador',
     deleteAndExit: 'Eliminar borrador y salir',
     deleteAndReset: 'Solo eliminar borrador',
     deleteAll: 'Eliminar todos los borradores',
+    deleteAllDesc: 'Eliminar permanentemente todos los borradores actuales',
     confirmDeleteAll: '¿Estás seguro de que deseas eliminar todos los borradores de eventos financieros?',
     allDeleted: 'Se eliminaron todos los borradores de eventos',
     editingDraft: 'Editando borrador guardado',
+    bulkActions: 'Acciones masivas',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────
