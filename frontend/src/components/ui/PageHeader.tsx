@@ -5,18 +5,29 @@ import { Icon } from '@/components/ui/Icon';
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
-  back?: boolean;
+  back?: boolean | string | (() => void);
   action?: ReactNode;
 }
 
-export function PageHeader({ title, subtitle, back = false, action }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, back, action }: PageHeaderProps) {
   const navigate = useNavigate();
+
+  const handleBack = () => {
+    if (typeof back === 'function') {
+      back();
+    } else if (typeof back === 'string') {
+      navigate(back);
+    } else {
+      navigate(-1);
+    }
+  };
+
   return (
     <div className="flex items-center justify-between gap-3 px-6 pt-6 pb-2">
       <div className="flex items-center gap-3 min-w-0">
         {back && (
           <button
-            onClick={() => navigate(-1)}
+            onClick={handleBack}
             className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-dn-surface-low text-dn-text-main hover:bg-dn-surface transition-colors"
           >
             <Icon name="arrow_back" className="text-[18px]" />

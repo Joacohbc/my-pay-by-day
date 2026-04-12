@@ -92,7 +92,7 @@ export function EventDetailPage() {
 
       <PageHeader
         title={t('events.detail')}
-        back
+        back={eventsRoute()}
         action={
           <div className="flex gap-2">
             <Link to={`/events/${event.id}/edit`}>
