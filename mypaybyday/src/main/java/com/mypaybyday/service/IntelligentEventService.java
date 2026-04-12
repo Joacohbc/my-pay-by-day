@@ -17,6 +17,7 @@ import com.mypaybyday.dto.IntelligentEventResponseDto;
 import com.mypaybyday.dto.RawTextEventRequestDto;
 import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
+import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.entity.FinanceTransactionEntity;
@@ -28,6 +29,7 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.FinanceNodeRepository;
+import com.mypaybyday.repository.TagRepository;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
@@ -40,17 +42,19 @@ public class IntelligentEventService {
 	private final LanguageContext languageContext;
 	private final FinanceNodeRepository financeNodeRepository;
 	private final CategoryRepository categoryRepository;
+	private final TagRepository tagRepository;
 	private final Messages messages;
 
 	public IntelligentEventService(AgentFinanceEventCreator agentFinanceEventCreator,
 			DraftService draftService, LanguageContext languageContext,
 			FinanceNodeRepository financeNodeRepository, CategoryRepository categoryRepository,
-			Messages messages) {
+			TagRepository tagRepository, Messages messages) {
 		this.agentFinanceEventCreator = agentFinanceEventCreator;
 		this.draftService = draftService;
 		this.languageContext = languageContext;
 		this.financeNodeRepository = financeNodeRepository;
 		this.categoryRepository = categoryRepository;
+		this.tagRepository = tagRepository;
 		this.messages = messages;
 	}
 
@@ -58,15 +62,17 @@ public class IntelligentEventService {
 		String systemPrompt = buildSystemPrompt(LocalDateTime.now().toString(), languageContext.getLang());
 
 		// Pre-fetch context so the LLM can pick IDs without needing tool calls
-		// (tool-calling and structured POJO output are mutually exclusive in LangChain4j)
 		String nodesContext = buildNodesContext();
 		String categoriesContext = buildCategoriesContext();
+		String tagsContext = buildTagsContext();
 
 		String extractionPrompt = systemPrompt + "\n\n" +
 				"AVAILABLE FINANCE NODES (pick sourceNodeId and destinationNodeId from these):\n" +
 				nodesContext + "\n\n" +
-				"AVAILABLE CATEGORIES (pick categoryId from these):\n" +
+				"AVAILABLE CATEGORIES (pick category from these):\n" +
 				categoriesContext + "\n\n" +
+				"AVAILABLE TAGS (pick zero or more tags from these):\n" +
+				tagsContext + "\n\n" +
 				"TASK:\n" +
 				"Extract the transaction details from the user's text using the context provided above.\n\n";
 
@@ -81,7 +87,8 @@ public class IntelligentEventService {
 				"- amount: Total absolute amount of the transaction. Always positive, no currency symbols.\n" +
 				"- sourceNodeId: The ID of the node where money comes FROM. Pick from the AVAILABLE FINANCE NODES list above.\n" +
 				"- destinationNodeId: The ID of the node where money goes TO. Pick from the AVAILABLE FINANCE NODES list above.\n" +
-				"- categoryId: The ID of the most appropriate category from the AVAILABLE CATEGORIES list above. Null if unclear.\n" +
+				"- category: The most appropriate category from the AVAILABLE CATEGORIES list above, including its id, name and description. Null if unclear.\n" +
+				"- tags: List of tags from the AVAILABLE TAGS list above that best describe this event, each with id, name and description. Empty list if none apply.\n" +
 				"- transactionDate: The date in YYYY-MM-DD format. Extract from text if present, otherwise leave null.\n\n" +
 				"CRITICAL OUTPUT RULES:\n" +
 				"- Return ONLY valid JSON matching the expected schema.\n" +
@@ -92,13 +99,14 @@ public class IntelligentEventService {
 		// Call the Langchain4j structured output extraction
 		FinanceEventExtractionDto extraction = agentFinanceEventCreator.extractEvent(request.getText(), extractionPrompt);
 
-		log.infof("AI extracted event from text: '%s'. Result: name=%s, amount=%s, sourceNodeId=%s, destinationNodeId=%s, categoryId=%s, date=%s",
+		log.infof("AI extracted event from text: '%s'. Result: name=%s, amount=%s, sourceNodeId=%s, destinationNodeId=%s, category=%s, tags=%s, date=%s",
 			request.getText(),
 			extraction.getName(),
 			extraction.getAmount(),
 			extraction.getSourceNodeId(),
 			extraction.getDestinationNodeId(),
-			extraction.getCategoryId(),
+			extraction.getCategory(),
+			extraction.getTags(),
 			extraction.getTransactionDate()
 		);
 
@@ -112,10 +120,26 @@ public class IntelligentEventService {
 		event.type = EventType.OUTBOUND;
 
 		// Map CategoryEntity
-		if (extraction.getCategoryId() != null) {
+		if (extraction.getCategory() != null && extraction.getCategory().getId() != null) {
 			CategoryEntity category = new CategoryEntity();
-			category.id = extraction.getCategoryId();
+			category.id = extraction.getCategory().getId();
+			category.name = extraction.getCategory().getName();
+			category.description = extraction.getCategory().getDescription();
 			event.category = category;
+		}
+
+		// Map TagEntities
+		if (extraction.getTags() != null && !extraction.getTags().isEmpty()) {
+			event.tags = extraction.getTags().stream()
+					.filter(t -> t.getId() != null)
+					.map(t -> {
+						TagEntity tag = new TagEntity();
+						tag.id = t.getId();
+						tag.name = t.getName();
+						tag.description = t.getDescription();
+						return tag;
+					})
+					.collect(Collectors.toCollection(ArrayList::new));
 		}
 
 		// Map Transaction and Line Items
@@ -200,6 +224,16 @@ public class IntelligentEventService {
 		}
 		return nodes.stream()
 				.map(n -> String.format("  - id=%d, name=%s, type=%s", n.id, n.name, n.type))
+				.collect(Collectors.joining("\n"));
+	}
+
+	private String buildTagsContext() {
+		List<TagEntity> tags = tagRepository.listAll();
+		if (tags.isEmpty()) {
+			return "No tags available.";
+		}
+		return tags.stream()
+				.map(t -> String.format("  - id=%d, name=%s", t.id, t.name))
 				.collect(Collectors.joining("\n"));
 	}
 
