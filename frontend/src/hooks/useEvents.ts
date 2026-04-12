@@ -90,7 +90,6 @@ function enrichPatchWithCachedEntities(
 
   if (dto.name !== undefined) enrichedPatch.name = dto.name;
   if (dto.description !== undefined) enrichedPatch.description = dto.description ?? undefined;
-  if (dto.receiptUrl !== undefined) enrichedPatch.receiptUrl = dto.receiptUrl ?? undefined;
   if (dto.type !== undefined) enrichedPatch.type = dto.type;
 
   const resolvedCategory = resolveCategory(dto.category, queryClient);

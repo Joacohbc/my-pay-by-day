@@ -120,7 +120,6 @@ const es = {
     confirmRemoveRelation: '¿Eliminar la relación con este evento?',
     category: 'Categoría',
     date: 'Fecha',
-    receipt: 'Recibo',
     lineItems: 'Partidas',
     noLineItems: 'Sin partidas',
     editEvent: 'Editar Evento',
@@ -157,8 +156,6 @@ const es = {
     addLineItem: 'Agregar',
     selectNode: 'Seleccionar nodo',
     amount: 'Monto',
-    receiptUrl: 'URL del Recibo',
-    receiptUrlPlaceholder: 'https://...',
     amountPlaceholder: '0.00',
     amountPlaceholderEg: 'ej. 5.00',
     signedAmountHint:

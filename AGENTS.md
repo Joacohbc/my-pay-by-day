@@ -489,6 +489,10 @@ Resource bundle files live at `src/main/resources/i18n/`:
     * The ultimate goal is always **readable, maintainable, and correct code**. No paradigm is
       an end in itself; all are tools in service of that goal.
 
+11. **Strict Backend Data Validation:**
+    * When creating or updating entities in the backend service layer (e.g., `CategoryService`, `FinanceNodeService`, `EventService`), you **must** call the respective `*Validator.validate(entity)` method from `com.mypaybyday.validation` before persisting or saving the data.
+    * String fields like names and descriptions are strictly validated for regex and max length (Names: 255 chars, alphanumeric/spaces/dashes/dots; Descriptions: 5100 chars, alphanumeric/spaces/punctuation).
+
 ## Guiding principle
 
 > Code is written to be read by people, not just executed by machines.

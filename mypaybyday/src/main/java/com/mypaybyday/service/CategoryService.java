@@ -7,6 +7,7 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.CategoryRepository;
+import com.mypaybyday.validation.CategoryValidator;
 import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -22,6 +23,9 @@ public class CategoryService {
 
 	@Inject
 	Messages messages;
+
+	@Inject
+	CategoryValidator categoryValidator;
 
 	// -------------------------------------------------------------------------
 	// Queries
@@ -68,6 +72,9 @@ public class CategoryService {
 		category.name = dto.name();
 		category.description = dto.description();
 		category.icon = dto.icon();
+
+		categoryValidator.validate(category);
+
 		categoryRepository.persist(category);
 		return CategoryDto.from(category);
 	}
@@ -81,6 +88,9 @@ public class CategoryService {
 		category.name = dto.name();
 		category.description = dto.description();
 		category.icon = dto.icon();
+
+		categoryValidator.validate(category);
+
 		return CategoryDto.from(category);
 	}
 

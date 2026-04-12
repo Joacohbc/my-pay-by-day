@@ -38,7 +38,7 @@ public class IntelligentEventService {
 
 	private final AgentFinanceEventCreator agentFinanceEventCreator;
 	private final EventService eventService;
-	private final EntityDraftService draftService;
+	private final DraftService draftService;
 	private final LanguageContext languageContext;
 	private final FinanceNodeRepository financeNodeRepository;
 	private final CategoryRepository categoryRepository;
@@ -46,7 +46,7 @@ public class IntelligentEventService {
 
 	@Inject
 	public IntelligentEventService(AgentFinanceEventCreator agentFinanceEventCreator, EventService eventService,
-			EntityDraftService draftService, LanguageContext languageContext,
+			DraftService draftService, LanguageContext languageContext,
 			FinanceNodeRepository financeNodeRepository, CategoryRepository categoryRepository,
 			Messages messages) {
 		this.agentFinanceEventCreator = agentFinanceEventCreator;

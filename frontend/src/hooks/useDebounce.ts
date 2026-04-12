@@ -44,7 +44,7 @@ export function useDebounceCallback<T extends (...args: unknown[]) => unknown>(
   }, [callback]);
 
   // Create a stable debounced wrapper
-  return useMemo(() => {
+  const debouncedFunc = useMemo(() => {
     return ((...args: unknown[]) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -54,6 +54,17 @@ export function useDebounceCallback<T extends (...args: unknown[]) => unknown>(
       }, delay);
     }) as unknown as T;
   }, [delay]);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  return debouncedFunc;
 }
 
 

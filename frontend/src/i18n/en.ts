@@ -120,7 +120,6 @@ const en = {
     confirmRemoveRelation: 'Remove relation with this event?',
     category: 'Category',
     date: 'Date',
-    receipt: 'Receipt',
     lineItems: 'Line Items',
     noLineItems: 'No line items',
     editEvent: 'Edit Event',
@@ -157,8 +156,6 @@ const en = {
     addLineItem: 'Add',
     selectNode: 'Select node',
     amount: 'Amount',
-    receiptUrl: 'Receipt URL',
-    receiptUrlPlaceholder: 'https://...',
     amountPlaceholder: '0.00',
     amountPlaceholderEg: 'e.g. 5.00',
     signedAmountHint:
