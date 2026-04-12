@@ -165,11 +165,9 @@ All resource endpoints **must** follow standard REST conventions for path design
 | Get one | `GET` | `/{resource}/{id}` | |
 | Create | `POST` | `/{resource}` | |
 | Full replace | `PUT` | `/{resource}/{id}` | Replaces the entire resource |
-| Partial update | `PATCH` | `/{resource}/{id}` | Updates only the supplied fields — **preferred over `PUT`** |
+| Partial update | `PATCH` | `/{resource}/{id}` | Updates only the supplied fields |
 | Delete | `DELETE` | `/{resource}/{id}` | |
 | State transition / Action | `POST` | `/{resource}/{id}/{action}` | e.g., `POST /finance-nodes/{id}/archive` |
-
-> **Update preference:** Prefer `@PATCH` over `@PUT` for update endpoints. Use `@PATCH` by default unless the endpoint is explicitly designed to replace the entire resource and `null` fields mean intentional deletion. Never mix both for the same semantic across different resources.
 
 ### 10.3 HTTP Response Status Codes
 

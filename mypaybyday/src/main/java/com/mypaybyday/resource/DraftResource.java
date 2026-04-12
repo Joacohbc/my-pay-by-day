@@ -8,7 +8,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.PATCH;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -89,7 +89,7 @@ public class DraftResource {
 		return Response.status(Response.Status.CREATED).entity(draft).build();
 	}
 
-	@PATCH
+	@PUT
 	@Path("/finance-events/{id}")
 	@Operation(summary = "Update an existing finance event draft with a new FinanceEventDto payload")
 	@APIResponse(responseCode = "200", description = "Finance event draft updated successfully")
