@@ -1,11 +1,11 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.ai.AgentFinanceEventCreator;
-import com.mypaybyday.ai.ChatMemoryOnRAM;
-import com.mypaybyday.dto.ChatResponseDto;
-import com.mypaybyday.i18n.LanguageContext;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
 
-import dev.langchain4j.data.image.Image;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -16,12 +16,11 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.util.Base64;
-import java.util.List;
-import java.util.ArrayList;
-
+import com.mypaybyday.ai.AgentFinanceEventCreator;
+import com.mypaybyday.ai.ChatMemoryOnRAM;
+import com.mypaybyday.dto.ChatResponseDto;
+import com.mypaybyday.i18n.LanguageContext;
+import dev.langchain4j.data.image.Image;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;

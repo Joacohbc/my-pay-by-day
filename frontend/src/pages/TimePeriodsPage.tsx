@@ -214,8 +214,8 @@ export function TimePeriodsPage() {
 
     // Auto: persist computed sum. Fixed: persist user-entered numeric value.
     const effectiveBudgetLimit = values.budgetLimitMode === 'auto'
-      ? (computedBudgetSum > 0 ? computedBudgetSum : undefined)
-      : (parsedBudgetLimit != null && !isNaN(parsedBudgetLimit) ? parsedBudgetLimit : undefined);
+      ? (computedBudgetSum > 0 ? computedBudgetSum : null)
+      : (parsedBudgetLimit != null && !isNaN(parsedBudgetLimit) ? parsedBudgetLimit : null);
 
     const dto = {
       name: values.name,
@@ -224,7 +224,7 @@ export function TimePeriodsPage() {
       budgets,
       savingsPercentageGoal: values.savingsPercentageGoal
         ? parseFloat(values.savingsPercentageGoal)
-        : undefined,
+        : null,
       budgetLimit: effectiveBudgetLimit,
     };
     if (editTarget) {

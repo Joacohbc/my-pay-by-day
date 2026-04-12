@@ -1,10 +1,11 @@
 package com.mypaybyday.resource;
 
-import com.mypaybyday.dto.ConfigDto;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+
+import com.mypaybyday.dto.ConfigDto;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Path("/api/config")

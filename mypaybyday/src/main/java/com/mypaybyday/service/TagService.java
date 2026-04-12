@@ -1,5 +1,11 @@
 package com.mypaybyday.service;
 
+import java.util.List;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.entity.TagEntity;
@@ -12,11 +18,6 @@ import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.validation.TagValidator;
 import io.quarkus.panache.common.Page;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
-import java.util.List;
 
 @ApplicationScoped
 public class TagService {
