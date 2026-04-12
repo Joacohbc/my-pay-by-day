@@ -1,14 +1,20 @@
 package com.mypaybyday.crypto;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
 @Converter
+@ApplicationScoped
 public class StringEncryptionConverter implements AttributeConverter<String, String> {
 
+	private final EncryptionUtil encryptionUtil;
+
 	@Inject
-	EncryptionUtil encryptionUtil;
+	public StringEncryptionConverter(EncryptionUtil encryptionUtil) {
+		this.encryptionUtil = encryptionUtil;
+	}
 
 	@Override
 	public String convertToDatabaseColumn(String attribute) {

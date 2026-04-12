@@ -1,6 +1,5 @@
 package com.mypaybyday.resource;
 
-import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -23,8 +22,11 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Tag(name = "Categories", description = "Budget classification buckets assigned to Events")
 public class CategoryResource {
 
-	@Inject
-	CategoryService categoryService;
+	private final CategoryService categoryService;
+
+	public CategoryResource(CategoryService categoryService) {
+		this.categoryService = categoryService;
+	}
 
 	@GET
 	@Operation(summary = "List categories (paginated)")

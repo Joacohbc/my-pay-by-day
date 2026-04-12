@@ -2,15 +2,21 @@ package com.mypaybyday.crypto;
 
 import java.math.BigDecimal;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
 @Converter
+@ApplicationScoped
 public class BigDecimalEncryptionConverter implements AttributeConverter<BigDecimal, String> {
 
+	private final EncryptionUtil encryptionUtil;
+
 	@Inject
-	EncryptionUtil encryptionUtil;
+	public BigDecimalEncryptionConverter(EncryptionUtil encryptionUtil) {
+		this.encryptionUtil = encryptionUtil;
+	}
 
 	@Override
 	public String convertToDatabaseColumn(BigDecimal attribute) {

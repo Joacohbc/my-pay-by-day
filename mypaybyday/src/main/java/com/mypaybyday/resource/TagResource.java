@@ -1,6 +1,5 @@
 package com.mypaybyday.resource;
 
-import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -23,8 +22,11 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Tag(name = "Tags", description = "Transversal labels (e.g. #Vacation2026) that can be applied to Events for cross-cutting reporting")
 public class TagResource {
 
-	@Inject
-	TagService tagService;
+	private final TagService tagService;
+
+	public TagResource(TagService tagService) {
+		this.tagService = tagService;
+	}
 
 	@GET
 	@Operation(summary = "List tags (paginated)")

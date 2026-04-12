@@ -1,6 +1,5 @@
 package com.mypaybyday.resource;
 
-import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
@@ -33,8 +32,11 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Tag(name = "Files", description = "File storage and retrieval for events")
 public class FileResource {
 
-	@Inject
-	FileService fileService;
+	private final FileService fileService;
+
+	public FileResource(FileService fileService) {
+		this.fileService = fileService;
+	}
 
 	@POST
 	@Path("/base64")

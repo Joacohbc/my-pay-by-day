@@ -2,7 +2,6 @@ package com.mypaybyday.i18n;
 
 import java.util.Set;
 
-import jakarta.inject.Inject;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.ext.Provider;
@@ -19,8 +18,11 @@ public class LangFilter implements ContainerRequestFilter {
 
 	private static final Set<String> SUPPORTED = Set.of("en", "es");
 
-	@Inject
-	LanguageContext languageContext;
+	private final LanguageContext languageContext;
+
+	public LangFilter(LanguageContext languageContext) {
+		this.languageContext = languageContext;
+	}
 
 	@Override
 	public void filter(ContainerRequestContext requestContext) {

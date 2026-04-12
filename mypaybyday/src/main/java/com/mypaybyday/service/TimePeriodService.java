@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.CategoryBudgetSummaryDto;
@@ -37,23 +36,27 @@ import io.quarkus.panache.common.Page;
 @ApplicationScoped
 public class TimePeriodService {
 
-	@Inject
-	TimePeriodRepository timePeriodRepository;
+	private final TimePeriodRepository timePeriodRepository;
+	private final EventService eventService;
+	private final CategoryService categoryService;
+	private final Messages messages;
+	private final TimePeriodValidator timePeriodValidator;
+	private final DateValidator dateValidator;
 
-	@Inject
-	EventService eventService;
-
-	@Inject
-	CategoryService categoryService;
-
-	@Inject
-	Messages messages;
-
-	@Inject
-	TimePeriodValidator timePeriodValidator;
-
-	@Inject
-	DateValidator dateValidator;
+	public TimePeriodService(
+			TimePeriodRepository timePeriodRepository,
+			EventService eventService,
+			CategoryService categoryService,
+			Messages messages,
+			TimePeriodValidator timePeriodValidator,
+			DateValidator dateValidator) {
+		this.timePeriodRepository = timePeriodRepository;
+		this.eventService = eventService;
+		this.categoryService = categoryService;
+		this.messages = messages;
+		this.timePeriodValidator = timePeriodValidator;
+		this.dateValidator = dateValidator;
+	}
 
 	// -------------------------------------------------------------------------
 	// Queries

@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.EventQuery;
@@ -43,23 +42,27 @@ public class FinanceAiTools {
 
 	private static final Logger log = Logger.getLogger(FinanceAiTools.class);
 
-	@Inject
-	FinanceNodeRepository financeNodeRepository;
+	private final FinanceNodeRepository financeNodeRepository;
+	private final CategoryRepository categoryRepository;
+	private final TagRepository tagRepository;
+	private final TimePeriodRepository timePeriodRepository;
+	private final EventService eventService;
+	private final IntelligentEventService intelligentEventService;
 
-	@Inject
-	CategoryRepository categoryRepository;
-
-	@Inject
-	TagRepository tagRepository;
-
-	@Inject
-	TimePeriodRepository timePeriodRepository;
-
-	@Inject
-	EventService eventService;
-
-	@Inject
-	IntelligentEventService intelligentEventService;
+	public FinanceAiTools(
+			FinanceNodeRepository financeNodeRepository,
+			CategoryRepository categoryRepository,
+			TagRepository tagRepository,
+			TimePeriodRepository timePeriodRepository,
+			EventService eventService,
+			IntelligentEventService intelligentEventService) {
+		this.financeNodeRepository = financeNodeRepository;
+		this.categoryRepository = categoryRepository;
+		this.tagRepository = tagRepository;
+		this.timePeriodRepository = timePeriodRepository;
+		this.eventService = eventService;
+		this.intelligentEventService = intelligentEventService;
+	}
 
 	@Tool("Returns all active (non-archived) finance nodes: accounts, wallets, credit cards, external entities, and contacts. " +
 			"Each entry contains id, name, and type (OWN, EXTERNAL, or CONTACT). " +

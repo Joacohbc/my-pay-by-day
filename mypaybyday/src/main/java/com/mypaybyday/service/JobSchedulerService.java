@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.entity.SystemJobEntity;
@@ -19,11 +18,13 @@ public class JobSchedulerService {
 
 	private static final Logger LOG = Logger.getLogger(JobSchedulerService.class);
 
-	@Inject
-	SystemJobRepository systemJobRepository;
+	private final SystemJobRepository systemJobRepository;
+	private final SubscriptionService subscriptionService;
 
-	@Inject
-	SubscriptionService subscriptionService;
+	public JobSchedulerService(SystemJobRepository systemJobRepository, SubscriptionService subscriptionService) {
+		this.systemJobRepository = systemJobRepository;
+		this.subscriptionService = subscriptionService;
+	}
 
 	@Scheduled(every = "1h", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
 	@Transactional

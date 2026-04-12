@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 import com.mypaybyday.ai.AgentFinanceEventCreator;
 import com.mypaybyday.dto.FinanceEventDto;
@@ -44,7 +43,6 @@ public class IntelligentEventService {
 	private final CategoryRepository categoryRepository;
 	private final Messages messages;
 
-	@Inject
 	public IntelligentEventService(AgentFinanceEventCreator agentFinanceEventCreator, EventService eventService,
 			DraftService draftService, LanguageContext languageContext,
 			FinanceNodeRepository financeNodeRepository, CategoryRepository categoryRepository,
