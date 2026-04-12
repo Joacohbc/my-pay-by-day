@@ -20,3 +20,15 @@ export const Routes = {
   SETTINGS_NODES: '/settings/nodes',
   SETTINGS_FILES: '/settings/files',
 } as const;
+
+const EVENTS_SEARCH_KEY = 'events.lastSearch';
+
+export function saveEventsSearch(search: string) {
+  sessionStorage.setItem(EVENTS_SEARCH_KEY, search);
+}
+
+/** Returns the events list URL restoring the last active filters, or plain /events. */
+export function eventsRoute(): string {
+  const saved = sessionStorage.getItem(EVENTS_SEARCH_KEY);
+  return `${Routes.EVENTS}${saved || ''}`;
+}

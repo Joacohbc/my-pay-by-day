@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Routes } from '@/lib/routes';
+import { eventsRoute } from '@/lib/routes';
 import { useEvent, useDeleteEvent, useUpdateEvent } from '@/hooks/useEvents';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -58,9 +58,9 @@ export function EventDetailPage() {
   const cfg = eventTypeConfig[event.type];
   const net = eventNetAmount(event);
 
-  const confirmDelete = async () => {
-    await deleteEvent.mutateAsync(event.id);
-    navigate(Routes.EVENTS);
+  const confirmDelete = () => {
+    navigate(eventsRoute());
+    deleteEvent.mutate(event.id);
   };
 
   const handleAddFile = async (file: FileDto) => {
