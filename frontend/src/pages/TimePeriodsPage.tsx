@@ -456,7 +456,7 @@ export function TimePeriodsPage() {
               </button>
             </div>
             {budgetFields.map((field, index) => (
-              <div key={field.id} className="flex items-start gap-2">
+              <div key={field.id} className="flex items-center gap-2">
                 <div className="flex-1">
                   <Controller
                     name={`budgets.${index}.categoryId` as const}
@@ -485,7 +485,7 @@ export function TimePeriodsPage() {
                 <button
                   type="button"
                   onClick={() => removeBudget(index)}
-                  className="p-2 text-dn-text-muted hover:text-dn-error mt-6"
+                  className="p-2 text-dn-text-muted hover:text-dn-error"
                 >
                   <Icon name="close" className="text-sm" />
                 </button>
