@@ -59,7 +59,7 @@ export function EventEditPage() {
       await deleteDraft.mutateAsync(draftId);
     }
     if (shouldExit) {
-      navigate(-1);
+      navigate(Routes.EVENT_DETAIL(Number(id)));
     }
   };
 

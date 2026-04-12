@@ -74,7 +74,7 @@ export function EventNewPage() {
       await deleteDraft.mutateAsync(idToDelete);
     }
     if (shouldExit) {
-      navigate(-1);
+      navigate(Routes.EVENTS);
     }
   };
 
