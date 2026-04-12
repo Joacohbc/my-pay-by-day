@@ -440,7 +440,7 @@ export function TimePeriodsPage() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-dn-text-main">{t('periods.budgetsTitle')}</label>
+              <label className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">{t('periods.budgetsTitle')}</label>
               <button
                 type="button"
                 onClick={() => appendBudget({ categoryId: '', budgetedAmount: '' })}
