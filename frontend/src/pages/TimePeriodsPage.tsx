@@ -541,11 +541,17 @@ export function TimePeriodsPage() {
             {budgetLimitMode === 'auto' && (
               <p className="text-xs text-dn-text-muted">{t('periods.budgetLimitAutoHelp')}</p>
             )}
+            {budgetLimitMode === 'fixed' && (
+              <p className="text-xs text-dn-text-muted">{t('periods.budgetLimitModeFixedHelp')}</p>
+            )}
+            {budgetLimitMode === 'none' && (
+              <p className="text-xs text-dn-text-muted">{t('periods.budgetLimitModeNoneHelp')}</p>
+            )}
           </div>
 
           {budgetLimitMode !== 'none' && (
             <Input
-              label={t('periods.budgetLimit')}
+              label={budgetLimitMode === 'fixed' ? t('periods.budgetLimit') : t('periods.budgetLimitOptional')}
               type="number"
               placeholder={t('periods.budgetLimitPlaceholder')}
               min="0"
@@ -555,6 +561,7 @@ export function TimePeriodsPage() {
               hint={budgetLimitMode === 'auto' ? t('periods.budgetLimitReadOnlyAuto') : undefined}
               error={errors.budgetLimit?.message}
               {...register('budgetLimit', {
+                required: budgetLimitMode === 'fixed' ? t('common.required') : false,
                 validate: (value) => {
                   if (budgetLimitMode === 'auto') return true;
                   if (!value || String(value).trim() === '') return true;
