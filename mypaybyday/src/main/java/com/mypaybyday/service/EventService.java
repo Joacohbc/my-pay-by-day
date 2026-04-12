@@ -308,8 +308,6 @@ public class EventService {
 			event.description = patch.getDescription().get();
 		}
 
-		eventValidator.validate(event);
-
 		if (patch.getType().isPresent()) {
 			EventType type = patch.getType().get();
 			if (type != null) {
@@ -317,6 +315,8 @@ public class EventService {
 			}
 		}
 
+		eventValidator.validate(event);
+		
 		// --- CategoryEntity ---
 		if (patch.getCategory().isPresent()) {
 			CategoryDto catDto = patch.getCategory().get();
