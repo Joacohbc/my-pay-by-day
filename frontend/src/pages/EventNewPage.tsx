@@ -10,11 +10,11 @@ import type { CreateEventDto, PatchEventDto, Template, FinanceEvent, FinanceLine
 
 function mapTemplateToEventValues(template: Template): Partial<FinanceEvent> {
   const originLineItem: FinanceLineItem | undefined = template.originNodeId
-    ? { id: 0, financeNodeId: template.originNodeId, financeNodeName: template.originNodeName ?? '', amount: 0 }
+    ? { financeNodeId: template.originNodeId, financeNodeName: template.originNodeName ?? '', amount: 0 }
     : undefined;
 
   const destinationLineItem: FinanceLineItem | undefined = template.destinationNodeId
-    ? { id: 0, financeNodeId: template.destinationNodeId, financeNodeName: template.destinationNodeName ?? '', amount: 0 }
+    ? { financeNodeId: template.destinationNodeId, financeNodeName: template.destinationNodeName ?? '', amount: 0 }
     : undefined;
 
   return {

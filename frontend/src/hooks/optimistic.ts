@@ -37,6 +37,27 @@ export function updateItemInLists<T extends Identifiable>(
   );
 }
 
+/**
+ * Searches all paged list caches matching `listsKeyPrefix` for an item by ID.
+ *
+ * Detail caches (`keys.detail(id)`) are only populated when the user visits a detail page.
+ * Entities loaded via list endpoints (the common case) live only in list caches.
+ * This function bridges that gap: it lets callers look up a full entity object even
+ * when its dedicated detail query has never been fetched.
+ */
+export function findInPagedListCaches<T extends Identifiable>(
+  queryClient: QueryClient,
+  listsKeyPrefix: readonly unknown[],
+  targetId: number
+): T | undefined {
+  const listCaches = queryClient.getQueriesData<PagedResponse<T>>({ queryKey: listsKeyPrefix });
+  for (const [, page] of listCaches) {
+    const found = page?.content?.find((item) => item.id === targetId);
+    if (found) return found;
+  }
+  return undefined;
+}
+
 export function removeItemFromLists<T extends Identifiable>(
   queryClient: QueryClient,
   listsKeyPrefix: readonly unknown[],
