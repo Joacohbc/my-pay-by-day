@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
+import { Routes } from '@/lib/routes';
 import { useDefaultTimePeriod } from '@/hooks/useDefaultTimePeriod';
 import { useTimePeriods } from '@/hooks/useTimePeriods';
 import { TimePeriodDashboard } from '@/components/time-periods/TimePeriodDashboard';
@@ -26,9 +27,9 @@ export function DashboardPage() {
   const handlePickTemplate = (template: Template | null) => {
     setShowPicker(false);
     if (template) {
-      navigate('/events/new', { state: { template } });
+      navigate(Routes.EVENT_NEW, { state: { template } });
     } else {
-      navigate('/events/new');
+      navigate(Routes.EVENT_NEW);
     }
   };
 
@@ -51,7 +52,7 @@ export function DashboardPage() {
         <TimePeriodDashboard
           timePeriodId={defaultId}
           showGreeting
-          onChangePeriod={() => navigate('/periods')}
+          onChangePeriod={() => navigate(Routes.PERIODS)}
           onNewEvent={() => setShowPicker(true)}
         />
         <TemplatePickerModal open={showPicker} onSelect={handlePickTemplate} onClose={() => setShowPicker(false)} />
@@ -117,14 +118,14 @@ export function DashboardPage() {
             </p>
           </div>
           {allPeriods.length === 0 ? (
-            <Link to="/periods">
+            <Link to={Routes.PERIODS}>
               <Button size="sm">
                 <Icon name="add" className="text-sm" />
                 {t('dashboard.createPeriod')}
               </Button>
             </Link>
           ) : (
-            <Link to="/periods">
+            <Link to={Routes.PERIODS}>
               <Button size="sm">
                 <Icon name="calendar_month" className="text-sm" />
                 {t('dashboard.selectPeriod')}
