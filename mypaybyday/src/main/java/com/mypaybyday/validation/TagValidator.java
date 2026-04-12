@@ -16,6 +16,10 @@ public class TagValidator {
 
     public void validate(TagEntity tag) throws BusinessException {
         if (tag == null) return;
+
+        tag.name = regexValidator.sanitize(tag.name);
+        tag.description = regexValidator.sanitize(tag.description);
+
         regexValidator.validateLettersAndNumbers(tag.name, RegexValidator.SHORT_MAX_LENGTH);
         regexValidator.validateLettersNumbersAndExtras(tag.description, RegexValidator.LONG_MAX_LENGTH);
     }

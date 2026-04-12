@@ -16,6 +16,10 @@ public class TemplateValidator {
 
     public void validate(TemplateEntity template) throws BusinessException {
         if (template == null) return;
+
+        template.name = regexValidator.sanitize(template.name);
+        template.description = regexValidator.sanitize(template.description);
+
         regexValidator.validateNameAndDescription(template.name, template.description);
     }
 }
