@@ -58,9 +58,9 @@ export function EventDetailPage() {
   const cfg = eventTypeConfig[event.type];
   const net = eventNetAmount(event);
 
-  const confirmDelete = async () => {
-    await deleteEvent.mutateAsync(event.id);
+  const confirmDelete = () => {
     navigate(eventsRoute());
+    deleteEvent.mutate(event.id);
   };
 
   const handleAddFile = async (file: FileDto) => {

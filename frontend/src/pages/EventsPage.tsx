@@ -151,7 +151,7 @@ export function EventsPage() {
         await draftsService.delete(draft.draftId);
       }
       // Refresh the page or invalidate queries
-      window.location.reload(); 
+      window.location.reload();
     } catch {
       setIsConfirming(false);
     }
