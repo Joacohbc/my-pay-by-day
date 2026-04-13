@@ -17,14 +17,6 @@ export interface AudioPlaybackCallbacks {
   onPlayError?: () => void;
 }
 
-function isWavMimeType(mimeType: string): boolean {
-  const normalizedMimeType = mimeType.trim().toLowerCase();
-
-  return normalizedMimeType === 'audio/wav'
-    || normalizedMimeType === 'audio/x-wav'
-    || normalizedMimeType === 'audio/wave';
-}
-
 export const audioService = {
   createAudioPlayer: (sourceUrl: string, callbacks: AudioPlaybackCallbacks = {}): Howl => {
     return new Howl({
@@ -46,10 +38,6 @@ export const audioService = {
   },
 
   transcribeAudio: async (audioBlob: Blob): Promise<AudioTranscriptionResponse> => {
-    if (!isWavMimeType(audioBlob.type)) {
-      throw new Error('Only WAV audio can be uploaded');
-    }
-
     const formData = new FormData();
     formData.append('audio', audioBlob, 'recording.wav');
 

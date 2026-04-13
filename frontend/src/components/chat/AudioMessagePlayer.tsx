@@ -7,6 +7,7 @@ import { audioService } from '@/services/audio.service';
 interface AudioMessagePlayerProps {
   src: string;
   className?: string;
+  autoPlay?: boolean;
 }
 
 const POSITION_UPDATE_INTERVAL_MS = 250;
@@ -23,7 +24,7 @@ function formatAudioTime(totalSeconds: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-export function AudioMessagePlayer({ src, className }: AudioMessagePlayerProps) {
+export function AudioMessagePlayer({ src, className, autoPlay = false }: AudioMessagePlayerProps) {
   const { t } = useTranslation();
   const playerRef = useRef<Howl | null>(null);
   const positionTimerRef = useRef<number | null>(null);
@@ -58,6 +59,11 @@ export function AudioMessagePlayer({ src, className }: AudioMessagePlayerProps) 
       onLoad: () => {
         setIsReady(true);
         setDurationSeconds(player.duration());
+
+        if (autoPlay) {
+          audioService.stopAllPlayback();
+          player.play();
+        }
       },
       onPlay: () => {
         setIsPlaying(true);
@@ -101,7 +107,7 @@ export function AudioMessagePlayer({ src, className }: AudioMessagePlayerProps) 
       player.unload();
       playerRef.current = null;
     };
-  }, [src, stopPositionTimer, syncPosition]);
+  }, [autoPlay, src, stopPositionTimer, syncPosition]);
 
   const togglePlayback = () => {
     const player = playerRef.current;

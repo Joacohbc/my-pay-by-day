@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { filesService } from '@/services/files.service';
 import { Icon } from '@/components/ui/Icon';
+import { AudioMessagePlayer } from '@/components/chat/AudioMessagePlayer';
 import type { FileDto } from '@/models';
 
 interface MultimediaPreviewerProps {
@@ -78,7 +79,7 @@ export function MultimediaPreviewer({ fileId, fileName, onClose }: MultimediaPre
         <div className="flex justify-center items-center w-full h-full p-4">
           <div className="w-full max-w-md bg-dn-surface/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 shadow-2xl flex flex-col items-center gap-6">
              <Icon name="audio_file" className="text-6xl text-dn-secondary" />
-             <audio src={contentUrl} controls autoPlay className="w-full" />
+             <AudioMessagePlayer src={contentUrl} autoPlay className="w-full" />
           </div>
         </div>
       );
@@ -120,7 +121,7 @@ export function MultimediaPreviewer({ fileId, fileName, onClose }: MultimediaPre
                  <button onClick={() => setZoom(z => Math.max(1, z - 0.25))} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors">
                     <Icon name="zoom_out" className="text-[20px]" />
                  </button>
-                 <span className="text-xs text-white/70 min-w-[36px] text-center font-mono font-medium">
+                 <span className="text-xs text-white/70 min-w-9 text-center font-mono font-medium">
                    {Math.round(zoom * 100)}%
                  </span>
                  <button onClick={() => setZoom(z => Math.min(4, z + 0.25))} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors">
