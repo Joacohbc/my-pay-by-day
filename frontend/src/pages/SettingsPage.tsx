@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/Icon';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
+import { useTagGroups } from '@/hooks/useTagGroups';
 import { useTemplates } from '@/hooks/useTemplates';
 import { useNodes } from '@/hooks/useNodes';
 import { useFiles } from '@/hooks/useFiles';
@@ -54,6 +55,7 @@ export function SettingsPage() {
   const [timezone, _setTimezone] = useState(() => localStorage.getItem('user-timezone') || '');
   const { data: categoriesPaged } = useCategories();
   const { data: tagsPaged } = useTags();
+  const { data: tagGroupsPaged } = useTagGroups();
   const { data: templatesPaged } = useTemplates();
   const { data: nodesPaged } = useNodes();
   const { data: filesPaged } = useFiles(0, 1);

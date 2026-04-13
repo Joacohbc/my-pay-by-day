@@ -59,8 +59,8 @@ export function TagGroupsPage() {
     <div className="space-y-6 pb-6">
       <PageHeader
         title="Tag Groups"
-        backTo="/settings"
-        actions={
+        back="/settings"
+        action={
           <Button onClick={openNew} className="rounded-full w-10 h-10 p-0 flex items-center justify-center">
             <Icon name="add" />
           </Button>
@@ -141,6 +141,7 @@ export function TagGroupsPage() {
         open={confirmDeleteId !== null}
         onClose={() => setConfirmDeleteId(null)}
         onConfirm={handleDelete}
+        title="Delete Tag Group"
         message="Are you sure you want to delete this tag group?"
         confirmLabel={t('common.delete')}
         loading={deleteTagGroup.isPending}
