@@ -7,7 +7,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
@@ -97,34 +97,34 @@ export function TagsPage() {
           }
         />
       ) : (
-        <div className="px-5 flex flex-wrap gap-3">
+        <div className="px-5 space-y-3">
           {allTags.map((tag) => (
-            <div
-              key={tag.id}
-              className="flex items-center gap-2 bg-dn-surface rounded-card px-4 py-3 group"
-            >
-              <Badge variant="indigo">#{tag.name}</Badge>
-              {tag.description && (
-                <span className="text-xs text-dn-text-muted max-w-32 truncate hidden sm:block">
-                  {tag.description}
-                </span>
-              )}
-              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Card key={tag.id} className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-dn-primary/10 text-dn-primary flex items-center justify-center shrink-0">
+                <span className="text-lg font-bold">#</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-medium text-dn-text-main">{tag.name}</p>
+                {tag.description && (
+                  <p className="text-xs text-dn-text-muted truncate">{tag.description}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
                 <button
                   onClick={() => openEdit(tag)}
-                  className="p-1 rounded-full text-dn-text-muted hover:text-dn-text-main transition-colors"
+                  className="p-2 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
                 >
                   <Icon name="edit" className="text-base" />
                 </button>
                 <button
                   onClick={() => handleDelete(tag.id)}
                   disabled={deleteTag.isPending}
-                  className="p-1 rounded-full text-dn-text-muted hover:text-dn-error transition-colors disabled:opacity-50"
+                  className="p-2 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors disabled:opacity-50"
                 >
                   <Icon name="delete" className="text-base" />
                 </button>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
