@@ -11,6 +11,7 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { AiFieldActions } from '@/components/ui/AiFieldActions';
+import { mergeFieldTextWithTranscription } from '@/lib/aiAudioText';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { Modal } from '@/components/ui/Modal';
@@ -151,6 +152,16 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
     }
   };
 
+  const handleNameTranscription = (transcription: string) => {
+    const currentName = getValues('name') ?? '';
+    setValue('name', mergeFieldTextWithTranscription(currentName, transcription));
+  };
+
+  const handleDescriptionTranscription = (transcription: string) => {
+    const currentDescription = getValues('description') ?? '';
+    setValue('description', mergeFieldTextWithTranscription(currentDescription, transcription));
+  };
+
   const handleFormSubmit = async (values: FormValues) => {
     await onSubmit(toCreateDto(values));
   };
@@ -170,6 +181,7 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
             <AiFieldActions
               onGenerate={handleGenerateName}
               onFixSpelling={handleFixNameSpelling}
+              onTranscribe={handleNameTranscription}
               isLoading={isNameLoading}
             />
           }
@@ -184,6 +196,7 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
             <AiFieldActions
               onGenerate={handleGenerateDescription}
               onFixSpelling={handleFixDescriptionSpelling}
+              onTranscribe={handleDescriptionTranscription}
               isLoading={isDescriptionLoading}
             />
           }

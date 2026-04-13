@@ -407,6 +407,8 @@ const en = {
       title: 'AI actions',
       generate: 'Generate with AI',
       fixSpelling: 'Fix spelling',
+      voiceInput: 'Dictate by voice',
+      stopVoiceInput: 'Stop voice recording',
     },
     settings: {
       title: 'AI Prompts',

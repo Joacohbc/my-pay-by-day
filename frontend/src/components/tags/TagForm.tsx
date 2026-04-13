@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { AiFieldActions } from '@/components/ui/AiFieldActions';
 import { useCreateTag, useUpdateTag } from '@/hooks/useTags';
+import { mergeFieldTextWithTranscription } from '@/lib/aiAudioText';
 import { aiService } from '@/services/ai.service';
 import { aiPromptsStore } from '@/store/aiPromptsStore';
 import { useAlert } from '@/contexts/AlertContext';
@@ -116,6 +117,16 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
     }
   };
 
+  const handleNameTranscription = (transcription: string) => {
+    const currentName = getValues('name');
+    setValue('name', mergeFieldTextWithTranscription(currentName, transcription));
+  };
+
+  const handleDescriptionTranscription = (transcription: string) => {
+    const currentDescription = getValues('description');
+    setValue('description', mergeFieldTextWithTranscription(currentDescription, transcription));
+  };
+
   const onSubmit = async (values: TagFormValues, e?: React.BaseSyntheticEvent) => {
     e?.stopPropagation();
     try {
@@ -147,6 +158,7 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
           <AiFieldActions
             onGenerate={handleGenerateName}
             onFixSpelling={handleFixNameSpelling}
+            onTranscribe={handleNameTranscription}
             isLoading={isNameLoading}
           />
         }
@@ -160,6 +172,7 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
           <AiFieldActions
             onGenerate={handleGenerateDescription}
             onFixSpelling={handleFixDescriptionSpelling}
+            onTranscribe={handleDescriptionTranscription}
             isLoading={isDescriptionLoading}
           />
         }

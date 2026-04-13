@@ -1,4 +1,5 @@
 import { BASE_URL } from '@/services/api';
+import { convertAudioBlobToWav } from '@/lib/audioWav';
 
 export interface AudioTranscriptionResponse {
   transcription: string;
@@ -56,5 +57,10 @@ export const audioService = {
     }
 
     return res.json();
+  },
+
+  transcribeRecordedAudio: async (recordedAudioBlob: Blob): Promise<AudioTranscriptionResponse> => {
+    const wavAudioBlob = await convertAudioBlobToWav(recordedAudioBlob);
+    return audioService.transcribeAudio(wavAudioBlob);
   },
 };

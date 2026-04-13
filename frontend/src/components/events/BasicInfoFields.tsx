@@ -4,6 +4,7 @@ import { useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { AiFieldActions } from '@/components/ui/AiFieldActions';
+import { mergeFieldTextWithTranscription } from '@/lib/aiAudioText';
 import { aiService } from '@/services/ai.service';
 import { aiPromptsStore } from '@/store/aiPromptsStore';
 import { useAlert } from '@/contexts/AlertContext';
@@ -96,6 +97,18 @@ export function BasicInfoFields() {
     }
   };
 
+  const handleNameTranscription = (transcription: string) => {
+    const currentName = getValues('name') ?? '';
+    const nextName = mergeFieldTextWithTranscription(currentName, transcription);
+    setValue('name', nextName, { shouldDirty: true });
+  };
+
+  const handleDescriptionTranscription = (transcription: string) => {
+    const currentDescription = getValues('description') ?? '';
+    const nextDescription = mergeFieldTextWithTranscription(currentDescription, transcription);
+    setValue('description', nextDescription, { shouldDirty: true });
+  };
+
   return (
     <>
       <Input
@@ -104,6 +117,7 @@ export function BasicInfoFields() {
           <AiFieldActions
             onGenerate={handleGenerateName}
             onFixSpelling={handleFixNameSpelling}
+            onTranscribe={handleNameTranscription}
             isLoading={isNameLoading}
           />
         }
@@ -118,6 +132,7 @@ export function BasicInfoFields() {
           <AiFieldActions
             onGenerate={handleGenerateDescription}
             onFixSpelling={handleFixDescriptionSpelling}
+            onTranscribe={handleDescriptionTranscription}
             isLoading={isDescriptionLoading}
           />
         }

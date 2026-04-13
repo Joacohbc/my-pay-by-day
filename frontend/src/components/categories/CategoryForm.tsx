@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { IconPicker } from '@/components/ui/IconPicker';
 import { AiFieldActions } from '@/components/ui/AiFieldActions';
 import { useCreateCategory, useUpdateCategory } from '@/hooks/useCategories';
+import { mergeFieldTextWithTranscription } from '@/lib/aiAudioText';
 import { aiService } from '@/services/ai.service';
 import { aiPromptsStore } from '@/store/aiPromptsStore';
 import { useAlert } from '@/contexts/AlertContext';
@@ -119,6 +120,16 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
     }
   };
 
+  const handleNameTranscription = (transcription: string) => {
+    const currentName = getValues('name');
+    setValue('name', mergeFieldTextWithTranscription(currentName, transcription));
+  };
+
+  const handleDescriptionTranscription = (transcription: string) => {
+    const currentDescription = getValues('description');
+    setValue('description', mergeFieldTextWithTranscription(currentDescription, transcription));
+  };
+
   const onSubmit = async (values: CategoryFormValues, e?: React.BaseSyntheticEvent) => {
     e?.stopPropagation();
     try {
@@ -150,6 +161,7 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
           <AiFieldActions
             onGenerate={handleGenerateName}
             onFixSpelling={handleFixNameSpelling}
+            onTranscribe={handleNameTranscription}
             isLoading={isNameLoading}
           />
         }
@@ -163,6 +175,7 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
           <AiFieldActions
             onGenerate={handleGenerateDescription}
             onFixSpelling={handleFixDescriptionSpelling}
+            onTranscribe={handleDescriptionTranscription}
             isLoading={isDescriptionLoading}
           />
         }

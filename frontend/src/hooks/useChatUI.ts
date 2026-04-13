@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { chatService } from '@/services/chat.service';
 import { audioService } from '@/services/audio.service';
-import { convertAudioBlobToWav } from '@/lib/audioWav';
 import { useChatStore, type ChatMessage } from '@/store/chatStore';
 import type { ChatSendParams } from '@/models/chat';
 
@@ -113,8 +112,7 @@ export function useChatUI() {
     let transcriptionText = '';
 
     try {
-      const wavAudioBlob = await convertAudioBlobToWav(audioBlob);
-      const transcriptionResponse = await audioService.transcribeAudio(wavAudioBlob);
+      const transcriptionResponse = await audioService.transcribeRecordedAudio(audioBlob);
       transcriptionText = transcriptionResponse.transcription.trim();
     } catch {
       updateMessage(audioMessageId, { audioTranscriptionStatus: 'failed' });

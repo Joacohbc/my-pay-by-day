@@ -407,6 +407,8 @@ const es = {
       title: 'Acciones de IA',
       generate: 'Generar con IA',
       fixSpelling: 'Corregir ortografía',
+      voiceInput: 'Dictar por voz',
+      stopVoiceInput: 'Detener grabación de voz',
     },
     settings: {
       title: 'Prompts de IA',
