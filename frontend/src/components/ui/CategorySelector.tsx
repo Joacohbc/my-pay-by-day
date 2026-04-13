@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
@@ -16,6 +16,7 @@ interface CategorySelectorProps {
   label?: string;
   className?: string;
   showAdd?: boolean;
+  collapsible?: boolean;
 }
 
 export function CategorySelector({
@@ -26,9 +27,12 @@ export function CategorySelector({
   label,
   className = '',
   showAdd = false,
+  collapsible = false,
 }: CategorySelectorProps) {
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
+  const [open, setOpen] = useState(!collapsible);
+  const toggleOpen = useCallback(() => setOpen((v) => !v), []);
 
   const resolvedLabel = label ?? t('eventForm.category');
 
@@ -78,10 +82,20 @@ export function CategorySelector({
   // variant === 'grid'
   return (
     <div className={className}>
-      <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">
+      <p
+        className={[
+          'text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3',
+          collapsible ? 'flex items-center gap-1 hover:text-dn-text-main transition-colors cursor-pointer select-none' : '',
+        ].join(' ')}
+        onClick={collapsible ? toggleOpen : undefined}
+      >
+        {collapsible && value && (
+          <span className="w-1.5 h-1.5 rounded-full bg-dn-primary inline-block mr-0.5" />
+        )}
         {resolvedLabel}
+        {collapsible && <Icon name={open ? 'expand_less' : 'expand_more'} className="text-sm" />}
       </p>
-      <div className="grid grid-cols-4 gap-x-3 gap-y-4">
+      {open && <div className="grid grid-cols-4 gap-x-3 gap-y-4">
         {categories.map((cat) => {
           const selected = value === String(cat.id);
           return (
@@ -123,7 +137,7 @@ export function CategorySelector({
             </span>
           </button>
         )}
-      </div>
+      </div>}
 
       <Modal
         open={showModal}

@@ -10,6 +10,7 @@ import { SubscriptionsPage } from '@/pages/SubscriptionsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { CategoriesPage } from '@/pages/CategoriesPage';
 import { TagsPage } from '@/pages/TagsPage';
+import { TagGroupsPage } from '@/pages/TagGroupsPage';
 import { TemplatesPage } from '@/pages/TemplatesPage';
 import { TimePeriodsPage } from '@/pages/TimePeriodsPage';
 import { TimePeriodDetailPage } from '@/pages/TimePeriodDetailPage';
@@ -45,6 +46,7 @@ export const router = createBrowserRouter([
       { path: 'settings', element: <SettingsPage /> },
       { path: 'settings/categories', element: <CategoriesPage /> },
       { path: 'settings/tags', element: <TagsPage /> },
+      { path: 'settings/tag-groups', element: <TagGroupsPage /> },
       { path: 'settings/templates', element: <TemplatesPage /> },
       { path: 'settings/nodes', element: <NodesPage /> },
       { path: 'settings/files', element: <FilesPage /> },

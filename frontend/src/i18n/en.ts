@@ -163,6 +163,7 @@ const en = {
     dateTime: 'Date & Time',
     category: 'Category',
     tags: 'Tags',
+    tagGroups: 'Tag Groups',
     lineItems: 'Line Items',
     addLineItem: 'Add',
     selectNode: 'Select node',
@@ -236,6 +237,19 @@ const en = {
     descriptionPlaceholder: 'Optional description',
     deleteConfirm: 'Delete this category?',
     iconLabel: 'Icon',
+  },
+
+  // ─── Tag Groups ──────────────────────────────────────────────────────────
+  tagGroups: {
+    title: 'Tag Groups',
+    noTagGroups: 'No Tag Groups',
+    noTagGroupsDesc: 'Create a tag group to quickly apply multiple tags to an event.',
+    addTagGroup: 'Add Tag Group',
+    newTagGroup: 'New Tag Group',
+    editTagGroup: 'Edit Tag Group',
+    deleteConfirm: 'Are you sure you want to delete this tag group?',
+    iconLabel: 'Icon',
+    minTags: 'A tag group must contain at least 2 tags',
   },
 
   // ─── Tags ────────────────────────────────────────────────────────────────
@@ -433,6 +447,7 @@ const en = {
     dataManagement: 'Data Management',
     categoriesDesc: 'Budget classification buckets',
     tagsDesc: 'Transversal labels for events',
+    tagGroupsDesc: 'Groups of tags for quick selection',
     nodesDesc: 'Accounts, entities, contacts',
     templatesDesc: 'Blueprints for rapid event creation',
     filesDesc: 'Uploaded files and event associations',

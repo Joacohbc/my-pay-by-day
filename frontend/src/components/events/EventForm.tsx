@@ -6,9 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/Button';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
+import { TagGroupSelector } from '@/components/ui/TagGroupSelector';
 import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
+import { useTagGroups } from '@/hooks/useTagGroups';
 import { useNodes } from '@/hooks/useNodes';
 import { useAiFormController } from '@/hooks/useAiFormController';
 import { Icon } from '@/components/ui/Icon';
@@ -126,10 +128,12 @@ export function EventForm({
   const schema = useMemo(() => buildSchema(t), [t]);
   const { data: categoriesResponse } = useCategories(0, 200);
   const { data: tagsResponse } = useTags(0, 200);
+  const { data: tagGroupsResponse } = useTagGroups(0, 100);
   const { data: nodesResponse } = useNodes(0, 200);
 
   const categories = categoriesResponse?.content ?? [];
   const tags = tagsResponse?.content ?? [];
+  const tagGroups = tagGroupsResponse?.content ?? [];
   const nodes = nodesResponse?.content ?? [];
 
   const activeNodes = nodes.filter((n) => !n.archived);
@@ -299,6 +303,7 @@ export function EventForm({
               value={field.value ?? ''}
               onChange={field.onChange}
               showAdd={true}
+              collapsible={true}
             />
           )}
         />
@@ -307,12 +312,20 @@ export function EventForm({
           name="tagIds"
           control={control}
           render={({ field }) => (
-            <TagSelector
-              tags={tags}
-              value={field.value ?? []}
-              onChange={field.onChange}
-              showAdd={true}
-            />
+            <div className="space-y-3">
+              <TagGroupSelector
+                tagGroups={tagGroups}
+                selectedTagIds={field.value ?? []}
+                onChange={field.onChange}
+              />
+              <TagSelector
+                tags={tags}
+                value={field.value ?? []}
+                onChange={field.onChange}
+                showAdd={true}
+                collapsible={true}
+              />
+            </div>
           )}
         />
 

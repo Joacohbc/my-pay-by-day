@@ -16,6 +16,7 @@ export const Routes = {
   SETTINGS: '/settings',
   SETTINGS_CATEGORIES: '/settings/categories',
   SETTINGS_TAGS: '/settings/tags',
+  SETTINGS_TAG_GROUPS: '/settings/tag-groups',
   SETTINGS_TEMPLATES: '/settings/templates',
   SETTINGS_NODES: '/settings/nodes',
   SETTINGS_FILES: '/settings/files',
