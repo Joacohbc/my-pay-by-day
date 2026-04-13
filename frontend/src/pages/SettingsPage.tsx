@@ -175,8 +175,8 @@ export function SettingsPage() {
           <SettingRow
             to={Routes.SETTINGS_TAG_GROUPS}
             icon="auto_awesome_mosaic"
-            title="Tag Groups"
-            subtitle="Manage groups of tags"
+            title={t('tagGroups.title')}
+            subtitle={t('settings.tagGroupsDesc')}
             count={tagGroupsPaged?.totalElements}
           />
           <SettingRow

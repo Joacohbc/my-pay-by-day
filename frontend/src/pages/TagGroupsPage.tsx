@@ -58,7 +58,7 @@ export function TagGroupsPage() {
   return (
     <div className="space-y-6 pb-6">
       <PageHeader
-        title="Tag Groups"
+        title={t('tagGroups.title')}
         back="/settings"
         action={
           <Button onClick={openNew} className="rounded-full w-10 h-10 p-0 flex items-center justify-center">
@@ -76,13 +76,13 @@ export function TagGroupsPage() {
 
         {!isLoading && allTagGroups.length === 0 ? (
           <EmptyState
-            icon="auto_awesome_mosaic"
-            title="No Tag Groups"
-            description="Create a tag group to quickly apply multiple tags to an event."
+            icon={<Icon name="auto_awesome_mosaic" />}
+            title={t('tagGroups.noTagGroups')}
+            description={t('tagGroups.noTagGroupsDesc')}
             action={
               <Button onClick={openNew} variant="secondary">
                 <Icon name="add" className="mr-2" />
-                Add Tag Group
+                {t('tagGroups.addTagGroup')}
               </Button>
             }
           />
@@ -91,11 +91,12 @@ export function TagGroupsPage() {
             {allTagGroups.map((group) => (
               <Card key={group.id} className="group relative">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="font-medium text-dn-text-main flex items-center gap-2">
-                      {group.icon && <span>{group.icon}</span>}
-                      {group.name}
-                    </h3>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-dn-primary/10 text-dn-primary flex items-center justify-center shrink-0">
+                      <Icon name={group.icon ?? 'label'} className="text-xl" />
+                    </div>
+                    <div>
+                    <h3 className="font-medium text-dn-text-main">{group.name}</h3>
                     {group.description && (
                       <p className="text-sm text-dn-text-muted mt-1">{group.description}</p>
                     )}
@@ -106,6 +107,7 @@ export function TagGroupsPage() {
                         </span>
                       ))}
                     </div>
+                  </div>
                   </div>
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
@@ -129,7 +131,7 @@ export function TagGroupsPage() {
         )}
       </div>
 
-      <Modal open={showModal} onClose={closeModal} title={editTarget ? 'Edit Tag Group' : 'New Tag Group'}>
+      <Modal open={showModal} onClose={closeModal} title={editTarget ? t('tagGroups.editTagGroup') : t('tagGroups.newTagGroup')}>
         <TagGroupForm
           initialData={editTarget ?? undefined}
           onSuccess={closeModal}
@@ -141,8 +143,8 @@ export function TagGroupsPage() {
         open={confirmDeleteId !== null}
         onClose={() => setConfirmDeleteId(null)}
         onConfirm={handleDelete}
-        title="Delete Tag Group"
-        message="Are you sure you want to delete this tag group?"
+        title={t('tagGroups.editTagGroup')}
+        message={t('tagGroups.deleteConfirm')}
         confirmLabel={t('common.delete')}
         loading={deleteTagGroup.isPending}
       />

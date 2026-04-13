@@ -163,6 +163,7 @@ const es = {
     dateTime: 'Fecha y Hora',
     category: 'Categoría',
     tags: 'Etiquetas',
+    tagGroups: 'Grupos de Etiquetas',
     lineItems: 'Partidas',
     addLineItem: 'Agregar',
     selectNode: 'Seleccionar nodo',
@@ -236,6 +237,21 @@ const es = {
     descriptionPlaceholder: 'Descripción opcional',
     deleteConfirm: '¿Eliminar esta categoría?',
     iconLabel: 'Ícono',
+  },
+
+  // ─── Tag Groups ──────────────────────────────────────────────────────────
+  tagGroups: {
+    title: 'Grupos de Etiquetas',
+    count: '{{count}} grupos',
+    noTagGroups: 'Sin Grupos de Etiquetas',
+    noTagGroupsDesc: 'Crea un grupo de etiquetas para aplicar varias etiquetas a un evento rápidamente.',
+    addTagGroup: 'Agregar Grupo',
+    newTagGroup: 'Nuevo Grupo de Etiquetas',
+    editTagGroup: 'Editar Grupo de Etiquetas',
+    deleteConfirm: '¿Eliminar este grupo de etiquetas?',
+    iconLabel: 'Ícono',
+    iconPlaceholder: 'ej. ✈️',
+    manageDesc: 'Gestionar grupos de etiquetas',
   },
 
   // ─── Tags ────────────────────────────────────────────────────────────────
@@ -433,6 +449,7 @@ const es = {
     dataManagement: 'Gestión de Datos',
     categoriesDesc: 'Partidas de clasificación presupuestaria',
     tagsDesc: 'Etiquetas transversales para eventos',
+    tagGroupsDesc: 'Grupos de etiquetas para selección rápida',
     nodesDesc: 'Cuentas, entidades, contactos',
     templatesDesc: 'Plantillas para creación rápida de eventos',
     filesDesc: 'Archivos subidos y sus asociaciones con eventos',

@@ -2,6 +2,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { IconPicker } from '@/components/ui/IconPicker';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { useCreateTagGroup, useUpdateTagGroup } from '@/hooks/useTagGroups';
 import { useTags } from '@/hooks/useTags';
@@ -66,11 +67,16 @@ export function TagGroupForm({ initialData, onSuccess, onCancel }: TagGroupFormP
         placeholder={t('common.description')}
       />
 
-      <Input
-        label="Icon (emoji or short string)"
-        {...register('icon')}
-        error={errors.icon?.message}
-        placeholder="e.g. ✈️"
+      <Controller
+        name="icon"
+        control={control}
+        render={({ field }) => (
+          <IconPicker
+            label={t('tagGroups.iconLabel')}
+            value={field.value}
+            onChange={field.onChange}
+          />
+        )}
       />
 
       <Controller
