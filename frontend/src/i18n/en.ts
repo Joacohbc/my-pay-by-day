@@ -81,10 +81,7 @@ const en = {
     copied: 'Copied!',
     startRecording: 'Start voice recording',
     stopRecording: 'Stop recording',
-    preparingAudio: 'Preparing audio preview...',
     reviewRecording: 'Review recording before sending',
-    sendRecording: 'Send recording',
-    discardRecording: 'Discard recording',
     transcribing: 'Transcribing audio...',
     voiceNotSupported: 'Voice recording is not supported in this browser',
     microphoneDenied: 'Microphone access denied',
@@ -406,7 +403,6 @@ const en = {
   // ─── AI ──────────────────────────────────────────────────────────────────
   ai: {
     actions: {
-      label: 'AI',
       title: 'AI actions',
       targetField: 'Target field',
       generate: 'Generate with AI',

@@ -32,7 +32,7 @@ export function AiSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t('ai.settings.title')} backTo={Routes.SETTINGS} />
+      <PageHeader title={t('ai.settings.title')} back={Routes.SETTINGS} />
 
       <section className="px-5 space-y-4">
         <Card>

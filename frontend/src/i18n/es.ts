@@ -81,10 +81,7 @@ const es = {
     copied: '¡Copiado!',
     startRecording: 'Iniciar grabación de voz',
     stopRecording: 'Detener grabación',
-    preparingAudio: 'Preparando vista previa de audio...',
     reviewRecording: 'Revisa la grabación antes de enviarla',
-    sendRecording: 'Enviar grabación',
-    discardRecording: 'Descartar grabación',
     transcribing: 'Transcribiendo audio...',
     voiceNotSupported: 'La grabación de voz no está soportada en este navegador',
     microphoneDenied: 'Acceso al micrófono denegado',
@@ -406,7 +403,6 @@ const es = {
   // ─── AI ──────────────────────────────────────────────────────────────────
   ai: {
     actions: {
-      label: 'IA',
       title: 'Acciones de IA',
       targetField: 'Campo objetivo',
       generate: 'Generar con IA',
