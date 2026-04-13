@@ -4,7 +4,12 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import type { FormValues } from '@/components/events/EventFormMapper';
 
-export function BasicInfoFields() {
+interface BasicInfoFieldsProps {
+  onNameFocus: () => void;
+  onDescriptionFocus: () => void;
+}
+
+export function BasicInfoFields({ onNameFocus, onDescriptionFocus }: BasicInfoFieldsProps) {
   const { t } = useTranslation();
   const { register, formState: { errors } } = useFormContext<FormValues>();
 
@@ -15,12 +20,14 @@ export function BasicInfoFields() {
         placeholder={t('eventForm.eventNamePlaceholder')}
         error={errors.name?.message}
         {...register('name')}
+        onFocus={onNameFocus}
       />
 
       <Textarea
         label={t('eventForm.description')}
         placeholder={t('eventForm.descriptionPlaceholder')}
         {...register('description')}
+        onFocus={onDescriptionFocus}
       />
     </>
   );

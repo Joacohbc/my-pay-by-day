@@ -2,8 +2,18 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { chatService } from '@/services/chat.service';
+import { audioService } from '@/services/audio.service';
 import { useChatStore, type ChatMessage } from '@/store/chatStore';
 import type { ChatSendParams } from '@/models/chat';
+
+function convertBlobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const fileReader = new FileReader();
+    fileReader.onload = () => resolve(fileReader.result as string);
+    fileReader.onerror = () => reject(new Error('audio_data_url_failed'));
+    fileReader.readAsDataURL(blob);
+  });
+}
 
 export function useChatUI() {
   const { t } = useTranslation();
@@ -14,6 +24,7 @@ export function useChatUI() {
     draftImages,
     setDraftImages,
     addMessage,
+    updateMessage,
     newChat,
     clearBackendMemory,
     trimBackendMemory
@@ -88,6 +99,42 @@ export function useChatUI() {
     });
   }, [input, draftImages, addMessage, t, setDraftImages, sendMutation, chatId]);
 
+  const handleAudioRecorded = useCallback(async (audioBlob: Blob) => {
+    const recordedAudioUrl = await convertBlobToDataUrl(audioBlob);
+
+    const audioMessageId = addMessage({
+      role: 'user',
+      content: '',
+      audioUrl: recordedAudioUrl,
+      audioTranscriptionStatus: 'pending',
+    });
+
+    let transcriptionText = '';
+
+    try {
+      const transcriptionResponse = await audioService.transcribeRecordedAudio(audioBlob);
+      transcriptionText = transcriptionResponse.transcription.trim();
+    } catch {
+      updateMessage(audioMessageId, { audioTranscriptionStatus: 'failed' });
+      throw new Error('transcription_failed');
+    }
+
+    if (!transcriptionText) {
+      updateMessage(audioMessageId, { audioTranscriptionStatus: 'failed' });
+      throw new Error('transcription_failed');
+    }
+
+    updateMessage(audioMessageId, {
+      content: transcriptionText,
+      audioTranscriptionStatus: 'ready',
+    });
+
+    sendMutation.mutate({
+      chatId,
+      message: transcriptionText,
+    });
+  }, [addMessage, chatId, sendMutation, updateMessage]);
+
   const handleNewChat = useCallback(() => {
     setDraftImages([]);
     newChat();
@@ -125,6 +172,7 @@ export function useChatUI() {
     handleNewChat,
     handleClearMemory,
     handleEditMessage,
+    handleAudioRecorded,
     handleImageSelect,
     handleRemoveImage,
     t,

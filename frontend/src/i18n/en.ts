@@ -79,6 +79,16 @@ const en = {
     confirmEditMessage: 'Do you want to edit this message?',
     copy: 'Copy',
     copied: 'Copied!',
+    startRecording: 'Start voice recording',
+    stopRecording: 'Stop recording',
+    reviewRecording: 'Review recording before sending',
+    transcribing: 'Transcribing audio...',
+    voiceNotSupported: 'Voice recording is not supported in this browser',
+    microphoneDenied: 'Microphone access denied',
+    transcriptionFailed: 'Audio transcription failed. Please try again.',
+    playAudio: 'Play audio message',
+    pauseAudio: 'Pause audio message',
+    audioTimeline: '{{current}} / {{total}}',
   },
 
   // ─── Greetings ───────────────────────────────────────────────────────────
@@ -390,6 +400,33 @@ const en = {
     linkedOnly: 'Linked',
   },
 
+  // ─── AI ──────────────────────────────────────────────────────────────────
+  ai: {
+    actions: {
+      title: 'AI actions',
+      targetField: 'Target field',
+      generate: 'Generate with AI',
+      fixSpelling: 'Fix spelling',
+      voiceInput: 'Dictate by voice',
+      stopVoiceInput: 'Stop voice recording',
+    },
+    settings: {
+      title: 'AI Prompts',
+      subtitle: 'Customize the prompts used by AI actions in forms',
+      description: "Leave a prompt empty to use the built-in default. Use {lang} as a placeholder for the user's language.",
+      generateNameLabel: 'Generate Name prompt',
+      generateNamePlaceholder: 'Leave empty to use the default prompt...',
+      generateDescriptionLabel: 'Generate Description prompt',
+      generateDescriptionPlaceholder: 'Leave empty to use the default prompt...',
+      fixNameSpellingLabel: 'Fix Name Spelling prompt',
+      fixNameSpellingPlaceholder: 'Leave empty to use the default prompt...',
+      fixDescriptionSpellingLabel: 'Fix Description Spelling prompt',
+      fixDescriptionSpellingPlaceholder: 'Leave empty to use the default prompt...',
+      saved: 'AI prompts saved',
+      reset: 'Reset to defaults',
+    },
+  },
+
   // ─── Settings ────────────────────────────────────────────────────────────
   settings: {
     title: 'Settings',
@@ -413,6 +450,7 @@ const en = {
     timezoneDesc: 'Timezone for dates and times',
     timezoneBrowserDefault: 'Browser Default',
     preferences: 'Preferences',
+    aiDesc: 'Customize prompts for AI field actions',
   },
 
   // ─── Offline ─────────────────────────────────────────────────────────────

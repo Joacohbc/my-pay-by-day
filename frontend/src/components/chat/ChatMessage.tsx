@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { AudioMessagePlayer } from '@/components/chat/AudioMessagePlayer';
 import type { ChatMessage as ChatMessageType } from '@/store/chatStore';
 
 interface ChatMessageProps {
@@ -15,18 +16,30 @@ interface ChatMessageProps {
 export function ChatMessage({ message, onEdit }: ChatMessageProps) {
   const { t } = useTranslation();
   const isUser = message.role === 'user';
+  const audioMessageUrl = typeof message.audioUrl === 'string' && message.audioUrl.length > 0
+    ? message.audioUrl
+    : null;
+  const hasAudioMessage = audioMessageUrl !== null;
+  const hasTextContent = message.content.trim().length > 0;
+  const isEditable = isUser && !!onEdit && hasTextContent;
+  const canCopyMessage = isUser && hasTextContent;
+  const hasOverlayActions = canCopyMessage || isEditable;
   const [showEditModal, setShowEditModal] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleCopy = () => {
+    if (!canCopyMessage) {
+      return;
+    }
+
     navigator.clipboard.writeText(message.content);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
 
   const handlePressStart = () => {
-    if (!isUser || !onEdit) return;
+    if (!isEditable) return;
     longPressTimer.current = setTimeout(() => setShowEditModal(true), 500);
   };
 
@@ -74,19 +87,43 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
           )}
 
           {/* Text/Markdown content */}
-          <div className={`min-w-0 relative ${isUser ? 'group' : ''}`}>
-            <div className={`transition-all duration-300 ${isUser ? 'group-hover:blur-md group-hover:opacity-40 group-hover:select-none' : ''}`}>
+          <div className={`min-w-0 relative ${hasOverlayActions ? 'group' : ''}`}>
+            <div className={`transition-all duration-300 ${hasOverlayActions ? 'group-hover:blur-md group-hover:opacity-40 group-hover:select-none' : ''}`}>
               {isUser ? (
-                <div
-                  className="whitespace-pre-wrap text-sm leading-relaxed text-dn-text-main/90 text-right selection:bg-dn-primary/30"
-                  onMouseDown={handlePressStart}
-                  onMouseUp={handlePressEnd}
-                  onMouseLeave={handlePressEnd}
-                  onTouchStart={handlePressStart}
-                  onTouchEnd={handlePressEnd}
-                  onTouchMove={handlePressEnd}
-                >
-                  {message.content}
+                <div className="flex flex-col items-end gap-2">
+                  {hasAudioMessage && (
+                    <AudioMessagePlayer
+                      key={audioMessageUrl}
+                      src={audioMessageUrl}
+                      className="max-w-sm w-full"
+                    />
+                  )}
+
+                  {message.audioTranscriptionStatus === 'pending' && (
+                    <p className="text-[11px] text-dn-primary/60 text-right">
+                      {t('chat.transcribing')}
+                    </p>
+                  )}
+
+                  {message.audioTranscriptionStatus === 'failed' && (
+                    <p className="text-[11px] text-dn-error text-right">
+                      {t('chat.transcriptionFailed')}
+                    </p>
+                  )}
+
+                  {hasTextContent && (
+                    <div
+                      className="whitespace-pre-wrap text-sm leading-relaxed text-dn-text-main/90 text-right selection:bg-dn-primary/30"
+                      onMouseDown={handlePressStart}
+                      onMouseUp={handlePressEnd}
+                      onMouseLeave={handlePressEnd}
+                      onTouchStart={handlePressStart}
+                      onTouchEnd={handlePressEnd}
+                      onTouchMove={handlePressEnd}
+                    >
+                      {message.content}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="prose prose-sm prose-invert max-w-none prose-table:my-0 prose-p:leading-relaxed selection:bg-dn-primary/20">
@@ -120,19 +157,21 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
             </div>
 
             {/* Hover Actions Overlay */}
-            {isUser && (
+            {hasOverlayActions && (
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
                 <div className="flex items-center gap-2 pointer-events-auto scale-90 group-hover:scale-100 transition-all duration-300">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleCopy}
-                    className="shadow-2xl backdrop-blur-md bg-dn-surface/80 border-white/10"
-                  >
-                    <Icon name={isCopied ? 'check' : 'content_copy'} className="text-sm" />
-                    <span>{isCopied ? t('chat.copied') : t('chat.copy')}</span>
-                  </Button>
-                  {onEdit && (
+                  {canCopyMessage && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleCopy}
+                      className="shadow-2xl backdrop-blur-md bg-dn-surface/80 border-white/10"
+                    >
+                      <Icon name={isCopied ? 'check' : 'content_copy'} className="text-sm" />
+                      <span>{isCopied ? t('chat.copied') : t('chat.copy')}</span>
+                    </Button>
+                  )}
+                  {isEditable && (
                     <Button
                       variant="primary"
                       size="sm"

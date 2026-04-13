@@ -6,9 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/Button';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
+import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
+import { useAiFormController } from '@/hooks/useAiFormController';
 import { Icon } from '@/components/ui/Icon';
 import type { CreateEventDto, PatchEventDto, FinanceEvent, EventType } from '@/models';
 import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
@@ -242,12 +244,49 @@ export function EventForm({
 
   const nodeOptions = activeNodes.map((n) => ({ value: String(n.id), label: n.name }));
 
+  const buildAiContext = () => {
+    const values = getValues();
+    const parts: string[] = [];
+    if (values.name) parts.push(`Name: ${values.name}`);
+    if (values.description) parts.push(`Description: ${values.description}`);
+    if (values.type) parts.push(`Type: ${values.type}`);
+    return parts.join('\n');
+  };
+
+  const aiFields = useMemo(() => [
+    {
+      key: 'name',
+      name: 'name' as const,
+      label: t('eventForm.eventName'),
+      semantic: 'name' as const,
+      allowVoice: true,
+    },
+    {
+      key: 'description',
+      name: 'description' as const,
+      label: t('eventForm.description'),
+      semantic: 'description' as const,
+      allowVoice: true,
+    },
+  ], [t]);
+
+  const aiController = useAiFormController<FormValues>({
+    fields: aiFields,
+    getValues,
+    setValue,
+    buildContext: buildAiContext,
+    shouldDirty: true,
+  });
+
   if (!formReady) return <FullPageSpinner />
 
   return (
     <FormProvider {...methods}>
       <form onSubmit={handleSubmit(handleFormSubmit, handleInvalidSubmit)} className="space-y-5">
-        <BasicInfoFields />
+        <BasicInfoFields
+          onNameFocus={() => aiController.markFieldAsActive('name')}
+          onDescriptionFocus={() => aiController.markFieldAsActive('description')}
+        />
 
         <TypeAndDateFields />
 
@@ -318,6 +357,8 @@ export function EventForm({
             </div>
           )}
         </div>
+
+        <AiFormActionsFab controller={aiController} />
       </form>
     </FormProvider>
   );

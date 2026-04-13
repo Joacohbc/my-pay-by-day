@@ -1,9 +1,12 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
+import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { useCreateTag, useUpdateTag } from '@/hooks/useTags';
+import { useAiFormController } from '@/hooks/useAiFormController';
 import type { Tag } from '@/models';
 
 interface TagFormValues {
@@ -22,11 +25,37 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
   const createTag = useCreateTag();
   const updateTag = useUpdateTag();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<TagFormValues>({
+  const { register, handleSubmit, getValues, setValue, formState: { errors } } = useForm<TagFormValues>({
     defaultValues: {
       name: editTarget?.name ?? '',
       description: editTarget?.description ?? '',
     },
+  });
+
+  const buildContext = () => {
+    const values = getValues();
+    const parts: string[] = ['Entity type: Tag (transversal label for grouping events)'];
+    if (values.name) parts.push(`Name: ${values.name}`);
+    if (values.description) parts.push(`Description: ${values.description}`);
+    return parts.join('\n');
+  };
+
+  const aiFields = useMemo(() => [
+    { key: 'name', name: 'name' as const, label: t('common.name'), semantic: 'name' as const, allowVoice: true },
+    {
+      key: 'description',
+      name: 'description' as const,
+      label: t('common.description'),
+      semantic: 'description' as const,
+      allowVoice: true,
+    },
+  ], [t]);
+
+  const aiController = useAiFormController<TagFormValues>({
+    fields: aiFields,
+    getValues,
+    setValue,
+    buildContext,
   });
 
   const onSubmit = async (values: TagFormValues, e?: React.BaseSyntheticEvent) => {
@@ -47,11 +76,11 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
   const isSubmitting = createTag.isPending || updateTag.isPending;
 
   return (
-    <form 
+    <form
       onSubmit={(e) => {
         e.stopPropagation();
         handleSubmit(onSubmit)(e);
-      }} 
+      }}
       className="space-y-4"
     >
       <Input
@@ -59,13 +88,15 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
         placeholder={t('tags.namePlaceholder')}
         error={errors.name?.message}
         {...register('name', { required: t('common.nameRequired') })}
+        onFocus={() => aiController.markFieldAsActive('name')}
       />
       <Textarea
         label={t('common.description')}
         placeholder={t('tags.descriptionPlaceholder')}
         {...register('description')}
+        onFocus={() => aiController.markFieldAsActive('description')}
       />
-      
+
       <div className="pt-2 flex gap-3">
         {onCancel && (
           <Button type="button" variant="ghost" fullWidth onClick={onCancel} disabled={isSubmitting}>
@@ -76,6 +107,8 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
           {editTarget ? t('common.update') : t('common.create')}
         </Button>
       </div>
+
+      <AiFormActionsFab controller={aiController} />
     </form>
   );
 }

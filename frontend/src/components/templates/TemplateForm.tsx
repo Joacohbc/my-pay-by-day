@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -10,10 +10,12 @@ import { Textarea } from '@/components/ui/Textarea';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { Modal } from '@/components/ui/Modal';
 import { NodeForm } from '@/components/nodes/NodeForm';
+import { useAiFormController } from '@/hooks/useAiFormController';
 import {
   buildSchema,
   fromTemplate,
@@ -50,6 +52,7 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
     handleSubmit,
     reset,
     setValue,
+    getValues,
     control,
     formState: { errors },
   } = useForm<FormValues>({
@@ -63,6 +66,33 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
   }, [editTarget, reset]);
 
   const watchModifierType = useWatch({ control, name: 'modifierType' });
+
+  const buildContext = () => {
+    const values = getValues();
+    const parts: string[] = ['Entity type: Template (blueprint for creating finance events quickly)'];
+    if (values.name) parts.push(`Name: ${values.name}`);
+    if (values.description) parts.push(`Description: ${values.description}`);
+    if (values.eventType) parts.push(`Event type: ${values.eventType}`);
+    return parts.join('\n');
+  };
+
+  const aiFields = useMemo(() => [
+    { key: 'name', name: 'name' as const, label: t('common.name'), semantic: 'name' as const, allowVoice: true },
+    {
+      key: 'description',
+      name: 'description' as const,
+      label: t('common.description'),
+      semantic: 'description' as const,
+      allowVoice: true,
+    },
+  ], [t]);
+
+  const aiController = useAiFormController<FormValues>({
+    fields: aiFields,
+    getValues,
+    setValue,
+    buildContext,
+  });
 
   const handleFormSubmit = async (values: FormValues) => {
     await onSubmit(toCreateDto(values));
@@ -82,6 +112,7 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
           placeholder={t('templates.namePlaceholder')}
           error={errors.name?.message}
           {...register('name')}
+          onFocus={() => aiController.markFieldAsActive('name')}
         />
 
         <Textarea
@@ -89,6 +120,7 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
           placeholder={t('templates.descriptionPlaceholder')}
           error={errors.description?.message}
           {...register('description')}
+          onFocus={() => aiController.markFieldAsActive('description')}
         />
 
         <Controller
@@ -232,6 +264,8 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
             </Button>
           )}
         </div>
+
+        <AiFormActionsFab controller={aiController} />
       </form>
 
       <Modal

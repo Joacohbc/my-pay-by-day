@@ -14,6 +14,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  * Manually wires LangChain4j models as CDI beans.
  * Two independent ChatModel instances allow using different models
  * for chat/tools (primary) and image analysis (vision).
+ * Audio transcription uses a direct HTTP call to /chat/completions — see AudioTranscriptionService.
  */
 @ApplicationScoped
 public class AiConfig {

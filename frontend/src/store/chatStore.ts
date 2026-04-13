@@ -7,8 +7,13 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   imageUrls?: string[];
+  audioUrl?: string;
+  audioTranscriptionStatus?: 'pending' | 'ready' | 'failed';
   timestamp: string;
 }
+
+type ChatMessageDraft = Omit<ChatMessage, 'id' | 'timestamp'>;
+type ChatMessageUpdate = Partial<ChatMessageDraft>;
 
 interface ChatStoreState {
   chatId: string;
@@ -16,7 +21,8 @@ interface ChatStoreState {
   isClearing: boolean;
   draftImages: File[];
 
-  addMessage: (msg: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+  addMessage: (msg: ChatMessageDraft) => string;
+  updateMessage: (messageId: string, patch: ChatMessageUpdate) => void;
   clearChat: () => void;
   newChat: () => void;
   clearBackendMemory: () => Promise<void>;
@@ -34,16 +40,30 @@ export const useChatStore = create<ChatStoreState>()(
       isClearing: false,
       draftImages: [],
 
-      addMessage: (msg) =>
-        set((s) => ({
+      addMessage: (msg) => {
+        const nextMessageId = crypto.randomUUID();
+
+        set((state) => ({
           messages: [
-            ...s.messages,
+            ...state.messages,
             {
               ...msg,
-              id: crypto.randomUUID(),
+              id: nextMessageId,
               timestamp: new Date().toISOString(),
             },
           ],
+        }));
+
+        return nextMessageId;
+      },
+
+      updateMessage: (messageId, patch) =>
+        set((state) => ({
+          messages: state.messages.map((message) =>
+            message.id === messageId
+              ? { ...message, ...patch }
+              : message
+          ),
         })),
 
       clearChat: () => set({ messages: [] }),

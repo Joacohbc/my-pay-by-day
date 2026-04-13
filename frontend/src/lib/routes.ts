@@ -19,6 +19,7 @@ export const Routes = {
   SETTINGS_TEMPLATES: '/settings/templates',
   SETTINGS_NODES: '/settings/nodes',
   SETTINGS_FILES: '/settings/files',
+  SETTINGS_AI: '/settings/ai',
 } as const;
 
 const EVENTS_SEARCH_KEY = 'events.lastSearch';
