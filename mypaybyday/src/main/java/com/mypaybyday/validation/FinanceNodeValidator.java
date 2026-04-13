@@ -19,6 +19,6 @@ public class FinanceNodeValidator {
         
         node.name = regexValidator.sanitize(node.name);
 
-        regexValidator.validateLettersAndNumbers(node.name, RegexValidator.SHORT_MAX_LENGTH);
+        regexValidator.validateText(node.name, RegexValidator.SHORT_MAX_LENGTH);
     }
 }

@@ -21,8 +21,8 @@ public class CategoryValidator {
         category.description = regexValidator.sanitize(category.description);
         category.icon = regexValidator.sanitize(category.icon);
 
-        regexValidator.validateLettersAndNumbers(category.name, RegexValidator.SHORT_MAX_LENGTH);
-        regexValidator.validateLettersNumbersAndExtras(category.description, RegexValidator.LONG_MAX_LENGTH);
+        regexValidator.validateText(category.name, RegexValidator.SHORT_MAX_LENGTH);
+        regexValidator.validateText(category.description, RegexValidator.LONG_MAX_LENGTH);
         regexValidator.validateIcon(category.icon);
     }
 }
