@@ -171,6 +171,13 @@ export function SettingsPage() {
             count={tagsPaged?.totalElements}
           />
           <SettingRow
+            to={Routes.SETTINGS_TAG_GROUPS}
+            icon="auto_awesome_mosaic"
+            title="Tag Groups"
+            subtitle="Manage groups of tags"
+            count={tagGroupsPaged?.totalElements}
+          />
+          <SettingRow
             to={Routes.SETTINGS_TEMPLATES}
             icon="auto_fix_high"
             title={t('templates.title')}

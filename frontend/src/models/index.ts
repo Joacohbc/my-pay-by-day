@@ -254,3 +254,19 @@ export interface DynamicTimePeriodBalance {
 }
 
 export * from './drafts';
+
+// ─── Tag Group ────────────────────────────────────────────────────────────────
+
+export interface TagGroup extends Identifiable {
+  name: string;
+  description?: string;
+  icon?: string;
+  tags: Tag[];
+}
+
+export interface CreateTagGroupDto {
+  name: string;
+  description?: string;
+  icon?: string;
+  tagIds: number[];
+}

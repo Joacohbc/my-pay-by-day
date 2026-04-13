@@ -21,6 +21,10 @@ public enum MsgKey {
 	TAG_NAME_REQUIRED("error.tag.name_required"),
 	TAG_IN_USE("error.tag.in_use"),
 
+	// ── TagGroupEntity ─────────────────────────────────────────
+	TAG_GROUP_NOT_FOUND("error.tag_group.not_found"),
+	TAG_GROUP_NAME_REQUIRED("error.tag_group.name_required"),
+
 	// ── Event ─────────────────────────────────────────────
 	EVENT_NOT_FOUND("error.event.not_found"),
 	EVENT_TRANSACTION_REQUIRED("error.event.transaction_required"),
