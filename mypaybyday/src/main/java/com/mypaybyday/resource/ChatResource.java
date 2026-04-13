@@ -36,7 +36,7 @@ import org.jboss.resteasy.reactive.multipart.FileUpload;
  * When 'mode' is 'agent' (or an image is supplied), the FinanceAgent is used.
  * Otherwise, the read-only FinanceAssistant performs the query.
  */
-@Path("/chat")
+@Path("/ai/chat")
 @Produces(MediaType.APPLICATION_JSON)
 @Tag(name = "Chat", description = "AI-powered chat endpoint for querying and managing financial information.")
 public class ChatResource {

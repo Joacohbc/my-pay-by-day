@@ -22,7 +22,7 @@ import org.jboss.logging.Logger;
 import org.jboss.resteasy.reactive.RestForm;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 
-@Path("/audio")
+@Path("/ai/audio")
 @Produces(MediaType.APPLICATION_JSON)
 @Tag(name = "Audio", description = "Audio transcription endpoint.")
 public class AudioResource {

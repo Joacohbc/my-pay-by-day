@@ -4,7 +4,7 @@ import type { ChatSendParams, ChatResponse } from '@/models/chat';
 
 export const chatService = {
   /**
-   * Unified send: always uses multipart/form-data to POST /chat.
+   * Unified send: always uses multipart/form-data to POST /ai/chat.
    * Images are optional.
    */
   sendMessage: async ({ chatId, message, images }: ChatSendParams): Promise<ChatResponse> => {
@@ -17,7 +17,7 @@ export const chatService = {
 
     const lang = i18n.language ?? 'en';
 
-    const res = await fetch(`${BASE_URL}/chat?lang=${lang}`, {
+    const res = await fetch(`${BASE_URL}/ai/chat?lang=${lang}`, {
       method: 'POST',
       body: formData,
       headers: {
@@ -43,7 +43,7 @@ export const chatService = {
    * Clears the AI's memory for a specific chatId on the backend.
    */
   clearMemory: async (chatId: string): Promise<void> => {
-    await fetch(`${BASE_URL}/chat/${chatId}`, {
+    await fetch(`${BASE_URL}/ai/chat/${chatId}`, {
       method: 'DELETE',
     });
   },
@@ -52,7 +52,7 @@ export const chatService = {
    * Trims the AI's memory up to the last user message containing the text.
    */
   trimMemory: async (chatId: string, textToMatch: string): Promise<void> => {
-    await fetch(`${BASE_URL}/chat/${chatId}/trim`, {
+    await fetch(`${BASE_URL}/ai/chat/${chatId}/trim`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

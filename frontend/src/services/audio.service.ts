@@ -41,7 +41,7 @@ export const audioService = {
     const formData = new FormData();
     formData.append('audio', audioBlob, 'recording.wav');
 
-    const res = await fetch(`${BASE_URL}/audio/transcribe`, {
+    const res = await fetch(`${BASE_URL}/ai/audio/transcribe`, {
       method: 'POST',
       body: formData,
       headers: {
