@@ -15,12 +15,6 @@ interface ChatInputProps {
   hasDraftImages?: boolean;
 }
 
-const VOICE_ERROR_KEYS: Record<string, string> = {
-  voice_not_supported: 'chat.voiceNotSupported',
-  microphone_denied: 'chat.microphoneDenied',
-  transcription_failed: 'chat.transcriptionFailed',
-};
-
 export function ChatInput({
   inputContent,
   setInputContent,
@@ -35,8 +29,17 @@ export function ChatInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleVoiceError = useCallback((errorKey: string) => {
-    const translationKey = VOICE_ERROR_KEYS[errorKey] ?? 'chat.transcriptionFailed';
-    showError(t(translationKey));
+    if (errorKey === 'voice_not_supported') {
+      showError(t('chat.voiceNotSupported'));
+      return;
+    }
+
+    if (errorKey === 'microphone_denied') {
+      showError(t('chat.microphoneDenied'));
+      return;
+    }
+
+    showError(t('chat.transcriptionFailed'));
   }, [showError, t]);
 
   const {

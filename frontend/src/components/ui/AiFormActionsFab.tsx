@@ -7,12 +7,6 @@ import type { AiFormController } from '@/hooks/useAiFormController';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 import { audioService } from '@/services/audio.service';
 
-const VOICE_ERROR_KEYS: Record<string, string> = {
-  voice_not_supported: 'chat.voiceNotSupported',
-  microphone_denied: 'chat.microphoneDenied',
-  transcription_failed: 'chat.transcriptionFailed',
-};
-
 interface AiFormActionsFabProps {
   controller: AiFormController;
 }
@@ -24,8 +18,17 @@ export function AiFormActionsFab({ controller }: AiFormActionsFabProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const handleVoiceError = useCallback((errorKey: string) => {
-    const translationKey = VOICE_ERROR_KEYS[errorKey] ?? 'chat.transcriptionFailed';
-    alert.error(t(translationKey));
+    if (errorKey === 'voice_not_supported') {
+      alert.error(t('chat.voiceNotSupported'));
+      return;
+    }
+
+    if (errorKey === 'microphone_denied') {
+      alert.error(t('chat.microphoneDenied'));
+      return;
+    }
+
+    alert.error(t('chat.transcriptionFailed'));
   }, [alert, t]);
 
   const handleTranscriptionReady = useCallback(async (recordedAudioBlob: Blob) => {
