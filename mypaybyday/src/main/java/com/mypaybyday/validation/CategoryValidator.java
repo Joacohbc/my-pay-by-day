@@ -16,6 +16,11 @@ public class CategoryValidator {
 
     public void validate(CategoryEntity category) throws BusinessException {
         if (category == null) return;
+        
+        category.name = regexValidator.sanitize(category.name);
+        category.description = regexValidator.sanitize(category.description);
+        category.icon = regexValidator.sanitize(category.icon);
+
         regexValidator.validateLettersAndNumbers(category.name, RegexValidator.SHORT_MAX_LENGTH);
         regexValidator.validateLettersNumbersAndExtras(category.description, RegexValidator.LONG_MAX_LENGTH);
         regexValidator.validateIcon(category.icon);

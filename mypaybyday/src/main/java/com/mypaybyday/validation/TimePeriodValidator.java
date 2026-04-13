@@ -22,6 +22,9 @@ public class TimePeriodValidator {
 
     public void validate(TimePeriodEntity timePeriod) throws BusinessException {
         if (timePeriod == null) return;
+        
+        timePeriod.name = regexValidator.sanitize(timePeriod.name);
+
         regexValidator.validateLettersAndNumbers(timePeriod.name, RegexValidator.SHORT_MAX_LENGTH);
         dateValidator.validateDateRange(timePeriod.startDate, timePeriod.endDate);
         if (timePeriod.savingsPercentageGoal != null) {

@@ -27,6 +27,12 @@ public class RegexValidator {
         this.messages = messages;
     }
 
+    public String sanitize(String value) {
+        if (value == null) return null;
+        // Replace non-breaking spaces (like U+00A0 and U+202F) and trim
+        return value.replace('\u00A0', ' ').replace('\u202F', ' ').trim();
+    }
+
     public void validateOnlyLetters(String value, int maxLength) throws BusinessException {
         if (value == null || value.isBlank()) return;
         if (value.length() > maxLength) {

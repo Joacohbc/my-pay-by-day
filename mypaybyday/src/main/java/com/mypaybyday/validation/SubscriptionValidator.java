@@ -18,6 +18,10 @@ public class SubscriptionValidator {
 
     public void validate(SubscriptionEntity subscription) throws BusinessException {
         if (subscription == null) return;
+
+        subscription.name = regexValidator.sanitize(subscription.name);
+        subscription.description = regexValidator.sanitize(subscription.description);
+
         regexValidator.validateNameAndDescription(subscription.name, subscription.description);
         dateValidator.validateNotPast(subscription.nextExecutionDate);
     }
