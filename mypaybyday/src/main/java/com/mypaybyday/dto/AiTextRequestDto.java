@@ -1,7 +1,8 @@
 package com.mypaybyday.dto;
 
-import com.mypaybyday.enums.AiTextAction;
 import jakarta.validation.constraints.NotNull;
+
+import com.mypaybyday.enums.AiTextAction;
 
 public class AiTextRequestDto {
 
