@@ -2,14 +2,15 @@ name: i18n Audit
 
 on:
   push:
+    branches:
+      - 'master'
     paths:
       - 'frontend/src/i18n/**'
       - 'frontend/src/**/*.ts'
       - 'frontend/src/**/*.tsx'
       - 'frontend/scripts/i18n-audit.mjs'
       - 'mypaybyday/src/main/resources/i18n/**'
-      - 'mypaybyday/src/main/java/com/mypaybyday/i18n/**'
-      - 'mypaybyday/src/main/java/com/mypaybyday/**'
+      - 'mypaybyday/src/main/java/com/mypaybyday/**/*.java'
       - 'mypaybyday/scripts/i18n-audit.mjs'
   pull_request:
     paths:
@@ -18,8 +19,7 @@ on:
       - 'frontend/src/**/*.tsx'
       - 'frontend/scripts/i18n-audit.mjs'
       - 'mypaybyday/src/main/resources/i18n/**'
-      - 'mypaybyday/src/main/java/com/mypaybyday/i18n/**'
-      - 'mypaybyday/src/main/java/com/mypaybyday/**'
+      - 'mypaybyday/src/main/java/com/mypaybyday/**/*.java'
       - 'mypaybyday/scripts/i18n-audit.mjs'
 
 jobs:
