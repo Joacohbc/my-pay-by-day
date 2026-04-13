@@ -79,6 +79,16 @@ const es = {
     confirmEditMessage: '¿Deseas editar este mensaje?',
     copy: 'Copiar',
     copied: '¡Copiado!',
+    startRecording: 'Iniciar grabación de voz',
+    stopRecording: 'Detener grabación',
+    preparingAudio: 'Preparando vista previa de audio...',
+    reviewRecording: 'Revisa la grabación antes de enviarla',
+    sendRecording: 'Enviar grabación',
+    discardRecording: 'Descartar grabación',
+    transcribing: 'Transcribiendo audio...',
+    voiceNotSupported: 'La grabación de voz no está soportada en este navegador',
+    microphoneDenied: 'Acceso al micrófono denegado',
+    transcriptionFailed: 'Error al transcribir el audio. Por favor, inténtalo de nuevo.',
   },
 
   // ─── Greetings ───────────────────────────────────────────────────────────
