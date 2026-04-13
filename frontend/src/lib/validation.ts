@@ -7,9 +7,9 @@ import { z } from 'zod/v4';
 export const SHORT_MAX_LENGTH = 255;
 export const LONG_MAX_LENGTH = 5100;
 
-// Java: ^[\p{L}\p{N}\s\-\.]+$
-// Allows: Unicode letters, digits, whitespace, dash, dot
-export const LETTERS_AND_NUMBERS_REGEX = /^[\p{L}\p{N}\s\-.]+$/u;
+// Java: ^[\p{L}\p{N}\s\-\.\(\)\/\,\"\']+$
+// Allows: Unicode letters, digits, whitespace, dash, dot, (), /, ,, ", '
+export const LETTERS_AND_NUMBERS_REGEX = /^[\p{L}\p{N}\s\-\.\(\)\/\,\"\']+$/u;
 
 // Java: ^[\p{L}\p{N}\s\p{Punct}]+$
 // Allows: Unicode letters, digits, whitespace, punctuation & symbols

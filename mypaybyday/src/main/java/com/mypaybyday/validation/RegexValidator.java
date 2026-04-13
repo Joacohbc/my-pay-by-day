@@ -17,7 +17,7 @@ public class RegexValidator {
 
     private static final Pattern ONLY_LETTERS_PATTERN = Pattern.compile("^[\\p{L}\\s]+$");
     private static final Pattern ONLY_NUMBERS_PATTERN = Pattern.compile("^[\\p{N}]+$");
-    private static final Pattern LETTERS_AND_NUMBERS_PATTERN = Pattern.compile("^[\\p{L}\\p{N}\\s\\-\\.]+$");
+    private static final Pattern LETTERS_AND_NUMBERS_PATTERN = Pattern.compile("^[\\p{L}\\p{N}\\s\\-\\.\\(\\)\\/\\,\\\"\\']+$");
     private static final Pattern LETTERS_NUMBERS_AND_EXTRAS_PATTERN = Pattern.compile("^[\\p{L}\\p{N}\\s\\p{Punct}]+$");
     private static final Pattern ICON_PATTERN = Pattern.compile("^[a-zA-Z0-9_]+$");
 
