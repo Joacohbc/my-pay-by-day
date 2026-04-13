@@ -1,8 +1,6 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { audioService } from '@/services/audio.service';
-import { convertAudioBlobToWav } from '@/lib/audioWav';
+import { useState, useRef, useCallback } from 'react';
 
-type RecordingState = 'idle' | 'recording' | 'preparing' | 'preview' | 'transcribing';
+type RecordingState = 'idle' | 'recording' | 'preparing';
 
 const preferredRecorderMimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg'];
 
@@ -17,48 +15,24 @@ function resolveRecorderOptions(): MediaRecorderOptions | undefined {
   return { mimeType: supportedRecorderMimeType };
 }
 
-export function useVoiceRecorder(onTranscript: (text: string) => void, onError: (error: string) => void) {
+function resolveErrorKey(error: unknown): string {
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (error instanceof Error && error.message.length > 0) {
+    return error.message;
+  }
+
+  return 'transcription_failed';
+}
+
+export function useVoiceRecorder(onAudioReady: (audioBlob: Blob) => Promise<void>, onError: (error: string) => void) {
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
-  const [previewAudioBlob, setPreviewAudioBlob] = useState<Blob | null>(null);
-  const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const previewAudioUrlRef = useRef<string | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
   const isRecordingSupported = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
-
-  const clearPreviewAudio = useCallback(() => {
-    if (previewAudioUrlRef.current) {
-      URL.revokeObjectURL(previewAudioUrlRef.current);
-      previewAudioUrlRef.current = null;
-    }
-
-    setPreviewAudioBlob(null);
-    setPreviewAudioUrl(null);
-  }, []);
-
-  const setPreviewAudio = useCallback((audioBlob: Blob) => {
-    if (previewAudioUrlRef.current) {
-      URL.revokeObjectURL(previewAudioUrlRef.current);
-      previewAudioUrlRef.current = null;
-    }
-
-    const nextPreviewAudioUrl = URL.createObjectURL(audioBlob);
-    previewAudioUrlRef.current = nextPreviewAudioUrl;
-    setPreviewAudioBlob(audioBlob);
-    setPreviewAudioUrl(nextPreviewAudioUrl);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (!previewAudioUrlRef.current) {
-        return;
-      }
-
-      URL.revokeObjectURL(previewAudioUrlRef.current);
-      previewAudioUrlRef.current = null;
-    };
-  }, []);
 
   const stopRecording = useCallback(() => {
     const recorder = mediaRecorderRef.current;
@@ -91,10 +65,10 @@ export function useVoiceRecorder(onTranscript: (text: string) => void, onError: 
         setRecordingState('preparing');
         try {
           const recordedAudioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || 'audio/webm' });
-          setPreviewAudio(recordedAudioBlob);
-          setRecordingState('preview');
-        } catch {
-          onError('transcription_failed');
+          await onAudioReady(recordedAudioBlob);
+        } catch (error) {
+          onError(resolveErrorKey(error));
+        } finally {
           setRecordingState('idle');
         }
 
@@ -109,37 +83,15 @@ export function useVoiceRecorder(onTranscript: (text: string) => void, onError: 
       onError('microphone_denied');
       setRecordingState('idle');
     }
-  }, [isRecordingSupported, onError, setPreviewAudio]);
-
-  const discardPreview = useCallback(() => {
-    clearPreviewAudio();
-    setRecordingState('idle');
-  }, [clearPreviewAudio]);
-
-  const submitPreview = useCallback(async () => {
-    if (!previewAudioBlob) {
-      setRecordingState('idle');
-      return;
-    }
-
-    setRecordingState('transcribing');
-
-    try {
-      const wavAudioBlob = await convertAudioBlobToWav(previewAudioBlob);
-      const result = await audioService.transcribeAudio(wavAudioBlob);
-      onTranscript(result.transcription);
-      clearPreviewAudio();
-      setRecordingState('idle');
-    } catch {
-      onError('transcription_failed');
-      setRecordingState('preview');
-    }
-  }, [clearPreviewAudio, onError, onTranscript, previewAudioBlob]);
+  }, [isRecordingSupported, onAudioReady, onError]);
 
   const toggleRecording = useCallback(() => {
     if (recordingState === 'recording') {
       stopRecording();
-    } else if (recordingState === 'idle') {
+      return;
+    }
+
+    if (recordingState === 'idle') {
       startRecording();
     }
   }, [recordingState, startRecording, stopRecording]);
@@ -147,9 +99,6 @@ export function useVoiceRecorder(onTranscript: (text: string) => void, onError: 
   return {
     recordingState,
     isRecordingSupported,
-    previewAudioUrl,
     toggleRecording,
-    submitPreview,
-    discardPreview,
   };
 }

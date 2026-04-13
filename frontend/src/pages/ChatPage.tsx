@@ -20,6 +20,7 @@ export function ChatPage() {
     handleNewChat,
     handleClearMemory,
     handleEditMessage,
+    handleAudioRecorded,
     handleImageSelect,
     handleRemoveImage,
     t,
@@ -103,6 +104,7 @@ export function ChatPage() {
         inputContent={input}
         setInputContent={setInput}
         onSend={handleSend}
+        onAudioRecorded={handleAudioRecorded}
         onImageSelect={handleImageSelect}
         isPending={isPending}
         hasDraftImages={draftImages.length > 0}
