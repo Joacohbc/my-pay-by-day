@@ -1,8 +1,20 @@
 import { BASE_URL } from '@/services/api';
 import { convertAudioBlobToWav } from '@/lib/audioWav';
+import { Howl, Howler } from 'howler';
 
 export interface AudioTranscriptionResponse {
   transcription: string;
+}
+
+export interface AudioPlaybackCallbacks {
+  onLoad?: () => void;
+  onPlay?: () => void;
+  onPause?: () => void;
+  onStop?: () => void;
+  onEnd?: () => void;
+  onSeek?: () => void;
+  onLoadError?: () => void;
+  onPlayError?: () => void;
 }
 
 function isWavMimeType(mimeType: string): boolean {
@@ -14,6 +26,25 @@ function isWavMimeType(mimeType: string): boolean {
 }
 
 export const audioService = {
+  createAudioPlayer: (sourceUrl: string, callbacks: AudioPlaybackCallbacks = {}): Howl => {
+    return new Howl({
+      src: [sourceUrl],
+      preload: true,
+      onload: callbacks.onLoad,
+      onplay: callbacks.onPlay,
+      onpause: callbacks.onPause,
+      onstop: callbacks.onStop,
+      onend: callbacks.onEnd,
+      onseek: callbacks.onSeek,
+      onloaderror: callbacks.onLoadError,
+      onplayerror: callbacks.onPlayError,
+    });
+  },
+
+  stopAllPlayback: (): void => {
+    Howler.stop();
+  },
+
   transcribeAudio: async (audioBlob: Blob): Promise<AudioTranscriptionResponse> => {
     if (!isWavMimeType(audioBlob.type)) {
       throw new Error('Only WAV audio can be uploaded');

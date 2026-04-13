@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { AudioMessagePlayer } from '@/components/chat/AudioMessagePlayer';
 import type { ChatMessage as ChatMessageType } from '@/store/chatStore';
 
 interface ChatMessageProps {
@@ -15,7 +16,10 @@ interface ChatMessageProps {
 export function ChatMessage({ message, onEdit }: ChatMessageProps) {
   const { t } = useTranslation();
   const isUser = message.role === 'user';
-  const hasAudioMessage = typeof message.audioUrl === 'string' && message.audioUrl.length > 0;
+  const audioMessageUrl = typeof message.audioUrl === 'string' && message.audioUrl.length > 0
+    ? message.audioUrl
+    : null;
+  const hasAudioMessage = audioMessageUrl !== null;
   const hasTextContent = message.content.trim().length > 0;
   const isEditable = isUser && !!onEdit && hasTextContent;
   const canCopyMessage = isUser && hasTextContent;
@@ -88,10 +92,9 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
               {isUser ? (
                 <div className="flex flex-col items-end gap-2">
                   {hasAudioMessage && (
-                    <audio
-                      src={message.audioUrl}
-                      controls
-                      preload="metadata"
+                    <AudioMessagePlayer
+                      key={audioMessageUrl}
+                      src={audioMessageUrl}
                       className="max-w-sm w-full"
                     />
                   )}

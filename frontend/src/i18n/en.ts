@@ -89,6 +89,9 @@ const en = {
     voiceNotSupported: 'Voice recording is not supported in this browser',
     microphoneDenied: 'Microphone access denied',
     transcriptionFailed: 'Audio transcription failed. Please try again.',
+    playAudio: 'Play audio message',
+    pauseAudio: 'Pause audio message',
+    audioTimeline: '{{current}} / {{total}}',
   },
 
   // ─── Greetings ───────────────────────────────────────────────────────────
