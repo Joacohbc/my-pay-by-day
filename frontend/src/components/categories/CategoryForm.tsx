@@ -1,16 +1,13 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { IconPicker } from '@/components/ui/IconPicker';
-import { AiFieldActions } from '@/components/ui/AiFieldActions';
+import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { useCreateCategory, useUpdateCategory } from '@/hooks/useCategories';
-import { mergeFieldTextWithTranscription } from '@/lib/aiAudioText';
-import { aiService } from '@/services/ai.service';
-import { aiPromptsStore } from '@/store/aiPromptsStore';
-import { useAlert } from '@/contexts/AlertContext';
+import { useAiFormController } from '@/hooks/useAiFormController';
 import type { Category } from '@/models';
 
 interface CategoryFormValues {
@@ -27,12 +24,8 @@ interface CategoryFormProps {
 
 export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormProps) {
   const { t } = useTranslation();
-  const alert = useAlert();
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
-
-  const [isNameLoading, setIsNameLoading] = useState(false);
-  const [isDescriptionLoading, setIsDescriptionLoading] = useState(false);
 
   const { register, handleSubmit, control, getValues, setValue, formState: { errors } } = useForm<CategoryFormValues>({
     defaultValues: {
@@ -50,85 +43,23 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
     return parts.join('\n');
   };
 
-  const handleGenerateName = async () => {
-    setIsNameLoading(true);
-    try {
-      const result = await aiService.generateText({
-        action: 'GENERATE_NAME',
-        context: buildContext(),
-        customPrompt: aiPromptsStore.getPromptForAction('generateName'),
-      });
-      setValue('name', result.text);
-    } catch (err) {
-      alert.error(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setIsNameLoading(false);
-    }
-  };
+  const aiFields = useMemo(() => [
+    { key: 'name', name: 'name' as const, label: t('common.name'), semantic: 'name' as const, allowVoice: true },
+    {
+      key: 'description',
+      name: 'description' as const,
+      label: t('common.description'),
+      semantic: 'description' as const,
+      allowVoice: true,
+    },
+  ], [t]);
 
-  const handleFixNameSpelling = async () => {
-    const currentName = getValues('name');
-    if (!currentName) return;
-    setIsNameLoading(true);
-    try {
-      const result = await aiService.generateText({
-        action: 'FIX_NAME_SPELLING',
-        context: buildContext(),
-        currentValue: currentName,
-        customPrompt: aiPromptsStore.getPromptForAction('fixNameSpelling'),
-      });
-      setValue('name', result.text);
-    } catch (err) {
-      alert.error(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setIsNameLoading(false);
-    }
-  };
-
-  const handleGenerateDescription = async () => {
-    setIsDescriptionLoading(true);
-    try {
-      const result = await aiService.generateText({
-        action: 'GENERATE_DESCRIPTION',
-        context: buildContext(),
-        customPrompt: aiPromptsStore.getPromptForAction('generateDescription'),
-      });
-      setValue('description', result.text);
-    } catch (err) {
-      alert.error(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setIsDescriptionLoading(false);
-    }
-  };
-
-  const handleFixDescriptionSpelling = async () => {
-    const currentDescription = getValues('description');
-    if (!currentDescription) return;
-    setIsDescriptionLoading(true);
-    try {
-      const result = await aiService.generateText({
-        action: 'FIX_DESCRIPTION_SPELLING',
-        context: buildContext(),
-        currentValue: currentDescription,
-        customPrompt: aiPromptsStore.getPromptForAction('fixDescriptionSpelling'),
-      });
-      setValue('description', result.text);
-    } catch (err) {
-      alert.error(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setIsDescriptionLoading(false);
-    }
-  };
-
-  const handleNameTranscription = (transcription: string) => {
-    const currentName = getValues('name');
-    setValue('name', mergeFieldTextWithTranscription(currentName, transcription));
-  };
-
-  const handleDescriptionTranscription = (transcription: string) => {
-    const currentDescription = getValues('description');
-    setValue('description', mergeFieldTextWithTranscription(currentDescription, transcription));
-  };
+  const aiController = useAiFormController<CategoryFormValues>({
+    fields: aiFields,
+    getValues,
+    setValue,
+    buildContext,
+  });
 
   const onSubmit = async (values: CategoryFormValues, e?: React.BaseSyntheticEvent) => {
     e?.stopPropagation();
@@ -157,30 +88,16 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
     >
       <Input
         label={t('common.name')}
-        labelRight={
-          <AiFieldActions
-            onGenerate={handleGenerateName}
-            onFixSpelling={handleFixNameSpelling}
-            onTranscribe={handleNameTranscription}
-            isLoading={isNameLoading}
-          />
-        }
         placeholder={t('categories.namePlaceholder')}
         error={errors.name?.message}
         {...register('name', { required: t('common.nameRequired') })}
+        onFocus={() => aiController.markFieldAsActive('name')}
       />
       <Textarea
         label={t('common.description')}
-        labelRight={
-          <AiFieldActions
-            onGenerate={handleGenerateDescription}
-            onFixSpelling={handleFixDescriptionSpelling}
-            onTranscribe={handleDescriptionTranscription}
-            isLoading={isDescriptionLoading}
-          />
-        }
         placeholder={t('categories.descriptionPlaceholder')}
         {...register('description')}
+        onFocus={() => aiController.markFieldAsActive('description')}
       />
       <Controller
         name="icon"
@@ -204,6 +121,8 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
           {editTarget ? t('common.update') : t('common.create')}
         </Button>
       </div>
+
+      <AiFormActionsFab controller={aiController} />
     </form>
   );
 }

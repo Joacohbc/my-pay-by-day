@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -10,15 +10,12 @@ import { Textarea } from '@/components/ui/Textarea';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { AiFieldActions } from '@/components/ui/AiFieldActions';
-import { mergeFieldTextWithTranscription } from '@/lib/aiAudioText';
+import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { Modal } from '@/components/ui/Modal';
 import { NodeForm } from '@/components/nodes/NodeForm';
-import { aiService } from '@/services/ai.service';
-import { aiPromptsStore } from '@/store/aiPromptsStore';
-import { useAlert } from '@/contexts/AlertContext';
+import { useAiFormController } from '@/hooks/useAiFormController';
 import {
   buildSchema,
   fromTemplate,
@@ -37,7 +34,6 @@ interface TemplateFormProps {
 
 export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: TemplateFormProps) {
   const { t } = useTranslation();
-  const alert = useAlert();
   const schema = buildSchema(t);
 
   const { data: categoriesPaged } = useCategories(0, 200);
@@ -50,8 +46,6 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
   const nodeOptions = activeNodes.map((n) => ({ value: String(n.id), label: n.name }));
 
   const [showNodeModal, setShowNodeModal] = useState<'origin' | 'destination' | null>(null);
-  const [isNameLoading, setIsNameLoading] = useState(false);
-  const [isDescriptionLoading, setIsDescriptionLoading] = useState(false);
 
   const {
     register,
@@ -82,85 +76,23 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
     return parts.join('\n');
   };
 
-  const handleGenerateName = async () => {
-    setIsNameLoading(true);
-    try {
-      const result = await aiService.generateText({
-        action: 'GENERATE_NAME',
-        context: buildContext(),
-        customPrompt: aiPromptsStore.getPromptForAction('generateName'),
-      });
-      setValue('name', result.text);
-    } catch (err) {
-      alert.error(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setIsNameLoading(false);
-    }
-  };
+  const aiFields = useMemo(() => [
+    { key: 'name', name: 'name' as const, label: t('common.name'), semantic: 'name' as const, allowVoice: true },
+    {
+      key: 'description',
+      name: 'description' as const,
+      label: t('common.description'),
+      semantic: 'description' as const,
+      allowVoice: true,
+    },
+  ], [t]);
 
-  const handleFixNameSpelling = async () => {
-    const currentName = getValues('name');
-    if (!currentName) return;
-    setIsNameLoading(true);
-    try {
-      const result = await aiService.generateText({
-        action: 'FIX_NAME_SPELLING',
-        context: buildContext(),
-        currentValue: currentName,
-        customPrompt: aiPromptsStore.getPromptForAction('fixNameSpelling'),
-      });
-      setValue('name', result.text);
-    } catch (err) {
-      alert.error(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setIsNameLoading(false);
-    }
-  };
-
-  const handleGenerateDescription = async () => {
-    setIsDescriptionLoading(true);
-    try {
-      const result = await aiService.generateText({
-        action: 'GENERATE_DESCRIPTION',
-        context: buildContext(),
-        customPrompt: aiPromptsStore.getPromptForAction('generateDescription'),
-      });
-      setValue('description', result.text);
-    } catch (err) {
-      alert.error(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setIsDescriptionLoading(false);
-    }
-  };
-
-  const handleFixDescriptionSpelling = async () => {
-    const currentDescription = getValues('description');
-    if (!currentDescription) return;
-    setIsDescriptionLoading(true);
-    try {
-      const result = await aiService.generateText({
-        action: 'FIX_DESCRIPTION_SPELLING',
-        context: buildContext(),
-        currentValue: currentDescription,
-        customPrompt: aiPromptsStore.getPromptForAction('fixDescriptionSpelling'),
-      });
-      setValue('description', result.text);
-    } catch (err) {
-      alert.error(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setIsDescriptionLoading(false);
-    }
-  };
-
-  const handleNameTranscription = (transcription: string) => {
-    const currentName = getValues('name') ?? '';
-    setValue('name', mergeFieldTextWithTranscription(currentName, transcription));
-  };
-
-  const handleDescriptionTranscription = (transcription: string) => {
-    const currentDescription = getValues('description') ?? '';
-    setValue('description', mergeFieldTextWithTranscription(currentDescription, transcription));
-  };
+  const aiController = useAiFormController<FormValues>({
+    fields: aiFields,
+    getValues,
+    setValue,
+    buildContext,
+  });
 
   const handleFormSubmit = async (values: FormValues) => {
     await onSubmit(toCreateDto(values));
@@ -177,32 +109,18 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
       >
         <Input
           label={t('common.name')}
-          labelRight={
-            <AiFieldActions
-              onGenerate={handleGenerateName}
-              onFixSpelling={handleFixNameSpelling}
-              onTranscribe={handleNameTranscription}
-              isLoading={isNameLoading}
-            />
-          }
           placeholder={t('templates.namePlaceholder')}
           error={errors.name?.message}
           {...register('name')}
+          onFocus={() => aiController.markFieldAsActive('name')}
         />
 
         <Textarea
           label={t('common.description')}
-          labelRight={
-            <AiFieldActions
-              onGenerate={handleGenerateDescription}
-              onFixSpelling={handleFixDescriptionSpelling}
-              onTranscribe={handleDescriptionTranscription}
-              isLoading={isDescriptionLoading}
-            />
-          }
           placeholder={t('templates.descriptionPlaceholder')}
           error={errors.description?.message}
           {...register('description')}
+          onFocus={() => aiController.markFieldAsActive('description')}
         />
 
         <Controller
@@ -346,6 +264,8 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
             </Button>
           )}
         </div>
+
+        <AiFormActionsFab controller={aiController} />
       </form>
 
       <Modal

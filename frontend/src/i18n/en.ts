@@ -405,6 +405,7 @@ const en = {
     actions: {
       label: 'AI',
       title: 'AI actions',
+      targetField: 'Target field',
       generate: 'Generate with AI',
       fixSpelling: 'Fix spelling',
       voiceInput: 'Dictate by voice',

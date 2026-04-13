@@ -405,6 +405,7 @@ const es = {
     actions: {
       label: 'IA',
       title: 'Acciones de IA',
+      targetField: 'Campo objetivo',
       generate: 'Generar con IA',
       fixSpelling: 'Corregir ortografía',
       voiceInput: 'Dictar por voz',

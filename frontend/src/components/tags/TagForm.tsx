@@ -1,15 +1,12 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
-import { AiFieldActions } from '@/components/ui/AiFieldActions';
+import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { useCreateTag, useUpdateTag } from '@/hooks/useTags';
-import { mergeFieldTextWithTranscription } from '@/lib/aiAudioText';
-import { aiService } from '@/services/ai.service';
-import { aiPromptsStore } from '@/store/aiPromptsStore';
-import { useAlert } from '@/contexts/AlertContext';
+import { useAiFormController } from '@/hooks/useAiFormController';
 import type { Tag } from '@/models';
 
 interface TagFormValues {
@@ -25,12 +22,8 @@ interface TagFormProps {
 
 export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
   const { t } = useTranslation();
-  const alert = useAlert();
   const createTag = useCreateTag();
   const updateTag = useUpdateTag();
-
-  const [isNameLoading, setIsNameLoading] = useState(false);
-  const [isDescriptionLoading, setIsDescriptionLoading] = useState(false);
 
   const { register, handleSubmit, getValues, setValue, formState: { errors } } = useForm<TagFormValues>({
     defaultValues: {
@@ -47,85 +40,23 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
     return parts.join('\n');
   };
 
-  const handleGenerateName = async () => {
-    setIsNameLoading(true);
-    try {
-      const result = await aiService.generateText({
-        action: 'GENERATE_NAME',
-        context: buildContext(),
-        customPrompt: aiPromptsStore.getPromptForAction('generateName'),
-      });
-      setValue('name', result.text);
-    } catch (err) {
-      alert.error(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setIsNameLoading(false);
-    }
-  };
+  const aiFields = useMemo(() => [
+    { key: 'name', name: 'name' as const, label: t('common.name'), semantic: 'name' as const, allowVoice: true },
+    {
+      key: 'description',
+      name: 'description' as const,
+      label: t('common.description'),
+      semantic: 'description' as const,
+      allowVoice: true,
+    },
+  ], [t]);
 
-  const handleFixNameSpelling = async () => {
-    const currentName = getValues('name');
-    if (!currentName) return;
-    setIsNameLoading(true);
-    try {
-      const result = await aiService.generateText({
-        action: 'FIX_NAME_SPELLING',
-        context: buildContext(),
-        currentValue: currentName,
-        customPrompt: aiPromptsStore.getPromptForAction('fixNameSpelling'),
-      });
-      setValue('name', result.text);
-    } catch (err) {
-      alert.error(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setIsNameLoading(false);
-    }
-  };
-
-  const handleGenerateDescription = async () => {
-    setIsDescriptionLoading(true);
-    try {
-      const result = await aiService.generateText({
-        action: 'GENERATE_DESCRIPTION',
-        context: buildContext(),
-        customPrompt: aiPromptsStore.getPromptForAction('generateDescription'),
-      });
-      setValue('description', result.text);
-    } catch (err) {
-      alert.error(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setIsDescriptionLoading(false);
-    }
-  };
-
-  const handleFixDescriptionSpelling = async () => {
-    const currentDescription = getValues('description');
-    if (!currentDescription) return;
-    setIsDescriptionLoading(true);
-    try {
-      const result = await aiService.generateText({
-        action: 'FIX_DESCRIPTION_SPELLING',
-        context: buildContext(),
-        currentValue: currentDescription,
-        customPrompt: aiPromptsStore.getPromptForAction('fixDescriptionSpelling'),
-      });
-      setValue('description', result.text);
-    } catch (err) {
-      alert.error(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setIsDescriptionLoading(false);
-    }
-  };
-
-  const handleNameTranscription = (transcription: string) => {
-    const currentName = getValues('name');
-    setValue('name', mergeFieldTextWithTranscription(currentName, transcription));
-  };
-
-  const handleDescriptionTranscription = (transcription: string) => {
-    const currentDescription = getValues('description');
-    setValue('description', mergeFieldTextWithTranscription(currentDescription, transcription));
-  };
+  const aiController = useAiFormController<TagFormValues>({
+    fields: aiFields,
+    getValues,
+    setValue,
+    buildContext,
+  });
 
   const onSubmit = async (values: TagFormValues, e?: React.BaseSyntheticEvent) => {
     e?.stopPropagation();
@@ -154,30 +85,16 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
     >
       <Input
         label={t('tags.tagName')}
-        labelRight={
-          <AiFieldActions
-            onGenerate={handleGenerateName}
-            onFixSpelling={handleFixNameSpelling}
-            onTranscribe={handleNameTranscription}
-            isLoading={isNameLoading}
-          />
-        }
         placeholder={t('tags.namePlaceholder')}
         error={errors.name?.message}
         {...register('name', { required: t('common.nameRequired') })}
+        onFocus={() => aiController.markFieldAsActive('name')}
       />
       <Textarea
         label={t('common.description')}
-        labelRight={
-          <AiFieldActions
-            onGenerate={handleGenerateDescription}
-            onFixSpelling={handleFixDescriptionSpelling}
-            onTranscribe={handleDescriptionTranscription}
-            isLoading={isDescriptionLoading}
-          />
-        }
         placeholder={t('tags.descriptionPlaceholder')}
         {...register('description')}
+        onFocus={() => aiController.markFieldAsActive('description')}
       />
 
       <div className="pt-2 flex gap-3">
@@ -190,6 +107,8 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
           {editTarget ? t('common.update') : t('common.create')}
         </Button>
       </div>
+
+      <AiFormActionsFab controller={aiController} />
     </form>
   );
 }
