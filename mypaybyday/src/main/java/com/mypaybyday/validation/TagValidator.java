@@ -20,7 +20,7 @@ public class TagValidator {
         tag.name = regexValidator.sanitize(tag.name);
         tag.description = regexValidator.sanitize(tag.description);
 
-        regexValidator.validateText(tag.name, RegexValidator.SHORT_MAX_LENGTH);
-        regexValidator.validateText(tag.description, RegexValidator.LONG_MAX_LENGTH);
+        regexValidator.validateLettersAndNumbers(tag.name, RegexValidator.SHORT_MAX_LENGTH);
+        regexValidator.validateLettersNumbersAndExtras(tag.description, RegexValidator.LONG_MAX_LENGTH);
     }
 }

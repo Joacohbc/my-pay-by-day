@@ -25,7 +25,7 @@ public class TimePeriodValidator {
         
         timePeriod.name = regexValidator.sanitize(timePeriod.name);
 
-        regexValidator.validateText(timePeriod.name, RegexValidator.SHORT_MAX_LENGTH);
+        regexValidator.validateLettersAndNumbers(timePeriod.name, RegexValidator.SHORT_MAX_LENGTH);
         dateValidator.validateDateRange(timePeriod.startDate, timePeriod.endDate);
         if (timePeriod.savingsPercentageGoal != null) {
             numberValidator.validateRange(timePeriod.savingsPercentageGoal, BigDecimal.ZERO, new BigDecimal("100"));

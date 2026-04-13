@@ -1,11 +1,13 @@
 package com.mypaybyday.validation;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-
 import jakarta.inject.Inject;
 
+import com.mypaybyday.exception.BusinessException;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @QuarkusTest
 class RegexValidatorTest {
@@ -14,19 +16,17 @@ class RegexValidatorTest {
     RegexValidator regexValidator;
 
     @Test
-    void testValidateText_AllowedChars() {
-        assertDoesNotThrow(() -> regexValidator.validateText("Name with (parentheses)", 255));
-        assertDoesNotThrow(() -> regexValidator.validateText("Name / with / slashes", 255));
-        assertDoesNotThrow(() -> regexValidator.validateText("Name, with, commas", 255));
-        assertDoesNotThrow(() -> regexValidator.validateText("Name \"with\" quotes", 255));
-        assertDoesNotThrow(() -> regexValidator.validateText("Name 'with' single quotes", 255));
+    void testValidateLettersAndNumbers_NewAllowedChars() {
+        assertDoesNotThrow(() -> regexValidator.validateLettersAndNumbers("Name with (parentheses)", 255));
+        assertDoesNotThrow(() -> regexValidator.validateLettersAndNumbers("Name / with / slashes", 255));
+        assertDoesNotThrow(() -> regexValidator.validateLettersAndNumbers("Name, with, commas", 255));
+        assertDoesNotThrow(() -> regexValidator.validateLettersAndNumbers("Name \"with\" quotes", 255));
+        assertDoesNotThrow(() -> regexValidator.validateLettersAndNumbers("Name 'with' single quotes", 255));
     }
 
     @Test
-    void testValidateText_AllowedSpecialChars() {
-        assertDoesNotThrow(() -> regexValidator.validateText("Name @ symbol", 255));
-        assertDoesNotThrow(() -> regexValidator.validateText("Name # symbol", 255));
-        assertDoesNotThrow(() -> regexValidator.validateText("Cost is $100 & more!", 255));
-        assertDoesNotThrow(() -> regexValidator.validateText("50% off [sale]", 255));
+    void testValidateLettersAndNumbers_InvalidChars() {
+        assertThrows(BusinessException.class, () -> regexValidator.validateLettersAndNumbers("Name with @ symbol", 255));
+        assertThrows(BusinessException.class, () -> regexValidator.validateLettersAndNumbers("Name with # symbol", 255));
     }
 }

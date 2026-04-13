@@ -494,7 +494,7 @@ const es = {
   validation: {
     nameRequired: 'El nombre es requerido',
     nameTooLong: 'El nombre debe tener como máximo 255 caracteres',
-    nameInvalidChars: 'El nombre contiene caracteres no válidos',
+    nameInvalidChars: 'El nombre solo puede contener letras, números, espacios, guiones, puntos, comas, barras, comillas y paréntesis',
     descriptionTooLong: 'La descripción debe tener como máximo 5100 caracteres',
     descriptionInvalidChars: 'La descripción contiene caracteres no válidos',
     modifierValueRequired: 'El valor del modificador es requerido cuando se selecciona un tipo de modificador',

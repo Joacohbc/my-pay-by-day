@@ -80,6 +80,7 @@ public enum MsgKey {
 	VALIDATION_ONLY_LETTERS_INVALID_CHARS("error.validation.only_letters_invalid_chars"),
 	VALIDATION_ONLY_NUMBERS_INVALID_CHARS("error.validation.only_numbers_invalid_chars"),
 	VALIDATION_LETTERS_AND_NUMBERS_INVALID_CHARS("error.validation.letters_and_numbers_invalid_chars"),
+	VALIDATION_LETTERS_NUMBERS_EXTRAS_INVALID_CHARS("error.validation.letters_numbers_extras_invalid_chars"),
 	VALIDATION_ICON_INVALID_CHARS("error.validation.icon_invalid_chars"),
 	VALIDATION_MAX_LENGTH("error.validation.max_length"),
 	VALIDATION_DATE_RANGE_INVALID("error.validation.date_range_invalid"),
