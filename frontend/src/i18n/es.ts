@@ -242,7 +242,6 @@ const es = {
   // ─── Tag Groups ──────────────────────────────────────────────────────────
   tagGroups: {
     title: 'Grupos de Etiquetas',
-    count: '{{count}} grupos',
     noTagGroups: 'Sin Grupos de Etiquetas',
     noTagGroupsDesc: 'Crea un grupo de etiquetas para aplicar varias etiquetas a un evento rápidamente.',
     addTagGroup: 'Agregar Grupo',
@@ -250,8 +249,7 @@ const es = {
     editTagGroup: 'Editar Grupo de Etiquetas',
     deleteConfirm: '¿Eliminar este grupo de etiquetas?',
     iconLabel: 'Ícono',
-    iconPlaceholder: 'ej. ✈️',
-    manageDesc: 'Gestionar grupos de etiquetas',
+    minTags: 'Un grupo de etiquetas debe tener al menos 2 etiquetas',
   },
 
   // ─── Tags ────────────────────────────────────────────────────────────────

@@ -1,11 +1,15 @@
+import { useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod/v4';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { IconPicker } from '@/components/ui/IconPicker';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { useCreateTagGroup, useUpdateTagGroup } from '@/hooks/useTagGroups';
 import { useTags } from '@/hooks/useTags';
+import { nameField, descriptionField } from '@/lib/validation';
 import type { TagGroup, CreateTagGroupDto } from '@/models';
 
 interface TagGroupFormProps {
@@ -14,33 +18,53 @@ interface TagGroupFormProps {
   onCancel?: () => void;
 }
 
+function buildSchema(t: (key: string) => string) {
+  return z.object({
+    name: nameField(t),
+    description: descriptionField(t),
+    icon: z.string().optional().or(z.literal('')),
+    tagIds: z.array(z.number()).min(2, t('tagGroups.minTags')),
+  });
+}
+
+type TagGroupFormValues = z.infer<ReturnType<typeof buildSchema>>;
+
 export function TagGroupForm({ initialData, onSuccess, onCancel }: TagGroupFormProps) {
   const { t } = useTranslation();
   const createTagGroup = useCreateTagGroup();
   const updateTagGroup = useUpdateTagGroup();
   const { data: tagsPaged } = useTags(0, 100);
 
+  const schema = useMemo(() => buildSchema(t), [t]);
+
   const {
     register,
     handleSubmit,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<CreateTagGroupDto>({
+  } = useForm<TagGroupFormValues>({
+    resolver: zodResolver(schema),
     defaultValues: {
       name: initialData?.name ?? '',
       description: initialData?.description ?? '',
       icon: initialData?.icon ?? '',
-      tagIds: initialData?.tags?.map(t => t.id) ?? [],
+      tagIds: initialData?.tags?.map((tag) => tag.id) ?? [],
     },
   });
 
-  const onSubmit = async (data: CreateTagGroupDto) => {
+  const onSubmit = async (data: TagGroupFormValues) => {
+    const dto: CreateTagGroupDto = {
+      name: data.name,
+      description: data.description,
+      icon: data.icon,
+      tagIds: data.tagIds,
+    };
     try {
       let saved: TagGroup;
       if (initialData) {
-        saved = await updateTagGroup.mutateAsync({ id: initialData.id, dto: data });
+        saved = await updateTagGroup.mutateAsync({ id: initialData.id, dto });
       } else {
-        saved = await createTagGroup.mutateAsync(data);
+        saved = await createTagGroup.mutateAsync(dto);
       }
       onSuccess?.(saved);
     } catch {
@@ -54,9 +78,9 @@ export function TagGroupForm({ initialData, onSuccess, onCancel }: TagGroupFormP
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <Input
         label={t('common.name')}
-        {...register('name', { required: t('validation.required') })}
+        {...register('name')}
         error={errors.name?.message}
-        placeholder={t('common.name')}
+        placeholder={t('tags.namePlaceholder')}
         autoFocus
       />
 
@@ -64,7 +88,7 @@ export function TagGroupForm({ initialData, onSuccess, onCancel }: TagGroupFormP
         label={t('common.description')}
         {...register('description')}
         error={errors.description?.message}
-        placeholder={t('common.description')}
+        placeholder={t('tags.descriptionPlaceholder')}
       />
 
       <Controller
@@ -89,6 +113,7 @@ export function TagGroupForm({ initialData, onSuccess, onCancel }: TagGroupFormP
             onChange={(ids) => field.onChange(ids.map(Number))}
             label={t('eventForm.tags')}
             showAdd={true}
+            error={errors.tagIds?.message}
           />
         )}
       />

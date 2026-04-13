@@ -24,6 +24,7 @@ public enum MsgKey {
 	// ── TagGroupEntity ─────────────────────────────────────────
 	TAG_GROUP_NOT_FOUND("error.tag_group.not_found"),
 	TAG_GROUP_NAME_REQUIRED("error.tag_group.name_required"),
+	TAG_GROUP_MIN_TAGS("error.tag_group.min_tags"),
 
 	// ── Event ─────────────────────────────────────────────
 	EVENT_NOT_FOUND("error.event.not_found"),

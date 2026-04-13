@@ -14,6 +14,7 @@ interface TagSelectorProps {
   showAdd?: boolean;
   /** When true the list starts collapsed (default: false) */
   collapsible?: boolean;
+  error?: string;
 }
 
 export function TagSelector({
@@ -24,6 +25,7 @@ export function TagSelector({
   className = '',
   showAdd = false,
   collapsible = false,
+  error,
 }: TagSelectorProps) {
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
@@ -93,6 +95,8 @@ export function TagSelector({
           )}
         </div>
       )}
+
+      {error && <p className="mt-1 text-xs text-dn-error">{error}</p>}
 
       <Modal
         open={showModal}

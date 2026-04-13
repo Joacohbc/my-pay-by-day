@@ -242,7 +242,6 @@ const en = {
   // ─── Tag Groups ──────────────────────────────────────────────────────────
   tagGroups: {
     title: 'Tag Groups',
-    count: '{{count}} groups',
     noTagGroups: 'No Tag Groups',
     noTagGroupsDesc: 'Create a tag group to quickly apply multiple tags to an event.',
     addTagGroup: 'Add Tag Group',
@@ -250,8 +249,7 @@ const en = {
     editTagGroup: 'Edit Tag Group',
     deleteConfirm: 'Are you sure you want to delete this tag group?',
     iconLabel: 'Icon',
-    iconPlaceholder: 'e.g. ✈️',
-    manageDesc: 'Manage groups of tags',
+    minTags: 'A tag group must contain at least 2 tags',
   },
 
   // ─── Tags ────────────────────────────────────────────────────────────────
