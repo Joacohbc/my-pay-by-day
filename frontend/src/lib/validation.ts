@@ -7,13 +7,10 @@ import { z } from 'zod/v4';
 export const SHORT_MAX_LENGTH = 255;
 export const LONG_MAX_LENGTH = 5100;
 
-// Java: ^[\p{L}\p{N}\s\-\.\(\)\/\,\"\']+$
-// Allows: Unicode letters, digits, whitespace, dash, dot, (), /, ,, ", '
-export const LETTERS_AND_NUMBERS_REGEX = /^[\p{L}\p{N}\s\-\.\(\)\/,\"']+$/u;
+export const GENERAL_TEXT_REGEX = /^[\p{L}\p{N}\s\p{P}\p{S}]+$/u;
 
-// Java: ^[\p{L}\p{N}\s\p{Punct}]+$
-// Allows: Unicode letters, digits, whitespace, punctuation & symbols
-export const LETTERS_NUMBERS_AND_EXTRAS_REGEX = /^[\p{L}\p{N}\s\p{P}\p{S}]+$/u;
+export const LETTERS_AND_NUMBERS_REGEX = GENERAL_TEXT_REGEX;
+export const LETTERS_NUMBERS_AND_EXTRAS_REGEX = GENERAL_TEXT_REGEX;
 
 // ─── Reusable Zod field builders ─────────────────────────────────────────────
 
