@@ -114,10 +114,6 @@ public class TemplateService {
 	@Transactional
 	public void delete(Long id) throws BusinessException {
 		TemplateEntity template = findEntityById(id);
-		long usageCount = subscriptionRepository.count("template.id", id);
-		if (usageCount > 0) {
-			throw new BusinessException(messages.get(MsgKey.TEMPLATE_IN_USE, usageCount));
-		}
 		templateRepository.delete(template);
 	}
 
