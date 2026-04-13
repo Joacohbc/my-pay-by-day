@@ -36,6 +36,9 @@ public class StartupLogger {
 	@ConfigProperty(name = "ai.vision.model-name")
 	String visionModelName;
 
+	@ConfigProperty(name = "ai.audio.model-name")
+	String audioModelName;
+
 	@ConfigProperty(name = "mypaybyday.timezone")
 	String timezone;
 
@@ -57,6 +60,7 @@ public class StartupLogger {
 		LOG.infof("  AI Base URL        : %s", aiBaseUrl);
 		LOG.infof("  AI Primary Model   : %s", primaryModelName);
 		LOG.infof("  AI Vision Model    : %s", visionModelName);
+		LOG.infof("  AI Audio Model     : %s", audioModelName);
 		LOG.infof("  Encryption key set : %b", encryptionKey != null && !encryptionKey.isBlank());
 		LOG.infof("  Timezone           : %s", timezone);
 		LOG.infof("  Server Time        : %s", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));

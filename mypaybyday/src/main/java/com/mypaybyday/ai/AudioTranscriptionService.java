@@ -25,10 +25,10 @@ public class AudioTranscriptionService {
 			"Transcribe this audio exactly as spoken. " +
 			"Return only the transcription text — no explanations, no formatting, no extra words.";
 
-	@ConfigProperty(name = "ai.primary.base-url")
+	@ConfigProperty(name = "ai.audio.base-url")
 	String baseUrl;
 
-	@ConfigProperty(name = "ai.primary.api-key")
+	@ConfigProperty(name = "ai.audio.api-key")
 	String apiKey;
 
 	@ConfigProperty(name = "ai.audio.model-name")
