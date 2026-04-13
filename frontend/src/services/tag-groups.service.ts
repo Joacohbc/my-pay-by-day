@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api } from '@/services/api';
 import type { TagGroup, CreateTagGroupDto, PagedResponse } from '@/models';
 
 export const tagGroupsService = {

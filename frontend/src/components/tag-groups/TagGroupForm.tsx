@@ -42,7 +42,7 @@ export function TagGroupForm({ initialData, onSuccess, onCancel }: TagGroupFormP
         saved = await createTagGroup.mutateAsync(data);
       }
       onSuccess?.(saved);
-    } catch (err) {
+    } catch {
       // Error handled by mutation
     }
   };

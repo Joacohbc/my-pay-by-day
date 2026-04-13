@@ -13,7 +13,7 @@ import { TagGroupForm } from '@/components/tag-groups/TagGroupForm';
 
 export function TagGroupsPage() {
   const { t } = useTranslation();
-  const [page, setPage] = useState(0);
+  const [page] = useState(0);
   const { data: paged, isLoading, error } = useTagGroups(page);
   const deleteTagGroup = useDeleteTagGroup();
 
