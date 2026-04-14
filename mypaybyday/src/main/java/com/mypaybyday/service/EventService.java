@@ -6,9 +6,12 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -488,28 +491,36 @@ public class EventService {
 		}
 
 		List<FinanceEventEntity> sourceEvents = validateAndFetchRelatedEvents(sourceIds);
+		sourceEvents.sort(Comparator.comparing(e -> e.transaction.transactionDate));
 
 		boolean allSameType = sourceEvents.stream().allMatch(e -> e.type == baseEvent.type);
 		if (!allSameType) {
 			throw new BusinessException(messages.get(MsgKey.EVENT_MERGE_MIXED_TYPES));
 		}
 
-		Map<Long, BigDecimal> mergedAmountsByNodeId = buildMergedLineItemMap(baseEvent, sourceEvents);
+		Map<FinanceNodeEntity, BigDecimal> mergedAmountsByNode = buildMergedLineItemMap(baseEvent, sourceEvents);
 
 		FinanceTransactionEntity baseTransaction = baseEvent.transaction;
 		baseTransaction.lineItems.clear();
 
-		for (Map.Entry<Long, BigDecimal> entry : mergedAmountsByNodeId.entrySet()) {
+		for (Map.Entry<FinanceNodeEntity, BigDecimal> entry : mergedAmountsByNode.entrySet()) {
 			FinanceLineItemEntity lineItem = new FinanceLineItemEntity();
 			lineItem.transaction = baseTransaction;
-
-			// TODO: WHY DO THIS IN THIS FORM IF THE EVENTS ARE ALREADY LOADED?
-			lineItem.financeNode = eventRepository.getEntityManager().getReference(FinanceNodeEntity.class, entry.getKey());
+			lineItem.financeNode = entry.getKey();
 			lineItem.amount = entry.getValue();
 			baseTransaction.lineItems.add(lineItem);
 		}
-		
 
+		// Break bidirectional relations with external events to prevent Hibernate errors before deletion.
+		Set<FinanceEventEntity> sourceSet = new HashSet<>(sourceEvents);
+		sourceEvents.stream()
+				.flatMap(s -> s.relatedEvents.stream())
+				.filter(r -> !sourceSet.contains(r))
+				.collect(Collectors.toSet())
+				.forEach(r -> r.relatedEvents.removeAll(sourceSet));
+		sourceEvents.forEach(s -> s.relatedEvents.clear());
+
+		// Delete related events
 		for (FinanceEventEntity source : sourceEvents) {
 			entityDraftService.deleteByOriginalEntityId(source.id, EntityType.FINANCE_EVENT);
 			eventRepository.delete(source);
@@ -518,10 +529,10 @@ public class EventService {
 		return FinanceEventDto.from(baseEvent);
 	}
 
-	private Map<Long, BigDecimal> buildMergedLineItemMap(
+	private Map<FinanceNodeEntity, BigDecimal> buildMergedLineItemMap(
 			FinanceEventEntity baseEvent,
 			List<FinanceEventEntity> sourceEvents) {
-		Map<Long, BigDecimal> mergedAmounts = new HashMap<>();
+		Map<FinanceNodeEntity, BigDecimal> mergedAmounts = new HashMap<>();
 
 		addLineItemsToMap(baseEvent, mergedAmounts);
 		for (FinanceEventEntity source : sourceEvents) {
@@ -530,7 +541,7 @@ public class EventService {
 		return mergedAmounts;
 	}
 
-	private void addLineItemsToMap(FinanceEventEntity event, Map<Long, BigDecimal> mergedAmounts) {
+	private void addLineItemsToMap(FinanceEventEntity event, Map<FinanceNodeEntity, BigDecimal> mergedAmounts) {
 
 		// TODO: TRANSACTION CAN'T BE NULL A THIS POINT?
 		if (event.transaction == null || event.transaction.lineItems == null) {
@@ -543,7 +554,7 @@ public class EventService {
 				continue;
 			}
 			// TODO: WHAT HAPPEN TO EVENTS THAT HAVE MORE THAN TWO LINES ITEMS AT POSITIVE OR NEGATIVE?
-			mergedAmounts.merge(lineItem.financeNode.id, lineItem.amount, BigDecimal::add);
+			mergedAmounts.merge(lineItem.financeNode, lineItem.amount, BigDecimal::add);
 		}
 	}
 
