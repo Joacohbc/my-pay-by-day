@@ -251,3 +251,18 @@ export function useRemoveEventRelations() {
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
   });
 }
+
+export function useMergeEvents() {
+  const queryClient = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: ({ baseId, sourceIds }: { baseId: number; sourceIds: number[] }) =>
+      eventsService.mergeEvents(baseId, sourceIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: eventKeys.all });
+      alert.success(t('events.mergeSuccess'));
+    },
+    onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
+  });
+}

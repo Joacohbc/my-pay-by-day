@@ -35,6 +35,7 @@ export function EventSelectorModal({
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('smart');
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   const { data: paged, isLoading, error } = useEvents({ page });
   const { data: stats } = useUsageStats('FINANCE_EVENT');
@@ -43,9 +44,24 @@ export function EventSelectorModal({
 
   if (!open) return null;
 
-  const handleSelect = async (selectedId: number) => {
-    recordSelection.mutate({ type: 'FINANCE_EVENT', id: selectedId });
-    await addRelation.mutateAsync({ id: baseEventId, relatedIds: [selectedId] });
+  const handleToggle = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleConfirm = async () => {
+    if (selectedIds.size === 0) return;
+    const idsArray = Array.from(selectedIds);
+    idsArray.forEach((id) => recordSelection.mutate({ type: 'FINANCE_EVENT', id }));
+    await addRelation.mutateAsync({ id: baseEventId, relatedIds: idsArray });
+    setSelectedIds(new Set());
     onClose();
   };
 
@@ -83,7 +99,6 @@ export function EventSelectorModal({
   return (
     <Modal open={open} onClose={onClose} title={t('events.selectRelatedEvent')}>
       <div className="space-y-4">
-        {/* Search & Sort */}
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-xl" />
@@ -91,7 +106,7 @@ export function EventSelectorModal({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('events.searchPlaceholder')}
-              className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 [color-scheme:dark]"
+              className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 scheme-dark"
             />
           </div>
           <select
@@ -112,26 +127,49 @@ export function EventSelectorModal({
           </select>
         </div>
 
-        {/* List */}
+        {selectedIds.size > 0 && (
+          <p className="text-xs text-dn-primary font-medium px-1">
+            {t('events.selectedCount', { count: selectedIds.size })}
+          </p>
+        )}
+
         <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-2">
           {isLoading && <div className="py-4 text-center"><Spinner /></div>}
           {error && <div className="py-2 text-center text-dn-error text-sm">{String(error)}</div>}
-          
+
           {!isLoading && !error && sortedEvents.length === 0 && (
             <div className="py-4">
               <EmptyState title={search ? t('events.noEventsFoundSearch') : t('events.noEventsFound')} />
             </div>
           )}
 
-          {sortedEvents.map((evt) => (
-            <div
-              key={evt.id}
-              onClick={() => handleSelect(evt.id)}
-              className="group border border-transparent hover:border-dn-primary/50 transition-colors cursor-pointer rounded-2xl"
-            >
-              <EventCard event={evt} disableLink />
-            </div>
-          ))}
+          {sortedEvents.map((evt) => {
+            const isSelected = selectedIds.has(evt.id);
+            return (
+              <div
+                key={evt.id}
+                onClick={() => handleToggle(evt.id)}
+                className={[
+                  'group border transition-colors cursor-pointer rounded-2xl flex items-center gap-2 pr-3',
+                  isSelected
+                    ? 'border-dn-primary bg-dn-primary/5'
+                    : 'border-transparent hover:border-dn-primary/50',
+                ].join(' ')}
+              >
+                <div className="flex-1 min-w-0">
+                  <EventCard event={evt} disableLink />
+                </div>
+                <div className={[
+                  'shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors',
+                  isSelected
+                    ? 'border-dn-primary bg-dn-primary'
+                    : 'border-dn-text-muted',
+                ].join(' ')}>
+                  {isSelected && <Icon name="check" className="text-xs text-white" />}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {!search && paged && paged.totalPages > 1 && (
@@ -140,9 +178,17 @@ export function EventSelectorModal({
           </div>
         )}
 
-        <div className="flex justify-end mt-4">
+        <div className="flex justify-end gap-2 mt-4">
           <Button variant="ghost" onClick={onClose}>
             {t('common.cancel')}
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={selectedIds.size === 0 || addRelation.isPending}
+          >
+            {addRelation.isPending
+              ? t('common.loading')
+              : t('events.addSelectedRelations', { count: selectedIds.size })}
           </Button>
         </div>
       </div>

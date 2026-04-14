@@ -12,6 +12,7 @@ import type { ParamConfig } from '@/hooks/useSearchParamsState';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import { PendingEventsSync } from '@/components/events/PendingEventsSync';
 import { BulkActionsModal } from '@/components/events/BulkActionsModal';
+import { MergeEventsModal } from '@/components/events/MergeEventsModal';
 import type { Template, EventType } from '@/models';
 import { EventCard } from '@/components/events/EventCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -64,6 +65,7 @@ export function EventsPage() {
   const debouncedSearch = useDebounce(search, 500);
 
   const [showPicker, setShowPicker] = useState(false);
+  const [showMerge, setShowMerge] = useState(false);
 
   const hasAdvancedFilters = Boolean(startDate || endDate || categoryId || tagId || (dateField !== 'TRANSACTION'));
   const hasActiveFilters = Boolean(search || filter !== 'ALL' || hasAdvancedFilters);
@@ -209,6 +211,10 @@ export function EventsPage() {
                 {t('drafts.bulkActions')}
               </Button>
             )}
+            <Button size="sm" variant="secondary" onClick={() => setShowMerge(true)}>
+              <Icon name="merge" className="text-sm" />
+              {t('events.merge')}
+            </Button>
             <Button size="sm" onClick={() => setShowPicker(true)}>
               <Icon name="add" className="text-sm" />
               {t('common.new')}
@@ -388,6 +394,11 @@ export function EventsPage() {
         isConfirming={isConfirming}
         isDeleting={deleteAllDrafts.isPending}
         draftCount={filteredDrafts.length}
+      />
+
+      <MergeEventsModal
+        open={showMerge}
+        onClose={() => setShowMerge(false)}
       />
     </div>
   );
