@@ -257,8 +257,8 @@ export function useMergeEvents() {
   const alert = useAlert();
   const { t } = useTranslation();
   return useMutation({
-    mutationFn: ({ baseId, sourceIds }: { baseId: number; sourceIds: number[] }) =>
-      eventsService.mergeEvents(baseId, sourceIds),
+    mutationFn: ({ baseId, sourceIds, groupByNodeIds }: { baseId: number; sourceIds: number[]; groupByNodeIds: number[] }) =>
+      eventsService.mergeEvents(baseId, sourceIds, groupByNodeIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: eventKeys.all });
       alert.success(t('events.mergeSuccess'));

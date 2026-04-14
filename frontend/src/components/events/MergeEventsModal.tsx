@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useEvents, useMergeEvents } from '@/hooks/useEvents';
@@ -13,7 +13,7 @@ import { formatCurrency, eventNetAmount } from '@/lib/format';
 import { Routes } from '@/lib/routes';
 import type { FinanceEvent } from '@/models';
 
-type MergeStep = 'select-base' | 'select-sources' | 'confirm';
+type MergeStep = 'select-base' | 'select-sources' | 'configure-grouping' | 'confirm';
 
 export function MergeEventsModal({
   open,
@@ -31,6 +31,7 @@ export function MergeEventsModal({
   const [search, setSearch] = useState('');
   const [baseEvent, setBaseEvent] = useState<FinanceEvent | null>(null);
   const [selectedSourceIds, setSelectedSourceIds] = useState<Set<number>>(new Set());
+  const [groupByNodeIds, setGroupByNodeIds] = useState<Set<number>>(new Set());
 
   const { data: paged, isLoading, error } = useEvents({ page });
 
@@ -38,6 +39,7 @@ export function MergeEventsModal({
     setStep('select-base');
     setBaseEvent(null);
     setSelectedSourceIds(new Set());
+    setGroupByNodeIds(new Set());
     setSearch('');
     setPage(0);
     onClose();
@@ -61,17 +63,53 @@ export function MergeEventsModal({
     });
   };
 
+  const allEvents = paged?.content || [];
+
+  const sourceEvents = allEvents.filter((e) => selectedSourceIds.has(e.id));
+
+  // Collect unique nodes across base + selected sources
+  const allNodes = useMemo(() => {
+    const nodeMap = new Map<number, string>();
+    const addNodes = (event: FinanceEvent) => {
+      for (const li of event.lineItems) {
+        if (!nodeMap.has(li.financeNodeId)) {
+          nodeMap.set(li.financeNodeId, li.financeNodeName);
+        }
+      }
+    };
+    if (baseEvent) addNodes(baseEvent);
+    sourceEvents.forEach(addNodes);
+    return Array.from(nodeMap.entries()).map(([id, name]) => ({ id, name }));
+  }, [baseEvent, sourceEvents]);
+
+  const handleGoToGrouping = () => {
+    // Default: all nodes grouped
+    setGroupByNodeIds(new Set(allNodes.map((n) => n.id)));
+    setStep('configure-grouping');
+  };
+
+  const handleToggleNode = (id: number) => {
+    setGroupByNodeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   const handleConfirmMerge = async () => {
     if (!baseEvent) return;
     const merged = await mergeEvents.mutateAsync({
       baseId: baseEvent.id,
       sourceIds: Array.from(selectedSourceIds),
+      groupByNodeIds: Array.from(groupByNodeIds),
     });
     handleClose();
     navigate(Routes.EVENT_DETAIL(merged.id));
   };
-
-  const allEvents = paged?.content || [];
 
   const baseFilteredEvents = allEvents.filter((e) => {
     if (!search) return true;
@@ -99,6 +137,7 @@ export function MergeEventsModal({
   const stepTitle: Record<MergeStep, string> = {
     'select-base': t('events.mergeSelectBase'),
     'select-sources': t('events.mergeSelectSources'),
+    'configure-grouping': t('events.mergeConfigureGrouping'),
     'confirm': t('events.mergeConfirm'),
   };
 
@@ -170,7 +209,7 @@ export function MergeEventsModal({
                 {t('common.back')}
               </Button>
               <Button
-                onClick={() => setStep('confirm')}
+                onClick={handleGoToGrouping}
                 disabled={selectedSourceIds.size === 0}
               >
                 {t('common.next')}
@@ -179,13 +218,24 @@ export function MergeEventsModal({
           </>
         )}
 
+        {step === 'configure-grouping' && baseEvent && (
+          <ConfigureGroupingStep
+            nodes={allNodes}
+            groupByNodeIds={groupByNodeIds}
+            onToggleNode={handleToggleNode}
+            onBack={() => setStep('select-sources')}
+            onNext={() => setStep('confirm')}
+            t={t}
+          />
+        )}
+
         {step === 'confirm' && baseEvent && (
           <MergeConfirmStep
             baseEvent={baseEvent}
-            sourceEvents={allEvents.filter((e) => selectedSourceIds.has(e.id))}
+            sourceEvents={sourceEvents}
             mergedTotal={mergedTotal}
             isPending={mergeEvents.isPending}
-            onBack={() => setStep('select-sources')}
+            onBack={() => setStep('configure-grouping')}
             onConfirm={handleConfirmMerge}
             t={t}
           />
@@ -275,6 +325,59 @@ function SelectEventStep({
       {!search && totalPages > 1 && (
         <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
       )}
+    </>
+  );
+}
+
+function ConfigureGroupingStep({
+  nodes,
+  groupByNodeIds,
+  onToggleNode,
+  onBack,
+  onNext,
+  t,
+}: {
+  nodes: { id: number; name: string }[];
+  groupByNodeIds: Set<number>;
+  onToggleNode: (id: number) => void;
+  onBack: () => void;
+  onNext: () => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}) {
+  return (
+    <>
+      <p className="text-xs text-dn-text-muted px-1">{t('events.mergeGroupingHint')}</p>
+
+      <div className="rounded-2xl border border-dn-border bg-dn-surface divide-y divide-white/5 max-h-[50vh] overflow-y-auto">
+        {nodes.map((node) => {
+          const grouped = groupByNodeIds.has(node.id);
+          return (
+            <button
+              key={node.id}
+              type="button"
+              onClick={() => onToggleNode(node.id)}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-dn-primary/5 transition-colors text-left"
+            >
+              <div className={[
+                'shrink-0 w-5 h-5 border-2 rounded flex items-center justify-center transition-colors',
+                grouped ? 'border-dn-primary bg-dn-primary' : 'border-dn-text-muted',
+              ].join(' ')}>
+                {grouped && <Icon name="check" className="text-xs text-white" />}
+              </div>
+              <span className="text-sm text-dn-text-main">{node.name}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" onClick={onBack}>
+          {t('common.back')}
+        </Button>
+        <Button onClick={onNext}>
+          {t('common.next')}
+        </Button>
+      </div>
     </>
   );
 }

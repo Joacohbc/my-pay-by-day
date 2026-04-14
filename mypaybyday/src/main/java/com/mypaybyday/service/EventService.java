@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -464,19 +465,21 @@ public class EventService {
 	*
 	* <p>The base event retains its name, description, category, tags, and date.
 	* All {@link FinanceLineItemEntity}s from the source events are combined into the
-	* base event's {@link FinanceTransactionEntity}: line items for the same
-	* {@link com.mypaybyday.entity.FinanceNodeEntity} are summed so the
-	* no-duplicate-node rule is respected. Source events are permanently deleted
-	* after the merge.
+	* base event's {@link FinanceTransactionEntity}. Line items for nodes whose ID is
+	* present in {@code groupByNodeIds} are aggregated (summed); all other line items
+	* are appended individually, preserving duplicates. Source events are permanently
+	* deleted after the merge.
 	*
 	* <p>All events (base + sources) must share the same {@link EventType}.
 	*
-	* @param baseEventId  the ID of the event that will absorb the others
-	* @param sourceIds    IDs of the events to be merged into the base (must not contain baseEventId)
+	* @param baseEventId    the ID of the event that will absorb the others
+	* @param sourceIds      IDs of the events to be merged into the base (must not contain baseEventId)
+	* @param groupByNodeIds IDs of FinanceNodes whose amounts should be aggregated; may be null or empty
 	* @return the updated base event DTO after the merge
 	*/
 	@Transactional
-	public FinanceEventDto mergeEvents(Long baseEventId, List<Long> sourceIds) throws BusinessException {
+	public FinanceEventDto mergeEvents(Long baseEventId, List<Long> sourceIds, List<Long> groupByNodeIds)
+			throws BusinessException {
 		if (sourceIds == null || sourceIds.isEmpty()) {
 			throw new BusinessException(messages.get(MsgKey.EVENT_MERGE_NO_SOURCES));
 		}
@@ -498,18 +501,53 @@ public class EventService {
 			throw new BusinessException(messages.get(MsgKey.EVENT_MERGE_MIXED_TYPES));
 		}
 
-		Map<FinanceNodeEntity, BigDecimal> mergedAmountsByNode = buildMergedLineItemMap(baseEvent, sourceEvents);
+		Set<Long> groupSet = (groupByNodeIds != null) ? new HashSet<>(groupByNodeIds) : new HashSet<>();
+
+		// Collect all line items from base + sources (base first, then sources in date order)
+		List<FinanceLineItemEntity> allLineItems = new ArrayList<>();
+		if (baseEvent.transaction != null && baseEvent.transaction.lineItems != null) {
+			allLineItems.addAll(baseEvent.transaction.lineItems);
+		}
+		for (FinanceEventEntity source : sourceEvents) {
+			if (source.transaction != null && source.transaction.lineItems != null) {
+				allLineItems.addAll(source.transaction.lineItems);
+			}
+		}
+
+		// Aggregate grouped nodes, keep the rest flat
+		Map<FinanceNodeEntity, BigDecimal> aggregated = new LinkedHashMap<>();
+		List<FinanceLineItemEntity> flat = new ArrayList<>();
+
+		for (FinanceLineItemEntity li : allLineItems) {
+			if (li.financeNode == null) continue;
+			if (groupSet.contains(li.financeNode.id)) {
+				aggregated.merge(li.financeNode, li.amount, BigDecimal::add);
+			} else {
+				flat.add(li);
+			}
+		}
 
 		FinanceTransactionEntity baseTransaction = baseEvent.transaction;
 		baseTransaction.lineItems.clear();
 
-		for (Map.Entry<FinanceNodeEntity, BigDecimal> entry : mergedAmountsByNode.entrySet()) {
+		for (Map.Entry<FinanceNodeEntity, BigDecimal> entry : aggregated.entrySet()) {
 			FinanceLineItemEntity lineItem = new FinanceLineItemEntity();
 			lineItem.transaction = baseTransaction;
 			lineItem.financeNode = entry.getKey();
 			lineItem.amount = entry.getValue();
 			baseTransaction.lineItems.add(lineItem);
 		}
+
+		for (FinanceLineItemEntity li : flat) {
+			FinanceLineItemEntity lineItem = new FinanceLineItemEntity();
+			lineItem.transaction = baseTransaction;
+			lineItem.financeNode = li.financeNode;
+			lineItem.amount = li.amount;
+			baseTransaction.lineItems.add(lineItem);
+		}
+
+		// Put negative amounts first
+		baseTransaction.lineItems.sort(Comparator.comparing(li -> li.amount.signum() >= 0 ? 1 : 0));
 
 		// Break bidirectional relations with external events to prevent Hibernate errors before deletion.
 		Set<FinanceEventEntity> sourceSet = new HashSet<>(sourceEvents);
@@ -527,35 +565,6 @@ public class EventService {
 		}
 
 		return FinanceEventDto.from(baseEvent);
-	}
-
-	private Map<FinanceNodeEntity, BigDecimal> buildMergedLineItemMap(
-			FinanceEventEntity baseEvent,
-			List<FinanceEventEntity> sourceEvents) {
-		Map<FinanceNodeEntity, BigDecimal> mergedAmounts = new HashMap<>();
-
-		addLineItemsToMap(baseEvent, mergedAmounts);
-		for (FinanceEventEntity source : sourceEvents) {
-			addLineItemsToMap(source, mergedAmounts);
-		}
-		return mergedAmounts;
-	}
-
-	private void addLineItemsToMap(FinanceEventEntity event, Map<FinanceNodeEntity, BigDecimal> mergedAmounts) {
-
-		// TODO: TRANSACTION CAN'T BE NULL A THIS POINT?
-		if (event.transaction == null || event.transaction.lineItems == null) {
-			return;
-		}
-
-		for (FinanceLineItemEntity lineItem : event.transaction.lineItems) {
-			// TODO: FINANCE NODE CAN'T BE NULL A THIS POINT?
-			if (lineItem.financeNode == null) {
-				continue;
-			}
-			// TODO: WHAT HAPPEN TO EVENTS THAT HAVE MORE THAN TWO LINES ITEMS AT POSITIVE OR NEGATIVE?
-			mergedAmounts.merge(lineItem.financeNode, lineItem.amount, BigDecimal::add);
-		}
 	}
 
 	/**
