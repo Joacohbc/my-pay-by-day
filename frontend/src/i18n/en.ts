@@ -20,7 +20,12 @@ const en = {
     search: 'Search...',
     select: 'Select',
     sort: 'Sort',
+    smartSort: 'Smart Sort',
+    alphabetical: 'Alphabetical',
+    frequency: 'Most Used',
+    recency: 'Recently Used',
     all: 'All',
+
     active: 'Active',
     none: 'None',
     back: 'Back',

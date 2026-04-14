@@ -18,6 +18,8 @@ import type { CreateEventDto, PatchEventDto, FinanceEvent, EventType } from '@/m
 import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
 import { useDebounceCallback } from '@/hooks/useDebounce';
 
+
+
 // Sub-components
 import { BasicInfoFields } from '@/components/events/BasicInfoFields';
 import { TypeAndDateFields } from '@/components/events/TypeAndDateFields';
@@ -136,8 +138,6 @@ export function EventForm({
   const tagGroups = tagGroupsResponse?.content ?? [];
   const nodes = nodesResponse?.content ?? [];
 
-  const activeNodes = nodes.filter((n) => !n.archived);
-
   // `defaultValues` acts as the immutable dirty-tracking baseline (the original saved event).
   // `values` drives what is actually displayed — the draft when one exists, otherwise the event.
   // `resetOptions.keepDefaultValues` prevents RHF from overwriting that baseline when `values`
@@ -246,8 +246,6 @@ export function EventForm({
     }
   };
 
-  const nodeOptions = activeNodes.map((n) => ({ value: String(n.id), label: n.name }));
-
   const buildAiContext = () => {
     const values = getValues();
     const parts: string[] = [];
@@ -329,8 +327,8 @@ export function EventForm({
           )}
         />
 
+        <LineItemsEditor nodes={nodes} />
 
-        <LineItemsEditor nodeOptions={nodeOptions} />
 
         <div className="flex flex-col gap-2">
           <Button

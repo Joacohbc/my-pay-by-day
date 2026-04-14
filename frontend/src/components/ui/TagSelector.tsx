@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { TagForm } from '@/components/tags/TagForm';
 import { Icon } from '@/components/ui/Icon';
 import type { Tag } from '@/models';
+import { sortByUsage, getSortIcon, nextSortMode } from '@/lib/usageSorter';
+import type { SortMode } from '@/lib/usageSorter';
+import { useUsageStats, useRecordSelection } from '@/hooks/useSelectionHistory';
 
 interface TagSelectorProps {
   tags: Tag[];
@@ -15,6 +18,9 @@ interface TagSelectorProps {
   /** When true the list starts collapsed (default: false) */
   collapsible?: boolean;
   error?: string;
+  /** Override the active sort mode from outside (controlled). Omit to let the selector manage it. */
+  sortMode?: SortMode;
+  onSortModeChange?: (mode: SortMode) => void;
 }
 
 export function TagSelector({
@@ -26,51 +32,90 @@ export function TagSelector({
   showAdd = false,
   collapsible = false,
   error,
+  sortMode: sortModeProp,
+  onSortModeChange,
 }: TagSelectorProps) {
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [open, setOpen] = useState(!collapsible);
 
+  const [internalSortMode, setInternalSortMode] = useState<SortMode>('smart');
+  const sortMode = sortModeProp ?? internalSortMode;
+
+  const { data: stats } = useUsageStats('TAG');
+  const recordSelection = useRecordSelection();
+
+  const sortedTags = useMemo(
+    () => sortByUsage(tags, stats ?? [], sortMode),
+    [tags, stats, sortMode]
+  );
+
   const resolvedLabel = label ?? t('eventForm.tags');
 
   const anySelected = value?.length > 0;
 
+  const cycleSortMode = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = nextSortMode(sortMode);
+    if (onSortModeChange) onSortModeChange(next);
+    else setInternalSortMode(next);
+  };
+
+  const handleToggleTag = (tag: Tag) => {
+    const current = value ?? [];
+    const tagIdStr = String(tag.id);
+    const isSelected = current.includes(tagIdStr);
+
+    if (isSelected) {
+      onChange(current.filter((id) => id !== tagIdStr));
+    } else {
+      onChange([...current, tagIdStr]);
+      recordSelection.mutate({ type: 'TAG', id: tag.id });
+    }
+  };
+
   const header = (
-    <p
-      className={[
-        'text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2',
-        collapsible ? 'flex items-center gap-1 hover:text-dn-text-main transition-colors cursor-pointer select-none' : '',
-      ].join(' ')}
-      onClick={collapsible ? () => setOpen((v) => !v) : undefined}
-    >
-      {collapsible && anySelected && (
-        <span className="w-1.5 h-1.5 rounded-full bg-dn-primary inline-block mr-0.5" />
-      )}
-      {resolvedLabel}
-      {collapsible && <Icon name={open ? 'expand_less' : 'expand_more'} className="text-sm" />}
-    </p>
+    <div className="flex items-center justify-between mb-2">
+      <p
+        className={[
+          'text-xs font-medium text-dn-text-muted uppercase tracking-wider',
+          collapsible ? 'flex items-center gap-1 hover:text-dn-text-main transition-colors cursor-pointer select-none' : '',
+        ].join(' ')}
+        onClick={collapsible ? () => setOpen((v) => !v) : undefined}
+      >
+        {collapsible && anySelected && (
+          <span className="w-1.5 h-1.5 rounded-full bg-dn-primary inline-block mr-0.5" />
+        )}
+        {resolvedLabel}
+        {collapsible && <Icon name={open ? 'expand_less' : 'expand_more'} className="text-sm" />}
+      </p>
+
+      <button
+        type="button"
+        onClick={cycleSortMode}
+        className="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-tighter text-dn-text-muted hover:text-dn-primary transition-colors bg-dn-surface-low px-2 py-0.5 rounded-full"
+        title={`${t('common.sort')}: ${sortMode}`}
+      >
+        <Icon name={getSortIcon(sortMode)} className="text-xs" />
+        {sortMode}
+      </button>
+    </div>
   );
 
   return (
     <div className={className}>
       {header}
 
+
       {open && (
         <div className="flex flex-wrap gap-2">
-          {tags.map((tag) => {
+          {sortedTags.map((tag) => {
             const selected = value?.includes(String(tag.id));
             return (
               <button
                 key={tag.id}
                 type="button"
-                onClick={() => {
-                  const current = value ?? [];
-                  if (selected) {
-                    onChange(current.filter((id) => id !== String(tag.id)));
-                  } else {
-                    onChange([...current, String(tag.id)]);
-                  }
-                }}
+                onClick={() => handleToggleTag(tag)}
                 className={[
                   'px-3 py-1.5 rounded-pill text-xs font-medium border transition-all cursor-pointer',
                   selected

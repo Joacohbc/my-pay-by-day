@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
@@ -6,10 +6,14 @@ import { Modal } from '@/components/ui/Modal';
 import { CategoryForm } from '@/components/categories/CategoryForm';
 import { Icon } from '@/components/ui/Icon';
 import type { Category } from '@/models';
+import { sortByUsage, getSortIcon, nextSortMode } from '@/lib/usageSorter';
+import type { SortMode } from '@/lib/usageSorter';
+import { useUsageStats, useRecordSelection } from '@/hooks/useSelectionHistory';
+
 
 interface CategorySelectorProps {
   categories: Category[];
-  value: string;
+  value: string | number;
   onChange: (id: string) => void;
   /** 'grid' renders an icon grid (default). 'select' renders a SearchableSelect dropdown. */
   variant?: 'grid' | 'select';
@@ -17,6 +21,9 @@ interface CategorySelectorProps {
   className?: string;
   showAdd?: boolean;
   collapsible?: boolean;
+  /** Override the active sort mode from outside (controlled). Omit to let the selector manage it. */
+  sortMode?: SortMode;
+  onSortModeChange?: (mode: SortMode) => void;
 }
 
 export function CategorySelector({
@@ -28,16 +35,42 @@ export function CategorySelector({
   className = '',
   showAdd = false,
   collapsible = false,
+  sortMode: sortModeProp,
+  onSortModeChange,
 }: CategorySelectorProps) {
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [open, setOpen] = useState(!collapsible);
   const toggleOpen = useCallback(() => setOpen((v) => !v), []);
 
+  const [internalSortMode, setInternalSortMode] = useState<SortMode>('smart');
+  const sortMode = sortModeProp ?? internalSortMode;
+
+  const { data: stats } = useUsageStats('CATEGORY');
+  const recordSelection = useRecordSelection();
+
+  const sortedCategories = useMemo(
+    () => sortByUsage(categories, stats ?? [], sortMode),
+    [categories, stats, sortMode]
+  );
+
   const resolvedLabel = label ?? t('eventForm.category');
 
+  const cycleSortMode = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = nextSortMode(sortMode);
+    if (onSortModeChange) onSortModeChange(next);
+    else setInternalSortMode(next);
+  };
+
+  const handleChange = (val: string) => {
+    onChange(val);
+    if (val) recordSelection.mutate({ type: 'CATEGORY', id: Number(val) });
+  };
+
+
   if (variant === 'select') {
-    const options = categories.map((c) => ({ value: String(c.id), label: c.name }));
+    const options = sortedCategories.map((c) => ({ value: String(c.id), label: c.name }));
     return (
       <div className={className}>
         <div className="flex items-center gap-2">
@@ -47,9 +80,17 @@ export function CategorySelector({
               placeholder={t('common.none')}
               options={options}
               value={value}
-              onChange={(val) => onChange(String(val))}
+              onChange={(val) => handleChange(String(val))}
             />
           </div>
+          <button
+            type="button"
+            onClick={cycleSortMode}
+            className="mt-6 p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
+            title={`${t('common.sort')}: ${sortMode}`}
+          >
+            <Icon name={getSortIcon(sortMode)} className="text-xl" />
+          </button>
           {showAdd && (
             <button
               type="button"
@@ -68,7 +109,7 @@ export function CategorySelector({
         >
           <CategoryForm
             onSuccess={(newCat) => {
-              onChange(String(newCat.id));
+              handleChange(String(newCat.id));
               setShowModal(false);
             }}
             onCancel={() => setShowModal(false)}
@@ -82,27 +123,40 @@ export function CategorySelector({
   // variant === 'grid'
   return (
     <div className={className}>
-      <p
-        className={[
-          'text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3',
-          collapsible ? 'flex items-center gap-1 hover:text-dn-text-main transition-colors cursor-pointer select-none' : '',
-        ].join(' ')}
-        onClick={collapsible ? toggleOpen : undefined}
-      >
-        {collapsible && value && (
-          <span className="w-1.5 h-1.5 rounded-full bg-dn-primary inline-block mr-0.5" />
-        )}
-        {resolvedLabel}
-        {collapsible && <Icon name={open ? 'expand_less' : 'expand_more'} className="text-sm" />}
-      </p>
+      <div className="flex items-center justify-between mb-3">
+        <p
+          className={[
+            'text-xs font-medium text-dn-text-muted uppercase tracking-wider',
+            collapsible ? 'flex items-center gap-1 hover:text-dn-text-main transition-colors cursor-pointer select-none' : '',
+          ].join(' ')}
+          onClick={collapsible ? toggleOpen : undefined}
+        >
+          {collapsible && value && (
+            <span className="w-1.5 h-1.5 rounded-full bg-dn-primary inline-block mr-0.5" />
+          )}
+          {resolvedLabel}
+          {collapsible && <Icon name={open ? 'expand_less' : 'expand_more'} className="text-sm" />}
+        </p>
+
+        <button
+          type="button"
+          onClick={cycleSortMode}
+          className="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-tighter text-dn-text-muted hover:text-dn-primary transition-colors bg-dn-surface-low px-2 py-0.5 rounded-full"
+          title={`${t('common.sort')}: ${sortMode}`}
+        >
+          <Icon name={getSortIcon(sortMode)} className="text-xs" />
+          {sortMode}
+        </button>
+      </div>
+
       {open && <div className="grid grid-cols-4 gap-x-3 gap-y-4">
-        {categories.map((cat) => {
+        {sortedCategories.map((cat) => {
           const selected = value === String(cat.id);
           return (
             <button
               key={cat.id}
               type="button"
-              onClick={() => onChange(selected ? '' : String(cat.id))}
+              onClick={() => handleChange(selected ? '' : String(cat.id))}
               className="flex flex-col items-center gap-2"
             >
               <CategoryIcon

@@ -8,8 +8,17 @@ import { Spinner } from '@/components/ui/Spinner';
 import { EventCard } from '@/components/events/EventCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Pagination } from '@/components/ui/Pagination';
+import { useUsageStats, useRecordSelection } from '@/hooks/useSelectionHistory';
+import { sortByUsage } from '@/lib/usageSorter';
+import type { SortMode } from '@/lib/usageSorter';
 
-type SortOption = 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc' | 'category-asc' | 'category-desc';
+const SORT_MODES: SortMode[] = ['smart', 'alphabetical', 'frequency', 'recency'];
+type CustomSort = 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc' | 'category-asc' | 'category-desc';
+type SortOption = SortMode | CustomSort;
+
+function isSortMode(opt: SortOption): opt is SortMode {
+  return (SORT_MODES as string[]).includes(opt);
+}
 
 export function EventSelectorModal({
   open,
@@ -25,46 +34,51 @@ export function EventSelectorModal({
   const { t } = useTranslation();
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
-  
+  const [sortBy, setSortBy] = useState<SortOption>('smart');
+
   const { data: paged, isLoading, error } = useEvents({ page });
+  const { data: stats } = useUsageStats('FINANCE_EVENT');
+  const recordSelection = useRecordSelection();
   const addRelation = useAddEventRelations();
 
   if (!open) return null;
 
   const handleSelect = async (selectedId: number) => {
+    recordSelection.mutate({ type: 'FINANCE_EVENT', id: selectedId });
     await addRelation.mutateAsync({ id: baseEventId, relatedIds: [selectedId] });
     onClose();
   };
 
   const allEvents = paged?.content || [];
-  const filteredAndSorted = allEvents
-    .filter((e) => {
-      if (e.id === baseEventId) return false;
-      if (existingRelatedIds.includes(e.id)) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        const matchesName = e.name.toLowerCase().includes(q) || e.description?.toLowerCase().includes(q);
-        const matchesCategory = e.category?.name.toLowerCase().includes(q);
-        const matchesDate = e.transactionDate?.includes(q);
-        return matchesName || matchesCategory || matchesDate;
-      }
-      return true;
-    })
-    .sort((a, b) => {
-      if (sortBy.startsWith('date')) {
-        const val = new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime();
-        return sortBy === 'date-asc' ? val : -val;
-      } else if (sortBy.startsWith('name')) {
-        const val = a.name.localeCompare(b.name);
-        return sortBy === 'name-asc' ? val : -val;
-      } else {
-        const catA = a.category?.name || '';
-        const catB = b.category?.name || '';
-        const val = catA.localeCompare(catB);
-        return sortBy === 'category-asc' ? val : -val;
-      }
-    });
+  const filteredEvents = allEvents.filter((e) => {
+    if (e.id === baseEventId) return false;
+    if (existingRelatedIds.includes(e.id)) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const matchesName = e.name.toLowerCase().includes(q) || e.description?.toLowerCase().includes(q);
+      const matchesCategory = e.category?.name.toLowerCase().includes(q);
+      const matchesDate = e.transactionDate?.includes(q);
+      return matchesName || matchesCategory || matchesDate;
+    }
+    return true;
+  });
+
+  const sortedEvents = isSortMode(sortBy)
+    ? sortByUsage(filteredEvents, stats ?? [], sortBy)
+    : [...filteredEvents].sort((a, b) => {
+        if (sortBy.startsWith('date')) {
+          const val = new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime();
+          return sortBy === 'date-asc' ? val : -val;
+        } else if (sortBy.startsWith('name')) {
+          const val = a.name.localeCompare(b.name);
+          return sortBy === 'name-asc' ? val : -val;
+        } else {
+          const catA = a.category?.name || '';
+          const catB = b.category?.name || '';
+          const val = catA.localeCompare(catB);
+          return sortBy === 'category-asc' ? val : -val;
+        }
+      });
 
   return (
     <Modal open={open} onClose={onClose} title={t('events.selectRelatedEvent')}>
@@ -85,6 +99,10 @@ export function EventSelectorModal({
             onChange={(e) => setSortBy(e.target.value as SortOption)}
             className="bg-dn-surface-low rounded-input px-3 py-3 text-sm text-dn-text-main focus:outline-none focus:ring-2 focus:ring-dn-primary/30"
           >
+            <option value="smart">{t('common.smartSort')}</option>
+            <option value="frequency">{t('common.frequency')}</option>
+            <option value="recency">{t('common.recency')}</option>
+            <option value="alphabetical">{t('common.alphabetical')}</option>
             <option value="date-desc">{t('events.date')} ↓</option>
             <option value="date-asc">{t('events.date')} ↑</option>
             <option value="name-asc">{t('common.name')} ↑</option>
@@ -99,13 +117,13 @@ export function EventSelectorModal({
           {isLoading && <div className="py-4 text-center"><Spinner /></div>}
           {error && <div className="py-2 text-center text-dn-error text-sm">{String(error)}</div>}
           
-          {!isLoading && !error && filteredAndSorted.length === 0 && (
+          {!isLoading && !error && sortedEvents.length === 0 && (
             <div className="py-4">
               <EmptyState title={search ? t('events.noEventsFoundSearch') : t('events.noEventsFound')} />
             </div>
           )}
 
-          {filteredAndSorted.map((evt) => (
+          {sortedEvents.map((evt) => (
             <div
               key={evt.id}
               onClick={() => handleSelect(evt.id)}
