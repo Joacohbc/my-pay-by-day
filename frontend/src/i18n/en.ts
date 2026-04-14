@@ -21,7 +21,6 @@ const en = {
     select: 'Select',
     sort: 'Sort',
     smartSort: 'Smart Sort',
-    smart: 'Smart',
     alphabetical: 'Alphabetical',
     frequency: 'Most Used',
     recency: 'Recently Used',

@@ -21,7 +21,6 @@ const es = {
     select: 'Seleccionar',
     sort: 'Ordenar',
     smartSort: 'Orden Inteligente',
-    smart: 'Inteligente',
     alphabetical: 'Alfabético',
     frequency: 'Más Usados',
     recency: 'Recientes',
