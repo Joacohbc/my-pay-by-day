@@ -8,7 +8,7 @@ import { Modal } from '@/components/ui/Modal';
 import { NodeForm } from '@/components/nodes/NodeForm';
 import type { FormValues } from '@/components/events/EventFormMapper';
 import type { FinanceNode } from '@/models';
-import { sortByUsage, getSortIcon } from '@/lib/usageSorter';
+import { sortByUsage, getSortIcon, nextSortMode } from '@/lib/usageSorter';
 import type { SortMode } from '@/lib/usageSorter';
 import { useUsageStats, useRecordSelection } from '@/hooks/useSelectionHistory';
 
@@ -54,14 +54,9 @@ export function LineItemsEditor({
 
   const cycleSortMode = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const modes: SortMode[] = ['smart', 'alphabetical', 'frequency', 'recency'];
-    const nextIndex = (modes.indexOf(sortMode) + 1) % modes.length;
-    const next = modes[nextIndex];
-    if (onSortModeChange) {
-      onSortModeChange(next);
-    } else {
-      setInternalSortMode(next);
-    }
+    const next = nextSortMode(sortMode);
+    if (onSortModeChange) onSortModeChange(next);
+    else setInternalSortMode(next);
   };
 
   const handleNodeChange = (val: string | number, onChange: (val: string) => void) => {

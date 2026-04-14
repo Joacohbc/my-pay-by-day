@@ -4,7 +4,7 @@ import { Modal } from '@/components/ui/Modal';
 import { TagForm } from '@/components/tags/TagForm';
 import { Icon } from '@/components/ui/Icon';
 import type { Tag } from '@/models';
-import { sortByUsage, getSortIcon } from '@/lib/usageSorter';
+import { sortByUsage, getSortIcon, nextSortMode } from '@/lib/usageSorter';
 import type { SortMode } from '@/lib/usageSorter';
 import { useUsageStats, useRecordSelection } from '@/hooks/useSelectionHistory';
 
@@ -56,14 +56,9 @@ export function TagSelector({
 
   const cycleSortMode = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const modes: SortMode[] = ['smart', 'alphabetical', 'frequency', 'recency'];
-    const nextIndex = (modes.indexOf(sortMode) + 1) % modes.length;
-    const next = modes[nextIndex];
-    if (onSortModeChange) {
-      onSortModeChange(next);
-    } else {
-      setInternalSortMode(next);
-    }
+    const next = nextSortMode(sortMode);
+    if (onSortModeChange) onSortModeChange(next);
+    else setInternalSortMode(next);
   };
 
   const handleToggleTag = (tag: Tag) => {

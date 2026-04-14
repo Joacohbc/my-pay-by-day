@@ -2,6 +2,12 @@ import type { UsageStats } from '@/models';
 
 export type SortMode = 'smart' | 'alphabetical' | 'frequency' | 'recency';
 
+const SORT_MODES: SortMode[] = ['smart', 'alphabetical', 'frequency', 'recency'];
+
+export function nextSortMode(current: SortMode): SortMode {
+  return SORT_MODES[(SORT_MODES.indexOf(current) + 1) % SORT_MODES.length];
+}
+
 export function getSortIcon(mode: SortMode): string {
   switch (mode) {
     case 'alphabetical': return 'sort_by_alpha';
