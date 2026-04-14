@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Controller, useFormContext, useFieldArray, useWatch } from 'react-hook-form';
 import { Icon } from '@/components/ui/Icon';
@@ -7,12 +7,24 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Modal } from '@/components/ui/Modal';
 import { NodeForm } from '@/components/nodes/NodeForm';
 import type { FormValues } from '@/components/events/EventFormMapper';
+import type { FinanceNode } from '@/models';
+import { sortByUsage } from '@/lib/usageSorter';
+import type { SortMode } from '@/lib/usageSorter';
+import { useUsageStats, useRecordSelection } from '@/hooks/useSelectionHistory';
 
 interface LineItemsEditorProps {
-  nodeOptions: { value: string; label: string }[];
+  nodes: FinanceNode[];
+  /** Override the active sort mode from outside (controlled). Omit to let the editor manage it. */
+  sortMode?: SortMode;
+  onSortModeChange?: (mode: SortMode) => void;
 }
 
-export function LineItemsEditor({ nodeOptions }: LineItemsEditorProps) {
+export function LineItemsEditor({
+  nodes,
+  sortMode: sortModeProp,
+  onSortModeChange,
+}: LineItemsEditorProps) {
+
   const { t } = useTranslation();
   const { control, register, setValue, formState: { errors } } = useFormContext<FormValues>();
   const { fields, append, remove } = useFieldArray({ control, name: 'lineItems' });
@@ -23,6 +35,50 @@ export function LineItemsEditor({ nodeOptions }: LineItemsEditorProps) {
   const setIsSimplifiedMode = (val: boolean) => setValue('isSimplifiedMode', val);
 
   const [showNodeModal, setShowNodeModal] = useState<number | null>(null);
+
+  const [internalSortMode, setInternalSortMode] = useState<SortMode>('smart');
+  const sortMode = sortModeProp ?? internalSortMode;
+
+  const { data: stats } = useUsageStats('FINANCE_NODE');
+  const recordSelection = useRecordSelection();
+
+  const activeNodes = useMemo(
+    () => sortByUsage(nodes.filter((n) => !n.archived), stats ?? [], sortMode),
+    [nodes, stats, sortMode]
+  );
+
+  const nodeOptions = useMemo(
+    () => activeNodes.map((n) => ({ value: String(n.id), label: n.name })),
+    [activeNodes]
+  );
+
+  const cycleSortMode = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const modes: SortMode[] = ['smart', 'alphabetical', 'frequency', 'recency'];
+    const nextIndex = (modes.indexOf(sortMode) + 1) % modes.length;
+    const next = modes[nextIndex];
+    if (onSortModeChange) {
+      onSortModeChange(next);
+    } else {
+      setInternalSortMode(next);
+    }
+  };
+
+  const getSortIcon = () => {
+    switch (sortMode) {
+      case 'alphabetical': return 'sort_by_alpha';
+      case 'frequency': return 'analytics';
+      case 'recency': return 'schedule';
+      case 'smart':
+      default: return 'auto_awesome';
+    }
+  };
+
+  const handleNodeChange = (val: string | number, onChange: (val: string) => void) => {
+    const stringVal = String(val);
+    onChange(stringVal);
+    if (stringVal) recordSelection.mutate({ type: 'FINANCE_NODE', id: Number(stringVal) });
+  };
 
   // Sync all line item amounts to the first amount in simplified mode
   useEffect(() => {
@@ -35,7 +91,18 @@ export function LineItemsEditor({ nodeOptions }: LineItemsEditorProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">{t('eventForm.lineItems')}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">{t('eventForm.lineItems')}</p>
+          <button
+            type="button"
+            onClick={cycleSortMode}
+            className="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-tighter text-dn-text-muted hover:text-dn-primary transition-colors bg-dn-surface-low px-2 py-0.5 rounded-full"
+            title={`${t('common.sort')}: ${sortMode}`}
+          >
+            <Icon name={getSortIcon()} className="text-[10px]" />
+            {sortMode}
+          </button>
+        </div>
         <div className="flex items-center gap-3">
           {!isSimplifiedMode && (
             <button
@@ -90,7 +157,8 @@ export function LineItemsEditor({ nodeOptions }: LineItemsEditorProps) {
                           placeholder={t('eventForm.selectNode')}
                           options={nodeOptions}
                           error={errors.lineItems?.[i]?.nodeId?.message}
-                          {...f}
+                          value={f.value}
+                          onChange={(val) => handleNodeChange(val, f.onChange)}
                         />
                       )}
                     />
@@ -130,11 +198,13 @@ export function LineItemsEditor({ nodeOptions }: LineItemsEditorProps) {
                         placeholder={t('eventForm.selectNode')}
                         options={nodeOptions}
                         error={errors.lineItems?.[i]?.nodeId?.message}
-                        {...f}
+                        value={f.value}
+                        onChange={(val) => handleNodeChange(val, f.onChange)}
                       />
                     )}
                   />
                 </div>
+
                 <button
                   type="button"
                   onClick={() => setShowNodeModal(i)}

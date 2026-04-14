@@ -42,6 +42,15 @@ export type CreateTagDto = Omit<Tag, 'id'>;
 
 // ─── FinanceNode ──────────────────────────────────────────────────────────────
 
+export type SelectableEntityType = 'FINANCE_EVENT' | 'CATEGORY' | 'TAG' | 'FINANCE_NODE';
+
+export interface UsageStats {
+  entityId: number;
+  domainUsageCount: number;
+  selectionCount: number;
+  lastSelectedAt?: string;
+}
+
 export interface FinanceNode extends Identifiable {
   name: string;
   type: FinanceNodeType;

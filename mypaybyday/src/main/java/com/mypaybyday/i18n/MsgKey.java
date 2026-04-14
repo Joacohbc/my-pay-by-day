@@ -91,7 +91,12 @@ public enum MsgKey {
 	VALIDATION_DATE_IN_PAST("error.validation.date_in_past"),
 	VALIDATION_NUMBER_POSITIVE("error.validation.number_positive"),
 	VALIDATION_NUMBER_NON_NEGATIVE("error.validation.number_non_negative"),
-	VALIDATION_NUMBER_RANGE("error.validation.number_range");
+	VALIDATION_NUMBER_RANGE("error.validation.number_range"),
+
+	// ── Selection History ────────────────────────────────
+	SELECTION_HISTORY_ENTITY_TYPE_REQUIRED("error.selection_history.entity_type_required"),
+	SELECTION_HISTORY_ENTITY_ID_REQUIRED("error.selection_history.entity_id_required");
+
 
 	/** The property key used to look up this message in the resource bundle. */
 	public final String key;
