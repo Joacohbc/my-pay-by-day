@@ -130,6 +130,7 @@ const en = {
     deleteConfirm: 'Delete this event permanently?',
     relatedEvents: 'Related Events',
     addRelatedEvent: 'Add Relation',
+    createRelatedEvent: 'Create & Link',
     removeRelation: 'Remove',
     noRelatedEvents: 'No related events',
     selectRelatedEvent: 'Select an event to relate',

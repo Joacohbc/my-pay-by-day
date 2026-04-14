@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -8,13 +9,19 @@ import { useRemoveEventRelations } from "@/hooks/useEvents";
 import type { FinanceEvent, RelatedEvent } from "@/models";
 import { EventSelectorModal } from "@/components/events/EventSelectorModal";
 import { EventCard } from "@/components/events/EventCard";
+import { Routes } from "@/lib/routes";
 
 export function RelatedEventsSection({ event }: { event: FinanceEvent }) {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const removeRelation = useRemoveEventRelations();
 
     const [toRemove, setToRemove] = useState<RelatedEvent | null>(null);
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+
+    const handleCreateAndLink = () => {
+        navigate(Routes.EVENT_NEW, { state: { relatedToEventId: event.id } });
+    };
 
     const handleRemove = async () => {
         if (!toRemove) return;
@@ -31,18 +38,32 @@ export function RelatedEventsSection({ event }: { event: FinanceEvent }) {
 						<h3 className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">
 							{t("events.relatedEvents")}
 						</h3>
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => setIsSelectorOpen(true)}
-						>
-							<span className="flex items-center gap-1 text-dn-primary">
-								<Icon name="add" className="text-sm" />
-								<span className="text-xs">
-									{t("events.addRelatedEvent")}
+						<div className="flex items-center gap-1">
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={handleCreateAndLink}
+							>
+								<span className="flex items-center gap-1 text-dn-primary">
+									<Icon name="add_circle" className="text-sm" />
+									<span className="text-xs">
+										{t("events.createRelatedEvent")}
+									</span>
 								</span>
-							</span>
-						</Button>
+							</Button>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => setIsSelectorOpen(true)}
+							>
+								<span className="flex items-center gap-1 text-dn-primary">
+									<Icon name="add" className="text-sm" />
+									<span className="text-xs">
+										{t("events.addRelatedEvent")}
+									</span>
+								</span>
+							</Button>
+						</div>
 					</div>
 
 					<EventSelectorModal
