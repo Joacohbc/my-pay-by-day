@@ -80,7 +80,7 @@ export function CategorySelector({
               placeholder={t('common.none')}
               options={options}
               value={value}
-              onChange={(val) => handleChange(String(val))}
+              onChange={(val) => handleChange(val == null ? '' : String(val))}
             />
           </div>
           <button

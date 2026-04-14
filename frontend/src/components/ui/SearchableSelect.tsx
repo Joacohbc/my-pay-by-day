@@ -13,17 +13,18 @@ interface SearchableSelectProps {
   error?: string;
   options: Option[];
   placeholder?: string;
-  value?: string | number;
-  onChange?: (value: string | number) => void;
+  value?: string | number | null;
+  onChange?: (value: string | number | null) => void;
   onBlur?: () => void;
   name?: string;
   className?: string;
   id?: string;
   disabled?: boolean;
+  allowNone?: boolean;
 }
 
 export const SearchableSelect = forwardRef<HTMLDivElement, SearchableSelectProps>(
-  ({ label, error, options, placeholder, value, onChange, onBlur, name, className = '', id, disabled }, ref) => {
+  ({ label, error, options, placeholder, value, onChange, onBlur, name, className = '', id, disabled, allowNone }, ref) => {
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -61,7 +62,7 @@ export const SearchableSelect = forwardRef<HTMLDivElement, SearchableSelectProps
       opt.label.toLowerCase().includes(search.toLowerCase())
     );
 
-    const handleSelect = (val: string | number) => {
+    const handleSelect = (val: string | number | null) => {
       if (onChange) {
         onChange(val);
       }
@@ -107,10 +108,10 @@ export const SearchableSelect = forwardRef<HTMLDivElement, SearchableSelectProps
 
           {/* Bottom Sheet Modal */}
           {isOpen && createPortal(
-            <div className="fixed inset-0 z-100 flex flex-col justify-end">
+            <div className="fixed inset-0 z-100 flex flex-col items-center justify-center">
               {/* Backdrop */}
-              <div 
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" 
+              <div
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsOpen(false);
@@ -118,14 +119,14 @@ export const SearchableSelect = forwardRef<HTMLDivElement, SearchableSelectProps
                   if (onBlur) onBlur();
                 }}
               />
-              
+
               {/* Panel */}
-              <div 
-                className="relative w-full sm:max-w-md sm:mx-auto bg-dn-surface sm:border border-t border-white/5 sm:rounded-t-card rounded-t-3xl shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[70vh] animate-in slide-in-from-bottom"
+              <div
+                className="relative w-full max-w-md mx-4 bg-dn-surface border border-white/5 rounded-card shadow-2xl flex flex-col max-h-[85vh] min-h-[40vh] animate-in fade-in zoom-in-95"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header with Search */}
-                <div className="p-4 border-b border-white/5 bg-dn-surface sticky top-0 sm:rounded-t-card rounded-t-3xl flex gap-3 items-center">
+                <div className="p-4 border-b border-white/5 bg-dn-surface sticky top-0 rounded-t-card flex gap-3 items-center">
                   <div className="relative flex-1">
                     <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-lg" />
                     <input
@@ -153,6 +154,24 @@ export const SearchableSelect = forwardRef<HTMLDivElement, SearchableSelectProps
                 
                 {/* Options List */}
                 <div className="overflow-y-auto overflow-x-hidden p-2 flex-1 pb-safe max-h-[60vh] sm:max-h-[50vh]">
+                  {allowNone && (
+                    <button
+                      type="button"
+                      className={[
+                        'w-full text-left px-4 py-3.5 sm:py-3 text-base sm:text-sm rounded-input cursor-pointer transition-colors flex items-center justify-between mb-1',
+                        !value || value === ''
+                          ? 'bg-dn-primary/20 text-dn-primary font-medium'
+                          : 'text-dn-text-muted italic hover:bg-white/5',
+                      ].join(' ')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelect(null);
+                      }}
+                    >
+                      <span>{t('common.none')}</span>
+                      {(!value || value === '') && <Icon name="check" className="text-base" />}
+                    </button>
+                  )}
                   {filteredOptions.length > 0 ? (
                     filteredOptions.map((opt) => (
                       <button
@@ -160,8 +179,8 @@ export const SearchableSelect = forwardRef<HTMLDivElement, SearchableSelectProps
                         type="button"
                         className={[
                           'w-full text-left px-4 py-3.5 sm:py-3 text-base sm:text-sm rounded-input cursor-pointer transition-colors flex items-center justify-between mb-1',
-                          String(opt.value) === String(value) 
-                            ? 'bg-dn-primary/20 text-dn-primary font-medium' 
+                          String(opt.value) === String(value)
+                            ? 'bg-dn-primary/20 text-dn-primary font-medium'
                             : 'text-dn-text-main hover:bg-white/5'
                         ].join(' ')}
                         onClick={(e) => {

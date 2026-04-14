@@ -59,8 +59,8 @@ export function LineItemsEditor({
     else setInternalSortMode(next);
   };
 
-  const handleNodeChange = (val: string | number, onChange: (val: string) => void) => {
-    const stringVal = String(val);
+  const handleNodeChange = (val: string | number | null, onChange: (val: string) => void) => {
+    const stringVal = val == null ? '' : String(val);
     onChange(stringVal);
     if (stringVal) recordSelection.mutate({ type: 'FINANCE_NODE', id: Number(stringVal) });
   };
@@ -144,6 +144,7 @@ export function LineItemsEditor({
                           error={errors.lineItems?.[i]?.nodeId?.message}
                           value={f.value}
                           onChange={(val) => handleNodeChange(val, f.onChange)}
+                          allowNone
                         />
                       )}
                     />

@@ -135,7 +135,11 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
                 { value: 'OUTBOUND', label: t('eventType.OUTBOUND') },
                 { value: 'OTHER', label: t('eventType.OTHER') },
               ]}
-              {...field}
+              value={field.value}
+              onBlur={field.onBlur}
+              name={field.name}
+              onChange={(val) => field.onChange(val ?? '')}
+              allowNone
             />
           )}
         />
@@ -151,7 +155,11 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
                     label={t('templates.originNode')}
                     placeholder={t('common.none')}
                     options={nodeOptions}
-                    {...field}
+                    value={field.value}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    onChange={(val) => field.onChange(val ?? '')}
+                    allowNone
                   />
                 )}
               />
@@ -175,7 +183,11 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
                     label={t('templates.destinationNode')}
                     placeholder={t('common.none')}
                     options={nodeOptions}
-                    {...field}
+                    value={field.value}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    onChange={(val) => field.onChange(val ?? '')}
+                    allowNone
                   />
                 )}
               />
