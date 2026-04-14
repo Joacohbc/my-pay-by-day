@@ -1,7 +1,9 @@
 package com.mypaybyday.entity;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -125,6 +127,14 @@ public class FinanceEventEntity extends BaseEntity {
 
 	/**
 	* Bidirectional relationship to other FinanceEvents.
+	*
+	* <p>Uses {@code Set} instead of {@code List} so that Hibernate tracks this collection with
+	* element-level diff semantics. With a {@code List} (bag), any modification triggers a full
+	* {@code DELETE FROM event_relation WHERE event_id=?} followed by re-inserts for the entire
+	* collection. When two collections are dirtied in the same transaction (A→B and B→A), SQLite
+	* raises {@code SQLITE_BUSY} on the back-to-back deletes against the same table. With a
+	* {@code Set}, Hibernate only issues individual {@code INSERT}s or {@code DELETE}s for the
+	* elements that actually changed.
 	*/
 	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(
@@ -133,7 +143,7 @@ public class FinanceEventEntity extends BaseEntity {
 		inverseJoinColumns = @JoinColumn(name = "related_event_id")
 	)
 	@Builder.Default
-	public List<FinanceEventEntity> relatedEvents = new ArrayList<>();
+	public Set<FinanceEventEntity> relatedEvents = new HashSet<>();
 
 	/**
 	* Optional link to the subscription that generated this event or is associated with it.

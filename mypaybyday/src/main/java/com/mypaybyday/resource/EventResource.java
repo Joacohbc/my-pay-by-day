@@ -142,4 +142,23 @@ public class EventResource {
 	throws BusinessException {
 	return Response.ok(eventService.removeRelations(id, relatedIds)).build();
     }
+
+    @POST
+    @Path("/{id}/merge")
+    @Operation(summary = "Merge source events into a base event",
+	description = "Combines all line items from the source events into the base event's transaction " +
+		"(summing amounts for duplicate nodes), then permanently deletes the source events. " +
+		"All events must share the same type.")
+    @APIResponses({
+	@APIResponse(responseCode = "200", description = "Merge successful — returns the updated base event",
+		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
+	@APIResponse(responseCode = "400", description = "Validation error (e.g. mixed types, self-merge)"),
+	@APIResponse(responseCode = "404", description = "Base or source event not found")
+    })
+    public Response mergeEvents(
+	@Parameter(description = "ID of the base event", required = true) @PathParam("id") Long id,
+	@Parameter(description = "IDs of source events to merge into the base", required = true) java.util.List<Long> sourceIds)
+	throws BusinessException {
+	return Response.ok(eventService.mergeEvents(id, sourceIds)).build();
+    }
 }

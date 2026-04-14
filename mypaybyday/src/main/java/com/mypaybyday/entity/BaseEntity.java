@@ -11,6 +11,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import lombok.EqualsAndHashCode;
 
 /**
  * Common base for all domain entities.
@@ -19,8 +20,14 @@ import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
  * is used for ID generation. This avoids the need for a separate isolated JDBC connection
  * (as required by the default TABLE/SEQUENCE emulation strategy), which is incompatible
  * with a single-connection pool configured for SQLite.
+ *
+ * <p>{@code @EqualsAndHashCode(of = "id")} is required for any entity that participates in a
+ * {@code Set}-backed {@code @ManyToMany} collection. Without it, {@code Set.add/remove} falls
+ * back to object-reference equality, which breaks deduplication and causes Hibernate to issue
+ * spurious deletes/inserts when the same logical entity is loaded in different contexts.
  */
 @MappedSuperclass
+@EqualsAndHashCode(of = "id", callSuper = false)
 public abstract class BaseEntity extends PanacheEntityBase {
 
 	@Id
