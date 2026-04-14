@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Routes } from '@/lib/routes';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
@@ -17,6 +18,8 @@ import { getCurrency, setCurrency, onCurrencyChange } from '@/lib/format';
 import { commonTimezones } from '@/utils/timezones';
 import { getUserTimezone } from '@/utils/dateUtils';
 import { currenciesList } from '@/utils/currencies';
+import { useAlert } from '@/contexts/AlertContext';
+import { idbRemove } from '@/lib/idbStorage';
 
 interface SettingRowProps {
   to: string;
@@ -51,6 +54,8 @@ function SettingRow({ to, icon, title, subtitle, count }: SettingRowProps) {
 
 export function SettingsPage() {
   const { t, i18n } = useTranslation();
+  const { success } = useAlert();
+  const queryClient = useQueryClient();
   const [currency, _setCurrency] = useState(getCurrency);
   const [timezone, _setTimezone] = useState(() => localStorage.getItem('user-timezone') || '');
   const { data: categoriesPaged } = useCategories();
@@ -65,6 +70,13 @@ export function SettingsPage() {
   const handleCurrencyChange = (code: string) => {
     setCurrency(code);
     _setCurrency(code);
+  };
+
+  const handleClearCache = async () => {
+    queryClient.clear();
+    await idbRemove('mpbd-query-cache');
+    success(t('settings.clearCacheSuccess'));
+    window.location.reload();
   };
 
   const handleTimezoneChange = (tz: string) => {
@@ -141,6 +153,21 @@ export function SettingsPage() {
                 options={currenciesList.map(c => ({ value: c.code, label: c.label }))}
               />
             </div>
+          </div>
+          <div className="flex items-center gap-4 px-4 py-3.5">
+            <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-surface-low text-dn-text-muted shrink-0">
+              <Icon name="delete_sweep" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dn-text-main">{t('settings.clearCache')}</p>
+              <p className="text-xs text-dn-text-muted">{t('settings.clearCacheDesc')}</p>
+            </div>
+            <button
+              onClick={handleClearCache}
+              className="shrink-0 px-3 py-1.5 text-xs font-medium rounded-lg bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface-low/70 transition-colors"
+            >
+              {t('settings.clearCache')}
+            </button>
           </div>
         </Card>
       </section>

@@ -471,6 +471,9 @@ const es = {
     timezoneBrowserDefault: 'Predeterminada del Navegador',
     preferences: 'Preferencias',
     aiDesc: 'Personalizá los prompts para las acciones de IA en formularios',
+    clearCache: 'Limpiar Caché',
+    clearCacheDesc: 'Elimina todos los datos en caché local y recarga',
+    clearCacheSuccess: 'Caché limpiado',
   },
 
   // ─── Offline ─────────────────────────────────────────────────────────────

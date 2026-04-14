@@ -472,6 +472,9 @@ const en = {
     timezoneBrowserDefault: 'Browser Default',
     preferences: 'Preferences',
     aiDesc: 'Customize prompts for AI field actions',
+    clearCache: 'Clear Cache',
+    clearCacheDesc: 'Remove all locally cached data and reload',
+    clearCacheSuccess: 'Cache cleared',
   },
 
   // ─── Offline ─────────────────────────────────────────────────────────────
