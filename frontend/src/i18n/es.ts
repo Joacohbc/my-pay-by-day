@@ -129,6 +129,7 @@ const es = {
     deleteConfirm: '¿Eliminar este evento permanentemente?',
     relatedEvents: 'Eventos Relacionados',
     addRelatedEvent: 'Añadir Relación',
+    createRelatedEvent: 'Crear y Vincular',
     removeRelation: 'Eliminar',
     noRelatedEvents: 'No hay eventos relacionados',
     selectRelatedEvent: 'Selecciona un evento para relacionar',

@@ -4,7 +4,7 @@ import { Routes, eventsRoute } from '@/lib/routes';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { DraftBadge } from '@/components/ui/DraftBadge';
-import { useCreateEvent } from '@/hooks/useEvents';
+import { useCreateEvent, useAddEventRelations } from '@/hooks/useEvents';
 import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft } from '@/hooks/useDrafts';
 import type { CreateEventDto, PatchEventDto, Template, FinanceEvent, FinanceLineItem } from '@/models';
 
@@ -30,13 +30,15 @@ export function EventNewPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const createEvent = useCreateEvent();
+  const addRelations = useAddEventRelations();
   const createDraft = useCreateFinanceEventDraft();
   const updateDraft = useUpdateFinanceEventDraft();
   const deleteDraft = useDeleteDraft();
 
-  const state = location.state as { template?: Template; draft?: FinanceEvent } | null;
+  const state = location.state as { template?: Template; draft?: FinanceEvent; relatedToEventId?: number } | null;
   const template = state?.template;
   const draft = state?.draft;
+  const relatedToEventId = state?.relatedToEventId;
 
   const initialValues = draft ?? (template ? mapTemplateToEventValues(template) : undefined);
 
@@ -50,7 +52,12 @@ export function EventNewPage() {
       // If offline (created === null), the event is only queued locally — keep the draft.
       const idToDelete = formDraftId || draft?.draftId;
       if (idToDelete) deleteDraft.mutate(idToDelete);
-      navigate(Routes.EVENT_DETAIL(created.id), { replace: true });
+      if (relatedToEventId) {
+        await addRelations.mutateAsync({ id: relatedToEventId, relatedIds: [created.id] });
+        navigate(Routes.EVENT_DETAIL(relatedToEventId), { replace: true });
+      } else {
+        navigate(Routes.EVENT_DETAIL(created.id), { replace: true });
+      }
     } else {
       // Offline fallback navigation — draft is preserved intentionally
       navigate(eventsRoute());
@@ -80,7 +87,7 @@ export function EventNewPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title={t('events.newEventTitle')} back={eventsRoute()} />
+      <PageHeader title={t('events.newEventTitle')} back={relatedToEventId ? Routes.EVENT_DETAIL(relatedToEventId) : eventsRoute()} />
       
       {draft && <DraftBadge saving={createDraft.isPending || updateDraft.isPending} />}
 
