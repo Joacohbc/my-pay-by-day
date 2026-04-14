@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/Modal';
 import { CategoryForm } from '@/components/categories/CategoryForm';
 import { Icon } from '@/components/ui/Icon';
 import type { Category } from '@/models';
-import { sortByUsage } from '@/lib/usageSorter';
+import { sortByUsage, getSortIcon } from '@/lib/usageSorter';
 import type { SortMode } from '@/lib/usageSorter';
 import { useUsageStats, useRecordSelection } from '@/hooks/useSelectionHistory';
 
@@ -73,15 +73,6 @@ export function CategorySelector({
     if (val) recordSelection.mutate({ type: 'CATEGORY', id: Number(val) });
   };
 
-  const getSortIcon = () => {
-    switch (sortMode) {
-      case 'alphabetical': return 'sort_by_alpha';
-      case 'frequency': return 'analytics';
-      case 'recency': return 'schedule';
-      case 'smart':
-      default: return 'auto_awesome';
-    }
-  };
 
   if (variant === 'select') {
     const options = sortedCategories.map((c) => ({ value: String(c.id), label: c.name }));
@@ -103,7 +94,7 @@ export function CategorySelector({
             className="mt-6 p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
             title={`${t('common.sort')}: ${sortMode}`}
           >
-            <Icon name={getSortIcon()} className="text-xl" />
+            <Icon name={getSortIcon(sortMode)} className="text-xl" />
           </button>
           {showAdd && (
             <button
@@ -158,7 +149,7 @@ export function CategorySelector({
           className="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-tighter text-dn-text-muted hover:text-dn-primary transition-colors bg-dn-surface-low px-2 py-0.5 rounded-full"
           title={`${t('common.sort')}: ${sortMode}`}
         >
-          <Icon name={getSortIcon()} className="text-xs" />
+          <Icon name={getSortIcon(sortMode)} className="text-xs" />
           {sortMode}
         </button>
       </div>

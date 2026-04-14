@@ -2,6 +2,16 @@ import type { UsageStats } from '@/models';
 
 export type SortMode = 'smart' | 'alphabetical' | 'frequency' | 'recency';
 
+export function getSortIcon(mode: SortMode): string {
+  switch (mode) {
+    case 'alphabetical': return 'sort_by_alpha';
+    case 'frequency': return 'analytics';
+    case 'recency': return 'schedule';
+    case 'smart':
+    default: return 'auto_awesome';
+  }
+}
+
 
 export function sortByUsage<T extends { id: number; name?: string; label?: string }>(
   items: T[],

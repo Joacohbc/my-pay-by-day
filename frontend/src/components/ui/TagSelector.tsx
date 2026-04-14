@@ -4,7 +4,7 @@ import { Modal } from '@/components/ui/Modal';
 import { TagForm } from '@/components/tags/TagForm';
 import { Icon } from '@/components/ui/Icon';
 import type { Tag } from '@/models';
-import { sortByUsage } from '@/lib/usageSorter';
+import { sortByUsage, getSortIcon } from '@/lib/usageSorter';
 import type { SortMode } from '@/lib/usageSorter';
 import { useUsageStats, useRecordSelection } from '@/hooks/useSelectionHistory';
 
@@ -66,13 +66,16 @@ export function TagSelector({
     }
   };
 
-  const getSortIcon = () => {
-    switch (sortMode) {
-      case 'alphabetical': return 'sort_by_alpha';
-      case 'frequency': return 'analytics';
-      case 'recency': return 'schedule';
-      case 'smart':
-      default: return 'auto_awesome';
+  const handleToggleTag = (tag: Tag) => {
+    const current = value ?? [];
+    const tagIdStr = String(tag.id);
+    const isSelected = current.includes(tagIdStr);
+
+    if (isSelected) {
+      onChange(current.filter((id) => id !== tagIdStr));
+    } else {
+      onChange([...current, tagIdStr]);
+      recordSelection.mutate({ type: 'TAG', id: tag.id });
     }
   };
 
@@ -98,7 +101,7 @@ export function TagSelector({
         className="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-tighter text-dn-text-muted hover:text-dn-primary transition-colors bg-dn-surface-low px-2 py-0.5 rounded-full"
         title={`${t('common.sort')}: ${sortMode}`}
       >
-        <Icon name={getSortIcon()} className="text-xs" />
+        <Icon name={getSortIcon(sortMode)} className="text-xs" />
         {sortMode}
       </button>
     </div>
@@ -117,15 +120,7 @@ export function TagSelector({
               <button
                 key={tag.id}
                 type="button"
-                onClick={() => {
-                  const current = value ?? [];
-                  if (selected) {
-                    onChange(current.filter((id) => id !== String(tag.id)));
-                  } else {
-                    onChange([...current, String(tag.id)]);
-                    recordSelection.mutate({ type: 'TAG', id: tag.id });
-                  }
-                }}
+                onClick={() => handleToggleTag(tag)}
                 className={[
                   'px-3 py-1.5 rounded-pill text-xs font-medium border transition-all cursor-pointer',
                   selected

@@ -8,7 +8,7 @@ import { Modal } from '@/components/ui/Modal';
 import { NodeForm } from '@/components/nodes/NodeForm';
 import type { FormValues } from '@/components/events/EventFormMapper';
 import type { FinanceNode } from '@/models';
-import { sortByUsage } from '@/lib/usageSorter';
+import { sortByUsage, getSortIcon } from '@/lib/usageSorter';
 import type { SortMode } from '@/lib/usageSorter';
 import { useUsageStats, useRecordSelection } from '@/hooks/useSelectionHistory';
 
@@ -64,16 +64,6 @@ export function LineItemsEditor({
     }
   };
 
-  const getSortIcon = () => {
-    switch (sortMode) {
-      case 'alphabetical': return 'sort_by_alpha';
-      case 'frequency': return 'analytics';
-      case 'recency': return 'schedule';
-      case 'smart':
-      default: return 'auto_awesome';
-    }
-  };
-
   const handleNodeChange = (val: string | number, onChange: (val: string) => void) => {
     const stringVal = String(val);
     onChange(stringVal);
@@ -99,7 +89,7 @@ export function LineItemsEditor({
             className="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-tighter text-dn-text-muted hover:text-dn-primary transition-colors bg-dn-surface-low px-2 py-0.5 rounded-full"
             title={`${t('common.sort')}: ${sortMode}`}
           >
-            <Icon name={getSortIcon()} className="text-[10px]" />
+            <Icon name={getSortIcon(sortMode)} className="text-[10px]" />
             {sortMode}
           </button>
         </div>
