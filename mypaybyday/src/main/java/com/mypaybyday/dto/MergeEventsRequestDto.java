@@ -16,4 +16,16 @@ public class MergeEventsRequestDto {
 	 * entries — one per original line item.
 	 */
 	public List<Long> groupByNodeIds;
+
+	/**
+	 * ID of the category to assign to the base event after the merge.
+	 * If null, the base event's existing category is preserved.
+	 */
+	public Long categoryId;
+
+	/**
+	 * IDs of the tags to assign to the base event after the merge.
+	 * If null, the base event's existing tags are preserved.
+	 */
+	public List<Long> tagIds;
 }

@@ -11,9 +11,9 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Pagination } from '@/components/ui/Pagination';
 import { formatCurrency, eventNetAmount } from '@/lib/format';
 import { Routes } from '@/lib/routes';
-import type { FinanceEvent } from '@/models';
+import type { Category, FinanceEvent, Tag } from '@/models';
 
-type MergeStep = 'select-base' | 'select-sources' | 'configure-grouping' | 'confirm';
+type MergeStep = 'select-base' | 'select-sources' | 'configure-grouping' | 'configure-meta' | 'confirm';
 
 export function MergeEventsModal({
   open,
@@ -32,6 +32,8 @@ export function MergeEventsModal({
   const [baseEvent, setBaseEvent] = useState<FinanceEvent | null>(null);
   const [selectedSourceIds, setSelectedSourceIds] = useState<Set<number>>(new Set());
   const [groupByNodeIds, setGroupByNodeIds] = useState<Set<number>>(new Set());
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [selectedTagIds, setSelectedTagIds] = useState<Set<number>>(new Set());
 
   const { data: paged, isLoading, error } = useEvents({ page });
 
@@ -40,6 +42,8 @@ export function MergeEventsModal({
     setBaseEvent(null);
     setSelectedSourceIds(new Set());
     setGroupByNodeIds(new Set());
+    setSelectedCategoryId(null);
+    setSelectedTagIds(new Set());
     setSearch('');
     setPage(0);
     onClose();
@@ -54,27 +58,21 @@ export function MergeEventsModal({
   const handleToggleSource = (id: number) => {
     setSelectedSourceIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
 
   const allEvents = paged?.content || [];
-
   const sourceEvents = allEvents.filter((e) => selectedSourceIds.has(e.id));
 
-  // Collect unique nodes across base + selected sources
+  // Unique nodes across base + selected sources
   const allNodes = useMemo(() => {
     const nodeMap = new Map<number, string>();
     const addNodes = (event: FinanceEvent) => {
       for (const li of event.lineItems) {
-        if (!nodeMap.has(li.financeNodeId)) {
-          nodeMap.set(li.financeNodeId, li.financeNodeName);
-        }
+        if (!nodeMap.has(li.financeNodeId)) nodeMap.set(li.financeNodeId, li.financeNodeName);
       }
     };
     if (baseEvent) addNodes(baseEvent);
@@ -82,20 +80,56 @@ export function MergeEventsModal({
     return Array.from(nodeMap.entries()).map(([id, name]) => ({ id, name }));
   }, [baseEvent, sourceEvents]);
 
+  // Unique categories across base + selected sources (excluding null)
+  const allCategories = useMemo(() => {
+    const catMap = new Map<number, Category>();
+    const addCat = (event: FinanceEvent) => {
+      if (event.category && !catMap.has(event.category.id)) catMap.set(event.category.id, event.category);
+    };
+    if (baseEvent) addCat(baseEvent);
+    sourceEvents.forEach(addCat);
+    return Array.from(catMap.values());
+  }, [baseEvent, sourceEvents]);
+
+  // Unique tags across base + selected sources
+  const allTags = useMemo(() => {
+    const tagMap = new Map<number, Tag>();
+    const addTags = (event: FinanceEvent) => {
+      for (const tag of event.tags) {
+        if (!tagMap.has(tag.id)) tagMap.set(tag.id, tag);
+      }
+    };
+    if (baseEvent) addTags(baseEvent);
+    sourceEvents.forEach(addTags);
+    return Array.from(tagMap.values());
+  }, [baseEvent, sourceEvents]);
+
   const handleGoToGrouping = () => {
-    // Default: all nodes grouped
     setGroupByNodeIds(new Set(allNodes.map((n) => n.id)));
     setStep('configure-grouping');
+  };
+
+  const handleGoToMeta = () => {
+    // Default: base event's category and union of all tags
+    setSelectedCategoryId(baseEvent?.category?.id ?? null);
+    setSelectedTagIds(new Set(allTags.map((t) => t.id)));
+    setStep('configure-meta');
   };
 
   const handleToggleNode = (id: number) => {
     setGroupByNodeIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleToggleTag = (id: number) => {
+    setSelectedTagIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -106,6 +140,8 @@ export function MergeEventsModal({
       baseId: baseEvent.id,
       sourceIds: Array.from(selectedSourceIds),
       groupByNodeIds: Array.from(groupByNodeIds),
+      categoryId: selectedCategoryId,
+      tagIds: Array.from(selectedTagIds),
     });
     handleClose();
     navigate(Routes.EVENT_DETAIL(merged.id));
@@ -138,6 +174,7 @@ export function MergeEventsModal({
     'select-base': t('events.mergeSelectBase'),
     'select-sources': t('events.mergeSelectSources'),
     'configure-grouping': t('events.mergeConfigureGrouping'),
+    'configure-meta': t('events.mergeConfigureMeta'),
     'confirm': t('events.mergeConfirm'),
   };
 
@@ -208,22 +245,33 @@ export function MergeEventsModal({
               <Button variant="ghost" onClick={() => setStep('select-base')}>
                 {t('common.back')}
               </Button>
-              <Button
-                onClick={handleGoToGrouping}
-                disabled={selectedSourceIds.size === 0}
-              >
+              <Button onClick={handleGoToGrouping} disabled={selectedSourceIds.size === 0}>
                 {t('common.next')}
               </Button>
             </div>
           </>
         )}
 
-        {step === 'configure-grouping' && baseEvent && (
+        {step === 'configure-grouping' && (
           <ConfigureGroupingStep
             nodes={allNodes}
             groupByNodeIds={groupByNodeIds}
             onToggleNode={handleToggleNode}
             onBack={() => setStep('select-sources')}
+            onNext={handleGoToMeta}
+            t={t}
+          />
+        )}
+
+        {step === 'configure-meta' && baseEvent && (
+          <ConfigureMetaStep
+            categories={allCategories}
+            tags={allTags}
+            selectedCategoryId={selectedCategoryId}
+            selectedTagIds={selectedTagIds}
+            onSelectCategory={setSelectedCategoryId}
+            onToggleTag={handleToggleTag}
+            onBack={() => setStep('configure-grouping')}
             onNext={() => setStep('confirm')}
             t={t}
           />
@@ -235,7 +283,7 @@ export function MergeEventsModal({
             sourceEvents={sourceEvents}
             mergedTotal={mergedTotal}
             isPending={mergeEvents.isPending}
-            onBack={() => setStep('configure-grouping')}
+            onBack={() => setStep('configure-meta')}
             onConfirm={handleConfirmMerge}
             t={t}
           />
@@ -371,12 +419,109 @@ function ConfigureGroupingStep({
       </div>
 
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onBack}>
-          {t('common.back')}
-        </Button>
-        <Button onClick={onNext}>
-          {t('common.next')}
-        </Button>
+        <Button variant="ghost" onClick={onBack}>{t('common.back')}</Button>
+        <Button onClick={onNext}>{t('common.next')}</Button>
+      </div>
+    </>
+  );
+}
+
+function ConfigureMetaStep({
+  categories,
+  tags,
+  selectedCategoryId,
+  selectedTagIds,
+  onSelectCategory,
+  onToggleTag,
+  onBack,
+  onNext,
+  t,
+}: {
+  categories: Category[];
+  tags: Tag[];
+  selectedCategoryId: number | null;
+  selectedTagIds: Set<number>;
+  onSelectCategory: (id: number | null) => void;
+  onToggleTag: (id: number) => void;
+  onBack: () => void;
+  onNext: () => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}) {
+  return (
+    <>
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-dn-text-muted uppercase tracking-wide px-1">
+          {t('events.mergeMetaCategoryTitle')}
+        </p>
+        <div className="rounded-2xl border border-dn-border bg-dn-surface divide-y divide-white/5">
+          <button
+            type="button"
+            onClick={() => onSelectCategory(null)}
+            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-dn-primary/5 transition-colors text-left"
+          >
+            <div className={[
+              'shrink-0 w-5 h-5 border-2 rounded-full flex items-center justify-center transition-colors',
+              selectedCategoryId === null ? 'border-dn-primary bg-dn-primary' : 'border-dn-text-muted',
+            ].join(' ')}>
+              {selectedCategoryId === null && <Icon name="check" className="text-xs text-white" />}
+            </div>
+            <span className="text-sm text-dn-text-muted italic">{t('events.mergeMetaCategoryNone')}</span>
+          </button>
+          {categories.map((cat) => {
+            const selected = selectedCategoryId === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => onSelectCategory(cat.id)}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-dn-primary/5 transition-colors text-left"
+              >
+                <div className={[
+                  'shrink-0 w-5 h-5 border-2 rounded-full flex items-center justify-center transition-colors',
+                  selected ? 'border-dn-primary bg-dn-primary' : 'border-dn-text-muted',
+                ].join(' ')}>
+                  {selected && <Icon name="check" className="text-xs text-white" />}
+                </div>
+                <span className="text-sm text-dn-text-main">{cat.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {tags.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-dn-text-muted uppercase tracking-wide px-1">
+            {t('events.mergeMetaTagsTitle')}
+          </p>
+          <p className="text-xs text-dn-text-muted px-1">{t('events.mergeMetaTagsHint')}</p>
+          <div className="rounded-2xl border border-dn-border bg-dn-surface divide-y divide-white/5">
+            {tags.map((tag) => {
+              const selected = selectedTagIds.has(tag.id);
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => onToggleTag(tag.id)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-dn-primary/5 transition-colors text-left"
+                >
+                  <div className={[
+                    'shrink-0 w-5 h-5 border-2 rounded flex items-center justify-center transition-colors',
+                    selected ? 'border-dn-primary bg-dn-primary' : 'border-dn-text-muted',
+                  ].join(' ')}>
+                    {selected && <Icon name="check" className="text-xs text-white" />}
+                  </div>
+                  <span className="text-sm text-dn-text-main">{tag.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" onClick={onBack}>{t('common.back')}</Button>
+        <Button onClick={onNext}>{t('common.next')}</Button>
       </div>
     </>
   );
@@ -432,9 +577,7 @@ function MergeConfirmStep({
       </p>
 
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onBack} disabled={isPending}>
-          {t('common.back')}
-        </Button>
+        <Button variant="ghost" onClick={onBack} disabled={isPending}>{t('common.back')}</Button>
         <Button variant="danger" onClick={onConfirm} disabled={isPending}>
           {isPending ? t('common.loading') : t('events.mergeConfirmAction')}
         </Button>

@@ -475,10 +475,13 @@ public class EventService {
 	* @param baseEventId    the ID of the event that will absorb the others
 	* @param sourceIds      IDs of the events to be merged into the base (must not contain baseEventId)
 	* @param groupByNodeIds IDs of FinanceNodes whose amounts should be aggregated; may be null or empty
+	* @param categoryId     ID of the category to assign to the base event; if null the existing category is kept
+	* @param tagIds         IDs of the tags to assign to the base event; if null the existing tags are kept
 	* @return the updated base event DTO after the merge
 	*/
 	@Transactional
-	public FinanceEventDto mergeEvents(Long baseEventId, List<Long> sourceIds, List<Long> groupByNodeIds)
+	public FinanceEventDto mergeEvents(Long baseEventId, List<Long> sourceIds, List<Long> groupByNodeIds,
+			Long categoryId, List<Long> tagIds)
 			throws BusinessException {
 		if (sourceIds == null || sourceIds.isEmpty()) {
 			throw new BusinessException(messages.get(MsgKey.EVENT_MERGE_NO_SOURCES));
@@ -548,6 +551,18 @@ public class EventService {
 
 		// Put negative amounts first
 		baseTransaction.lineItems.sort(Comparator.comparing(li -> li.amount.signum() >= 0 ? 1 : 0));
+
+		if (categoryId != null) {
+			baseEvent.category = categoryService.findEntityById(categoryId);
+		}
+
+		if (tagIds != null) {
+			List<TagEntity> resolved = new ArrayList<>();
+			for (Long tagId : tagIds) {
+				resolved.add(tagService.findTagEntity(tagId));
+			}
+			baseEvent.tags = resolved;
+		}
 
 		// Break bidirectional relations with external events to prevent Hibernate errors before deletion.
 		Set<FinanceEventEntity> sourceSet = new HashSet<>(sourceEvents);
