@@ -108,7 +108,7 @@ export const SearchableSelect = forwardRef<HTMLDivElement, SearchableSelectProps
 
           {/* Bottom Sheet Modal */}
           {isOpen && createPortal(
-            <div className="fixed inset-0 z-100 flex flex-col justify-end sm:justify-center sm:items-center">
+            <div className="fixed inset-0 z-100 flex flex-col items-center justify-center">
               {/* Backdrop */}
               <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in"
@@ -122,11 +122,11 @@ export const SearchableSelect = forwardRef<HTMLDivElement, SearchableSelectProps
 
               {/* Panel */}
               <div
-                className="relative w-full sm:max-w-md sm:mx-auto bg-dn-surface sm:border border-t border-white/5 sm:rounded-card rounded-t-3xl shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[70vh] sm:min-h-[40vh] animate-in slide-in-from-bottom sm:slide-in-from-bottom-0"
+                className="relative w-full max-w-md mx-4 bg-dn-surface border border-white/5 rounded-card shadow-2xl flex flex-col max-h-[85vh] min-h-[40vh] animate-in fade-in zoom-in-95"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header with Search */}
-                <div className="p-4 border-b border-white/5 bg-dn-surface sticky top-0 sm:rounded-t-card rounded-t-3xl flex gap-3 items-center">
+                <div className="p-4 border-b border-white/5 bg-dn-surface sticky top-0 rounded-t-card flex gap-3 items-center">
                   <div className="relative flex-1">
                     <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-lg" />
                     <input
