@@ -15,6 +15,7 @@ const en = {
     edit: 'Edit',
     archive: 'Archive',
     archived: 'Archived',
+    moreActions: 'More actions',
     view: 'View',
     add: 'Add',
     search: 'Search...',
