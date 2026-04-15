@@ -6,10 +6,13 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -27,6 +30,7 @@ import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.entity.FinanceLineItemEntity;
+import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.entity.FinanceTransactionEntity;
 import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.enums.EntityType;
@@ -242,7 +246,6 @@ public class EventService {
 	*/
 	@Transactional
 	public FinanceEventDto create(FinanceEventEntity event) throws BusinessException {
-		eventValidator.validate(event);
 
 		if (event.transaction == null) {
 			throw new BusinessException(messages.get(MsgKey.EVENT_TRANSACTION_REQUIRED));
@@ -263,6 +266,10 @@ public class EventService {
 		event.files = resolveFiles(event.fileIds);
 
 		event.transaction = tx;
+
+		// TODO: Events should validate: Don't duplicate tags/files. Categories
+		eventValidator.validate(event);
+
 		eventRepository.persist(event);
 		return FinanceEventDto.from(event);
 	}
@@ -318,8 +325,6 @@ public class EventService {
 			}
 		}
 
-		eventValidator.validate(event);
-		
 		// --- CategoryEntity ---
 		if (patch.getCategory().isPresent()) {
 			CategoryDto catDto = patch.getCategory().get();
@@ -364,6 +369,8 @@ public class EventService {
 		if (patch.getTransaction().isPresent() && patch.getTransaction().get() != null) {
 			transactionService.update(event.transaction.id, patch.getTransaction().get().toEntity());
 		}
+
+		eventValidator.validate(event);
 
 		return FinanceEventDto.from(event);
 	}
@@ -445,6 +452,7 @@ public class EventService {
 		for (Long fileId : fileIds) {
 			FileEntity file = FileEntity.findById(fileId);
 			if (file == null) {
+				// TODO: Use messages.get(MsgKey.FILE_NOT_FOUND)
 				throw new BusinessException("file.not.found");
 			}
 			resolved.add(file);
@@ -452,6 +460,139 @@ public class EventService {
 		return resolved;
 	}
 
+	/**
+	* Merges multiple source events into a single base event.
+	*
+	* <p>The base event retains its name, description, category, tags, and date.
+	* All {@link FinanceLineItemEntity}s from the source events are combined into the
+	* base event's {@link FinanceTransactionEntity}. Line items for nodes whose ID is
+	* present in {@code groupByNodeIds} are aggregated (summed); all other line items
+	* are appended individually, preserving duplicates. Source events are permanently
+	* deleted after the merge.
+	*
+	* <p>All events (base + sources) must share the same {@link EventType}.
+	*
+	* @param baseEventId    the ID of the event that will absorb the others
+	* @param sourceIds      IDs of the events to be merged into the base (must not contain baseEventId)
+	* @param groupByNodeIds IDs of FinanceNodes whose amounts should be aggregated; may be null or empty
+	* @param categoryId     ID of the category to assign to the base event; if null the existing category is kept
+	* @param tagIds         IDs of the tags to assign to the base event; if null the existing tags are kept
+	* @return the updated base event DTO after the merge
+	*/
+	@Transactional
+	public FinanceEventDto mergeEvents(Long baseEventId, List<Long> sourceIds, List<Long> groupByNodeIds,
+			Long categoryId, List<Long> tagIds, String name, String description)
+			throws BusinessException {
+		if (sourceIds == null || sourceIds.isEmpty()) {
+			throw new BusinessException(messages.get(MsgKey.EVENT_MERGE_NO_SOURCES));
+		}
+
+		FinanceEventEntity baseEvent = eventRepository.findById(baseEventId);
+		if (baseEvent == null) {
+			throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
+		}
+
+		if (sourceIds.contains(baseEventId)) {
+			throw new BusinessException(messages.get(MsgKey.EVENT_MERGE_SELF));
+		}
+
+		List<FinanceEventEntity> sourceEvents = validateAndFetchRelatedEvents(sourceIds);
+		sourceEvents.sort(Comparator.comparing(e -> e.transaction.transactionDate));
+
+		boolean allSameType = sourceEvents.stream().allMatch(e -> e.type == baseEvent.type);
+		if (!allSameType) {
+			throw new BusinessException(messages.get(MsgKey.EVENT_MERGE_MIXED_TYPES));
+		}
+
+		Set<Long> groupSet = (groupByNodeIds != null) ? new HashSet<>(groupByNodeIds) : new HashSet<>();
+
+		// Collect all line items from base + sources (base first, then sources in date order)
+		List<FinanceLineItemEntity> allLineItems = new ArrayList<>();
+		if (baseEvent.transaction != null && baseEvent.transaction.lineItems != null) {
+			allLineItems.addAll(baseEvent.transaction.lineItems);
+		}
+		for (FinanceEventEntity source : sourceEvents) {
+			if (source.transaction != null && source.transaction.lineItems != null) {
+				allLineItems.addAll(source.transaction.lineItems);
+			}
+		}
+
+		// Aggregate grouped nodes, keep the rest flat
+		Map<FinanceNodeEntity, BigDecimal> aggregated = new LinkedHashMap<>();
+		List<FinanceLineItemEntity> flat = new ArrayList<>();
+
+		for (FinanceLineItemEntity li : allLineItems) {
+			if (li.financeNode == null) continue;
+			if (groupSet.contains(li.financeNode.id)) {
+				aggregated.merge(li.financeNode, li.amount, BigDecimal::add);
+			} else {
+				flat.add(li);
+			}
+		}
+
+		FinanceTransactionEntity baseTransaction = baseEvent.transaction;
+		baseTransaction.lineItems.clear();
+
+		for (Map.Entry<FinanceNodeEntity, BigDecimal> entry : aggregated.entrySet()) {
+			FinanceLineItemEntity lineItem = new FinanceLineItemEntity();
+			lineItem.transaction = baseTransaction;
+			lineItem.financeNode = entry.getKey();
+			lineItem.amount = entry.getValue();
+			baseTransaction.lineItems.add(lineItem);
+		}
+
+		for (FinanceLineItemEntity li : flat) {
+			FinanceLineItemEntity lineItem = new FinanceLineItemEntity();
+			lineItem.transaction = baseTransaction;
+			lineItem.financeNode = li.financeNode;
+			lineItem.amount = li.amount;
+			baseTransaction.lineItems.add(lineItem);
+		}
+
+		// Put negative amounts first
+		baseTransaction.lineItems.sort(Comparator.comparing(li -> li.amount.signum() >= 0 ? 1 : 0));
+
+		if (name != null && !name.isBlank()) {
+			baseEvent.name = name.trim();
+		}
+
+		if (description != null && !description.isBlank()) {
+			baseEvent.description = description.trim();
+		}
+
+		if (categoryId != null) {
+			baseEvent.category = categoryService.findEntityById(categoryId);
+		}
+
+		if (tagIds != null) {
+			List<TagEntity> resolved = new ArrayList<>();
+			for (Long tagId : tagIds) {
+				resolved.add(tagService.findTagEntity(tagId));
+			}
+			baseEvent.tags = resolved;
+		}
+
+		// Break bidirectional relations with external events to prevent Hibernate errors before deletion.
+		Set<FinanceEventEntity> sourceSet = new HashSet<>(sourceEvents);
+		sourceEvents.stream()
+				.flatMap(s -> s.relatedEvents.stream())
+				.filter(r -> !sourceSet.contains(r))
+				.collect(Collectors.toSet())
+				.forEach(r -> r.relatedEvents.removeAll(sourceSet));
+		sourceEvents.forEach(s -> s.relatedEvents.clear());
+
+		// Delete related events
+		for (FinanceEventEntity source : sourceEvents) {
+			entityDraftService.deleteByOriginalEntityId(source.id, EntityType.FINANCE_EVENT);
+			eventRepository.delete(source);
+		}
+
+		return FinanceEventDto.from(baseEvent);
+	}
+
+	/**
+	* Adds bidirectional relations between the base event and the given related events.
+	*/
 	@Transactional
 	public FinanceEventDto addRelations(Long eventId, List<Long> relatedIds) throws BusinessException {
 		FinanceEventEntity event = eventRepository.findById(eventId);
@@ -459,17 +600,18 @@ public class EventService {
 
 		List<FinanceEventEntity> existingRelated = validateAndFetchRelatedEvents(relatedIds);
 
-		for (FinanceEventEntity fe : existingRelated) {
-			if (fe.id.equals(eventId)) continue;
-			if (!event.relatedEvents.contains(fe)) event.relatedEvents.add(fe);
-			if (!fe.relatedEvents.contains(event)) fe.relatedEvents.add(event);
+		for (FinanceEventEntity related : existingRelated) {
+			if (related.id.equals(eventId)) continue;
+			event.relatedEvents.add(related);
+			related.relatedEvents.add(event);
 		}
 
-		existingRelated.add(event);
-		eventRepository.persist(existingRelated);
 		return FinanceEventDto.from(event);
 	}
 
+	/**
+	* Removes bidirectional relations between the base event and the given related events.
+	*/
 	@Transactional
 	public FinanceEventDto removeRelations(Long eventId, List<Long> relatedIds) throws BusinessException {
 		FinanceEventEntity event = eventRepository.findById(eventId);
@@ -479,17 +621,11 @@ public class EventService {
 
 		List<FinanceEventEntity> existingRelated = validateAndFetchRelatedEvents(relatedIds);
 
-		for (FinanceEventEntity relEvent : existingRelated) {
-			if (relEvent.id.equals(eventId)) {
-				continue;
-			}
-
-			event.relatedEvents.removeIf(e -> e.id.equals(relEvent.id));
-			relEvent.relatedEvents.removeIf(e -> e.id.equals(eventId));
+		for (FinanceEventEntity related : existingRelated) {
+			if (related.id.equals(eventId)) continue;
+			event.relatedEvents.remove(related);
+			related.relatedEvents.remove(event);
 		}
-
-		existingRelated.add(event);
-		eventRepository.persist(existingRelated);
 
 		return FinanceEventDto.from(event);
 	}
@@ -500,26 +636,10 @@ public class EventService {
 	}
 
 	private List<FinanceEventEntity> validateAndFetchRelatedEvents(List<Long> relatedIds) throws BusinessException {
-		List<FinanceEventEntity> fetchedRelated = eventRepository.findByIds(relatedIds);
-
-		// The default method findByIds return nulls for missing IDs, so we need to check which ones were not found
-		List<FinanceEventEntity> existingRelated = new ArrayList<>(relatedIds.size());
-		List<Long> missingIds = new ArrayList<>();
-
-		for (int i = 0; i < relatedIds.size(); i++) {
-			FinanceEventEntity related = i < fetchedRelated.size() ? fetchedRelated.get(i) : null;
-			if (related == null) {
-				missingIds.add(relatedIds.get(i));
-				continue;
-			}
-			existingRelated.add(related);
+		List<FinanceEventEntity> found = eventRepository.list("id IN ?1", relatedIds);
+		if (found.size() != relatedIds.size()) {
+			throw new BusinessException(messages.get(MsgKey.EVENT_RELATED_NOT_FOUND));
 		}
-
-		if (!missingIds.isEmpty()) {
-			throw new BusinessException(
-					messages.get(MsgKey.EVENT_RELATED_NOT_FOUND, new LinkedHashSet<>(missingIds).toString()));
-		}
-
-		return existingRelated;
+		return found;
 	}
 }

@@ -7,6 +7,7 @@ import jakarta.ws.rs.core.Response;
 import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.EventQuery.DateField;
 import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.dto.MergeEventsRequestDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.PatchEventDto;
 import com.mypaybyday.entity.FinanceEventEntity;
@@ -141,5 +142,24 @@ public class EventResource {
 	@Parameter(description = "List of related event IDs to remove", required = true) java.util.List<Long> relatedIds)
 	throws BusinessException {
 	return Response.ok(eventService.removeRelations(id, relatedIds)).build();
+    }
+
+    @POST
+    @Path("/{id}/merge")
+    @Operation(summary = "Merge source events into a base event",
+	description = "Combines all line items from the source events into the base event's transaction " +
+		"(summing amounts for duplicate nodes), then permanently deletes the source events. " +
+		"All events must share the same type.")
+    @APIResponses({
+	@APIResponse(responseCode = "200", description = "Merge successful — returns the updated base event",
+		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
+	@APIResponse(responseCode = "400", description = "Validation error (e.g. mixed types, self-merge)"),
+	@APIResponse(responseCode = "404", description = "Base or source event not found")
+    })
+    public Response mergeEvents(
+	@Parameter(description = "ID of the base event", required = true) @PathParam("id") Long id,
+	MergeEventsRequestDto request)
+	throws BusinessException {
+	return Response.ok(eventService.mergeEvents(id, request.sourceIds, request.groupByNodeIds, request.categoryId, request.tagIds, request.name, request.description)).build();
     }
 }

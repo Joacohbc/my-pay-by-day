@@ -34,6 +34,9 @@ public enum MsgKey {
 	EVENT_DATE_RANGE_NULL("error.event.date_range_null"),
 	EVENT_DATE_RANGE_INVALID("error.event.date_range_invalid"),
 	EVENT_RELATED_NOT_FOUND("error.event.related_not_found"),
+	EVENT_MERGE_SELF("error.event.merge_self"),
+	EVENT_MERGE_MIXED_TYPES("error.event.merge_mixed_types"),
+	EVENT_MERGE_NO_SOURCES("error.event.merge_no_sources"),
 
 	// ── Finance Node ──────────────────────────────────────
 	NODE_NOT_FOUND("error.node.not_found"),

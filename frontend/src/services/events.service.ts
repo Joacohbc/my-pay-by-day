@@ -40,4 +40,6 @@ export const eventsService = {
     api.post<FinanceEvent>(`/events/${id}/relations`, relatedIds),
   removeRelations: (id: number, relatedIds: number[]) =>
     api.delete<FinanceEvent>(`/events/${id}/relations`, relatedIds),
+  mergeEvents: (baseId: number, sourceIds: number[], groupByNodeIds: number[], categoryId: number | null, tagIds: number[], name: string, description: string) =>
+    api.post<FinanceEvent>(`/events/${baseId}/merge`, { sourceIds, groupByNodeIds, categoryId, tagIds, name, description }),
 };
