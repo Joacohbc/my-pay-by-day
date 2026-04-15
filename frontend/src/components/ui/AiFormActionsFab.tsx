@@ -156,14 +156,14 @@ export function AiFormActionsFab({ controller }: AiFormActionsFabProps) {
         type="button"
         onClick={() => setIsOpen((previousIsOpen) => !previousIsOpen)}
         disabled={isActionsDisabled}
-        className="h-12 w-12 rounded-full bg-dn-primary text-white shadow-lg shadow-dn-primary/25 flex items-center justify-center hover:bg-dn-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="h-8 w-8 p-6 rounded-full bg-dn-primary text-white shadow-lg shadow-dn-primary/25 flex items-center justify-center hover:bg-dn-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         title={t('ai.actions.title')}
         aria-label={t('ai.actions.title')}
       >
         {controller.isActiveFieldLoading || isPreparingAudio ? (
           <Spinner size="sm" />
         ) : (
-          <Icon name="auto_awesome" className="text-base" />
+          <Icon name="auto_awesome" className="text-lg" />
         )}
       </button>
     </div>
