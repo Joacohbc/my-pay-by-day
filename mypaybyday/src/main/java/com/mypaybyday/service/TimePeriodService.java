@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -127,7 +129,7 @@ public class TimePeriodService {
 		return new TimePeriodBalanceDto(timePeriod, income, outbound, categoryBudgets, events);
 	}
 
-	private List<CategoryBudgetSummaryDto> calculateCategoryBudgets(List<TimePeriodBudgetEntity> budgets, List<FinanceEventDto> events) {
+	private List<CategoryBudgetSummaryDto> calculateCategoryBudgets(Set<TimePeriodBudgetEntity> budgets, List<FinanceEventDto> events) {
 		if (budgets == null || budgets.isEmpty()) {
 			return List.of();
 		}

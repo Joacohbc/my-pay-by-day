@@ -3,6 +3,8 @@ package com.mypaybyday.ai;
 import java.math.BigDecimal;
 import java.time.temporal.Temporal;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -95,7 +97,7 @@ public class FinanceAiTools {
 			"Use this tool when the user asks about tags or when you need to resolve tag names to IDs.")
 	@Transactional
 	public String getTags() {
-		List<TagEntity> tags = tagRepository.listAll();
+			List<TagEntity> tags = tagRepository.listAll();
 		if (tags.isEmpty()) {
 			return "No tags found.";
 		}

@@ -342,9 +342,9 @@ public class EventService {
 		if (patch.getTags().isPresent()) {
 			List<TagDto> tagDtos = patch.getTags().get();
 			if (tagDtos == null || tagDtos.isEmpty()) {
-				event.tags = new ArrayList<>();
+				event.tags = new HashSet<>();
 			} else {
-				List<TagEntity> resolved = new ArrayList<>();
+				Set<TagEntity> resolved = new HashSet<>();
 				for (TagDto tagDto : tagDtos) {
 					if (tagDto.id() == null) {
 						throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
@@ -359,7 +359,7 @@ public class EventService {
 		if (patch.getFileIds().isPresent()) {
 			List<Long> fileIds = patch.getFileIds().get();
 			if (fileIds == null || fileIds.isEmpty()) {
-				event.files = new ArrayList<>();
+				event.files = new HashSet<>();
 			} else {
 				event.files = resolveFiles(fileIds);
 			}
@@ -426,11 +426,11 @@ public class EventService {
 	* Resolves a list of TagEntity stubs (containing only IDs) into managed TagEntity entities.
 	* Returns an empty list if the input is null.
 	*/
-	private List<TagEntity> resolveTags(List<TagEntity> stubs) throws BusinessException {
+	private Set<TagEntity> resolveTags(Set<TagEntity> stubs) throws BusinessException {
 		if (stubs == null || stubs.isEmpty()) {
-			return new ArrayList<>();
+			return new HashSet<>();
 		}
-		List<TagEntity> resolved = new ArrayList<>();
+		Set<TagEntity> resolved = new HashSet<>();
 		for (TagEntity stub : stubs) {
 			if (stub.id == null) {
 				throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
@@ -444,11 +444,11 @@ public class EventService {
 	* Resolves a list of File IDs into managed File entities.
 	* Returns an empty list if the input is null.
 	*/
-	private List<FileEntity> resolveFiles(List<Long> fileIds) throws BusinessException {
+	private Set<FileEntity> resolveFiles(List<Long> fileIds) throws BusinessException {
 		if (fileIds == null || fileIds.isEmpty()) {
-			return new ArrayList<>();
+			return new HashSet<>();
 		}
-		List<FileEntity> resolved = new ArrayList<>();
+		Set<FileEntity> resolved = new HashSet<>();
 		for (Long fileId : fileIds) {
 			FileEntity file = FileEntity.findById(fileId);
 			if (file == null) {
@@ -550,7 +550,7 @@ public class EventService {
 		}
 
 		// Put negative amounts first
-		baseTransaction.lineItems.sort(Comparator.comparing(li -> li.amount.signum() >= 0 ? 1 : 0));
+// sorting removed for Set
 
 		if (name != null && !name.isBlank()) {
 			baseEvent.name = name.trim();
@@ -565,7 +565,7 @@ public class EventService {
 		}
 
 		if (tagIds != null) {
-			List<TagEntity> resolved = new ArrayList<>();
+			Set<TagEntity> resolved = new HashSet<>();
 			for (Long tagId : tagIds) {
 				resolved.add(tagService.findTagEntity(tagId));
 			}

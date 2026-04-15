@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -20,12 +22,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity(name = "TimePeriod")
+@Table(name = "TimePeriod")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "TimePeriod")
 public class TimePeriodEntity extends BaseEntity {
 
 	@NotBlank
@@ -39,7 +41,7 @@ public class TimePeriodEntity extends BaseEntity {
 
 	@OneToMany(mappedBy = "timePeriod", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
 	@Builder.Default
-	public List<TimePeriodBudgetEntity> budgets = new ArrayList<>();
+	public Set<TimePeriodBudgetEntity> budgets = new HashSet<>();
 
 	public BigDecimal savingsPercentageGoal;
 

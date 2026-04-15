@@ -10,8 +10,8 @@ CREATE INDEX IF NOT EXISTS idx_finance_event_transaction ON FinanceEvent (transa
 CREATE INDEX IF NOT EXISTS idx_finance_event_category ON FinanceEvent (category_id);
 
 -- event_tag join table indexes
-CREATE INDEX IF NOT EXISTS idx_event_tag_event ON event_tag (event_id);
-CREATE INDEX IF NOT EXISTS idx_event_tag_tag ON event_tag (tag_id);
+CREATE INDEX IF NOT EXISTS idx_event_tag_event ON FinanceEvent_Tag (event_id);
+CREATE INDEX IF NOT EXISTS idx_event_tag_tag ON FinanceEvent_Tag (tag_id);
 
 -- FinanceTransaction indexes
 CREATE INDEX IF NOT EXISTS idx_finance_transaction_date ON FinanceTransaction (transactionDate);

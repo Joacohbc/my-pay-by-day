@@ -44,12 +44,12 @@ import lombok.Setter;
  * backend engine.
  */
 @Entity(name = "FinanceEvent")
+@Table(name = "FinanceEvent")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "FinanceEvent")
 public class FinanceEventEntity extends BaseEntity {
 
 	/**
@@ -121,9 +121,9 @@ public class FinanceEventEntity extends BaseEntity {
 	* {@code #Reimbursable}).
 	*/
 	@ManyToMany(fetch = FetchType.EAGER)
-	@JoinTable(name = "event_tag", joinColumns = @JoinColumn(name = "event_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
+	@JoinTable(name = "FinanceEvent_Tag", joinColumns = @JoinColumn(name = "event_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
 	@Builder.Default
-	public List<TagEntity> tags = new ArrayList<>();
+	public Set<TagEntity> tags = new HashSet<>();
 
 	/**
 	* Bidirectional relationship to other FinanceEvents.
@@ -138,7 +138,7 @@ public class FinanceEventEntity extends BaseEntity {
 	*/
 	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(
-		name = "event_relation",
+		name = "FinanceEvent_FinanceEvent",
 		joinColumns = @JoinColumn(name = "event_id"),
 		inverseJoinColumns = @JoinColumn(name = "related_event_id")
 	)
@@ -164,11 +164,11 @@ public class FinanceEventEntity extends BaseEntity {
 	*/
 	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(
-		name = "event_file",
+		name = "FinanceEvent_File",
 		joinColumns = @JoinColumn(name = "event_id"),
 		inverseJoinColumns = @JoinColumn(name = "file_id")
 	)
 	@Builder.Default
-	public List<FileEntity> files = new ArrayList<>();
+	public Set<FileEntity> files = new HashSet<>();
 
 }

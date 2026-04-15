@@ -16,13 +16,13 @@ import lombok.Setter;
 /**
  * Represents a file stored directly in the database.
  */
-@Entity
+@Entity(name = "File")
+@Table(name = "File")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "file_entity")
 public class FileEntity extends BaseEntity {
 
 	@NotBlank

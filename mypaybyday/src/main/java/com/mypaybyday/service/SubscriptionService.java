@@ -3,6 +3,8 @@ package com.mypaybyday.service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -123,7 +125,7 @@ public class SubscriptionService {
 			subscription.category = categoryService.findEntityById(dto.category().id());
 		}
 
-		subscription.tags = new ArrayList<>();
+		subscription.tags = new HashSet<>();
 		if (dto.tags() != null) {
 			for (TagDto tagDto : dto.tags()) {
 				if (tagDto.id() == null) {
@@ -203,7 +205,7 @@ public class SubscriptionService {
 		}
 
 		if (dto.tags() != null) {
-			subscription.tags = new ArrayList<>();
+			subscription.tags = new HashSet<>();
 			for (TagDto tagDto : dto.tags()) {
 				if (tagDto.id() == null) {
 					throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
@@ -322,7 +324,7 @@ public class SubscriptionService {
 
 		FinanceTransactionEntity transaction = new FinanceTransactionEntity();
 		transaction.transactionDate = LocalDateTime.now();
-		transaction.lineItems = new ArrayList<>();
+		transaction.lineItems = new HashSet<>();
 
 		for (FinanceLineItemDto dto : lineItems) {
 			FinanceLineItemEntity item = new FinanceLineItemEntity();
@@ -349,7 +351,7 @@ public class SubscriptionService {
 			event.category = category;
 		}
 
-		event.tags = new ArrayList<>();
+		event.tags = new HashSet<>();
 		if (sub.tags != null) {
 			for (TagEntity tag : sub.tags) {
 				TagEntity stub = new TagEntity();
