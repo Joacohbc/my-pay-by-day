@@ -371,8 +371,8 @@ export function EventForm({
           )}
         </div>
 
-        <AiFormActionsFab controller={aiController} />
       </form>
+      <AiFormActionsFab controller={aiController} />
     </FormProvider>
   );
 }

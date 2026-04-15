@@ -75,8 +75,8 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
 
   const isSubmitting = createTag.isPending || updateTag.isPending;
 
-  return (
-    <form
+  return <>
+      <form
       onSubmit={(e) => {
         e.stopPropagation();
         handleSubmit(onSubmit)(e);
@@ -108,7 +108,7 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
         </Button>
       </div>
 
-      <AiFormActionsFab controller={aiController} />
     </form>
-  );
+    <AiFormActionsFab controller={aiController} />
+  </>
 }

@@ -72,14 +72,15 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
         onSuccess?.(created as unknown as Category);
       }
     } catch (error) {
-       console.error(error);
+      console.error(error);
     }
   };
 
   const isSubmitting = createCategory.isPending || updateCategory.isPending;
 
   return (
-    <form
+    <>
+        <form
       onSubmit={(e) => {
         e.stopPropagation();
         handleSubmit(onSubmit)(e);
@@ -122,7 +123,8 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
         </Button>
       </div>
 
-      <AiFormActionsFab controller={aiController} />
     </form>
+    <AiFormActionsFab controller={aiController} />
+    </>
   );
 }

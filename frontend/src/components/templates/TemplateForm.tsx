@@ -219,8 +219,8 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
           )}
         </div>
 
-        <AiFormActionsFab controller={aiController} />
       </form>
+      <AiFormActionsFab controller={aiController} />
     </FormProvider>
   );
 }
