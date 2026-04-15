@@ -371,11 +371,15 @@ function SelectEventStep({
 
       <div className="max-h-[50vh] overflow-y-auto pr-1 space-y-2">
         {isLoading && <div className="py-4 text-center"><Spinner /></div>}
-        {error && <div className="py-2 text-center text-dn-error text-sm">{String(error)}</div>}
+        {!!error && (
+          <div className="py-2 text-center text-dn-error text-sm">
+            {error instanceof Error ? error.message : String(error)}
+          </div>
+        )}
 
         {!isLoading && !error && events.length === 0 && (
           <div className="py-4">
-            <EmptyState title={search ? t('events.noEventsFoundSearch') : t('events.noEventsFound')} />
+            <EmptyState title={search ? String(t('events.noEventsFoundSearch')) : String(t('events.noEventsFound'))} />
           </div>
         )}
 
