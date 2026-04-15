@@ -11,8 +11,8 @@ import type { Template, CreateTemplateDto, EventType, ModifierType } from '@/mod
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
 const lineItemSchema = z.object({
-  nodeId: z.string().default(''),
-  amount: z.string().default(''),
+  nodeId: z.string(),
+  amount: z.string(),
 });
 
 export function buildSchema(t: (key: string) => string) {
