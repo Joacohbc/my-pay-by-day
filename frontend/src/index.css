@@ -80,3 +80,8 @@ body,
   transform: scale(0.98);
   transition: transform 0.1s;
 }
+
+/* Ensure alerts always appear on top of everything */
+[data-sileo-viewport] {
+  z-index: 2147483647 !important;
+}

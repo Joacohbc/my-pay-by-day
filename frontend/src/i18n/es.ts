@@ -15,6 +15,7 @@ const es = {
     edit: 'Editar',
     archive: 'Archivar',
     archived: 'Archivado',
+    moreActions: 'Más acciones',
     view: 'Ver',
     add: 'Agregar',
     search: 'Buscar',
@@ -198,7 +199,6 @@ const es = {
     selectNode: 'Seleccionar nodo',
     amount: 'Monto',
     amountPlaceholder: '0.00',
-    amountPlaceholderEg: 'ej. 5.00',
     signedAmountHint:
       'Ingresa montos positivos — los signos se asignan automáticamente por posición. La suma debe ser cero.',
     manualAmountHint:
@@ -312,8 +312,6 @@ const es = {
     descriptionPlaceholder: 'Descripción opcional',
     deleteConfirm: '¿Eliminar esta plantilla?',
     eventType: 'Tipo de Evento',
-    originNode: 'Nodo Origen',
-    destinationNode: 'Nodo Destino',
     modifierType: 'Tipo de Modificador',
     modifierValue: 'Valor del Modificador',
     percentage: 'Porcentaje',
@@ -465,6 +463,8 @@ const es = {
       fixNameSpellingPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
       fixDescriptionSpellingLabel: 'Prompt para Corregir Ortografía de la Descripción',
       fixDescriptionSpellingPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
+      mergeDescriptionLabel: 'Prompt para Unificar Descripciones',
+      mergeDescriptionPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
       saved: 'Prompts de IA guardados',
       reset: 'Restablecer predeterminados',
     },

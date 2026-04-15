@@ -15,6 +15,7 @@ const en = {
     edit: 'Edit',
     archive: 'Archive',
     archived: 'Archived',
+    moreActions: 'More actions',
     view: 'View',
     add: 'Add',
     search: 'Search...',
@@ -199,7 +200,6 @@ const en = {
     selectNode: 'Select node',
     amount: 'Amount',
     amountPlaceholder: '0.00',
-    amountPlaceholderEg: 'e.g. 5.00',
     signedAmountHint:
       'Enter positive amounts — signs are assigned automatically by position. Sum must equal zero.',
     manualAmountHint:
@@ -313,8 +313,6 @@ const en = {
     descriptionPlaceholder: 'Optional description',
     deleteConfirm: 'Delete this template?',
     eventType: 'Event Type',
-    originNode: 'Origin Node',
-    destinationNode: 'Destination Node',
     modifierType: 'Modifier Type',
     modifierValue: 'Modifier Value',
     percentage: 'Percentage',
@@ -466,6 +464,8 @@ const en = {
       fixNameSpellingPlaceholder: 'Leave empty to use the default prompt...',
       fixDescriptionSpellingLabel: 'Fix Description Spelling prompt',
       fixDescriptionSpellingPlaceholder: 'Leave empty to use the default prompt...',
+      mergeDescriptionLabel: 'Merge Description prompt',
+      mergeDescriptionPlaceholder: 'Leave empty to use the default prompt...',
       saved: 'AI prompts saved',
       reset: 'Reset to defaults',
     },

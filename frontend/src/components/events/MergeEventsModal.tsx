@@ -13,6 +13,7 @@ import { formatCurrency, eventNetAmount } from '@/lib/format';
 import { Routes } from '@/lib/routes';
 import { aiService } from '@/services/ai.service';
 import { useAlert } from '@/contexts/AlertContext';
+import { aiPromptsStore } from '@/store/aiPromptsStore';
 import type { Category, FinanceEvent, Tag } from '@/models';
 
 type MergeStep = 'select-base' | 'select-sources' | 'configure-grouping' | 'configure-meta' | 'confirm';
@@ -136,6 +137,7 @@ export function MergeEventsModal({
       const result = await aiService.generateText({
         action: 'MERGE_DESCRIPTION',
         context: allDescriptions,
+        customPrompt: aiPromptsStore.getPromptForAction('mergeDescription'),
       });
       setMergedDescription(result.text);
     } catch (err) {

@@ -6,8 +6,12 @@ import { Input } from '@/components/ui/Input';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Modal } from '@/components/ui/Modal';
 import { NodeForm } from '@/components/nodes/NodeForm';
-import type { FormValues } from '@/components/events/EventFormMapper';
 import type { FinanceNode } from '@/models';
+
+interface LineItemsFormValues {
+  lineItems: { nodeId: string; amount: string }[];
+  isSimplifiedMode?: boolean;
+}
 import { sortByUsage, getSortIcon, nextSortMode } from '@/lib/usageSorter';
 import type { SortMode } from '@/lib/usageSorter';
 import { useUsageStats, useRecordSelection } from '@/hooks/useSelectionHistory';
@@ -26,7 +30,7 @@ export function LineItemsEditor({
 }: LineItemsEditorProps) {
 
   const { t } = useTranslation();
-  const { control, register, setValue, formState: { errors } } = useFormContext<FormValues>();
+  const { control, register, setValue, formState: { errors } } = useFormContext<LineItemsFormValues>();
   const { fields, append, remove } = useFieldArray({ control, name: 'lineItems' });
 
   const isSimplifiedMode = useWatch({ control, name: 'isSimplifiedMode' }) ?? true;
@@ -64,6 +68,18 @@ export function LineItemsEditor({
     onChange(stringVal);
     if (stringVal) recordSelection.mutate({ type: 'FINANCE_NODE', id: Number(stringVal) });
   };
+
+  // Enforce exactly 2 line items in simplified mode
+  useEffect(() => {
+    if (!isSimplifiedMode) return;
+    if (fields.length > 2) {
+      remove(Array.from({ length: fields.length - 2 }, (_, i) => i + 2));
+    } else if (fields.length < 2) {
+      for (let i = fields.length; i < 2; i++) {
+        append({ nodeId: '', amount: '' });
+      }
+    }
+  }, [isSimplifiedMode, fields.length, remove, append]);
 
   // Sync all line item amounts to the first amount in simplified mode
   useEffect(() => {
@@ -103,6 +119,14 @@ export function LineItemsEditor({
             type="button"
             onClick={() => {
               if (!isSimplifiedMode) {
+                // Normalize to exactly 2 items before entering simplified mode
+                if (fields.length > 2) {
+                  remove(Array.from({ length: fields.length - 2 }, (_, i) => i + 2));
+                } else if (fields.length < 2) {
+                  for (let i = fields.length; i < 2; i++) {
+                    append({ nodeId: '', amount: '' });
+                  }
+                }
                 setIsSimplifiedMode(true);
               } else {
                 const num = parseFloat(firstAmount ?? '') || 0;

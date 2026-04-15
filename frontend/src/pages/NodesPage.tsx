@@ -245,6 +245,7 @@ export function NodesPage() {
                   key={node.id}
                   node={node}
                   balance={undefined}
+                  hideTypeBadge
                   actions={
                     <div className="flex items-center gap-2">
                       <NodeBalanceBadge nodeId={node.id} />

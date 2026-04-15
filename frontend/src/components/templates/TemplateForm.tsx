@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useForm, Controller, useWatch } from 'react-hook-form';
+import { useEffect, useMemo } from 'react';
+import { useForm, Controller, useWatch, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { useCategories } from '@/hooks/useCategories';
@@ -9,12 +9,10 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
 import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
-import { Modal } from '@/components/ui/Modal';
-import { NodeForm } from '@/components/nodes/NodeForm';
+import { LineItemsEditor } from '@/components/events/LineItemsEditor';
 import { useAiFormController } from '@/hooks/useAiFormController';
 import {
   buildSchema,
@@ -42,10 +40,11 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
   const categories = categoriesPaged?.content ?? [];
   const tags = tagsPaged?.content ?? [];
   const nodes = nodesPaged?.content ?? [];
-  const activeNodes = nodes.filter((n) => !n.archived);
-  const nodeOptions = activeNodes.map((n) => ({ value: String(n.id), label: n.name }));
 
-  const [showNodeModal, setShowNodeModal] = useState<'origin' | 'destination' | null>(null);
+  const methods = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: editTarget ? fromTemplate(editTarget) : DEFAULT_VALUES,
+  });
 
   const {
     register,
@@ -55,10 +54,7 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
     getValues,
     control,
     formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: editTarget ? fromTemplate(editTarget) : DEFAULT_VALUES,
-  });
+  } = methods;
 
   // Re-populate when editTarget changes (e.g. modal opens for different item)
   useEffect(() => {
@@ -99,7 +95,7 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
   };
 
   return (
-    <>
+    <FormProvider {...methods}>
       <form
         className="space-y-4"
         onSubmit={(e) => {
@@ -144,65 +140,6 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
           )}
         />
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <Controller
-                name="originNodeId"
-                control={control}
-                render={({ field }) => (
-                  <SearchableSelect
-                    label={t('templates.originNode')}
-                    placeholder={t('common.none')}
-                    options={nodeOptions}
-                    value={field.value}
-                    onBlur={field.onBlur}
-                    name={field.name}
-                    onChange={(val) => field.onChange(val ?? '')}
-                    allowNone
-                  />
-                )}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowNodeModal('origin')}
-              className="mt-6 p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
-              title={t('nodes.addNode')}
-            >
-              <Icon name="add_circle" className="text-xl" />
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <Controller
-                name="destinationNodeId"
-                control={control}
-                render={({ field }) => (
-                  <SearchableSelect
-                    label={t('templates.destinationNode')}
-                    placeholder={t('common.none')}
-                    options={nodeOptions}
-                    value={field.value}
-                    onBlur={field.onBlur}
-                    name={field.name}
-                    onChange={(val) => field.onChange(val ?? '')}
-                    allowNone
-                  />
-                )}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowNodeModal('destination')}
-              className="mt-6 p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
-              title={t('nodes.addNode')}
-            >
-              <Icon name="add_circle" className="text-xl" />
-            </button>
-          </div>
-        </div>
-
         <Controller
           name="categoryId"
           control={control}
@@ -211,8 +148,8 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
               categories={categories}
               value={field.value ?? ''}
               onChange={(val) => field.onChange(val)}
-              variant="select"
               showAdd={true}
+              collapsible={true}
             />
           )}
         />
@@ -229,6 +166,8 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
             />
           )}
         />
+
+        <LineItemsEditor nodes={nodes} />
 
         <div className="grid grid-cols-2 gap-3">
           <Controller
@@ -279,24 +218,6 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
 
         <AiFormActionsFab controller={aiController} />
       </form>
-
-      <Modal
-        open={showNodeModal !== null}
-        onClose={() => setShowNodeModal(null)}
-        title={t('nodes.newNode')}
-      >
-        <NodeForm
-          onSuccess={(newNode) => {
-            if (showNodeModal === 'origin') {
-              setValue('originNodeId', String(newNode.id));
-            } else if (showNodeModal === 'destination') {
-              setValue('destinationNodeId', String(newNode.id));
-            }
-            setShowNodeModal(null);
-          }}
-          onCancel={() => setShowNodeModal(null)}
-        />
-      </Modal>
-    </>
+    </FormProvider>
   );
 }

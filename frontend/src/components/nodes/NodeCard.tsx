@@ -9,6 +9,7 @@ interface NodeCardProps {
   balance?: number;
   onClick?: () => void;
   actions?: React.ReactNode;
+  hideTypeBadge?: boolean;
 }
 
 const nodeTypeConfig = {
@@ -32,7 +33,7 @@ const nodeTypeConfig = {
   },
 };
 
-export function NodeCard({ node, balance, onClick, actions }: NodeCardProps) {
+export function NodeCard({ node, balance, onClick, actions, hideTypeBadge }: NodeCardProps) {
   const { t } = useTranslation();
   const cfg = nodeTypeConfig[node.type];
 
@@ -59,7 +60,7 @@ export function NodeCard({ node, balance, onClick, actions }: NodeCardProps) {
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <p className="text-base font-medium text-dn-text-main break-words">{node.name}</p>
           <div className="flex gap-2">
-            <Badge variant={cfg.badgeVariant}>{t(cfg.labelKey)}</Badge>
+            {!hideTypeBadge && <Badge variant={cfg.badgeVariant}>{t(cfg.labelKey)}</Badge>}
             {node.archived && <Badge variant="default">{t('common.archived')}</Badge>}
           </div>
         </div>

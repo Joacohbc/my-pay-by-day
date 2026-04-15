@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/Input';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { EventsPageActions } from '@/components/events/EventsPageActions';
 import { formatCurrencyShort, eventNetAmount } from '@/lib/format';
 import { eventsService, type DateField } from '@/services/events.service';
 import { draftsService } from '@/services/drafts.service';
@@ -163,6 +164,8 @@ export function EventsPage() {
     await deleteAllDrafts.mutateAsync();
   };
 
+  const hasBulkActions = isDraftFilter && filteredDrafts.length > 0;
+
   const allEvents = useMemo(
     () => isDraftFilter ? filteredDrafts : (paged?.content ?? []),
     [isDraftFilter, filteredDrafts, paged]
@@ -204,22 +207,12 @@ export function EventsPage() {
         title={t('events.title')}
         subtitle={t('events.eventsCount', { count: totalElements })}
         action={
-          <div className="flex gap-2">
-            {isDraftFilter && filteredDrafts.length > 0 && (
-              <Button size="sm" variant="secondary" onClick={() => setShowBulkActions(true)}>
-                <Icon name="bolt" className="text-sm" />
-                {t('drafts.bulkActions')}
-              </Button>
-            )}
-            <Button size="sm" variant="secondary" onClick={() => setShowMerge(true)}>
-              <Icon name="merge" className="text-sm" />
-              {t('events.merge')}
-            </Button>
-            <Button size="sm" onClick={() => setShowPicker(true)}>
-              <Icon name="add" className="text-sm" />
-              {t('common.new')}
-            </Button>
-          </div>
+          <EventsPageActions
+            hasBulkActions={hasBulkActions}
+            onBulkActions={() => setShowBulkActions(true)}
+            onMergeEvents={() => setShowMerge(true)}
+            onNewEvent={() => setShowPicker(true)}
+          />
         }
       />
 
@@ -345,7 +338,7 @@ export function EventsPage() {
           >
             {label}
             {value === 'DRAFT' && draftEvents && draftEvents.length > 0 && (
-              <span className="bg-dn-error text-white text-[10px] leading-tight font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center inline-block animate-pulse">
+              <span className="bg-dn-error text-white text-[10px] leading-tight font-semibold px-1.5 py-0.5 rounded-full min-w-4.5 text-center inline-block animate-pulse">
                 {draftEvents.length}
               </span>
             )}

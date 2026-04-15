@@ -3,7 +3,6 @@ import {
   nameField,
   descriptionField,
   optionalEventTypeField,
-  optionalNodeIdField,
   optionalCategoryIdField,
   optionalTagIdsField,
 } from '@/lib/validation';
@@ -11,14 +10,19 @@ import type { Template, CreateTemplateDto, EventType, ModifierType } from '@/mod
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
+const lineItemSchema = z.object({
+  nodeId: z.string(),
+  amount: z.string(),
+});
+
 export function buildSchema(t: (key: string) => string) {
   return z
     .object({
       name: nameField(t),
       description: descriptionField(t),
       eventType: optionalEventTypeField(),
-      originNodeId: optionalNodeIdField(),
-      destinationNodeId: optionalNodeIdField(),
+      lineItems: z.array(lineItemSchema).min(2),
+      isSimplifiedMode: z.boolean().optional(),
       categoryId: optionalCategoryIdField(),
       tagIds: optionalTagIdsField(),
       modifierType: z.enum(['PERCENTAGE', 'FIXED']).optional().or(z.literal('')),
@@ -47,8 +51,11 @@ export const DEFAULT_VALUES: FormValues = {
   name: '',
   description: '',
   eventType: '',
-  originNodeId: '',
-  destinationNodeId: '',
+  lineItems: [
+    { nodeId: '', amount: '' },
+    { nodeId: '', amount: '' },
+  ],
+  isSimplifiedMode: true,
   categoryId: '',
   tagIds: [],
   modifierType: '',
@@ -62,8 +69,11 @@ export function fromTemplate(template: Template): FormValues {
     name: template.name,
     description: template.description ?? '',
     eventType: template.eventType ?? '',
-    originNodeId: template.originNodeId ? String(template.originNodeId) : '',
-    destinationNodeId: template.destinationNodeId ? String(template.destinationNodeId) : '',
+    lineItems: [
+      { nodeId: template.originNodeId ? String(template.originNodeId) : '', amount: '' },
+      { nodeId: template.destinationNodeId ? String(template.destinationNodeId) : '', amount: '' },
+    ],
+    isSimplifiedMode: true,
     categoryId: template.category ? String(template.category.id) : '',
     tagIds: template.tags.map((tag) => String(tag.id)),
     modifierType: template.modifierType ?? '',
@@ -75,8 +85,8 @@ export function toCreateDto(values: FormValues): CreateTemplateDto {
   return {
     name: values.name,
     description: values.description || undefined,
-    originNodeId: values.originNodeId ? Number(values.originNodeId) : undefined,
-    destinationNodeId: values.destinationNodeId ? Number(values.destinationNodeId) : undefined,
+    originNodeId: values.lineItems[0]?.nodeId ? Number(values.lineItems[0].nodeId) : undefined,
+    destinationNodeId: values.lineItems[1]?.nodeId ? Number(values.lineItems[1].nodeId) : undefined,
     category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
     tags: values.tagIds?.map((id) => ({ id: Number(id) })),
     eventType: (values.eventType as EventType) || undefined,
