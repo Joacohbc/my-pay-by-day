@@ -69,6 +69,18 @@ export function LineItemsEditor({
     if (stringVal) recordSelection.mutate({ type: 'FINANCE_NODE', id: Number(stringVal) });
   };
 
+  // Enforce exactly 2 line items in simplified mode
+  useEffect(() => {
+    if (!isSimplifiedMode) return;
+    if (fields.length > 2) {
+      remove(Array.from({ length: fields.length - 2 }, (_, i) => i + 2));
+    } else if (fields.length < 2) {
+      for (let i = fields.length; i < 2; i++) {
+        append({ nodeId: '', amount: '' });
+      }
+    }
+  }, [isSimplifiedMode, fields.length, remove, append]);
+
   // Sync all line item amounts to the first amount in simplified mode
   useEffect(() => {
     if (!isSimplifiedMode) return;
@@ -107,6 +119,14 @@ export function LineItemsEditor({
             type="button"
             onClick={() => {
               if (!isSimplifiedMode) {
+                // Normalize to exactly 2 items before entering simplified mode
+                if (fields.length > 2) {
+                  remove(Array.from({ length: fields.length - 2 }, (_, i) => i + 2));
+                } else if (fields.length < 2) {
+                  for (let i = fields.length; i < 2; i++) {
+                    append({ nodeId: '', amount: '' });
+                  }
+                }
                 setIsSimplifiedMode(true);
               } else {
                 const num = parseFloat(firstAmount ?? '') || 0;
