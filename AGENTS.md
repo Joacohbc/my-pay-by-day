@@ -365,8 +365,9 @@ Every endpoint **must** return the appropriate HTTP status code:
 * **Always use imports, never fully qualified names:** In Java source files, always add an `import` statement for each class and reference it by its simple name. Never use fully qualified class names (e.g., `com.mypaybyday.entity.Event`) inline in the code unless it is explicitly necessary to resolve an ambiguity between two classes with the same simple name.
 * **Entity Naming and Conventions**:
     * `@Table` and `@Entity` must be the first annotations on the Java class.
-    * Both `@Table` and `@Entity` names must use `PascalCase` and strictly match the entity class name, but WITHOUT the "Entity" suffix (e.g., `@Table(name = "FinanceEvent")` for `FinanceEventEntity`).
-    * Join tables (`@JoinTable`) must use the format `EntityA_EntityB` in `PascalCase` (e.g., `name = "FinanceEvent_Tag"`).
+    * `@Entity` must declare a `name` in `PascalCase` matching the class name WITHOUT the "Entity" suffix (e.g., `@Entity(name = "FinanceEvent")` for `FinanceEventEntity`). This name serves two purposes: it is the JPQL entity name used in queries and the logical name the physical naming strategy converts to `snake_case` for the database table.
+    * `@Table` must only be added when there are additional constraints or attributes (e.g., `uniqueConstraints`, `indexes`). It must never include a `name` attribute — the table name is derived automatically from the `@Entity` name by the `CamelCaseToUnderscoresNamingStrategy` physical naming strategy (e.g., `FinanceEvent` → `finance_event`).
+    * Join tables (`@JoinTable`) must declare an explicit `name` in `snake_case` (e.g., `name = "finance_event_tag"`).
     * Database columns mapped to join tables or typical columns must remain in `snake_case` (e.g., `event_id`, `category_id`).
     * Use `Set` (`HashSet`) instead of `List` for all `@OneToMany` and `@ManyToMany` entity relationships to prevent full collection deletion and re-insertion issues in Hibernate.
 ---

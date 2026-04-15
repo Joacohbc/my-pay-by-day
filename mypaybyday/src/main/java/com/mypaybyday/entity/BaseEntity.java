@@ -27,7 +27,6 @@ import lombok.EqualsAndHashCode;
  * spurious deletes/inserts when the same logical entity is loaded in different contexts.
  */
 @MappedSuperclass
-@EqualsAndHashCode(of = "id", callSuper = false)
 public abstract class BaseEntity extends PanacheEntityBase {
 
 	@Id
@@ -48,6 +47,19 @@ public abstract class BaseEntity extends PanacheEntityBase {
 	@PreUpdate
 	protected void onUpdate() {
 		updatedAt = Instant.now();
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (!(o instanceof BaseEntity)) return false;
+		BaseEntity other = (BaseEntity) o;
+		return id != null && id.equals(other.id);
+	}
+
+	@Override
+	public int hashCode() {
+		return getClass().hashCode();
 	}
 
 }

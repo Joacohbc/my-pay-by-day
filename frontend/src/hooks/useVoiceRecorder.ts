@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 type RecordingState = 'idle' | 'recording' | 'preparing';
 
@@ -27,12 +27,51 @@ function resolveErrorKey(error: unknown): string {
   return 'transcription_failed';
 }
 
+export type VoicePermissionState = 'prompt' | 'granted' | 'denied';
+
 export function useVoiceRecorder(onAudioReady: (audioBlob: Blob) => Promise<void>, onError: (error: string) => void) {
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
+  const [permissionState, setPermissionState] = useState<VoicePermissionState>('prompt');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
   const isRecordingSupported = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
+
+  const checkPermission = useCallback(async () => {
+    if (typeof navigator === 'undefined' || !navigator.permissions) return;
+    try {
+      // Permission API for microphone is widely supported in modern browsers
+      const status = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+      setPermissionState(status.state as VoicePermissionState);
+      status.onchange = () => {
+        setPermissionState(status.state as VoicePermissionState);
+      };
+    } catch {
+      // If permissions.query fails, we'll rely on getUserMedia to determine state later
+    }
+  }, []);
+
+  const requestPermission = useCallback(async () => {
+    if (!isRecordingSupported) {
+      onError('voice_not_supported');
+      return false;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => track.stop());
+      setPermissionState('granted');
+      return true;
+    } catch {
+      setPermissionState('denied');
+      onError('microphone_denied');
+      return false;
+    }
+  }, [isRecordingSupported, onError]);
+
+  useEffect(() => {
+    checkPermission();
+  }, [checkPermission]);
 
   const stopRecording = useCallback(() => {
     const recorder = mediaRecorderRef.current;
@@ -49,6 +88,7 @@ export function useVoiceRecorder(onAudioReady: (audioBlob: Blob) => Promise<void
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setPermissionState('granted');
       const recorderOptions = resolveRecorderOptions();
       const mediaRecorder = recorderOptions
         ? new MediaRecorder(stream, recorderOptions)
@@ -80,6 +120,7 @@ export function useVoiceRecorder(onAudioReady: (audioBlob: Blob) => Promise<void
       mediaRecorder.start();
       setRecordingState('recording');
     } catch {
+      setPermissionState('denied');
       onError('microphone_denied');
       setRecordingState('idle');
     }
@@ -99,6 +140,8 @@ export function useVoiceRecorder(onAudioReady: (audioBlob: Blob) => Promise<void
   return {
     recordingState,
     isRecordingSupported,
+    permissionState,
+    requestPermission,
     toggleRecording,
   };
 }

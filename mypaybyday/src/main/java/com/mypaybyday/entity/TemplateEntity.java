@@ -14,7 +14,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 
 import com.mypaybyday.enums.EventType;
@@ -26,7 +25,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity(name = "Template")
-@Table(name = "Template")
 @Getter
 @Setter
 @Builder
@@ -49,7 +47,7 @@ public class TemplateEntity extends BaseEntity {
 	public CategoryEntity category;
 
 	@ManyToMany(fetch = FetchType.EAGER)
-	@JoinTable(name = "Template_Tag", joinColumns = @JoinColumn(name = "template_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
+	@JoinTable(name = "template_tag", joinColumns = @JoinColumn(name = "template_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
 	@Builder.Default
 	public Set<TagEntity> tags = new HashSet<>();
 

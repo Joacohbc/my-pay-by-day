@@ -206,7 +206,7 @@ const es = {
     dateRequired: 'La fecha es requerida',
     nodeRequired: 'Requerido',
     amountNonZero: 'Debe ser un número distinto de cero',
-    atLeastOneLine: 'Se requiere al menos una partida',
+    minLineItems: 'Se requieren al menos {{count}} partidas',
     manualMode: 'Modo manual',
     simplifiedMode: 'Modo simplificado',
     files: 'Archivos',
@@ -450,6 +450,7 @@ const es = {
       fixSpelling: 'Corregir ortografía',
       voiceInput: 'Dictar por voz',
       stopVoiceInput: 'Detener grabación de voz',
+      enableMic: 'Habilitar micrófono',
     },
     settings: {
       title: 'Prompts de IA',

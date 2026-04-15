@@ -207,7 +207,7 @@ const en = {
     dateRequired: 'Date is required',
     nodeRequired: 'Required',
     amountNonZero: 'Must be a non-zero number',
-    atLeastOneLine: 'At least one line item required',
+    minLineItems: 'At least {{count}} line items are required',
     manualMode: 'Manual mode',
     simplifiedMode: 'Simplified mode',
     files: 'Files',
@@ -451,6 +451,7 @@ const en = {
       fixSpelling: 'Fix spelling',
       voiceInput: 'Dictate by voice',
       stopVoiceInput: 'Stop voice recording',
+      enableMic: 'Enable microphone',
     },
     settings: {
       title: 'AI Prompts',

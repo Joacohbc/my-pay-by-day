@@ -5,7 +5,6 @@ import java.math.BigDecimal;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
 import lombok.AllArgsConstructor;
@@ -15,7 +14,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity(name = "TimePeriodBudget")
-@Table(name = "TimePeriodBudget")
 @Getter
 @Setter
 @Builder

@@ -4,7 +4,6 @@ import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 
 import lombok.AllArgsConstructor;
@@ -17,7 +16,6 @@ import lombok.Setter;
  * Represents a file stored directly in the database.
  */
 @Entity(name = "File")
-@Table(name = "File")
 @Getter
 @Setter
 @Builder

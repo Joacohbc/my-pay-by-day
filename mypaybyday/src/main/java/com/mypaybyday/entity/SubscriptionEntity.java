@@ -15,7 +15,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -29,7 +28,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity(name = "Subscription")
-@Table(name = "Subscription")
 @Getter
 @Setter
 @Builder
@@ -52,7 +50,7 @@ public class SubscriptionEntity extends BaseEntity {
 	public CategoryEntity category;
 
 	@ManyToMany(fetch = FetchType.EAGER)
-	@JoinTable(name = "Subscription_Tag", joinColumns = @JoinColumn(name = "subscription_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
+	@JoinTable(name = "subscription_tag", joinColumns = @JoinColumn(name = "subscription_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
 	@Builder.Default
 	public Set<TagEntity> tags = new HashSet<>();
 

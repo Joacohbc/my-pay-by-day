@@ -5,7 +5,7 @@ import { nameField, descriptionField } from '@/lib/validation';
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
-export function buildSchema(t: (key: string) => string) {
+export function buildSchema(t: (key: string, options?: Record<string, unknown>) => string, minItems = 2, maxItems?: number) {
   const lineItemSchema = z.object({
     nodeId: z.string().min(1, t('eventForm.nodeRequired')),
     amount: z.string().refine((v) => !isNaN(Number(v)) && Number(v) !== 0, {
@@ -20,7 +20,9 @@ export function buildSchema(t: (key: string) => string) {
     transactionDate: z.string().min(1, t('eventForm.dateRequired')),
     categoryId: z.string().optional(),
     tagIds: z.array(z.string()).optional(),
-    lineItems: z.array(lineItemSchema).min(1, t('eventForm.atLeastOneLine')),
+    lineItems: maxItems
+      ? z.array(lineItemSchema).min(minItems, t('eventForm.minLineItems', { count: minItems })).max(maxItems)
+      : z.array(lineItemSchema).min(minItems, t('eventForm.minLineItems', { count: minItems })),
     isDraft: z.boolean().nullable().optional(),
     draftId: z.number().nullable().optional(),
     isSimplifiedMode: z.boolean().optional(),

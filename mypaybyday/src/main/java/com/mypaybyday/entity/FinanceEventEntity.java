@@ -15,7 +15,6 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -44,7 +43,6 @@ import lombok.Setter;
  * backend engine.
  */
 @Entity(name = "FinanceEvent")
-@Table(name = "FinanceEvent")
 @Getter
 @Setter
 @Builder
@@ -119,7 +117,7 @@ public class FinanceEventEntity extends BaseEntity {
 	* {@code #Reimbursable}).
 	*/
 	@ManyToMany(fetch = FetchType.EAGER)
-	@JoinTable(name = "FinanceEvent_Tag", joinColumns = @JoinColumn(name = "event_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
+	@JoinTable(name = "finance_event_tag", joinColumns = @JoinColumn(name = "event_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
 	@Builder.Default
 	public Set<TagEntity> tags = new HashSet<>();
 
@@ -136,7 +134,7 @@ public class FinanceEventEntity extends BaseEntity {
 	*/
 	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(
-		name = "FinanceEvent_FinanceEvent",
+		name = "finance_event_finance_event",
 		joinColumns = @JoinColumn(name = "event_id"),
 		inverseJoinColumns = @JoinColumn(name = "related_event_id")
 	)
@@ -161,7 +159,7 @@ public class FinanceEventEntity extends BaseEntity {
 	*/
 	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(
-		name = "FinanceEvent_File",
+		name = "finance_event_file",
 		joinColumns = @JoinColumn(name = "event_id"),
 		inverseJoinColumns = @JoinColumn(name = "file_id")
 	)

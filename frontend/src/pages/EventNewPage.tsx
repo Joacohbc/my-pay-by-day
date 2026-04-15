@@ -9,19 +9,19 @@ import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft 
 import type { CreateEventDto, PatchEventDto, Template, FinanceEvent, FinanceLineItem } from '@/models';
 
 function mapTemplateToEventValues(template: Template): Partial<FinanceEvent> {
-  const originLineItem: FinanceLineItem | undefined = template.originNodeId
+  const originLineItem: FinanceLineItem = template.originNodeId
     ? { financeNodeId: template.originNodeId, financeNodeName: template.originNodeName ?? '', amount: 0 }
-    : undefined;
+    : { financeNodeId: 0, financeNodeName: '', amount: 0 };
 
-  const destinationLineItem: FinanceLineItem | undefined = template.destinationNodeId
+  const destinationLineItem: FinanceLineItem = template.destinationNodeId
     ? { financeNodeId: template.destinationNodeId, financeNodeName: template.destinationNodeName ?? '', amount: 0 }
-    : undefined;
+    : { financeNodeId: 0, financeNodeName: '', amount: 0 };
 
   return {
     type: template.eventType,
     category: template.category,
     tags: template.tags,
-    lineItems: [originLineItem, destinationLineItem].filter((li): li is FinanceLineItem => !!li),
+    lineItems: [originLineItem, destinationLineItem],
   };
 }
 

@@ -45,6 +45,8 @@ export function AiFormActionsFab({ controller }: AiFormActionsFabProps) {
   const {
     recordingState,
     isRecordingSupported,
+    permissionState,
+    requestPermission,
     toggleRecording,
   } = useVoiceRecorder(handleTranscriptionReady, handleVoiceError);
 
@@ -130,23 +132,39 @@ export function AiFormActionsFab({ controller }: AiFormActionsFabProps) {
             </button>
 
             {shouldRenderVoiceAction && (
-              <button
-                type="button"
-                onClick={toggleRecording}
-                disabled={isVoiceToggleDisabled}
-                className="flex items-center gap-2 w-full px-3 py-2.5 text-sm rounded-lg text-dn-text-main hover:bg-dn-surface-low transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                title={voiceActionTitle}
-              >
-                {isPreparingAudio ? (
-                  <Spinner size="sm" />
-                ) : (
+              permissionState === 'granted' ? (
+                <button
+                  type="button"
+                  onClick={toggleRecording}
+                  disabled={isVoiceToggleDisabled}
+                  className="flex items-center gap-2 w-full px-3 py-2.5 text-sm rounded-lg text-dn-text-main hover:bg-dn-surface-low transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={voiceActionTitle}
+                >
+                  {isPreparingAudio ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <Icon
+                      name={isRecordingAudio ? 'mic_off' : 'mic'}
+                      className={isRecordingAudio ? 'text-base text-dn-error' : 'text-base text-dn-primary'}
+                    />
+                  )}
+                  {isRecordingAudio ? t('ai.actions.stopVoiceInput') : t('ai.actions.voiceInput')}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={requestPermission}
+                  disabled={isActionsDisabled}
+                  className="flex items-center gap-2 w-full px-3 py-2.5 text-sm rounded-lg text-dn-text-main hover:bg-dn-surface-low transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={permissionState === 'denied' ? t('chat.microphoneDenied') : t('ai.actions.voiceInput')}
+                >
                   <Icon
-                    name={isRecordingAudio ? 'mic_off' : 'mic'}
-                    className={isRecordingAudio ? 'text-base text-dn-error' : 'text-base text-dn-primary'}
+                    name="mic"
+                    className={permissionState === 'denied' ? 'text-base text-dn-text-muted' : 'text-base text-dn-primary'}
                   />
-                )}
-                {isRecordingAudio ? t('ai.actions.stopVoiceInput') : t('ai.actions.voiceInput')}
-              </button>
+                  {permissionState === 'denied' ? t('chat.microphoneDenied') : t('ai.actions.enableMic')}
+                </button>
+              )
             )}
           </div>
         </div>
@@ -156,14 +174,14 @@ export function AiFormActionsFab({ controller }: AiFormActionsFabProps) {
         type="button"
         onClick={() => setIsOpen((previousIsOpen) => !previousIsOpen)}
         disabled={isActionsDisabled}
-        className="h-12 w-12 rounded-full bg-dn-primary text-white shadow-lg shadow-dn-primary/25 flex items-center justify-center hover:bg-dn-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="h-8 w-8 p-6 rounded-full bg-dn-primary text-white shadow-lg shadow-dn-primary/25 flex items-center justify-center hover:bg-dn-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         title={t('ai.actions.title')}
         aria-label={t('ai.actions.title')}
       >
         {controller.isActiveFieldLoading || isPreparingAudio ? (
           <Spinner size="sm" />
         ) : (
-          <Icon name="auto_awesome" className="text-base" />
+          <Icon name="auto_awesome" className="text-lg" />
         )}
       </button>
     </div>
