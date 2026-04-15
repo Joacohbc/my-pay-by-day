@@ -4,7 +4,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
 
 import com.mypaybyday.enums.EntityType;
 import lombok.AllArgsConstructor;
@@ -21,7 +20,6 @@ import lombok.Setter;
  * The draft state is kept entirely as a raw JSON string to support any intermediate frontend state.
  */
 @Entity(name = "Draft")
-@Table(name = "Draft")
 @Getter
 @Setter
 @Builder

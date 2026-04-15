@@ -5,7 +5,6 @@ import java.time.LocalDate;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
 import com.mypaybyday.enums.JobCategory;
@@ -17,7 +16,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity(name = "SystemJob")
-@Table(name = "SystemJob")
 @Getter
 @Setter
 @Builder

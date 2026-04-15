@@ -7,7 +7,6 @@ import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -48,7 +47,6 @@ import lombok.Setter;
  * it only cares about math and balance.
  */
 @Entity(name = "FinanceLineItem")
-@Table(name = "FinanceLineItem")
 @Getter
 @Setter
 @Builder

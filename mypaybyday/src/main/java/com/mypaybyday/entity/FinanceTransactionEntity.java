@@ -10,7 +10,6 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
 import lombok.AllArgsConstructor;
@@ -41,7 +40,6 @@ import lombok.Setter;
  * {@link FinanceNodeEntity}s, ensuring double-entry integrity.
  */
 @Entity(name = "FinanceTransaction")
-@Table(name = "FinanceTransaction")
 @Getter
 @Setter
 @Builder
