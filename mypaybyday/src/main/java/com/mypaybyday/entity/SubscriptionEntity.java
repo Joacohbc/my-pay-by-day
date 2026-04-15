@@ -43,15 +43,12 @@ public class SubscriptionEntity extends BaseEntity {
 	public String description;
 
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "origin_node_id")
 	public FinanceNodeEntity originNode;
 
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "destination_node_id")
 	public FinanceNodeEntity destinationNode;
 
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "category_id")
 	public CategoryEntity category;
 
 	@ManyToMany(fetch = FetchType.EAGER)

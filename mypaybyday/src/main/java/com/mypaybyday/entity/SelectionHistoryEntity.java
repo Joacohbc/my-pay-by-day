@@ -21,7 +21,7 @@ import lombok.Setter;
  * Used to calculate "recently used" and "most selected" items.
  */
 @Entity(name = "SelectionHistory")
-@Table(name = "SelectionHistory", uniqueConstraints = @UniqueConstraint(columnNames = { "entityType", "entityId" }))
+@Table(name = "SelectionHistory", uniqueConstraints = @UniqueConstraint(columnNames = { "entity_type", "entity_id" }))
 @Getter
 @Setter
 @Builder

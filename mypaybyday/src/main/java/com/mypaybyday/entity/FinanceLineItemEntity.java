@@ -6,7 +6,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
@@ -66,7 +65,6 @@ public class FinanceLineItemEntity extends BaseEntity {
 	* from the {@link FinanceEventEntity} wrapper.
 	*/
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "transaction_id")
 	@JsonIgnore
 	public FinanceTransactionEntity transaction;
 
@@ -82,7 +80,6 @@ public class FinanceLineItemEntity extends BaseEntity {
 	*/
 	@NotNull
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "finance_node_id")
 	public FinanceNodeEntity financeNode;
 
 	/**

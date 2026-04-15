@@ -100,7 +100,6 @@ public class FinanceEventEntity extends BaseEntity {
 	* of all destination amounts.
 	*/
 	@OneToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "transaction_id")
 	public FinanceTransactionEntity transaction;
 
 	/**
@@ -113,7 +112,6 @@ public class FinanceEventEntity extends BaseEntity {
 	* The underlying {@link FinanceLineItemEntity}s carry no category of their own.
 	*/
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "category_id")
 	public CategoryEntity category;
 
 	/**
@@ -149,7 +147,6 @@ public class FinanceEventEntity extends BaseEntity {
 	* Optional link to the subscription that generated this event or is associated with it.
 	*/
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "subscription_id")
 	public SubscriptionEntity subscription;
 
 	/**
