@@ -15,12 +15,12 @@ const lineItemSchema = z.object({
   amount: z.string(),
 });
 
-export function buildSchema(t: (key: string) => string) {
+export function buildSchema(t: (key: string, options?: Record<string, unknown>) => string, minItems = 2) {
   return z.object({
     name: nameField(t),
     description: descriptionField(t),
     eventType: optionalEventTypeField(),
-    lineItems: z.array(lineItemSchema).min(2),
+    lineItems: z.array(lineItemSchema).min(minItems, t('eventForm.minLineItems', { count: minItems })),
     isSimplifiedMode: z.boolean().optional(),
     categoryId: optionalCategoryIdField(),
     tagIds: optionalTagIdsField(),

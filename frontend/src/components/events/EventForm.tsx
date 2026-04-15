@@ -67,6 +67,8 @@ interface EventFormProps {
   loading?: boolean;
 }
 
+const MIN_LINE_ITEMS = 2;
+
 const DEFAULT_LINE_ITEMS: FormValues['lineItems'] = [
   { nodeId: '', amount: '' },
   { nodeId: '', amount: '' },
@@ -126,8 +128,8 @@ export function EventForm({
   loading = false,
 }: EventFormProps) {
   const { t } = useTranslation();
-
-  const schema = useMemo(() => buildSchema(t), [t]);
+  
+  const schema = useMemo(() => buildSchema(t, MIN_LINE_ITEMS), [t]);
   const { data: categoriesResponse } = useCategories(0, 200);
   const { data: tagsResponse } = useTags(0, 200);
   const { data: tagGroupsResponse } = useTagGroups(0, 100);
@@ -327,7 +329,7 @@ export function EventForm({
           )}
         />
 
-        <LineItemsEditor nodes={nodes} />
+        <LineItemsEditor nodes={nodes} minItems={MIN_LINE_ITEMS} />
 
 
         <div className="flex flex-col gap-2">

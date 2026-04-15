@@ -30,9 +30,11 @@ interface TemplateFormProps {
   loading?: boolean;
 }
 
+const MIN_LINE_ITEMS = 0;
+
 export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: TemplateFormProps) {
   const { t } = useTranslation();
-  const schema = buildSchema(t);
+  const schema = buildSchema(t, MIN_LINE_ITEMS);
 
   const { data: categoriesPaged } = useCategories(0, 200);
   const { data: tagsPaged } = useTags(0, 200);
@@ -167,7 +169,7 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
           )}
         />
 
-        <LineItemsEditor nodes={nodes} />
+        <LineItemsEditor nodes={nodes} minItems={MIN_LINE_ITEMS} />
 
         <div className="grid grid-cols-2 gap-3">
           <Controller

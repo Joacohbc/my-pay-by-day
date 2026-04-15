@@ -208,6 +208,7 @@ const en = {
     nodeRequired: 'Required',
     amountNonZero: 'Must be a non-zero number',
     atLeastOneLine: 'At least one line item required',
+    minLineItems: 'At least {{count}} line items are required',
     manualMode: 'Manual mode',
     simplifiedMode: 'Simplified mode',
     files: 'Files',

@@ -21,12 +21,14 @@ interface LineItemsEditorProps {
   /** Override the active sort mode from outside (controlled). Omit to let the editor manage it. */
   sortMode?: SortMode;
   onSortModeChange?: (mode: SortMode) => void;
+  minItems?: number;
 }
 
 export function LineItemsEditor({
   nodes,
   sortMode: sortModeProp,
   onSortModeChange,
+  minItems = 1,
 }: LineItemsEditorProps) {
 
   const { t } = useTranslation();
@@ -235,7 +237,7 @@ export function LineItemsEditor({
                   />
                 </div>
               </div>
-              {fields.length > 1 && (
+              {fields.length > minItems && (
                 <button
                   type="button"
                   onClick={() => remove(i)}
