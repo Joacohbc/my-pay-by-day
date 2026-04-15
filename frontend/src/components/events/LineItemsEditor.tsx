@@ -6,8 +6,12 @@ import { Input } from '@/components/ui/Input';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Modal } from '@/components/ui/Modal';
 import { NodeForm } from '@/components/nodes/NodeForm';
-import type { FormValues } from '@/components/events/EventFormMapper';
 import type { FinanceNode } from '@/models';
+
+interface LineItemsFormValues {
+  lineItems: { nodeId: string; amount: string }[];
+  isSimplifiedMode?: boolean;
+}
 import { sortByUsage, getSortIcon, nextSortMode } from '@/lib/usageSorter';
 import type { SortMode } from '@/lib/usageSorter';
 import { useUsageStats, useRecordSelection } from '@/hooks/useSelectionHistory';
@@ -26,7 +30,7 @@ export function LineItemsEditor({
 }: LineItemsEditorProps) {
 
   const { t } = useTranslation();
-  const { control, register, setValue, formState: { errors } } = useFormContext<FormValues>();
+  const { control, register, setValue, formState: { errors } } = useFormContext<LineItemsFormValues>();
   const { fields, append, remove } = useFieldArray({ control, name: 'lineItems' });
 
   const isSimplifiedMode = useWatch({ control, name: 'isSimplifiedMode' }) ?? true;

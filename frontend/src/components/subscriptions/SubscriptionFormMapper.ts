@@ -3,7 +3,6 @@ import {
   nameField,
   descriptionField,
   optionalEventTypeField,
-  optionalNodeIdField,
   optionalCategoryIdField,
   optionalTagIdsField,
 } from '@/lib/validation';
@@ -11,16 +10,20 @@ import type { Subscription, CreateSubscriptionDto, EventType, RecurrenceFrequenc
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
+const lineItemSchema = z.object({
+  nodeId: z.string().default(''),
+  amount: z.string().default(''),
+});
+
 export function buildSchema(t: (key: string) => string) {
   return z.object({
     name: nameField(t),
     description: descriptionField(t),
     eventType: optionalEventTypeField(),
-    originNodeId: optionalNodeIdField(),
-    destinationNodeId: optionalNodeIdField(),
+    lineItems: z.array(lineItemSchema).min(2),
+    isSimplifiedMode: z.boolean().optional(),
     categoryId: optionalCategoryIdField(),
     tagIds: optionalTagIdsField(),
-    modifierValue: z.string().optional(),
     recurrence: z.enum(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'], {
       error: t('common.required'),
     }),
@@ -39,11 +42,13 @@ export const DEFAULT_VALUES: FormValues = {
   name: '',
   description: '',
   eventType: '',
-  originNodeId: '',
-  destinationNodeId: '',
+  lineItems: [
+    { nodeId: '', amount: '' },
+    { nodeId: '', amount: '' },
+  ],
+  isSimplifiedMode: true,
   categoryId: '',
   tagIds: [],
-  modifierValue: '',
   recurrence: 'MONTHLY',
   nextExecutionDate: new Date().toISOString().split('T')[0],
   status: 'ACTIVE',
@@ -52,15 +57,18 @@ export const DEFAULT_VALUES: FormValues = {
 // ─── Mappers ─────────────────────────────────────────────────────────────────
 
 export function fromSubscription(subscription: Subscription): FormValues {
+  const amount = subscription.modifierValue != null ? String(Math.abs(subscription.modifierValue)) : '';
   return {
     name: subscription.name,
     description: subscription.description ?? '',
     eventType: subscription.eventType ?? '',
-    originNodeId: subscription.originNodeId ? String(subscription.originNodeId) : '',
-    destinationNodeId: subscription.destinationNodeId ? String(subscription.destinationNodeId) : '',
+    lineItems: [
+      { nodeId: subscription.originNodeId ? String(subscription.originNodeId) : '', amount },
+      { nodeId: subscription.destinationNodeId ? String(subscription.destinationNodeId) : '', amount },
+    ],
+    isSimplifiedMode: true,
     categoryId: subscription.category ? String(subscription.category.id) : '',
     tagIds: subscription.tags ? subscription.tags.map((tag) => String(tag.id)) : [],
-    modifierValue: subscription.modifierValue != null ? String(subscription.modifierValue) : '',
     recurrence: subscription.recurrence,
     nextExecutionDate: subscription.nextExecutionDate.slice(0, 10),
     status: subscription.status,
@@ -68,15 +76,16 @@ export function fromSubscription(subscription: Subscription): FormValues {
 }
 
 export function toCreateDto(values: FormValues): CreateSubscriptionDto {
+  const firstAmount = values.lineItems[0]?.amount;
   return {
     name: values.name,
     description: values.description || undefined,
-    originNodeId: values.originNodeId ? Number(values.originNodeId) : undefined,
-    destinationNodeId: values.destinationNodeId ? Number(values.destinationNodeId) : undefined,
+    originNodeId: values.lineItems[0]?.nodeId ? Number(values.lineItems[0].nodeId) : undefined,
+    destinationNodeId: values.lineItems[1]?.nodeId ? Number(values.lineItems[1].nodeId) : undefined,
     category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
     tags: values.tagIds?.map((id) => ({ id: Number(id) })),
     eventType: (values.eventType as EventType) || undefined,
-    modifierValue: values.modifierValue ? Number(values.modifierValue) : undefined,
+    modifierValue: firstAmount ? Math.abs(Number(firstAmount)) : undefined,
     recurrence: values.recurrence as RecurrenceFrequency,
     nextExecutionDate: values.nextExecutionDate,
     status: values.status as SubscriptionStatus,
