@@ -199,7 +199,6 @@ const es = {
     selectNode: 'Seleccionar nodo',
     amount: 'Monto',
     amountPlaceholder: '0.00',
-    amountPlaceholderEg: 'ej. 5.00',
     signedAmountHint:
       'Ingresa montos positivos — los signos se asignan automáticamente por posición. La suma debe ser cero.',
     manualAmountHint:
@@ -313,8 +312,6 @@ const es = {
     descriptionPlaceholder: 'Descripción opcional',
     deleteConfirm: '¿Eliminar esta plantilla?',
     eventType: 'Tipo de Evento',
-    originNode: 'Nodo Origen',
-    destinationNode: 'Nodo Destino',
     modifierType: 'Tipo de Modificador',
     modifierValue: 'Valor del Modificador',
     percentage: 'Porcentaje',

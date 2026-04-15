@@ -200,7 +200,6 @@ const en = {
     selectNode: 'Select node',
     amount: 'Amount',
     amountPlaceholder: '0.00',
-    amountPlaceholderEg: 'e.g. 5.00',
     signedAmountHint:
       'Enter positive amounts — signs are assigned automatically by position. Sum must equal zero.',
     manualAmountHint:
@@ -314,8 +313,6 @@ const en = {
     descriptionPlaceholder: 'Optional description',
     deleteConfirm: 'Delete this template?',
     eventType: 'Event Type',
-    originNode: 'Origin Node',
-    destinationNode: 'Destination Node',
     modifierType: 'Modifier Type',
     modifierValue: 'Modifier Value',
     percentage: 'Percentage',
