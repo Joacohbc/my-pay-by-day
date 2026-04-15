@@ -1,5 +1,6 @@
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Routes } from '@/lib/routes';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -21,8 +22,14 @@ export function EventEditPage() {
   const updateDraft = useUpdateFinanceEventDraft();
   const deleteDraft = useDeleteDraft();
 
-  const state = useLocation().state as { draft?: FinanceEvent } | null;
-  const draft = state?.draft ?? fetchedDraft ?? undefined;
+  // This ensures EventForm only receives the initial value fetched by React Query.
+  // Since EventForm manages its own draft state internally, continuously syncing
+  // it with fetchedDraft would trigger a circular re-render cycle via the cache.
+  const draftInitial = useRef<{ data: typeof fetchedDraft; captured: boolean }>({ data: undefined, captured: false });
+  if (!isLoadingDraft && !draftInitial.current.captured) {
+    draftInitial.current = { data: fetchedDraft, captured: true };
+  }
+  const draft = draftInitial.current.data ?? undefined;
 
   if (isLoading || isLoadingDraft) return <FullPageSpinner />;
   if (!event) return null;

@@ -97,10 +97,11 @@ function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormValues {
 
   // Simplified mode: pre-selected nodes (from template) OR a brand-new empty form.
   // Full mode: an existing event with signed amounts in its line items.
-  const hasPreSelectedNodes =
-    !!defaultValues?.lineItems?.length &&
-    defaultValues.lineItems.every((li) => li.amount === 0);
-  const isSimplifiedMode = hasPreSelectedNodes || !defaultValues;
+  const numberOfLineItems = defaultValues?.lineItems?.length ?? 0;
+  const numberOfEmptyItems = defaultValues?.lineItems?.filter((li) => !li.financeNodeId).length ?? 0;
+
+  console.log('buildFormDefaults:', numberOfEmptyItems, numberOfLineItems)
+  const isSimplifiedMode = numberOfEmptyItems == 0 || [0, 1, 2].includes(numberOfLineItems);
 
   return {
     name: defaultValues?.name ?? '',
@@ -330,7 +331,6 @@ export function EventForm({
         />
 
         <LineItemsEditor nodes={nodes} minItems={MIN_LINE_ITEMS} />
-
 
         <div className="flex flex-col gap-2">
           <Button
