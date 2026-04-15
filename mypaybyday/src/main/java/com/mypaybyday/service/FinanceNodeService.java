@@ -1,6 +1,7 @@
 package com.mypaybyday.service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -9,6 +10,7 @@ import jakarta.transaction.Transactional;
 import com.mypaybyday.dto.FinanceNodeDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.FinanceNodeEntity;
+import com.mypaybyday.enums.FinanceNodeType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
@@ -41,25 +43,35 @@ public class FinanceNodeService {
 	}
 
 	@Transactional
-	public PagedResponse<FinanceNodeDto> listAll(int page, int size, Boolean archived) {
-		long totalElements;
-		List<FinanceNodeDto> content;
+	public PagedResponse<FinanceNodeDto> listAll(int page, int size, Boolean archived, FinanceNodeType type) {
+		StringBuilder queryBuilder = new StringBuilder();
+		List<Object> params = new ArrayList<>();
 
-		if (archived == null) {
-			totalElements = financeNodeRepository.count("archived", false);
-			content = financeNodeRepository.find("archived", false)
-					.page(Page.of(page, size))
-					.stream()
-					.map(FinanceNodeDto::from)
-					.toList();
-		} else {
-			totalElements = financeNodeRepository.count();
-			content = financeNodeRepository.findAll()
-					.page(Page.of(page, size))
-					.stream()
-					.map(FinanceNodeDto::from)
-					.toList();
+		if (archived == null || !archived) {
+			queryBuilder.append("archived = ?").append(params.size() + 1);
+			params.add(false);
 		}
+
+		if (type != null) {
+			if (queryBuilder.length() > 0) {
+				queryBuilder.append(" and ");
+			}
+			queryBuilder.append("type = ?").append(params.size() + 1);
+			params.add(type);
+		}
+
+		String query = queryBuilder.toString();
+		if (query.isEmpty()) {
+			query = "1=1";
+		}
+
+		Object[] paramsArray = params.toArray();
+		long totalElements = financeNodeRepository.count(query, paramsArray);
+		List<FinanceNodeDto> content = financeNodeRepository.find(query, paramsArray)
+				.page(Page.of(page, size))
+				.stream()
+				.map(FinanceNodeDto::from)
+				.toList();
 
 		return PagedResponse.of(content, page, size, totalElements);
 	}

@@ -2,14 +2,14 @@ import { useAlert } from '@/contexts/AlertContext';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { nodesService } from '@/services/nodes.service';
-import type { CreateFinanceNodeDto } from '@/models';
+import type { CreateFinanceNodeDto, FinanceNodeType } from '@/models';
 
 export const NODES_KEY = ['financeNodes'] as const;
 
-export function useNodes(page = 0, size = 20, archived?: boolean) {
+export function useNodes(page = 0, size = 20, archived?: boolean, type?: FinanceNodeType) {
   return useQuery({
-    queryKey: [...NODES_KEY, page, size, archived],
-    queryFn: () => nodesService.getAll(page, size, archived),
+    queryKey: [...NODES_KEY, page, size, archived, type],
+    queryFn: () => nodesService.getAll(page, size, archived, type),
   });
 }
 

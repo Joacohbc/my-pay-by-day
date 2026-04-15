@@ -8,6 +8,7 @@ import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.FinanceNodeDto;
 import com.mypaybyday.dto.PagedResponse;
+import com.mypaybyday.enums.FinanceNodeType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.FinanceNodeService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
@@ -37,8 +38,9 @@ public class FinanceNodeResource {
     public Response getAll(
 	@Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
 	@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size,
-	@Parameter(description = "Filter by archived status") @QueryParam("archived") Boolean archived) {
-	return Response.ok(financeNodeService.listAll(page, size, archived)).build();
+	@Parameter(description = "Filter by archived status") @QueryParam("archived") Boolean archived,
+	@Parameter(description = "Filter by node type") @QueryParam("type") FinanceNodeType type) {
+	return Response.ok(financeNodeService.listAll(page, size, archived, type)).build();
     }
 
     @GET
