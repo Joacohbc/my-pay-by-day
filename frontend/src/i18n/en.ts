@@ -451,6 +451,7 @@ const en = {
       fixSpelling: 'Fix spelling',
       voiceInput: 'Dictate by voice',
       stopVoiceInput: 'Stop voice recording',
+      enableMic: 'Enable microphone',
     },
     settings: {
       title: 'AI Prompts',

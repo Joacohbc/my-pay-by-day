@@ -450,6 +450,7 @@ const es = {
       fixSpelling: 'Corregir ortografía',
       voiceInput: 'Dictar por voz',
       stopVoiceInput: 'Detener grabación de voz',
+      enableMic: 'Habilitar micrófono',
     },
     settings: {
       title: 'Prompts de IA',
