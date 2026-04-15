@@ -2,6 +2,8 @@ package com.mypaybyday.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -143,7 +145,7 @@ public class TemplateService {
 				? categoryService.findEntityById(dto.category().id())
 				: null;
 
-		List<TagEntity> tags = new ArrayList<>();
+		Set<TagEntity> tags = new HashSet<>();
 		if (dto.tags() != null) {
 			for (var tagDto : dto.tags()) {
 				tags.add(tagService.findTagEntity(tagDto.id()));

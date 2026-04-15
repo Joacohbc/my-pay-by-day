@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -139,7 +141,7 @@ public class IntelligentEventService {
 						tag.description = t.getDescription();
 						return tag;
 					})
-					.collect(Collectors.toCollection(ArrayList::new));
+					.collect(Collectors.toSet());
 		}
 
 		// Map Transaction and Line Items
@@ -161,7 +163,7 @@ public class IntelligentEventService {
 		transaction.transactionDate = transactionDate;
 		event.transaction = transaction;
 
-		List<FinanceLineItemEntity> lineItems = new ArrayList<>();
+		Set<FinanceLineItemEntity> lineItems = new HashSet<>();
 		BigDecimal amount = extraction.getAmount();
 		boolean amountOk = amount != null && amount.compareTo(BigDecimal.ZERO) > 0;
 

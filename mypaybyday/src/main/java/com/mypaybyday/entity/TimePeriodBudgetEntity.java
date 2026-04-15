@@ -16,12 +16,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity(name = "TimePeriodBudget")
+@Table(name = "TimePeriodBudget")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "TimePeriodBudget")
 public class TimePeriodBudgetEntity extends BaseEntity {
 
 	@ManyToOne(fetch = FetchType.LAZY)

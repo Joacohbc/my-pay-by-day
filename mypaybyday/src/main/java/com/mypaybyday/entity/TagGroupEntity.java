@@ -2,6 +2,8 @@ package com.mypaybyday.entity;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -36,9 +38,9 @@ public class TagGroupEntity extends BaseEntity {
 	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(
 			name = "TagGroup_Tag",
-			joinColumns = @JoinColumn(name = "tagGroupId"),
-			inverseJoinColumns = @JoinColumn(name = "tagId")
+			joinColumns = @JoinColumn(name = "tag_group_id"),
+			inverseJoinColumns = @JoinColumn(name = "tag_id")
 	)
 	@Builder.Default
-	public List<TagEntity> tags = new ArrayList<>();
+	public Set<TagEntity> tags = new HashSet<>();
 }

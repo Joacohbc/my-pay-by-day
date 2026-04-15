@@ -49,12 +49,12 @@ import lombok.Setter;
  * it only cares about math and balance.
  */
 @Entity(name = "FinanceLineItem")
+@Table(name = "FinanceLineItem")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "FinanceLineItem")
 public class FinanceLineItemEntity extends BaseEntity {
 
 	/**

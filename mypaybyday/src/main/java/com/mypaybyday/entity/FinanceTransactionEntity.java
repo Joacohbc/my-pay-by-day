@@ -3,6 +3,8 @@ package com.mypaybyday.entity;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -39,12 +41,12 @@ import lombok.Setter;
  * {@link FinanceNodeEntity}s, ensuring double-entry integrity.
  */
 @Entity(name = "FinanceTransaction")
+@Table(name = "FinanceTransaction")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "FinanceTransaction")
 public class FinanceTransactionEntity extends BaseEntity {
 
 	/** The date and time at which the financial movement occurred. */
@@ -61,6 +63,6 @@ public class FinanceTransactionEntity extends BaseEntity {
 	*/
 	@OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	@Builder.Default
-	public List<FinanceLineItemEntity> lineItems = new ArrayList<>();
+	public Set<FinanceLineItemEntity> lineItems = new HashSet<>();
 
 }

@@ -2,6 +2,8 @@ package com.mypaybyday.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -85,8 +87,8 @@ public class TagGroupService {
 		tagGroupRepository.delete(entity);
 	}
 
-	private List<TagEntity> resolveTags(List<Long> tagIds) throws BusinessException {
-		List<TagEntity> resolved = new ArrayList<>();
+	private Set<TagEntity> resolveTags(List<Long> tagIds) throws BusinessException {
+		Set<TagEntity> resolved = new HashSet<>();
 		if (tagIds != null) {
 			for (Long tagId : tagIds) {
 				resolved.add(tagService.findTagEntity(tagId));

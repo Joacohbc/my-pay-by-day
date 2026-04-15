@@ -363,7 +363,12 @@ Every endpoint **must** return the appropriate HTTP status code:
 * **Service layer uses DTOs:** Every public method in `service/` must receive and return DTOs (`dto/` package), never raw JPA entities. Internal (package-private) methods used only for intra-service entity resolution are exempt.
 * **Compile check:** After any code change, the build must pass without errors by running `./mvnw clean compile` from the `mypaybyday/` directory.
 * **Always use imports, never fully qualified names:** In Java source files, always add an `import` statement for each class and reference it by its simple name. Never use fully qualified class names (e.g., `com.mypaybyday.entity.Event`) inline in the code unless it is explicitly necessary to resolve an ambiguity between two classes with the same simple name.
-
+* **Entity Naming and Conventions**:
+    * `@Table` and `@Entity` must be the first annotations on the Java class.
+    * Both `@Table` and `@Entity` names must use `PascalCase` and strictly match the entity class name, but WITHOUT the "Entity" suffix (e.g., `@Table(name = "FinanceEvent")` for `FinanceEventEntity`).
+    * Join tables (`@JoinTable`) must use the format `EntityA_EntityB` in `PascalCase` (e.g., `name = "FinanceEvent_Tag"`).
+    * Database columns mapped to join tables or typical columns must remain in `snake_case` (e.g., `event_id`, `category_id`).
+    * Use `Set` (`HashSet`) instead of `List` for all `@OneToMany` and `@ManyToMany` entity relationships to prevent full collection deletion and re-insertion issues in Hibernate.
 ---
 
 ### Data Validation

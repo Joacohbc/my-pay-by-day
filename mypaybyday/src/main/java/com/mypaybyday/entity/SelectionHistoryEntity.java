@@ -20,13 +20,13 @@ import lombok.Setter;
  * Tracks the selection history of entities by the user in the UI.
  * Used to calculate "recently used" and "most selected" items.
  */
-@Entity(name = "SelectionHistoryEntity")
+@Entity(name = "SelectionHistory")
+@Table(name = "SelectionHistory", uniqueConstraints = @UniqueConstraint(columnNames = { "entityType", "entityId" }))
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "SelectionHistoryEntity", uniqueConstraints = @UniqueConstraint(columnNames = { "entityType", "entityId" }))
 public class SelectionHistoryEntity extends BaseEntity {
 
 	@Enumerated(EnumType.STRING)

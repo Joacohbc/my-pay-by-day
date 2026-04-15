@@ -3,6 +3,8 @@ package com.mypaybyday.entity;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -50,9 +52,9 @@ public class TemplateEntity extends BaseEntity {
 	public CategoryEntity category;
 
 	@ManyToMany(fetch = FetchType.EAGER)
-	@JoinTable(name = "template_tag", joinColumns = @JoinColumn(name = "template_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
+	@JoinTable(name = "Template_Tag", joinColumns = @JoinColumn(name = "template_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
 	@Builder.Default
-	public List<TagEntity> tags = new ArrayList<>();
+	public Set<TagEntity> tags = new HashSet<>();
 
 	@Enumerated(EnumType.STRING)
 	public EventType eventType;

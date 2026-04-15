@@ -20,13 +20,13 @@ import lombok.Setter;
  * This entity deliberately avoids the strict validations of typed entities.
  * The draft state is kept entirely as a raw JSON string to support any intermediate frontend state.
  */
-@Entity
+@Entity(name = "Draft")
+@Table(name = "Draft")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "entity_draft")
 public class DraftEntity extends BaseEntity {
 
 	/**
