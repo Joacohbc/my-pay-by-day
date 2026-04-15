@@ -268,15 +268,23 @@ function process(data) {
 
 ### Project Structure
 
-The backend source code lives under `mypaybyday/src/main/java/com/mypaybyday/` and is split into five packages:
+The backend source code lives under `mypaybyday/src/main/java/com/mypaybyday/` and is split into the following packages:
 
-* **`entity/`** — JPA entities that represent the data model (one class per domain concept).
-* **`enums/`** — Domain enumerations shared across entities (node types, event types, modifier types, recurrence frequencies).
+* **`ai/`** — LangChain4j AI integration: agent definitions, finance tool declarations, chat memory, and audio transcription.
+* **`config/`** — Application-level configuration beans (Jackson, timezone, startup diagnostics).
+* **`crypto/`** — Field-level encryption utilities and JPA attribute converters for encrypted strings and decimals.
+* **`dto/`** — Data Transfer Objects used as the public contract between the resource and service layers. Every public service method must receive and return DTOs, never raw JPA entities.
+* **`entity/`** — JPA entities that represent the data model (one class per domain concept). All entities extend `BaseEntity`, which provides `createdAt`/`updatedAt` audit fields.
+* **`enums/`** — Domain enumerations shared across entities (node types, event types, modifier types, recurrence frequencies, AI actions, job statuses).
 * **`exception/`** — `BusinessException` (unchecked domain exception) and its JAX-RS mapper that converts it to HTTP 400.
-* **`i18n/`** — Backend internationalisation infrastructure.
+* **`filter/`** — Jakarta REST container filters (e.g., request/response logging).
+* **`i18n/`** — Backend internationalisation infrastructure: `LangFilter`, `LanguageContext`, `Messages`, and the `MsgKey` enum.
 * **`repository/`** — Thin Panache repositories — only persistence calls and simple JPQL queries, one per entity.
-* **`service/`** — All business logic. Each service owns a domain area; `TransactionValidator` is a dedicated validator called by `TransactionService`.
+* **`service/`** — All business logic. Each service owns a domain area.
+* **`validation/`** — Dedicated validator classes (one per aggregate, plus shared `RegexValidator`, `DateValidator`, `NumberValidator`). Services must call the appropriate validator before persisting data.
 * **`resource/`** — JAX-RS REST resources — HTTP translation only. One resource per aggregate, each fully annotated with OpenAPI.
+
+Resource bundle files live at `src/main/resources/i18n/` (`messages_en.properties`, `messages_es.properties`).
 
 ---
 
