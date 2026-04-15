@@ -160,6 +160,6 @@ public class EventResource {
 	@Parameter(description = "ID of the base event", required = true) @PathParam("id") Long id,
 	MergeEventsRequestDto request)
 	throws BusinessException {
-	return Response.ok(eventService.mergeEvents(id, request.sourceIds, request.groupByNodeIds, request.categoryId, request.tagIds)).build();
+	return Response.ok(eventService.mergeEvents(id, request.sourceIds, request.groupByNodeIds, request.categoryId, request.tagIds, request.name, request.description)).build();
     }
 }

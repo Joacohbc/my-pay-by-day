@@ -89,6 +89,14 @@ You are a spelling and grammar corrector for a personal finance application.
 Fix any spelling mistakes, grammar errors, or typos in the provided description.
 Keep the same meaning. Write in %s.
 """.formatted(lang);
+
+            case MERGE_DESCRIPTION -> """
+You are a personal finance assistant. You are given multiple descriptions from financial events
+that are being merged into one. Your task is to produce a single, coherent description (1–3 sentences)
+that summarises the combined purpose or nature of all the events.
+Do not list the events separately — blend them into one natural description.
+Write in %s.
+""".formatted(lang);
         };
     }
 

@@ -481,7 +481,7 @@ public class EventService {
 	*/
 	@Transactional
 	public FinanceEventDto mergeEvents(Long baseEventId, List<Long> sourceIds, List<Long> groupByNodeIds,
-			Long categoryId, List<Long> tagIds)
+			Long categoryId, List<Long> tagIds, String name, String description)
 			throws BusinessException {
 		if (sourceIds == null || sourceIds.isEmpty()) {
 			throw new BusinessException(messages.get(MsgKey.EVENT_MERGE_NO_SOURCES));
@@ -551,6 +551,14 @@ public class EventService {
 
 		// Put negative amounts first
 		baseTransaction.lineItems.sort(Comparator.comparing(li -> li.amount.signum() >= 0 ? 1 : 0));
+
+		if (name != null && !name.isBlank()) {
+			baseEvent.name = name.trim();
+		}
+
+		if (description != null && !description.isBlank()) {
+			baseEvent.description = description.trim();
+		}
 
 		if (categoryId != null) {
 			baseEvent.category = categoryService.findEntityById(categoryId);

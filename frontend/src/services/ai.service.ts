@@ -4,7 +4,8 @@ export type AiTextAction =
   | 'GENERATE_NAME'
   | 'GENERATE_DESCRIPTION'
   | 'FIX_NAME_SPELLING'
-  | 'FIX_DESCRIPTION_SPELLING';
+  | 'FIX_DESCRIPTION_SPELLING'
+  | 'MERGE_DESCRIPTION';
 
 export interface AiTextRequest {
   action: AiTextAction;

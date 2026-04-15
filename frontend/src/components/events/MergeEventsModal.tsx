@@ -11,6 +11,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Pagination } from '@/components/ui/Pagination';
 import { formatCurrency, eventNetAmount } from '@/lib/format';
 import { Routes } from '@/lib/routes';
+import { aiService } from '@/services/ai.service';
+import { useAlert } from '@/contexts/AlertContext';
 import type { Category, FinanceEvent, Tag } from '@/models';
 
 type MergeStep = 'select-base' | 'select-sources' | 'configure-grouping' | 'configure-meta' | 'confirm';
@@ -24,6 +26,7 @@ export function MergeEventsModal({
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const alert = useAlert();
   const mergeEvents = useMergeEvents();
 
   const [step, setStep] = useState<MergeStep>('select-base');
@@ -34,6 +37,9 @@ export function MergeEventsModal({
   const [groupByNodeIds, setGroupByNodeIds] = useState<Set<number>>(new Set());
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<Set<number>>(new Set());
+  const [mergedName, setMergedName] = useState('');
+  const [mergedDescription, setMergedDescription] = useState('');
+  const [isMergingDescriptions, setIsMergingDescriptions] = useState(false);
 
   const { data: paged, isLoading, error } = useEvents({ page });
 
@@ -44,6 +50,8 @@ export function MergeEventsModal({
     setGroupByNodeIds(new Set());
     setSelectedCategoryId(null);
     setSelectedTagIds(new Set());
+    setMergedName('');
+    setMergedDescription('');
     setSearch('');
     setPage(0);
     onClose();
@@ -110,10 +118,31 @@ export function MergeEventsModal({
   };
 
   const handleGoToMeta = () => {
-    // Default: base event's category and union of all tags
+    // Default: base event's name, description, category and union of all tags
+    setMergedName(baseEvent?.name ?? '');
+    setMergedDescription(baseEvent?.description ?? '');
     setSelectedCategoryId(baseEvent?.category?.id ?? null);
     setSelectedTagIds(new Set(allTags.map((t) => t.id)));
     setStep('configure-meta');
+  };
+
+  const handleMergeDescriptions = async () => {
+    if (!baseEvent) return;
+    setIsMergingDescriptions(true);
+    try {
+      const allDescriptions = [baseEvent, ...sourceEvents]
+        .map((e, i) => `Event ${i + 1} — ${e.name}: ${e.description ?? '(no description)'}`)
+        .join('\n');
+      const result = await aiService.generateText({
+        action: 'MERGE_DESCRIPTION',
+        context: allDescriptions,
+      });
+      setMergedDescription(result.text);
+    } catch (err) {
+      alert.error(err instanceof Error ? err.message : t('common.error'));
+    } finally {
+      setIsMergingDescriptions(false);
+    }
   };
 
   const handleToggleNode = (id: number) => {
@@ -142,6 +171,8 @@ export function MergeEventsModal({
       groupByNodeIds: Array.from(groupByNodeIds),
       categoryId: selectedCategoryId,
       tagIds: Array.from(selectedTagIds),
+      name: mergedName,
+      description: mergedDescription,
     });
     handleClose();
     navigate(Routes.EVENT_DETAIL(merged.id));
@@ -265,6 +296,12 @@ export function MergeEventsModal({
 
         {step === 'configure-meta' && baseEvent && (
           <ConfigureMetaStep
+            name={mergedName}
+            description={mergedDescription}
+            isMergingDescriptions={isMergingDescriptions}
+            onNameChange={setMergedName}
+            onDescriptionChange={setMergedDescription}
+            onMergeDescriptions={handleMergeDescriptions}
             categories={allCategories}
             tags={allTags}
             selectedCategoryId={selectedCategoryId}
@@ -427,6 +464,12 @@ function ConfigureGroupingStep({
 }
 
 function ConfigureMetaStep({
+  name,
+  description,
+  isMergingDescriptions,
+  onNameChange,
+  onDescriptionChange,
+  onMergeDescriptions,
   categories,
   tags,
   selectedCategoryId,
@@ -437,6 +480,12 @@ function ConfigureMetaStep({
   onNext,
   t,
 }: {
+  name: string;
+  description: string;
+  isMergingDescriptions: boolean;
+  onNameChange: (v: string) => void;
+  onDescriptionChange: (v: string) => void;
+  onMergeDescriptions: () => void;
   categories: Category[];
   tags: Tag[];
   selectedCategoryId: number | null;
@@ -449,6 +498,47 @@ function ConfigureMetaStep({
 }) {
   return (
     <>
+      {/* Name */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-dn-text-muted uppercase tracking-wide px-1">
+          {t('events.mergeMetaNameTitle')}
+        </p>
+        <input
+          value={name}
+          onChange={(e) => onNameChange(e.target.value)}
+          className="w-full bg-dn-surface-low rounded-input px-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30"
+        />
+      </div>
+
+      {/* Description */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <p className="text-xs font-semibold text-dn-text-muted uppercase tracking-wide">
+            {t('events.mergeMetaDescriptionTitle')}
+          </p>
+          <button
+            type="button"
+            onClick={onMergeDescriptions}
+            disabled={isMergingDescriptions}
+            className="flex items-center gap-1.5 text-xs text-dn-primary hover:text-dn-primary/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {isMergingDescriptions ? (
+              <Spinner size="sm" />
+            ) : (
+              <Icon name="auto_awesome" className="text-sm" />
+            )}
+            {t('events.mergeMetaMergeDescriptions')}
+          </button>
+        </div>
+        <textarea
+          value={description}
+          onChange={(e) => onDescriptionChange(e.target.value)}
+          placeholder={t('events.mergeMetaDescriptionPlaceholder')}
+          rows={3}
+          className="w-full bg-dn-surface-low rounded-input px-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 resize-none"
+        />
+      </div>
+
       <div className="space-y-3">
         <p className="text-xs font-semibold text-dn-text-muted uppercase tracking-wide px-1">
           {t('events.mergeMetaCategoryTitle')}

@@ -257,8 +257,8 @@ export function useMergeEvents() {
   const alert = useAlert();
   const { t } = useTranslation();
   return useMutation({
-    mutationFn: ({ baseId, sourceIds, groupByNodeIds, categoryId, tagIds }: { baseId: number; sourceIds: number[]; groupByNodeIds: number[]; categoryId: number | null; tagIds: number[] }) =>
-      eventsService.mergeEvents(baseId, sourceIds, groupByNodeIds, categoryId, tagIds),
+    mutationFn: ({ baseId, sourceIds, groupByNodeIds, categoryId, tagIds, name, description }: { baseId: number; sourceIds: number[]; groupByNodeIds: number[]; categoryId: number | null; tagIds: number[]; name: string; description: string }) =>
+      eventsService.mergeEvents(baseId, sourceIds, groupByNodeIds, categoryId, tagIds, name, description),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: eventKeys.all });
       alert.success(t('events.mergeSuccess'));

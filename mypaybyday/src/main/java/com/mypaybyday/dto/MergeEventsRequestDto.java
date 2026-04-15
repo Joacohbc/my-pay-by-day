@@ -28,4 +28,16 @@ public class MergeEventsRequestDto {
 	 * If null, the base event's existing tags are preserved.
 	 */
 	public List<Long> tagIds;
+
+	/**
+	 * New name for the base event after the merge.
+	 * If null or blank, the base event's existing name is preserved.
+	 */
+	public String name;
+
+	/**
+	 * New description for the base event after the merge.
+	 * If null or blank, the base event's existing description is preserved.
+	 */
+	public String description;
 }
