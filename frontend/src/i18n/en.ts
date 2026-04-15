@@ -29,6 +29,7 @@ const en = {
     active: 'Active',
     none: 'None',
     back: 'Back',
+    next: 'Next',
     noResults: 'No results found',
     name: 'Name',
     description: 'Description',

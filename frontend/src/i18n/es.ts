@@ -28,6 +28,7 @@ const es = {
     active: 'Activos',
     none: 'Ninguno',
     back: 'Volver',
+    next: 'Siguiente',
     noResults: 'No se encontraron resultados',
     name: 'Nombre',
     description: 'Descripción',
