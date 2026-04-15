@@ -22,6 +22,7 @@ interface LineItemsEditorProps {
   sortMode?: SortMode;
   onSortModeChange?: (mode: SortMode) => void;
   minItems?: number;
+  maxItems?: number;
 }
 
 export function LineItemsEditor({
@@ -29,6 +30,7 @@ export function LineItemsEditor({
   sortMode: sortModeProp,
   onSortModeChange,
   minItems = 1,
+  maxItems,
 }: LineItemsEditorProps) {
 
   const { t } = useTranslation();
@@ -107,7 +109,7 @@ export function LineItemsEditor({
           </button>
         </div>
         <div className="flex items-center gap-3">
-          {!isSimplifiedMode && (
+          {!isSimplifiedMode && (!maxItems || fields.length < maxItems) && (
             <button
               type="button"
               onClick={() => append({ nodeId: '', amount: '' })}

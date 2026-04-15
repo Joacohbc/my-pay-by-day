@@ -15,13 +15,15 @@ const lineItemSchema = z.object({
   amount: z.string(),
 });
 
-export function buildSchema(t: (key: string, options?: Record<string, unknown>) => string, minItems = 0) {
+export function buildSchema(t: (key: string, options?: Record<string, unknown>) => string, minItems = 0, maxItems?: number) {
   return z
     .object({
       name: nameField(t),
       description: descriptionField(t),
       eventType: optionalEventTypeField(),
-      lineItems: z.array(lineItemSchema).min(minItems),
+      lineItems: maxItems
+        ? z.array(lineItemSchema).min(minItems).max(maxItems)
+        : z.array(lineItemSchema).min(minItems),
       isSimplifiedMode: z.boolean().optional(),
       categoryId: optionalCategoryIdField(),
       tagIds: optionalTagIdsField(),

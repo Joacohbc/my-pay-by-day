@@ -29,10 +29,11 @@ interface SubscriptionFormProps {
 }
 
 const MIN_LINE_ITEMS = 2;
+const MAX_LINE_ITEMS = 2;
 
 export function SubscriptionForm({ editTarget, onSubmit, onCancel, loading }: SubscriptionFormProps) {
   const { t } = useTranslation();
-  const schema = buildSchema(t, MIN_LINE_ITEMS);
+  const schema = buildSchema(t, MIN_LINE_ITEMS, MAX_LINE_ITEMS);
 
   const { data: categoriesPaged } = useCategories(0, 200);
   const { data: tagsPaged } = useTags(0, 200);
@@ -174,7 +175,7 @@ export function SubscriptionForm({ editTarget, onSubmit, onCancel, loading }: Su
           )}
         />
 
-        <LineItemsEditor nodes={nodes} minItems={MIN_LINE_ITEMS} />
+        <LineItemsEditor nodes={nodes} minItems={MIN_LINE_ITEMS} maxItems={MAX_LINE_ITEMS} />
 
         <div className="flex gap-2 pt-2">
           <Button type="submit" fullWidth loading={loading}>
