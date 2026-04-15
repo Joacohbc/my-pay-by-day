@@ -144,7 +144,6 @@ const en = {
     mergeConfigureGrouping: 'Step 3 — Configure grouping',
     mergeConfigureMeta: 'Step 4 — Category & tags',
     mergeConfirm: 'Step 5 — Confirm merge',
-    mergeGroupingTitle: 'Group by finance node',
     mergeGroupingHint: 'Checked nodes will have their amounts summed. Unchecked nodes will keep each line item separate.',
     mergeMetaNameTitle: 'Event name',
     mergeMetaDescriptionTitle: 'Description',

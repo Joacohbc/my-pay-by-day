@@ -143,7 +143,6 @@ const es = {
     mergeConfigureGrouping: 'Paso 3 — Configurar agrupación',
     mergeConfigureMeta: 'Paso 4 — Categoría y tags',
     mergeConfirm: 'Paso 5 — Confirmar merge',
-    mergeGroupingTitle: 'Agrupar por nodo financiero',
     mergeGroupingHint: 'Los nodos marcados tendrán sus montos sumados. Los desmarcados conservarán cada partida por separado.',
     mergeMetaNameTitle: 'Nombre del evento',
     mergeMetaDescriptionTitle: 'Descripción',
