@@ -5,6 +5,7 @@ export interface AiPrompts {
   generateDescription: string;
   fixNameSpelling: string;
   fixDescriptionSpelling: string;
+  mergeDescription: string;
 }
 
 const DEFAULT_PROMPTS: AiPrompts = {
@@ -12,6 +13,7 @@ const DEFAULT_PROMPTS: AiPrompts = {
   generateDescription: '',
   fixNameSpelling: '',
   fixDescriptionSpelling: '',
+  mergeDescription: '',
 };
 
 function loadPrompts(): AiPrompts {

@@ -24,6 +24,7 @@ export function AiSettingsPage() {
       generateDescription: '',
       fixNameSpelling: '',
       fixDescriptionSpelling: '',
+      mergeDescription: '',
     };
     setPrompts(defaultPrompts);
     aiPromptsStore.set(defaultPrompts);
@@ -71,6 +72,13 @@ export function AiSettingsPage() {
             placeholder={t('ai.settings.fixDescriptionSpellingPlaceholder')}
             value={prompts.fixDescriptionSpelling}
             onChange={(e) => setPrompts((prev) => ({ ...prev, fixDescriptionSpelling: e.target.value }))}
+            rows={4}
+          />
+          <Textarea
+            label={t('ai.settings.mergeDescriptionLabel')}
+            placeholder={t('ai.settings.mergeDescriptionPlaceholder')}
+            value={prompts.mergeDescription}
+            onChange={(e) => setPrompts((prev) => ({ ...prev, mergeDescription: e.target.value }))}
             rows={4}
           />
         </Card>

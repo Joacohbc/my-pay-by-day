@@ -465,6 +465,8 @@ const es = {
       fixNameSpellingPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
       fixDescriptionSpellingLabel: 'Prompt para Corregir Ortografía de la Descripción',
       fixDescriptionSpellingPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
+      mergeDescriptionLabel: 'Prompt para Unificar Descripciones',
+      mergeDescriptionPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
       saved: 'Prompts de IA guardados',
       reset: 'Restablecer predeterminados',
     },

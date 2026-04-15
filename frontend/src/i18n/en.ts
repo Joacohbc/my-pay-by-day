@@ -466,6 +466,8 @@ const en = {
       fixNameSpellingPlaceholder: 'Leave empty to use the default prompt...',
       fixDescriptionSpellingLabel: 'Fix Description Spelling prompt',
       fixDescriptionSpellingPlaceholder: 'Leave empty to use the default prompt...',
+      mergeDescriptionLabel: 'Merge Description prompt',
+      mergeDescriptionPlaceholder: 'Leave empty to use the default prompt...',
       saved: 'AI prompts saved',
       reset: 'Reset to defaults',
     },
