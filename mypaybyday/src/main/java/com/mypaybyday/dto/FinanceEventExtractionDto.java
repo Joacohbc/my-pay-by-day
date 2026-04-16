@@ -27,7 +27,7 @@ public class FinanceEventExtractionDto {
 	@Description("List of tags from the context that best describe this event, each with id, name and description. Empty list if none apply.")
 	private List<ExtractionTagDto> tags;
 
-	@Description("Transaction date in YYYY-MM-DD format. Leave null if not explicitly mentioned.")
+	@Description("Transaction date in YYYY-MM-DD or YYYY-MM-DDTHH:mm:SS format. Include time if explicitly mentioned, otherwise just the date. Leave null if not explicitly mentioned.")
 	private String transactionDate;
 
 	@Data

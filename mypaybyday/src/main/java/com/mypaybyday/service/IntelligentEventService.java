@@ -91,7 +91,7 @@ public class IntelligentEventService {
 				"- destinationNodeId: The ID of the node where money goes TO. Pick from the AVAILABLE FINANCE NODES list above.\n" +
 				"- category: The most appropriate category from the AVAILABLE CATEGORIES list above, including its id, name and description. Null if unclear.\n" +
 				"- tags: List of tags from the AVAILABLE TAGS list above that best describe this event, each with id, name and description. Empty list if none apply.\n" +
-				"- transactionDate: The date in YYYY-MM-DD format. Extract from text if present, otherwise leave null.\n\n" +
+				"- transactionDate: The date in YYYY-MM-DD or YYYY-MM-DDTHH:mm:SS format (include time if explicitly mentioned). Extract from text if present, otherwise leave null.\n\n" +
 				"CRITICAL OUTPUT RULES:\n" +
 				"- Return ONLY valid JSON matching the expected schema.\n" +
 				"- Do NOT include conversational text, greetings, explanations, or any markdown formatting (no ```json).\n" +
@@ -151,13 +151,16 @@ public class IntelligentEventService {
 		LocalDateTime transactionDate = LocalDateTime.now();
 		if (extraction.getTransactionDate() != null) {
 			try {
-				// Assuming format YYYY-MM-DD from AI extraction prompt, default to start of day
-				transactionDate = LocalDate.parse(
-					extraction.getTransactionDate(),
-					DateTimeFormatter.ISO_LOCAL_DATE
-				).atStartOfDay();
+				String dateStr = extraction.getTransactionDate();
+				if (dateStr.contains("T")) {
+					transactionDate = LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+				} else {
+					// Assuming format YYYY-MM-DD, default to start of day
+					transactionDate = LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE).atStartOfDay();
+				}
 			} catch (Exception e) {
 				// If parsing fails, stick with current time
+				log.warnf("Failed to parse extracted transaction date: %s", extraction.getTransactionDate());
 			}
 		}
 		transaction.transactionDate = transactionDate;
