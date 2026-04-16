@@ -72,62 +72,38 @@ export function ChatInput({
     ? 'text-dn-error bg-dn-error/10 hover:bg-dn-error/20 animate-pulse'
     : isPreparingAudio
       ? 'text-dn-primary/40'
-      : 'text-dn-text-main/60 hover:text-dn-primary hover:bg-dn-primary/10';
+      : 'text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10';
+
+  const canSend = (inputContent.trim() || hasDraftImages) && !isBusy && !isRecording;
 
   return (
-    <div className="p-4 border-t border-dn-border/10 mt-auto">
+    <div className="px-3 pb-3 pt-2 mt-auto">
       {isPreparingAudio && (
         <p className="text-[10px] text-dn-primary/40 uppercase tracking-[0.2em] font-black px-1 pb-2">
           {t('chat.transcribing')}
         </p>
       )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
       <form
-        className="flex items-end space-x-2"
         onSubmit={(e) => {
           e.preventDefault();
           onSend();
         }}
+        className="rounded-2xl border border-dn-border/20 bg-dn-surface-low focus-within:border-dn-primary/20 transition-colors overflow-hidden"
       >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={handleFileChange}
-        />
-
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isBusy || isRecording}
-          className={`shrink-0 w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
-            isBusy || isRecording
-              ? 'text-dn-text-main/20'
-              : 'text-dn-text-main/60 hover:text-dn-primary hover:bg-dn-primary/10'
-          }`}
-          aria-label={t('chat.uploadImage')}
-          title={t('chat.uploadImage')}
-        >
-          <Icon name="add_photo_alternate" className="text-[20px]" />
-        </button>
-
-        {isRecordingSupported && (
-          <button
-            type="button"
-            onClick={toggleRecording}
-            disabled={isBusy}
-            className={`shrink-0 w-10 h-10 flex items-center justify-center rounded-full transition-colors ${micButtonClass}`}
-            aria-label={micTitle}
-            title={micTitle}
-          >
-            <Icon name={isRecording ? 'mic_off' : 'mic'} className="text-[20px]" />
-          </button>
-        )}
-
+        {/* Textarea — takes the prominent space */}
         <Textarea
-          containerClassName="flex-1 min-w-0"
-          className="px-4! py-2.5! text-sm transition-all min-h-[44px]! max-h-[200px]! overflow-y-auto bg-transparent!"
+          containerClassName="w-full"
+          className="px-4! py-3! text-sm bg-transparent! border-none! ring-0! focus:ring-0! rounded-none! min-h-13! max-h-45! overflow-y-auto resize-none"
           placeholder={t('chat.placeholderAgent')}
           value={inputContent}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputContent(e.target.value)}
@@ -140,17 +116,52 @@ export function ChatInput({
           disabled={isBusy || isRecording}
         />
 
-        <button
-          type="submit"
-          disabled={(!inputContent.trim() && !hasDraftImages) || isBusy || isRecording}
-          className={`w-10 h-10 flex items-center justify-center rounded-full shrink-0 transition-colors ${
-            (inputContent.trim() || hasDraftImages) && !isBusy && !isRecording
-              ? 'text-dn-primary hover:bg-dn-primary/10'
-              : 'text-dn-text-main/30'
-          }`}
-        >
-          <Icon name="send" className="text-[18px]" />
-        </button>
+        {/* Action bar */}
+        <div className="flex items-center justify-between px-2 pb-2 gap-2">
+          {/* Left: media actions */}
+          <div className="flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isBusy || isRecording}
+              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${
+                isBusy || isRecording
+                  ? 'text-dn-text-main/20'
+                  : 'text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10'
+              }`}
+              aria-label={t('chat.uploadImage')}
+              title={t('chat.uploadImage')}
+            >
+              <Icon name="add_photo_alternate" className="text-[20px]" />
+            </button>
+
+            {isRecordingSupported && (
+              <button
+                type="button"
+                onClick={toggleRecording}
+                disabled={isBusy}
+                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${micButtonClass}`}
+                aria-label={micTitle}
+                title={micTitle}
+              >
+                <Icon name={isRecording ? 'mic_off' : 'mic'} className="text-[20px]" />
+              </button>
+            )}
+          </div>
+
+          {/* Right: send */}
+          <button
+            type="submit"
+            disabled={!canSend}
+            className={`w-9 h-9 flex items-center justify-center rounded-xl shrink-0 transition-all ${
+              canSend
+                ? 'bg-dn-primary text-white hover:bg-dn-primary/80 shadow-sm'
+                : 'bg-dn-surface text-dn-text-main/20'
+            }`}
+          >
+            <Icon name="send" className="text-[18px]" />
+          </button>
+        </div>
       </form>
     </div>
   );
