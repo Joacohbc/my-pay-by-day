@@ -97,9 +97,17 @@ function NodeActionMenu({ node, onEdit, onArchive, onUnarchive, onDelete }: {
 
 export function NodesPage() {
   const { t } = useTranslation();
-  const [page, setPage] = useState(0);
   const [showArchived, setShowArchived] = useState(false);
-  const { data: paged, isLoading, error } = useNodes(page, 20, showArchived);
+  const [pages, setPages] = useState<Record<FinanceNodeType, number>>({
+    OWN: 0,
+    EXTERNAL: 0,
+    CONTACT: 0,
+  });
+
+  const ownQuery = useNodes(pages.OWN, 10, showArchived, 'OWN');
+  const externalQuery = useNodes(pages.EXTERNAL, 10, showArchived, 'EXTERNAL');
+  const contactQuery = useNodes(pages.CONTACT, 10, showArchived, 'CONTACT');
+
   const archiveNode = useArchiveNode();
   const unarchiveNode = useUnarchiveNode();
   const deleteNode = useDeleteNode();
@@ -107,15 +115,25 @@ export function NodesPage() {
   const [editingNode, setEditingNode] = useState<FinanceNode | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ node: FinanceNode; type: 'archive' | 'unarchive' | 'delete' } | null>(null);
 
-  if (isLoading) return <FullPageSpinner />;
-  if (error) return <ErrorState message={String(error)} />;
+  if (ownQuery.isLoading || externalQuery.isLoading || contactQuery.isLoading) return <FullPageSpinner />;
+  if (ownQuery.error || externalQuery.error || contactQuery.error) {
+    const error = ownQuery.error || externalQuery.error || contactQuery.error;
+    return <ErrorState message={String(error)} />;
+  }
 
-  const allNodes = paged?.content ?? [];
-  const totalPages = paged?.totalPages ?? 1;
-  const activeNodes = allNodes.filter((n) => !n.archived);
-  const archivedNodes = allNodes.filter((n) => n.archived);
+  const queries: Record<FinanceNodeType, typeof ownQuery> = {
+    OWN: ownQuery,
+    EXTERNAL: externalQuery,
+    CONTACT: contactQuery,
+  };
 
-  const displayNodes = showArchived ? allNodes : activeNodes;
+  const totalElements = (ownQuery.data?.totalElements ?? 0) +
+                       (externalQuery.data?.totalElements ?? 0) +
+                       (contactQuery.data?.totalElements ?? 0);
+
+  const hasAnyArchived = (ownQuery.data?.content.some(n => n.archived) ||
+                         externalQuery.data?.content.some(n => n.archived) ||
+                         contactQuery.data?.content.some(n => n.archived));
 
 
   const openNewModal = () => {
@@ -145,6 +163,10 @@ export function NodesPage() {
       await deleteNode.mutateAsync(node.id);
     }
     setConfirmAction(null);
+  };
+
+  const setPage = (type: FinanceNodeType, page: number) => {
+    setPages(prev => ({ ...prev, [type]: page }));
   };
 
   return (
@@ -188,7 +210,7 @@ export function NodesPage() {
       <PageHeader
         title={t('nodes.title')}
         back={Routes.SETTINGS}
-        subtitle={t('nodes.activeCount', { count: paged?.totalElements ?? 0 })}
+        subtitle={t('nodes.activeCount', { count: totalElements })}
         action={
           <Button size="sm" onClick={openNewModal}>
             <Icon name="add" className="text-sm" />
@@ -210,7 +232,7 @@ export function NodesPage() {
         >
           {t('common.active')}
         </button>
-        {archivedNodes.length > 0 && (
+        {(showArchived || hasAnyArchived) && (
           <button
             onClick={() => setShowArchived(true)}
             className={[
@@ -220,27 +242,32 @@ export function NodesPage() {
                 : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
             ].join(' ')}
           >
-            {t('common.all')} ({allNodes.length})
+            {t('common.all')}
           </button>
         )}
       </div>
 
       {/* Groups by type */}
       {(['OWN', 'EXTERNAL', 'CONTACT'] as FinanceNodeType[]).map((type) => {
-        const group = displayNodes.filter((n) => n.type === type);
-        if (group.length === 0) return null;
+        const query = queries[type];
+        const nodes = query.data?.content ?? [];
+        if (nodes.length === 0 && !showArchived) return null; // Hide empty sections in active mode
+
         const labels: Record<FinanceNodeType, string> = {
           OWN: t('nodes.ownAccounts'),
           EXTERNAL: t('nodes.externalEntities'),
           CONTACT: t('nodes.contacts'),
         };
+
+        const totalPages = query.data?.totalPages ?? 1;
+
         return (
-          <section key={type} className="px-5">
+          <section key={type} className="px-5 pb-4">
             <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">
-              {labels[type]}
+              {labels[type]} ({query.data?.totalElements ?? 0})
             </p>
             <div className="space-y-3">
-              {group.map((node) => (
+              {nodes.map((node) => (
                 <NodeCard
                   key={node.id}
                   node={node}
@@ -260,12 +287,24 @@ export function NodesPage() {
                   }
                 />
               ))}
+              {nodes.length === 0 && (
+                <p className="text-sm text-dn-text-muted italic py-2">{t('common.noRecords')}</p>
+              )}
             </div>
+            {totalPages > 1 && (
+              <div className="mt-4">
+                <Pagination 
+                  page={pages[type]} 
+                  totalPages={totalPages} 
+                  onPageChange={(p) => setPage(type, p)} 
+                />
+              </div>
+            )}
           </section>
         );
       })}
 
-      {displayNodes.length === 0 && (
+      {totalElements === 0 && (
         <EmptyState
           title={t('nodes.noNodesYet')}
           description={t('nodes.noNodesDesc')}
@@ -277,8 +316,6 @@ export function NodesPage() {
           }
         />
       )}
-
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       <Modal
         open={showModal}
