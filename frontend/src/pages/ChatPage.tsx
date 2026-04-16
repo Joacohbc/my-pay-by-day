@@ -27,7 +27,7 @@ export function ChatPage() {
   } = useChatUI();
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-80px)] bg-dn-bg overflow-hidden">
+    <div className="flex flex-col h-[calc(100dvh-80px)] bg-dn-bg overflow-hidden -mb-20">
       <PageHeader
         title={t('chat.title')}
         action={
