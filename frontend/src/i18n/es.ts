@@ -207,6 +207,8 @@ const es = {
     nodeRequired: 'Requerido',
     amountNonZero: 'Debe ser un número distinto de cero',
     minLineItems: 'Se requieren al menos {{count}} partidas',
+    reorderLineItem: 'Arrastrar para reordenar partida',
+    dragLineItemHint: 'Arrastra y suelta las partidas para cambiar su orden.',
     manualMode: 'Modo manual',
     simplifiedMode: 'Modo simplificado',
     files: 'Archivos',

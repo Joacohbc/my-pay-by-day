@@ -208,6 +208,8 @@ const en = {
     nodeRequired: 'Required',
     amountNonZero: 'Must be a non-zero number',
     minLineItems: 'At least {{count}} line items are required',
+    reorderLineItem: 'Drag to reorder line item',
+    dragLineItemHint: 'Drag and drop line items to change their order.',
     manualMode: 'Manual mode',
     simplifiedMode: 'Simplified mode',
     files: 'Files',
