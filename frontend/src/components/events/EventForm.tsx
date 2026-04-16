@@ -100,8 +100,9 @@ function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormValues {
   const numberOfLineItems = defaultValues?.lineItems?.length ?? 0;
   const numberOfEmptyItems = defaultValues?.lineItems?.filter((li) => !li.financeNodeId).length ?? 0;
 
-  console.log('buildFormDefaults:', numberOfEmptyItems, numberOfLineItems)
-  const isSimplifiedMode = numberOfEmptyItems == 0 || [0, 1, 2].includes(numberOfLineItems);
+  // If there are empty line items (from a incomplete Draft, new event or template-as-event)
+  // If the number of line items is 2 or less the simplified mode is better for the user
+  const isSimplifiedMode = numberOfEmptyItems > 0 && [0, 1, 2].includes(numberOfLineItems);
 
   return {
     name: defaultValues?.name ?? '',
