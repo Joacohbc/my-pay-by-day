@@ -12,6 +12,7 @@ export type BannerId = (typeof BANNER_IDS)[keyof typeof BANNER_IDS];
 interface DismissedBannersState {
   dismissedIds: BannerId[];
   dismiss: (id: BannerId) => void;
+  reset: () => void;
 }
 
 export const useDismissedBannersStore = create<DismissedBannersState>()(
@@ -24,6 +25,7 @@ export const useDismissedBannersStore = create<DismissedBannersState>()(
             ? s.dismissedIds
             : [...s.dismissedIds, id],
         })),
+      reset: () => set({ dismissedIds: [] }),
     }),
     { name: 'mpbd-dismissed-banners' }
   )
