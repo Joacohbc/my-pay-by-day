@@ -22,6 +22,8 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
+import { DismissibleBanner } from '@/components/ui/DismissibleBanner';
+import { BANNER_IDS } from '@/store/dismissedBannersStore';
 import type { TimePeriod, CreateTimePeriodDto } from '@/models';
 import { getBudgetLimitMode, type BudgetLimitMode } from '@/lib/timePeriods';
 
@@ -293,14 +295,10 @@ export function TimePeriodsPage() {
         }
       />
 
-      {/* Info banner */}
       <div className="px-5">
-        <div className="flex items-start gap-3 bg-dn-primary/5 border border-dn-primary/20 rounded-card px-4 py-3">
-          <Icon name="info" className="text-dn-primary shrink-0 mt-0.5 text-base" />
-          <p className="text-xs text-dn-text-muted leading-relaxed">
-            {t('periods.infoBanner')}
-          </p>
-        </div>
+        <DismissibleBanner bannerId={BANNER_IDS.PERIODS_INFO}>
+          {t('periods.infoBanner')}
+        </DismissibleBanner>
       </div>
 
       {/* Search */}

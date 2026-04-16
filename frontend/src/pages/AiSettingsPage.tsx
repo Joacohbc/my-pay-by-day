@@ -6,12 +6,16 @@ import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { useAlert } from '@/contexts/AlertContext';
 import { aiPromptsStore, type AiPrompts } from '@/store/aiPromptsStore';
+import { useBanner, BANNER_IDS } from '@/store/dismissedBannersStore';
+import { Icon } from '@/components/ui/Icon';
 import { Routes } from '@/lib/routes';
 
 export function AiSettingsPage() {
   const { t } = useTranslation();
   const alert = useAlert();
   const [prompts, setPrompts] = useState<AiPrompts>(aiPromptsStore.get);
+
+  const infoBanner = useBanner(BANNER_IDS.AI_SETTINGS_INFO);
 
   const handleSave = () => {
     aiPromptsStore.set(prompts);
@@ -36,14 +40,27 @@ export function AiSettingsPage() {
       <PageHeader title={t('ai.settings.title')} back={Routes.SETTINGS} />
 
       <section className="px-5 space-y-4">
-        <Card>
-          <p className="text-xs text-dn-text-muted leading-relaxed">
-            {t('ai.settings.subtitle')}
-          </p>
-          <p className="text-xs text-dn-text-muted/70 leading-relaxed mt-1">
-            {t('ai.settings.description')}
-          </p>
-        </Card>
+        {infoBanner.isVisible && (
+          <Card>
+            <div className="flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-dn-text-muted leading-relaxed">
+                  {t('ai.settings.subtitle')}
+                </p>
+                <p className="text-xs text-dn-text-muted/70 leading-relaxed mt-1">
+                  {t('ai.settings.description')}
+                </p>
+              </div>
+              <button
+                onClick={infoBanner.dismiss}
+                aria-label={t('common.close')}
+                className="shrink-0 text-dn-text-muted hover:text-dn-text-main transition-colors"
+              >
+                <Icon name="close" className="text-base" />
+              </button>
+            </div>
+          </Card>
+        )}
 
         <Card className="space-y-4">
           <Textarea
