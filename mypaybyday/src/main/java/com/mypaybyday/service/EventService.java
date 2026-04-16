@@ -532,13 +532,14 @@ public class EventService {
 
 		FinanceTransactionEntity baseTransaction = baseEvent.transaction;
 		baseTransaction.lineItems.clear();
+		List<FinanceLineItemEntity> mergedLineItems = new ArrayList<>();
 
 		for (Map.Entry<FinanceNodeEntity, BigDecimal> entry : aggregated.entrySet()) {
 			FinanceLineItemEntity lineItem = new FinanceLineItemEntity();
 			lineItem.transaction = baseTransaction;
 			lineItem.financeNode = entry.getKey();
 			lineItem.amount = entry.getValue();
-			baseTransaction.lineItems.add(lineItem);
+			mergedLineItems.add(lineItem);
 		}
 
 		for (FinanceLineItemEntity li : flat) {
@@ -546,11 +547,11 @@ public class EventService {
 			lineItem.transaction = baseTransaction;
 			lineItem.financeNode = li.financeNode;
 			lineItem.amount = li.amount;
-			baseTransaction.lineItems.add(lineItem);
+			mergedLineItems.add(lineItem);
 		}
 
-		// Put negative amounts first
-// sorting removed for Set
+		mergedLineItems.sort(this::compareMergedLineItems);
+		baseTransaction.lineItems.addAll(mergedLineItems);
 
 		if (name != null && !name.isBlank()) {
 			baseEvent.name = name.trim();
@@ -633,6 +634,41 @@ public class EventService {
 	@Transactional
 	public FinanceEventDto removeRelation(Long eventId, Long relatedId) throws BusinessException {
 		return removeRelations(eventId, List.of(relatedId));
+	}
+
+	private int compareMergedLineItems(FinanceLineItemEntity first, FinanceLineItemEntity second) {
+		int signComparison = Boolean.compare(!isNegativeAmount(first.amount), !isNegativeAmount(second.amount));
+		if (signComparison != 0) {
+			return signComparison;
+		}
+
+		if (isNegativeAmount(first.amount) && isNegativeAmount(second.amount)) {
+			int amountComparison = second.amount.compareTo(first.amount);
+			if (amountComparison != 0) {
+				return amountComparison;
+			}
+		}
+
+		return compareNodeId(first.financeNode, second.financeNode);
+	}
+
+	private int compareNodeId(FinanceNodeEntity first, FinanceNodeEntity second) {
+		Long firstNodeId = first != null ? first.id : null;
+		Long secondNodeId = second != null ? second.id : null;
+		if (firstNodeId == null && secondNodeId == null) {
+			return 0;
+		}
+		if (firstNodeId == null) {
+			return 1;
+		}
+		if (secondNodeId == null) {
+			return -1;
+		}
+		return firstNodeId.compareTo(secondNodeId);
+	}
+
+	private boolean isNegativeAmount(BigDecimal amount) {
+		return amount != null && amount.compareTo(BigDecimal.ZERO) < 0;
 	}
 
 	private List<FinanceEventEntity> validateAndFetchRelatedEvents(List<Long> relatedIds) throws BusinessException {
