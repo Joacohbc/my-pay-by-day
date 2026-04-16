@@ -238,7 +238,7 @@ public class IntelligentEventService {
 			return "No tags available.";
 		}
 		return tags.stream()
-				.map(t -> String.format("  - id=%d, name=%s", t.id, t.name))
+				.map(t -> String.format("  - id=%d, name=%s%s", t.id, t.name, t.description != null && !t.description.isBlank() ? ", description=" + t.description : ""))
 				.collect(Collectors.joining("\n"));
 	}
 
@@ -248,7 +248,7 @@ public class IntelligentEventService {
 			return "No categories available.";
 		}
 		return categories.stream()
-				.map(c -> String.format("  - id=%d, name=%s", c.id, c.name))
+				.map(c -> String.format("  - id=%d, name=%s%s", c.id, c.name, c.description != null && !c.description.isBlank() ? ", description=" + c.description : ""))
 				.collect(Collectors.joining("\n"));
 	}
 
