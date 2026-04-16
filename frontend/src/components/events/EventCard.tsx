@@ -86,7 +86,7 @@ export function EventCard({ event, disableLink }: EventCardProps) {
   }
 
   return (
-    <Link to={finalTo} className={containerClass}>
+    <Link to={finalTo} state={{ draft: event }} className={containerClass}>
       {content}
     </Link>
   );

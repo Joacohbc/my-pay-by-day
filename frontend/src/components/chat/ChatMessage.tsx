@@ -1,9 +1,8 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
-import { Button } from '@/components/ui/Button';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { AudioMessagePlayer } from '@/components/chat/AudioMessagePlayer';
 import type { ChatMessage as ChatMessageType } from '@/store/chatStore';
@@ -22,42 +21,23 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
   const hasAudioMessage = audioMessageUrl !== null;
   const hasTextContent = message.content.trim().length > 0;
   const isEditable = isUser && !!onEdit && hasTextContent;
-  const canCopyMessage = isUser && hasTextContent;
-  const hasOverlayActions = canCopyMessage || isEditable;
+  const canCopy = hasTextContent;
+  const hasSideActions = canCopy || isEditable;
   const [showEditModal, setShowEditModal] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleCopy = () => {
-    if (!canCopyMessage) {
-      return;
-    }
-
     navigator.clipboard.writeText(message.content);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
 
-  const handlePressStart = () => {
-    if (!isEditable) return;
-    longPressTimer.current = setTimeout(() => setShowEditModal(true), 500);
-  };
-
-  const handlePressEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  };
-
   return (
     <>
-    <div
-      className=""
-    >
+    <div>
       <div className={`max-w-4xl mx-auto mt-5 px-4 md:px-8 flex flex-col`}>
 
-        {/* Header Row: Icon + Role + Actions */}
+        {/* Header Row: Icon + Role */}
         <div className={`flex items-center gap-2 mb-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
           <div className={`flex items-center gap-1 ${isUser ? 'flex-row-reverse' : 'flex-row'} rounded-4xl border border-white/10 max-w-min px-4 py-3`}>
             <Icon
@@ -86,9 +66,11 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
             </div>
           )}
 
-          {/* Text/Markdown content */}
-          <div className={`min-w-0 relative ${hasOverlayActions ? 'group' : ''}`}>
-            <div className={`transition-all duration-300 ${hasOverlayActions ? 'group-hover:blur-md group-hover:opacity-40 group-hover:select-none' : ''}`}>
+          {/* Text content + side actions */}
+          <div className={`flex items-start gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'} ${hasSideActions ? 'group' : ''}`}>
+
+            {/* Main content */}
+            <div className="min-w-0 flex-1">
               {isUser ? (
                 <div className="flex flex-col items-end gap-2">
                   {hasAudioMessage && (
@@ -112,15 +94,7 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
                   )}
 
                   {hasTextContent && (
-                    <div
-                      className="whitespace-pre-wrap text-sm leading-relaxed text-dn-text-main/90 text-right selection:bg-dn-primary/30"
-                      onMouseDown={handlePressStart}
-                      onMouseUp={handlePressEnd}
-                      onMouseLeave={handlePressEnd}
-                      onTouchStart={handlePressStart}
-                      onTouchEnd={handlePressEnd}
-                      onTouchMove={handlePressEnd}
-                    >
+                    <div className="whitespace-pre-wrap text-sm leading-relaxed text-dn-text-main/90 text-right selection:bg-dn-primary/30">
                       {message.content}
                     </div>
                   )}
@@ -156,33 +130,27 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
               )}
             </div>
 
-            {/* Hover Actions Overlay */}
-            {hasOverlayActions && (
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
-                <div className="flex items-center gap-2 pointer-events-auto scale-90 group-hover:scale-100 transition-all duration-300">
-                  {canCopyMessage && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={handleCopy}
-                      className="shadow-2xl backdrop-blur-md bg-dn-surface/80 border-white/10"
-                    >
-                      <Icon name={isCopied ? 'check' : 'content_copy'} className="text-sm" />
-                      <span>{isCopied ? t('chat.copied') : t('chat.copy')}</span>
-                    </Button>
-                  )}
-                  {isEditable && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => setShowEditModal(true)}
-                      className="shadow-2xl"
-                    >
-                      <Icon name="edit" className="text-sm" />
-                      <span>{t('common.edit')}</span>
-                    </Button>
-                  )}
-                </div>
+            {/* Side action buttons — opposite side from text */}
+            {hasSideActions && (
+              <div className="flex flex-col gap-1 shrink-0 pt-0.5 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-200">
+                {canCopy && (
+                  <button
+                    onClick={handleCopy}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-dn-text-main/40 hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
+                    title={isCopied ? t('chat.copied') : t('chat.copy')}
+                  >
+                    <Icon name={isCopied ? 'check' : 'content_copy'} className="text-[14px]" />
+                  </button>
+                )}
+                {isEditable && (
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-dn-text-main/40 hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
+                    title={t('common.edit')}
+                  >
+                    <Icon name="edit" className="text-[14px]" />
+                  </button>
+                )}
               </div>
             )}
           </div>
