@@ -20,6 +20,7 @@ import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { Pagination } from '@/components/ui/Pagination';
 import type { Subscription, CreateSubscriptionDto } from '@/models';
 import { SubscriptionForm } from '@/components/subscriptions/SubscriptionForm';
+import { useBanner, BANNER_IDS } from '@/store/dismissedBannersStore';
 
 // EVENT_TYPE_COLORS provides the tailwind classes for each event type
 const EVENT_TYPE_COLORS: Record<string, string> = {
@@ -171,6 +172,8 @@ export function SubscriptionsPage() {
   const [showModal, setShowModal] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
+  const howItWorksBanner = useBanner(BANNER_IDS.SUBSCRIPTIONS_HOW_IT_WORKS);
+
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
 
@@ -235,19 +238,28 @@ export function SubscriptionsPage() {
         }
       />
 
-      <div className="px-5">
-        <Card>
-          <div className="flex items-start gap-3">
-            <Icon name="sync" className="text-dn-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-dn-text-main">{t('subscriptions.howItWorks')}</p>
-              <p className="text-xs text-dn-text-muted mt-1 leading-relaxed">
-                {t('subscriptions.howItWorksDesc')}
-              </p>
+      {howItWorksBanner.isVisible && (
+        <div className="px-5">
+          <Card>
+            <div className="flex items-start gap-3">
+              <Icon name="sync" className="text-dn-primary shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-dn-text-main">{t('subscriptions.howItWorks')}</p>
+                <p className="text-xs text-dn-text-muted mt-1 leading-relaxed">
+                  {t('subscriptions.howItWorksDesc')}
+                </p>
+              </div>
+              <button
+                onClick={howItWorksBanner.dismiss}
+                aria-label={t('common.close')}
+                className="shrink-0 text-dn-text-muted hover:text-dn-text-main transition-colors"
+              >
+                <Icon name="close" className="text-base" />
+              </button>
             </div>
-          </div>
-        </Card>
-      </div>
+          </Card>
+        </div>
+      )}
 
       {allSubs.length === 0 ? (
         <EmptyState

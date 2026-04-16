@@ -20,6 +20,7 @@ import { getUserTimezone } from '@/utils/dateUtils';
 import { currenciesList } from '@/utils/currencies';
 import { useAlert } from '@/contexts/AlertContext';
 import { idbRemove } from '@/lib/idbStorage';
+import { useDismissedBannersStore } from '@/store/dismissedBannersStore';
 
 interface SettingRowProps {
   to: string;
@@ -56,6 +57,7 @@ export function SettingsPage() {
   const { t, i18n } = useTranslation();
   const { success } = useAlert();
   const queryClient = useQueryClient();
+  const resetDismissedBanners = useDismissedBannersStore((s) => s.reset);
   const [currency, _setCurrency] = useState(getCurrency);
   const [timezone, _setTimezone] = useState(() => localStorage.getItem('user-timezone') || '');
   const { data: categoriesPaged } = useCategories();
@@ -75,6 +77,7 @@ export function SettingsPage() {
   const handleClearCache = async () => {
     queryClient.clear();
     await idbRemove('mpbd-query-cache');
+    resetDismissedBanners();
     success(t('settings.clearCacheSuccess'));
     window.location.reload();
   };
