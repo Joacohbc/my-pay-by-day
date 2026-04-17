@@ -529,8 +529,12 @@ const en = {
   // ─── Drafts ──────────────────────────────────────────────────────────────
   drafts: {
     title: 'Drafts',
+    chooseDrafts: 'Choose Drafts',
     confirmAll: 'Confirm All',
     confirmAllDesc: 'Confirm all drafts as permanent events',
+    confirmSelected: 'Confirm Selected',
+    confirmSelectedDesc: 'Confirm {{count}} selected draft(s) as permanent events',
+    deleteSelected: 'Delete Selected',
     untitledDraft: 'Untitled Draft',
     deleteAndExit: 'Delete & exit',
     deleteAndReset: 'Solo delete',
@@ -539,6 +543,16 @@ const en = {
     allDeleted: 'All event drafts deleted successfully',
     editingDraft: 'Editing Draft',
     bulkActions: 'Bulk Actions',
+    viewDrafts: 'Drafts',
+    select: 'Select',
+    backToEvents: 'Back to events',
+    noDraftsTitle: 'No drafts yet',
+    noDraftsDescription: 'Drafts you save will appear here until you confirm or discard them.',
+    segments: {
+      recent: 'Recent',
+      linked: 'Editing existing',
+      unlinked: 'Not yet created',
+    },
   },
 
   // ─── Validation ──────────────────────────────────────────────────────────

@@ -30,6 +30,7 @@ type EventSelectionListProps = {
   pagination?: EventSelectionListPagination;
   paginationClassName?: string;
   maxHeightClass?: string;
+  selectionIdResolver?: (event: FinanceEvent) => number;
 };
 
 export function EventSelectionList({
@@ -47,9 +48,11 @@ export function EventSelectionList({
   pagination,
   paginationClassName,
   maxHeightClass = 'max-h-[60vh]',
+  selectionIdResolver,
 }: EventSelectionListProps) {
   const hasSelectionIndicator = selectionIndicator !== 'none';
   const canSelectEvent = !!onSelectEvent;
+  const resolveSelectionId = selectionIdResolver ?? ((event: FinanceEvent) => event.id);
 
   const shouldRenderPagination =
     !!pagination &&
@@ -86,7 +89,8 @@ export function EventSelectionList({
         )}
 
         {events.map((event) => {
-          const isSelected = selectedIds?.has(event.id) ?? false;
+          const selectionId = resolveSelectionId(event);
+          const isSelected = selectedIds?.has(selectionId) ?? false;
           return (
             <div
               key={event.id}

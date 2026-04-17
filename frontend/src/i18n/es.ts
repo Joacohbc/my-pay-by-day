@@ -528,8 +528,12 @@ const es = {
   // ─── Drafts ──────────────────────────────────────────────────────────────
   drafts: {
     title: 'Borradores',
+    chooseDrafts: 'Elegir borradores',
     confirmAll: 'Confirmar Todos',
     confirmAllDesc: 'Convertir todos los borradores en eventos permanentes',
+    confirmSelected: 'Confirmar seleccionados',
+    confirmSelectedDesc: 'Convertir {{count}} borrador(es) seleccionado(s) en eventos permanentes',
+    deleteSelected: 'Eliminar seleccionados',
     untitledDraft: 'Borrador sin título',
     deleteAndExit: 'Eliminar borrador y salir',
     deleteAndReset: 'Solo eliminar borrador',
@@ -538,6 +542,16 @@ const es = {
     allDeleted: 'Se eliminaron todos los borradores de eventos',
     editingDraft: 'Editando borrador guardado',
     bulkActions: 'Acciones masivas',
+    viewDrafts: 'Borradores',
+    select: 'Seleccionar',
+    backToEvents: 'Volver a eventos',
+    noDraftsTitle: 'Aún no hay borradores',
+    noDraftsDescription: 'Los borradores que guardes aparecerán aquí hasta que los confirmes o descartes.',
+    segments: {
+      recent: 'Recientes',
+      linked: 'Editando existentes',
+      unlinked: 'Sin crear aún',
+    },
   },
 
   // ─── Validation ──────────────────────────────────────────────────────────
