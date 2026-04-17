@@ -533,7 +533,6 @@ const en = {
     confirmAll: 'Confirm All',
     confirmAllDesc: 'Confirm all drafts as permanent events',
     confirmSelected: 'Confirm Selected',
-    confirmSelectedDesc: 'Confirm {{count}} selected draft(s) as permanent events',
     deleteSelected: 'Delete Selected',
     untitledDraft: 'Untitled Draft',
     deleteAndExit: 'Delete & exit',
@@ -545,7 +544,6 @@ const en = {
     bulkActions: 'Bulk Actions',
     viewDrafts: 'Drafts',
     select: 'Select',
-    backToEvents: 'Back to events',
     noDraftsTitle: 'No drafts yet',
     noDraftsDescription: 'Drafts you save will appear here until you confirm or discard them.',
     segments: {

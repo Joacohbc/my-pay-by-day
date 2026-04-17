@@ -532,7 +532,6 @@ const es = {
     confirmAll: 'Confirmar Todos',
     confirmAllDesc: 'Convertir todos los borradores en eventos permanentes',
     confirmSelected: 'Confirmar seleccionados',
-    confirmSelectedDesc: 'Convertir {{count}} borrador(es) seleccionado(s) en eventos permanentes',
     deleteSelected: 'Eliminar seleccionados',
     untitledDraft: 'Borrador sin título',
     deleteAndExit: 'Eliminar borrador y salir',
@@ -544,7 +543,6 @@ const es = {
     bulkActions: 'Acciones masivas',
     viewDrafts: 'Borradores',
     select: 'Seleccionar',
-    backToEvents: 'Volver a eventos',
     noDraftsTitle: 'Aún no hay borradores',
     noDraftsDescription: 'Los borradores que guardes aparecerán aquí hasta que los confirmes o descartes.',
     segments: {
