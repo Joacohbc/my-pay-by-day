@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Routes } from '@/lib/routes';
@@ -9,6 +9,7 @@ import { DraftBadge } from '@/components/ui/DraftBadge';
 import { useEvent, useUpdateEvent } from '@/hooks/useEvents';
 import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft, useFinanceEventDraftByEntityId } from '@/hooks/useDrafts';
 import type { CreateEventDto, PatchEventDto, FinanceEvent } from '@/models';
+import { useDebounceCallback } from '@/hooks/useDebounce';
 
 export function EventEditPage() {
   const { t } = useTranslation();
@@ -29,60 +30,53 @@ export function EventEditPage() {
   if (!isLoadingDraft && !draftInitial.current.captured) {
     draftInitial.current = { data: fetchedDraft, captured: true };
   }
-  const draft = draftInitial.current.data ?? undefined;
+  const draftToForm = draftInitial.current.data ?? undefined;
+
+  const handleSaveDraft = useCallback(async (dto: Partial<FinanceEvent>) => {
+    if (fetchedDraft?.draftId) {
+      await updateDraft.mutateAsync({ id: fetchedDraft.draftId, dto });
+      return;
+    }
+    const payload = { ...dto, id: Number(id) };
+    await createDraft.mutateAsync(payload);
+  }, [fetchedDraft, id, createDraft, updateDraft]);
+
+  const debouncedSaveDraft = useDebounceCallback(handleSaveDraft, 500);
+  const handleDeleteDraft = async () => {
+    if (fetchedDraft?.draftId) {
+      await deleteDraft.mutateAsync(fetchedDraft.draftId);
+    }
+    navigate(Routes.EVENT_DETAIL(Number(id)))
+  };
 
   if (isLoading || isLoadingDraft) return <FullPageSpinner />;
   if (!event) return null;
 
-  const handleSubmit = async (dto: CreateEventDto | PatchEventDto, formDraftId?: number) => {
-    const draftId = formDraftId ?? draft?.draftId;
-
+  const handleSubmit = async (dto: CreateEventDto | PatchEventDto) => {
     // Navigate immediately to optimistically update the UI
     navigate(Routes.EVENT_DETAIL(id!));
 
-    try {
-      // Update the event, it is async so the unmount would happen before the mutation completes
-      await updateEvent.mutateAsync({ id: Number(id), dto: dto as PatchEventDto });
-      if (draftId) deleteDraft.mutate(draftId);
-    } catch {
-      // useUpdateEvent.onError handles cache rollback and the error toast
-    }
-  };
-
-  const handleSaveDraft = async (dto: Partial<FinanceEvent>) => {
-    const existingDraftId = dto.draftId ?? draft?.draftId;
-    if (existingDraftId) {
-      await updateDraft.mutateAsync({ id: existingDraftId, dto });
-      return existingDraftId;
-    }
-    const payload = { ...dto, id: Number(id) };
-    const created = await createDraft.mutateAsync(payload);
-    return created.id;
-  };
-
-  const handleDeleteDraft = async (formDraftId?: number, shouldExit = true) => {
-    const draftId = formDraftId ?? draft?.draftId;
-    if (draftId) {
-      await deleteDraft.mutateAsync(draftId);
-    }
-    if (shouldExit) {
-      navigate(Routes.EVENT_DETAIL(Number(id)));
-    }
+    // Update the event, it is async so the unmount would happen before the mutation completes
+    await updateEvent.mutateAsync({ id: Number(id), dto: dto as PatchEventDto });
+    if (fetchedDraft?.draftId) deleteDraft.mutate(fetchedDraft?.draftId);
   };
 
   return (
     <div className="space-y-4">
       <PageHeader title={t('events.editEvent')} back={Routes.EVENT_DETAIL(id!)} />
-      {draft && <DraftBadge saving={createDraft.isPending || updateDraft.isPending} />}
+      {!!fetchedDraft?.draftId && (
+        <DraftBadge
+          saving={createDraft.isPending || updateDraft.isPending}
+          onDelete={() => handleDeleteDraft()}
+        />
+      )}
       <div className="px-5 pb-6">
         <EventForm
           mode="edit"
           baseValues={event}
-          draftValues={draft}
-          isDraft={!!draft}
+          draftValues={draftToForm}
           onSubmit={handleSubmit}
-          onSaveDraft={handleSaveDraft}
-          onDeleteDraft={handleDeleteDraft}
+          onChange={debouncedSaveDraft}
           submitLabel={t('events.updateEvent')}
           loading={updateEvent.isPending || deleteDraft.isPending}
         />

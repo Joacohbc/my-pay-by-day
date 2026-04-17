@@ -1,7 +1,49 @@
 import { z } from 'zod/v4';
-import type { CreateEventDto, PatchEventDto, FinanceEvent, Category, Tag, FinanceLineItem, CreateTransactionDto } from '@/models';
+import type { CreateEventDto, PatchEventDto, FinanceEvent, Category, Tag, FinanceLineItem, CreateTransactionDto, EventType } from '@/models';
 import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
 import { nameField, descriptionField } from '@/lib/validation';
+
+export const MIN_LINE_ITEMS = 2;
+
+const DEFAULT_LINE_ITEMS = [
+  { nodeId: '', amount: '' },
+  { nodeId: '', amount: '' },
+];
+
+/**
+ * Projects a persisted (or draft) {@link FinanceEvent} onto the shape the form inputs expect.
+ * Used both as RHF's `defaultValues` baseline and as the `values` override when a draft exists.
+ */
+export function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormValues {
+  const transactionDate = defaultValues?.transactionDate
+    ? toLocalDateTimeString(defaultValues.transactionDate)
+    : toLocalDateTimeString(getLocalizedNow());
+
+  const categoryId = defaultValues?.category ? String(defaultValues.category.id) : '';
+  const tagIds = defaultValues?.tags?.map((tag) => String(tag.id)) ?? [];
+
+  const lineItems =
+    defaultValues?.lineItems?.map((li) => ({
+      nodeId: String(li.financeNodeId),
+      amount: li.amount !== 0 ? String(li.amount) : '',
+    })) ?? DEFAULT_LINE_ITEMS;
+
+  const numberOfLineItems = defaultValues?.lineItems?.length ?? 0;
+  const numberOfEmptyItems = defaultValues?.lineItems?.filter((li) => !li.financeNodeId).length ?? 0;
+  const isSimplifiedMode = numberOfEmptyItems > 0 && [0, 1, 2].includes(numberOfLineItems);
+
+  return {
+    name: defaultValues?.name ?? '',
+    description: defaultValues?.description ?? '',
+    type: (defaultValues?.type as EventType) ?? 'OUTBOUND',
+    transactionDate,
+    categoryId,
+    tagIds,
+    lineItems,
+    draftId: defaultValues?.draftId,
+    isSimplifiedMode,
+  };
+}
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
@@ -23,7 +65,6 @@ export function buildSchema(t: (key: string, options?: Record<string, unknown>) 
     lineItems: maxItems
       ? z.array(lineItemSchema).min(minItems, t('eventForm.minLineItems', { count: minItems })).max(maxItems)
       : z.array(lineItemSchema).min(minItems, t('eventForm.minLineItems', { count: minItems })),
-    isDraft: z.boolean().nullable().optional(),
     draftId: z.number().nullable().optional(),
     isSimplifiedMode: z.boolean().optional(),
   });
@@ -61,32 +102,87 @@ export function toCreateDto(values: FormValues): CreateEventDto {
     transaction: toTransactionDto(values),
     category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
     tags: values.tagIds?.map((id: string) => ({ id: Number(id) })),
-    isDraft: false,
     draftId: values.draftId ?? undefined,
   };
 }
 
-export function toPatchDto(values: FormValues, dirtyFields: Record<string, unknown>): PatchEventDto {
+/**
+ * Computes a PatchEventDto by diffing the submitted form values against the persisted event.
+ *
+ * Replaces the previous RHF-`dirtyFields`-based approach so the patch no longer depends on
+ * the form library's change tracking. Semantics match {@link PatchEventDto}:
+ *   - field omitted → backend leaves it untouched
+ *   - field set to `null` → backend clears it
+ *   - field set to a value → backend updates it
+ *
+ * The transaction is atomic: if either the date or any line item changed, the whole
+ * transaction is resent (same contract as the previous implementation and the backend's
+ * {@code EventService.update}).
+ */
+export function toPatchDtoFromDiff(base: Partial<FinanceEvent>, values: FormValues): PatchEventDto {
   const patch: PatchEventDto = {};
 
-  if (dirtyFields.name) patch.name = values.name;
-  if (dirtyFields.description) patch.description = values.description || null;
-  if (dirtyFields.type) patch.type = values.type;
-  
-  if (dirtyFields.categoryId) {
-    patch.category = values.categoryId ? { id: Number(values.categoryId) } : null;
-  }
-  
-  if (dirtyFields.tagIds) {
-    patch.tags = values.tagIds?.map((id: string) => ({ id: Number(id) })) || null;
+  const baseName = base.name ?? '';
+  if (values.name !== baseName) patch.name = values.name;
+
+  const baseDescription = base.description ?? '';
+  const nextDescription = values.description ?? '';
+  if (nextDescription !== baseDescription) {
+    patch.description = nextDescription ? nextDescription : null;
   }
 
-  // If date or any line item is dirty, we send the whole transaction
-  if (dirtyFields.transactionDate || dirtyFields.lineItems) {
+  if (base.type !== values.type) patch.type = values.type;
+
+  const baseCategoryId = base.category?.id != null ? String(base.category.id) : '';
+  const nextCategoryId = values.categoryId ?? '';
+  if (nextCategoryId !== baseCategoryId) {
+    patch.category = nextCategoryId ? { id: Number(nextCategoryId) } : null;
+  }
+
+  const baseTagIds = (base.tags ?? []).map((tag) => String(tag.id)).sort();
+  const nextTagIds = [...(values.tagIds ?? [])].sort();
+  if (!sameStringArray(baseTagIds, nextTagIds)) {
+    patch.tags = nextTagIds.length ? nextTagIds.map((id) => ({ id: Number(id) })) : null;
+  }
+
+  if (hasTransactionChanged(base, values)) {
     patch.transaction = toTransactionDto(values);
   }
 
   return patch;
+}
+
+function sameStringArray(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+function hasTransactionChanged(base: Partial<FinanceEvent>, values: FormValues): boolean {
+  const baseDateMinutes = base.transactionDate ? toLocalDateTimeString(base.transactionDate) : '';
+  const nextDateMinutes = values.transactionDate.slice(0, 16);
+  if (baseDateMinutes !== nextDateMinutes) return true;
+
+  const baseLineItems = base.lineItems ?? [];
+  const isSimplifiedMode = values.isSimplifiedMode ?? false;
+  const nextLineItems = values.lineItems.map((li, i) => {
+    let amount = Number(li.amount);
+    if (isSimplifiedMode) {
+      amount = i === 0 ? -Math.abs(amount) : Math.abs(amount);
+    }
+    return { nodeId: Number(li.nodeId), amount };
+  });
+
+  if (baseLineItems.length !== nextLineItems.length) return true;
+
+  for (let i = 0; i < nextLineItems.length; i++) {
+    if (baseLineItems[i].financeNodeId !== nextLineItems[i].nodeId) return true;
+    if (Number(baseLineItems[i].amount) !== nextLineItems[i].amount) return true;
+  }
+
+  return false;
 }
 
 export function toDraftDto(values: FormValues, t: (key: string) => string): Partial<FinanceEvent> {
@@ -120,7 +216,6 @@ export function toDraftDto(values: FormValues, t: (key: string) => string): Part
   if (values.categoryId) draftDto.category = { id: Number(values.categoryId) } as Category;
   if (values.tagIds?.length) draftDto.tags = values.tagIds.map((id: string) => ({ id: Number(id) } as Tag));
 
-  draftDto.isDraft = true;
   draftDto.draftId = values.draftId ?? undefined;
 
   return draftDto;
