@@ -536,7 +536,7 @@ const es = {
     deleteSelected: 'Eliminar seleccionados',
     untitledDraft: 'Borrador sin título',
     deleteAndExit: 'Eliminar borrador y salir',
-    deleteAndReset: 'Solo eliminar borrador',
+    deleteAndReset: 'Resetear',
     deleteAll: 'Eliminar todos los borradores',
     deleteAllDesc: 'Eliminar permanentemente todos los borradores actuales',
     allDeleted: 'Se eliminaron todos los borradores de eventos',

@@ -537,7 +537,7 @@ const en = {
     deleteSelected: 'Delete Selected',
     untitledDraft: 'Untitled Draft',
     deleteAndExit: 'Delete & exit',
-    deleteAndReset: 'Solo delete',
+    deleteAndReset: 'Reset',
     deleteAll: 'Delete All Drafts',
     deleteAllDesc: 'Permanently remove all current drafts',
     allDeleted: 'All event drafts deleted successfully',

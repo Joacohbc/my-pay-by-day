@@ -5,10 +5,9 @@ import { Spinner } from '@/components/ui/Spinner';
 
 interface DraftBadgeProps {
   saving?: boolean;
-  onDelete?: () => void;
 }
 
-export function DraftBadge({ saving = false, onDelete }: DraftBadgeProps) {
+export function DraftBadge({ saving = false }: DraftBadgeProps) {
   const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -26,11 +25,6 @@ export function DraftBadge({ saving = false, onDelete }: DraftBadgeProps) {
       return;
     }
     setShowDelete(!showDelete);
-  };
-
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onDelete?.();
   };
 
   return (
@@ -59,21 +53,6 @@ export function DraftBadge({ saving = false, onDelete }: DraftBadgeProps) {
           ].join(' ')}
         >
           <span>{t('drafts.editingDraft')}</span>
-
-          <div
-            className={[
-              'overflow-hidden transition-all duration-300 ease-in-out flex items-center',
-              showDelete ? 'max-w-20 opacity-100 ml-2 pl-2 border-l border-white/10' : 'max-w-0 opacity-0',
-            ].join(' ')}
-          >
-            <button
-              onClick={handleDelete}
-              className="text-dn-error hover:text-dn-error/80 transition-colors flex items-center gap-1"
-            >
-              <Icon name="delete" className="text-[14px]" />
-              <span>{t('common.delete')}</span>
-            </button>
-          </div>
         </div>
       </div>
     </div>

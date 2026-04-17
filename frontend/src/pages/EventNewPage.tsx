@@ -9,6 +9,7 @@ import { useCreateEvent, useAddEventRelations } from '@/hooks/useEvents';
 import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft } from '@/hooks/useDrafts';
 import type { CreateEventDto, PatchEventDto, Template, FinanceEvent, FinanceLineItem } from '@/models';
 import { useDebounceCallback } from '@/hooks/useDebounce';
+import { Icon } from '@/components/ui/Icon';
 
 function mapTemplateToEventValues(template: Template): Partial<FinanceEvent> {
   const originLineItem: FinanceLineItem = template.originNodeId
@@ -56,16 +57,11 @@ export function EventNewPage() {
   }, [currentDraftId, createDraft, updateDraft])
 
   const debouncedSaveDraft = useDebounceCallback(handleSaveDraft, 500)
-  const handleSubmit = async (dto: CreateEventDto | PatchEventDto, formDraftId?: number) => {
-    // saveAsync will throw if the API request fails, halting execution.
-    // If it succeeds online, it returns the Event. If offline, it queues and returns null.
+  const handleSubmit = async (dto: CreateEventDto | PatchEventDto) => {
     const created = await createEvent.saveAsync(dto as CreateEventDto);
 
     if (created) {
-      // Only delete the draft when the event is confirmed by the server.
-      // If offline (created === null), the event is only queued locally — keep the draft.
-      const idToDelete = formDraftId || currentDraftId;
-      if (idToDelete) deleteDraft.mutate(idToDelete);
+      if (currentDraftId) deleteDraft.mutate(currentDraftId);
       if (relatedToEventId) {
         await addRelations.mutateAsync({ id: relatedToEventId, relatedIds: [created.id] });
         navigate(Routes.EVENT_DETAIL(relatedToEventId), { replace: true });
@@ -73,31 +69,41 @@ export function EventNewPage() {
         navigate(Routes.EVENT_DETAIL(created.id), { replace: true });
       }
     } else {
-      // Offline fallback navigation — draft is preserved intentionally
       navigate(eventsRoute());
     }
   };
 
-  const handleDeleteDraft = async (formDraftId?: number, shouldExit = true) => {
-    const idToDelete = formDraftId || currentDraftId;
-    if (idToDelete) {
-      await deleteDraft.mutateAsync(idToDelete);
+  const handleDeleteDraftAndExit = async () => {
+    if (currentDraftId) {
+      await deleteDraft.mutateAsync(currentDraftId);
     }
     setCurrentDraftId(undefined);
-    if (shouldExit) {
-      navigate(eventsRoute());
-    }
+    navigate(eventsRoute());
   };
+
 
   return (
     <div className="space-y-4">
-      <PageHeader title={t('events.newEventTitle')} back={relatedToEventId ? Routes.EVENT_DETAIL(relatedToEventId) : eventsRoute()} />
-      
+      <PageHeader
+        title={t('events.newEventTitle')}
+        back={relatedToEventId ? Routes.EVENT_DETAIL(relatedToEventId) : eventsRoute()}
+        action={
+          !!currentDraftId && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleDeleteDraftAndExit}
+                className="w-10 h-10 flex items-center justify-center rounded-full text-dn-error hover:bg-dn-error/5 transition-colors"
+                title={t('drafts.deleteAndExit')}
+              >
+                <Icon name="delete_forever" className="text-xl" />
+              </button>
+            </div>
+          )
+        }
+      />
+
       {!!currentDraftId && (
-        <DraftBadge
-          saving={createDraft.isPending || updateDraft.isPending}
-          onDelete={() => handleDeleteDraft()}
-        />
+        <DraftBadge saving={createDraft.isPending || updateDraft.isPending} />
       )}
 
       {template && (
