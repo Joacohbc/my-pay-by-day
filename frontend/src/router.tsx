@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/layouts/AppLayout';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { EventsPage } from '@/pages/EventsPage';
+import { DraftsPage } from '@/pages/DraftsPage';
 import { EventDetailPage } from '@/pages/EventDetailPage';
 import { EventNewPage } from '@/pages/EventNewPage';
 import { EventEditPage } from '@/pages/EventEditPage';
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
 
       // Events
       { path: 'events', element: <EventsPage /> },
+      { path: 'events/drafts', element: <DraftsPage /> },
       { path: 'events/new', element: <EventNewPage /> },
       { path: 'events/:id', element: <EventDetailPage /> },
       { path: 'events/:id/edit', element: <EventEditPage /> },

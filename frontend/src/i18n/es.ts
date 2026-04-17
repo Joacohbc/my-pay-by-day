@@ -207,6 +207,8 @@ const es = {
     nodeRequired: 'Requerido',
     amountNonZero: 'Debe ser un número distinto de cero',
     minLineItems: 'Se requieren al menos {{count}} partidas',
+    reorderLineItem: 'Arrastrar para reordenar partida',
+    dragLineItemHint: 'Arrastra y suelta las partidas para cambiar su orden.',
     manualMode: 'Modo manual',
     simplifiedMode: 'Modo simplificado',
     files: 'Archivos',
@@ -526,16 +528,28 @@ const es = {
   // ─── Drafts ──────────────────────────────────────────────────────────────
   drafts: {
     title: 'Borradores',
+    chooseDrafts: 'Elegir borradores',
     confirmAll: 'Confirmar Todos',
     confirmAllDesc: 'Convertir todos los borradores en eventos permanentes',
+    confirmSelected: 'Confirmar seleccionados',
+    deleteSelected: 'Eliminar seleccionados',
     untitledDraft: 'Borrador sin título',
     deleteAndExit: 'Eliminar borrador y salir',
-    deleteAndReset: 'Solo eliminar borrador',
+    deleteAndReset: 'Resetear',
     deleteAll: 'Eliminar todos los borradores',
     deleteAllDesc: 'Eliminar permanentemente todos los borradores actuales',
     allDeleted: 'Se eliminaron todos los borradores de eventos',
     editingDraft: 'Editando borrador guardado',
     bulkActions: 'Acciones masivas',
+    viewDrafts: 'Borradores',
+    select: 'Seleccionar',
+    noDraftsTitle: 'Aún no hay borradores',
+    noDraftsDescription: 'Los borradores que guardes aparecerán aquí hasta que los confirmes o descartes.',
+    segments: {
+      recent: 'Recientes',
+      linked: 'Editando existentes',
+      unlinked: 'Sin crear aún',
+    },
   },
 
   // ─── Validation ──────────────────────────────────────────────────────────

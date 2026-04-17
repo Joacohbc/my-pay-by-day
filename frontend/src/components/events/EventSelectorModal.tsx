@@ -3,11 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useEvents, useAddEventRelations } from '@/hooks/useEvents';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
-import { Spinner } from '@/components/ui/Spinner';
-import { EventCard } from '@/components/events/EventCard';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { Pagination } from '@/components/ui/Pagination';
+import { EventSelectionList } from '@/components/events/EventSelectionList';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useUsageStats, useRecordSelection } from '@/hooks/useSelectionHistory';
 import { sortByUsage } from '@/lib/usageSorter';
 import type { SortMode } from '@/lib/usageSorter';
@@ -15,6 +12,7 @@ import type { SortMode } from '@/lib/usageSorter';
 const SORT_MODES: SortMode[] = ['smart', 'alphabetical', 'frequency', 'recency'];
 type CustomSort = 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc' | 'category-asc' | 'category-desc';
 type SortOption = SortMode | CustomSort;
+type SortOptionItem = { value: SortOption; label: string };
 
 function isSortMode(opt: SortOption): opt is SortMode {
   return (SORT_MODES as string[]).includes(opt);
@@ -96,87 +94,61 @@ export function EventSelectorModal({
         }
       });
 
+  const sortOptions: SortOptionItem[] = [
+    { value: 'smart', label: t('common.smartSort') },
+    { value: 'frequency', label: t('common.frequency') },
+    { value: 'recency', label: t('common.recency') },
+    { value: 'alphabetical', label: t('common.alphabetical') },
+    { value: 'date-desc', label: `${t('events.date')} ↓` },
+    { value: 'date-asc', label: `${t('events.date')} ↑` },
+    { value: 'name-asc', label: `${t('common.name')} ↑` },
+    { value: 'name-desc', label: `${t('common.name')} ↓` },
+    { value: 'category-asc', label: `${t('events.category')} ↑` },
+    { value: 'category-desc', label: `${t('events.category')} ↓` },
+  ];
+
   return (
     <Modal open={open} onClose={onClose} title={t('events.selectRelatedEvent')}>
       <div className="space-y-4">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-xl" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t('events.searchPlaceholder')}
-              className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 scheme-dark"
-            />
-          </div>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="bg-dn-surface-low rounded-input px-3 py-3 text-sm text-dn-text-main focus:outline-none focus:ring-2 focus:ring-dn-primary/30"
-          >
-            <option value="smart">{t('common.smartSort')}</option>
-            <option value="frequency">{t('common.frequency')}</option>
-            <option value="recency">{t('common.recency')}</option>
-            <option value="alphabetical">{t('common.alphabetical')}</option>
-            <option value="date-desc">{t('events.date')} ↓</option>
-            <option value="date-asc">{t('events.date')} ↑</option>
-            <option value="name-asc">{t('common.name')} ↑</option>
-            <option value="name-desc">{t('common.name')} ↓</option>
-            <option value="category-asc">{t('events.category')} ↑</option>
-            <option value="category-desc">{t('events.category')} ↓</option>
-          </select>
-        </div>
-
         {selectedIds.size > 0 && (
           <p className="text-xs text-dn-primary font-medium px-1">
             {t('events.selectedCount', { count: selectedIds.size })}
           </p>
         )}
 
-        <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-2">
-          {isLoading && <div className="py-4 text-center"><Spinner /></div>}
-          {error && <div className="py-2 text-center text-dn-error text-sm">{String(error)}</div>}
-
-          {!isLoading && !error && sortedEvents.length === 0 && (
-            <div className="py-4">
-              <EmptyState title={search ? t('events.noEventsFoundSearch') : t('events.noEventsFound')} />
+        <EventSelectionList
+          events={sortedEvents}
+          isLoading={isLoading}
+          error={error}
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder={t('events.searchPlaceholder')}
+          emptyStateTitle={search ? t('events.noEventsFoundSearch') : t('events.noEventsFound')}
+          onSelectEvent={(event) => handleToggle(event.id)}
+          selectionIndicator="radio"
+          selectedIds={selectedIds}
+          searchTrailing={(
+            <div className="shrink-0 w-45">
+              <SearchableSelect
+                options={sortOptions}
+                value={sortBy}
+                onChange={(value) => {
+                  if (value !== null) {
+                    setSortBy(value as SortOption);
+                  }
+                }}
+                className="h-11 py-0 border-0"
+              />
             </div>
           )}
-
-          {sortedEvents.map((evt) => {
-            const isSelected = selectedIds.has(evt.id);
-            return (
-              <div
-                key={evt.id}
-                onClick={() => handleToggle(evt.id)}
-                className={[
-                  'group border transition-colors cursor-pointer rounded-2xl flex items-center gap-2 pr-3',
-                  isSelected
-                    ? 'border-dn-primary bg-dn-primary/5'
-                    : 'border-transparent hover:border-dn-primary/50',
-                ].join(' ')}
-              >
-                <div className="flex-1 min-w-0">
-                  <EventCard event={evt} disableLink />
-                </div>
-                <div className={[
-                  'shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors',
-                  isSelected
-                    ? 'border-dn-primary bg-dn-primary'
-                    : 'border-dn-text-muted',
-                ].join(' ')}>
-                  {isSelected && <Icon name="check" className="text-xs text-white" />}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {!search && paged && paged.totalPages > 1 && (
-          <div className="pt-2">
-            <Pagination page={page} totalPages={paged.totalPages} onPageChange={setPage} />
-          </div>
-        )}
+          pagination={{
+            page,
+            totalPages: paged?.totalPages ?? 1,
+            onPageChange: setPage,
+            hideWhenSearching: true,
+          }}
+          paginationClassName="pt-2"
+        />
 
         <div className="flex justify-end gap-2 mt-4">
           <Button variant="ghost" onClick={onClose}>

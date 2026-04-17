@@ -31,11 +31,11 @@ export function useDebounce<T>(value: T, delay: number): T {
  * internal timer (timeoutRef) without causing re-renders when the timer state changes.
  * UseRef (callbackRef) ensures the latest version of the callback is always used.
  */
-export function useDebounceCallback<T extends (...args: unknown[]) => unknown>(
-  callback: T,
+export function useDebounceCallback<Args extends unknown[]>(
+  callback: (...args: Args) => unknown,
   delay: number
-): T {
-  const callbackRef = useRef<T>(callback);
+) {
+  const callbackRef = useRef<(...args: Args) => unknown>(callback);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Always point to the latest version of the passed function
@@ -45,14 +45,14 @@ export function useDebounceCallback<T extends (...args: unknown[]) => unknown>(
 
   // Create a stable debounced wrapper
   const debouncedFunc = useMemo(() => {
-    return ((...args: unknown[]) => {
+    return (...args: Args) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
       timeoutRef.current = setTimeout(() => {
         callbackRef.current(...args);
       }, delay);
-    }) as unknown as T;
+    };
   }, [delay]);
 
   // Clean up on unmount
@@ -66,5 +66,4 @@ export function useDebounceCallback<T extends (...args: unknown[]) => unknown>(
 
   return debouncedFunc;
 }
-
 

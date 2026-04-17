@@ -4,20 +4,22 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 
 interface EventsPageActionsProps {
-  hasBulkActions: boolean;
-  onBulkActions: () => void;
+  draftsCount: number;
+  onViewDrafts: () => void;
   onMergeEvents: () => void;
   onNewEvent: () => void;
 }
 
 export function EventsPageActions({
-  hasBulkActions,
-  onBulkActions,
+  draftsCount,
+  onViewDrafts,
   onMergeEvents,
   onNewEvent,
 }: EventsPageActionsProps) {
   const { t } = useTranslation();
   const [showMenu, setShowMenu] = useState(false);
+
+  const hasDrafts = draftsCount > 0;
 
   const handleActionClick = (action: () => void) => {
     setShowMenu(false);
@@ -38,15 +40,20 @@ export function EventsPageActions({
     }
   };
 
+  const draftsBadge = hasDrafts && (
+    <span className="bg-dn-error text-white text-[10px] leading-tight font-semibold px-1.5 py-0.5 rounded-full min-w-4.5 text-center inline-block">
+      {draftsCount}
+    </span>
+  );
+
   return (
     <div className="relative" onBlur={handleBlur} onKeyDown={handleKeyDown}>
       <div className="hidden flex-wrap items-center gap-2 sm:flex">
-        {hasBulkActions && (
-          <Button size="sm" variant="secondary" onClick={onBulkActions}>
-            <Icon name="bolt" className="text-sm" />
-            {t('drafts.bulkActions')}
-          </Button>
-        )}
+        <Button size="sm" variant="secondary" onClick={onViewDrafts}>
+          <Icon name="edit_note" className="text-sm" />
+          {t('drafts.viewDrafts')}
+          {draftsBadge}
+        </Button>
         <Button size="sm" variant="secondary" onClick={onMergeEvents}>
           <Icon name="merge" className="text-sm" />
           {t('events.merge')}
@@ -68,20 +75,20 @@ export function EventsPageActions({
         >
           <Icon name="more_horiz" className="text-sm" />
           {t('common.moreActions')}
+          {draftsBadge}
         </Button>
 
         {showMenu && (
           <div className="absolute right-0 top-full z-30 mt-2 w-56 overflow-hidden rounded-card border border-white/10 bg-dn-surface shadow-xl">
-            {hasBulkActions && (
-              <button
-                type="button"
-                onClick={() => handleActionClick(onBulkActions)}
-                className="flex w-full items-center gap-2 px-4 py-3 text-sm text-dn-text-main transition-colors hover:bg-dn-surface-low"
-              >
-                <Icon name="bolt" className="text-base text-dn-primary" />
-                {t('drafts.bulkActions')}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => handleActionClick(onViewDrafts)}
+              className="flex w-full items-center gap-2 px-4 py-3 text-sm text-dn-text-main transition-colors hover:bg-dn-surface-low"
+            >
+              <Icon name="edit_note" className="text-base text-dn-primary" />
+              <span className="flex-1 text-left">{t('drafts.viewDrafts')}</span>
+              {draftsBadge}
+            </button>
             <button
               type="button"
               onClick={() => handleActionClick(onMergeEvents)}

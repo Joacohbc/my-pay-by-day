@@ -13,10 +13,8 @@ import { useTags } from '@/hooks/useTags';
 import { useTagGroups } from '@/hooks/useTagGroups';
 import { useNodes } from '@/hooks/useNodes';
 import { useAiFormController } from '@/hooks/useAiFormController';
-import { Icon } from '@/components/ui/Icon';
-import type { CreateEventDto, PatchEventDto, FinanceEvent, EventType } from '@/models';
-import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
-import { useDebounceCallback } from '@/hooks/useDebounce';
+import type { CreateEventDto, PatchEventDto, FinanceEvent } from '@/models';
+import { buildSchema, buildFormDefaults, MIN_LINE_ITEMS, toDraftDto } from '@/components/events/EventFormMapper';
 
 
 
@@ -25,8 +23,8 @@ import { BasicInfoFields } from '@/components/events/BasicInfoFields';
 import { TypeAndDateFields } from '@/components/events/TypeAndDateFields';
 import { LineItemsEditor } from '@/components/events/LineItemsEditor';
 
-// Mapper and Schema
-import { buildSchema, toCreateDto, toPatchDto, toDraftDto } from '@/components/events/EventFormMapper';
+// Mapper
+import { toCreateDto, toPatchDtoFromDiff } from '@/components/events/EventFormMapper';
 import type { FormValues } from '@/components/events/EventFormMapper';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 
@@ -34,87 +32,33 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 
 interface EventFormProps {
   mode: 'create' | 'edit';
+
   /**
-   * The persisted event as it exists on the server — used exclusively as the RHF dirty-tracking
-   * baseline. The form never displays these values directly when a draft is present.
+   * The persisted event as it exists on the server — used as the baseline for the PATCH diff
+   * in edit mode. The form never displays these values directly when a draft is present.
    */
   baseValues?: Partial<FinanceEvent>;
+
   /**
-   * In-progress edits saved as a draft. When provided, the form displays these values while
-   * `baseValues` stays frozen as the baseline, so `dirtyFields` reflects the real diff between
-   * the draft and the original event.
+   * In-progress edits saved as a draft. When provided, the form displays these values.
    */
   draftValues?: Partial<FinanceEvent>;
+
   /**
    * Called on valid submission with a fully-resolved DTO (CreateEventDto in create mode,
    * PatchEventDto with only dirty fields in edit mode). Receives `draftId` so the parent can
    * delete the associated draft atomically in the same operation.
    */
   onSubmit: (dto: CreateEventDto | PatchEventDto, draftId?: number) => Promise<void>;
+
   /**
-   * When provided, enables draft persistence: renders the "Save draft" button and activates the
-   * debounced autosave on every field change. Returns the server-assigned draft ID on creation
-   * so the form can store it internally and reuse it on subsequent saves.
+   * Fires on every form field change with the current values. Parents can read
+   * `draftId` from the payload to drive UI like the DraftBadge.
    */
-  onSaveDraft?: (dto: Partial<FinanceEvent>) => Promise<number | void>;
-  onDeleteDraft?: (draftId?: number, shouldExit?: boolean) => Promise<void>;
-  /**
-   * Controls only the visibility of the "Delete draft" button — it does not affect form
-   * behaviour. Must be true when the form is loaded from an existing persisted draft.
-   */
-  isDraft?: boolean;
+  onChange?: (dto: Partial<FinanceEvent>, values: FormValues) => void;
+
   submitLabel?: string;
   loading?: boolean;
-}
-
-const MIN_LINE_ITEMS = 2;
-
-const DEFAULT_LINE_ITEMS: FormValues['lineItems'] = [
-  { nodeId: '', amount: '' },
-  { nodeId: '', amount: '' },
-];
-
-/**
- * Builds the initial form values from saved event data (draft, template-as-event, or existing event).
- * Falls back to sensible defaults when no data is provided.
- */
-function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormValues {
-  const transactionDate = defaultValues?.transactionDate
-    ? toLocalDateTimeString(defaultValues.transactionDate)
-    : toLocalDateTimeString(getLocalizedNow());
-
-  const categoryId = defaultValues?.category ? String(defaultValues.category.id) : '';
-
-  const tagIds = defaultValues?.tags?.map((t) => String(t.id)) ?? [];
-
-  // lineItems from a template-as-event have amount === 0; keep the node pre-selected
-  // but leave the amount empty so the user must fill it in.
-  const lineItems =
-    defaultValues?.lineItems?.map((li) => ({
-      nodeId: String(li.financeNodeId),
-      amount: li.amount !== 0 ? String(li.amount) : '',
-    })) ?? DEFAULT_LINE_ITEMS;
-
-  // Simplified mode: pre-selected nodes (from template) OR a brand-new empty form.
-  // Full mode: an existing event with signed amounts in its line items.
-  const numberOfLineItems = defaultValues?.lineItems?.length ?? 0;
-  const numberOfEmptyItems = defaultValues?.lineItems?.filter((li) => !li.financeNodeId).length ?? 0;
-
-  console.log('buildFormDefaults:', numberOfEmptyItems, numberOfLineItems)
-  const isSimplifiedMode = numberOfEmptyItems == 0 || [0, 1, 2].includes(numberOfLineItems);
-
-  return {
-    name: defaultValues?.name ?? '',
-    description: defaultValues?.description ?? '',
-    type: (defaultValues?.type as EventType) ?? 'OUTBOUND',
-    transactionDate,
-    categoryId,
-    tagIds,
-    lineItems,
-    isDraft: defaultValues?.isDraft ?? false,
-    draftId: defaultValues?.draftId,
-    isSimplifiedMode,
-  };
 }
 
 export function EventForm({
@@ -122,15 +66,31 @@ export function EventForm({
   baseValues,
   draftValues,
   onSubmit,
-  onSaveDraft,
-  onDeleteDraft,
-  isDraft,
+  onChange,
   submitLabel,
   loading = false,
 }: EventFormProps) {
   const { t } = useTranslation();
-  
+
   const schema = useMemo(() => buildSchema(t, MIN_LINE_ITEMS), [t]);
+  const computedValues = useMemo(
+    () => buildFormDefaults(draftValues ?? baseValues),
+    [draftValues, baseValues],
+  );
+  const initValues = useMemo(() => buildFormDefaults(baseValues), [baseValues]);
+
+  const methods = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: initValues,
+    values: computedValues,
+    resetOptions: { keepDefaultValues: true },
+  });
+
+  const [formReady, setFormReady] = useState(!draftValues);
+  useEffect(() => {
+    if (!formReady) setFormReady(true);
+  }, [formReady]);
+
   const { data: categoriesResponse } = useCategories(0, 200);
   const { data: tagsResponse } = useTags(0, 200);
   const { data: tagGroupsResponse } = useTagGroups(0, 100);
@@ -141,43 +101,21 @@ export function EventForm({
   const tagGroups = tagGroupsResponse?.content ?? [];
   const nodes = nodesResponse?.content ?? [];
 
-  // `defaultValues` acts as the immutable dirty-tracking baseline (the original saved event).
-  // `values` drives what is actually displayed — the draft when one exists, otherwise the event.
-  // `resetOptions.keepDefaultValues` prevents RHF from overwriting that baseline when `values`
-  // updates, so `dirtyFields` always reflects the real diff between the draft and the original.
-  const computedValues = useMemo(() => buildFormDefaults(draftValues ?? baseValues), [draftValues, baseValues]);
-  const initValues = useMemo(() => buildFormDefaults(baseValues), [baseValues]);
-  
-  const methods = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: initValues,
-    values: computedValues,
-    resetOptions: { keepDefaultValues: true },
-  });
-
-  // When a draft is present, RHF needs one render cycle to apply `values` over `defaultValues`.
-  // Hide the form body until the values have settled to prevent a visible flash in category/tags.
-  const [formReady, setFormReady] = useState(!draftValues);
-  useEffect(() => {
-    if (!formReady) setFormReady(true);
-  }, [formReady]);
-
-  
   const {
     handleSubmit,
     control,
     setValue,
     getValues,
     watch,
-    formState: { isDirty, dirtyFields },
+    formState: { isDirty }
   } = methods;
-  
+
   const alert = useAlert();
-  
+
   const handleFormSubmit = async (values: FormValues) => {
     try {
       if (mode === 'edit') {
-        const patch = toPatchDto(values, dirtyFields);
+        const patch = toPatchDtoFromDiff(baseValues ?? {}, values);
         await onSubmit(patch, values.draftId ?? undefined);
       } else {
         const dto = toCreateDto(values);
@@ -187,7 +125,7 @@ export function EventForm({
       alert.error(err instanceof Error ? err.message : t('common.error'));
     }
   };
-  
+
   const handleInvalidSubmit = (fieldErrors: Record<string, unknown>) => {
     const findFirstMessage = (value: unknown): string | undefined => {
       if (!value || typeof value !== 'object') return undefined;
@@ -203,51 +141,25 @@ export function EventForm({
     const errorMessage = findFirstMessage(fieldErrors) ?? t('common.validationError');
     alert.error(errorMessage);
   };
-  
-  const [deletingDraft, setDeletingDraft] = useState(false);
-  
-  const saveDraftCore = async () => {
-    if (!onSaveDraft) return;
-    const values = getValues();
-    const draftDto = toDraftDto(values, t);
-    const resultId = await onSaveDraft(draftDto);
-    if (typeof resultId === 'number') {
-      setValue('draftId', resultId);
-      setValue('isDraft', true);
-    }
-  };
 
   const hasUserInteracted = useRef(false);
 
-  // The user may close the browser or navigate away mid-form. Every change is automatically
-  // persisted as a draft so they can resume exactly where they left off.
-  // Uses saveDraftCore (no loading state) to avoid flashing buttons on auto-save.
-  const debouncedSaveDraft = useDebounceCallback(saveDraftCore, 1000);
   useEffect(() => {
-    if (!onSaveDraft) return;
+    const subscription = watch((values, { name }) => {
+      if (name === 'draftId') return;
 
-    const subscription = watch((_, { name }) => {
-      if (name === 'draftId' || name === 'isDraft') return;
       if (!hasUserInteracted.current) {
         hasUserInteracted.current = true;
         return;
       }
-      debouncedSaveDraft();
+
+      if (onChange) {
+        onChange(toDraftDto(values as FormValues, t), values as FormValues);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, [watch, onSaveDraft, debouncedSaveDraft]);
-
-  const handleDeleteDraft = async (shouldExit = true) => {
-    if (!onDeleteDraft) return;
-    setDeletingDraft(true);
-    try {
-      const values = getValues();
-      await onDeleteDraft(values.draftId ?? undefined, shouldExit);
-    } finally {
-      setDeletingDraft(false);
-    }
-  };
+  }, [watch, onChange, t]);
 
   const buildAiContext = () => {
     const values = getValues();
@@ -330,46 +242,17 @@ export function EventForm({
           )}
         />
 
-        <LineItemsEditor nodes={nodes} minItems={MIN_LINE_ITEMS} />
+        <LineItemsEditor nodes={nodes} minItems={2} />
 
-        <div className="flex flex-col gap-2">
-          <Button
-            type="submit"
-            size="sm"
-            loading={loading}
-            disabled={!isDirty && mode === 'edit' && !isDraft}
-            className="w-full"
-          >
-            {submitLabel ?? t('common.save')}
-          </Button>
-
-          {isDraft && onDeleteDraft && (
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDeleteDraft(true)}
-                loading={deletingDraft}
-                className="flex-1 text-dn-error hover:bg-dn-error/10"
-              >
-                <Icon name="logout" className="mr-2" />
-                {t('drafts.deleteAndExit')}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDeleteDraft(false)}
-                loading={deletingDraft}
-                className="flex-1 text-dn-error/80 hover:bg-dn-error/10"
-              >
-                <Icon name="refresh" className="mr-2" />
-                {t('drafts.deleteAndReset')}
-              </Button>
-            </div>
-          )}
-        </div>
+        <Button
+          type="submit"
+          size="sm"
+          loading={loading}
+          disabled={!isDirty}
+          className="w-full"
+        >
+          {submitLabel ?? t('common.save')}
+        </Button>
 
       </form>
       <AiFormActionsFab controller={aiController} />

@@ -6,9 +6,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
-import { EventCard } from '@/components/events/EventCard';
+import { EventSelectionList } from '@/components/events/EventSelectionList';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Pagination } from '@/components/ui/Pagination';
 import { formatCurrency, eventNetAmount } from '@/lib/format';
 import { Routes } from '@/lib/routes';
 import { aiService } from '@/services/ai.service';
@@ -216,19 +215,24 @@ export function MergeEventsModal({
       <div className="space-y-4">
 
         {step === 'select-base' && (
-          <SelectEventStep
+          <EventSelectionList
             events={baseFilteredEvents}
             isLoading={isLoading}
             error={error}
             search={search}
             onSearchChange={setSearch}
-            page={page}
-            totalPages={paged?.totalPages ?? 1}
-            onPageChange={setPage}
-            onSelect={handleSelectBase}
+            searchPlaceholder={t('events.searchPlaceholder')}
+            emptyStateTitle={search ? t('events.noEventsFoundSearch') : t('events.noEventsFound')}
+            onSelectEvent={handleSelectBase}
             selectionIndicator="radio"
             selectedIds={new Set()}
-            t={t}
+            maxHeightClass="max-h-[50vh]"
+            pagination={{
+              page,
+              totalPages: paged?.totalPages ?? 1,
+              onPageChange: setPage,
+              hideWhenSearching: true,
+            }}
           />
         )}
 
@@ -252,19 +256,24 @@ export function MergeEventsModal({
             {sourceFilteredEvents.length === 0 && !isLoading ? (
               <EmptyState title={t('events.mergeNoCompatible')} />
             ) : (
-              <SelectEventStep
+              <EventSelectionList
                 events={sourceFilteredEvents}
                 isLoading={isLoading}
                 error={error}
                 search={search}
                 onSearchChange={setSearch}
-                page={page}
-                totalPages={paged?.totalPages ?? 1}
-                onPageChange={setPage}
-                onSelect={(e) => handleToggleSource(e.id)}
+                searchPlaceholder={t('events.searchPlaceholder')}
+                emptyStateTitle={search ? t('events.noEventsFoundSearch') : t('events.noEventsFound')}
+                onSelectEvent={(event) => handleToggleSource(event.id)}
                 selectionIndicator="checkbox"
                 selectedIds={selectedSourceIds}
-                t={t}
+                maxHeightClass="max-h-[50vh]"
+                pagination={{
+                  page,
+                  totalPages: paged?.totalPages ?? 1,
+                  onPageChange: setPage,
+                  hideWhenSearching: true,
+                }}
               />
             )}
 
@@ -329,94 +338,6 @@ export function MergeEventsModal({
         )}
       </div>
     </Modal>
-  );
-}
-
-function SelectEventStep({
-  events,
-  isLoading,
-  error,
-  search,
-  onSearchChange,
-  page,
-  totalPages,
-  onPageChange,
-  onSelect,
-  selectionIndicator,
-  selectedIds,
-  t,
-}: {
-  events: FinanceEvent[];
-  isLoading: boolean;
-  error: unknown;
-  search: string;
-  onSearchChange: (s: string) => void;
-  page: number;
-  totalPages: number;
-  onPageChange: (p: number) => void;
-  onSelect: (e: FinanceEvent) => void;
-  selectionIndicator: 'radio' | 'checkbox';
-  selectedIds: Set<number>;
-  t: (key: string, opts?: Record<string, unknown>) => string;
-}) {
-  return (
-    <>
-      <div className="relative">
-        <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-xl" />
-        <input
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={t('events.searchPlaceholder')}
-          className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 scheme-dark"
-        />
-      </div>
-
-      <div className="max-h-[50vh] overflow-y-auto pr-1 space-y-2">
-        {isLoading && <div className="py-4 text-center"><Spinner /></div>}
-        {!!error && (
-          <div className="py-2 text-center text-dn-error text-sm">
-            {error instanceof Error ? error.message : String(error)}
-          </div>
-        )}
-
-        {!isLoading && !error && events.length === 0 && (
-          <div className="py-4">
-            <EmptyState title={search ? String(t('events.noEventsFoundSearch')) : String(t('events.noEventsFound'))} />
-          </div>
-        )}
-
-        {events.map((evt) => {
-          const isSelected = selectedIds.has(evt.id);
-          return (
-            <div
-              key={evt.id}
-              onClick={() => onSelect(evt)}
-              className={[
-                'border transition-colors cursor-pointer rounded-2xl flex items-center gap-2 pr-3',
-                isSelected
-                  ? 'border-dn-primary bg-dn-primary/5'
-                  : 'border-transparent hover:border-dn-primary/50',
-              ].join(' ')}
-            >
-              <div className="flex-1 min-w-0">
-                <EventCard event={evt} disableLink />
-              </div>
-              <div className={[
-                'shrink-0 w-5 h-5 border-2 flex items-center justify-center transition-colors',
-                selectionIndicator === 'radio' ? 'rounded-full' : 'rounded',
-                isSelected ? 'border-dn-primary bg-dn-primary' : 'border-dn-text-muted',
-              ].join(' ')}>
-                {isSelected && <Icon name="check" className="text-xs text-white" />}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {!search && totalPages > 1 && (
-        <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
-      )}
-    </>
   );
 }
 

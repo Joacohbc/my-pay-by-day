@@ -70,12 +70,16 @@ public class TransactionValidator {
 	public void validateNodesExist(FinanceTransactionEntity transaction) throws BusinessException {
 		if (transaction.lineItems == null) return;
 
-		List<Long> ids = transaction.lineItems.stream()
-			.map(item -> item.financeNode != null ? item.financeNode.id : null)
-			.toList();
+		Set<Long> requestedNodeIds = new HashSet<>();
+		for (FinanceLineItemEntity item : transaction.lineItems) {
+			if (item.financeNode == null || item.financeNode.id == null) {
+				throw new BusinessException(messages.get(MsgKey.TRANSACTION_LINE_ITEM_NODES_NOT_FOUND));
+			}
+			requestedNodeIds.add(item.financeNode.id);
+		}
 
-		List<FinanceNodeEntity> nodes = financeNodeRepository.list(ids);
-		if(nodes.size() != ids.size()) {
+		List<FinanceNodeEntity> nodes = financeNodeRepository.list(requestedNodeIds.stream().toList());
+		if(nodes.size() != requestedNodeIds.size()) {
 			throw new BusinessException(messages.get(MsgKey.TRANSACTION_LINE_ITEM_NODES_NOT_FOUND));
 		}
 
@@ -98,30 +102,12 @@ public class TransactionValidator {
 	}
 
 	/**
-	 * Validates that each node appears only once in the transaction.
-	 *
-	 * @throws BusinessException if a duplicate node is found
-	 */
-	public void validateUniqueNodes(FinanceTransactionEntity transaction) throws BusinessException {
-		if (transaction.lineItems == null) return;
-		Set<Long> nodeIds = new HashSet<>();
-		for (FinanceLineItemEntity item : transaction.lineItems) {
-			if (item.financeNode != null && item.financeNode.id != null) {
-				if (!nodeIds.add(item.financeNode.id)) {
-					throw new BusinessException(messages.get(MsgKey.TRANSACTION_DUPLICATE_NODE));
-				}
-			}
-		}
-	}
-
-	/**
 	 * Orchestrates all transaction integrity validations.
 	 *
 	 * @throws BusinessException if any validation rule is violated
 	 */
 	public void validate(FinanceTransactionEntity transaction) throws BusinessException {
 		validateZeroSum(transaction);
-		validateUniqueNodes(transaction);
 		validateNodesExist(transaction);
 		validateDateNotInFuture(transaction);
 	}

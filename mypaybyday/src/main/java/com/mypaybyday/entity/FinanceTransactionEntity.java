@@ -1,10 +1,8 @@
 package com.mypaybyday.entity;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -58,9 +56,14 @@ public class FinanceTransactionEntity extends BaseEntity {
 	* Each {@link FinanceLineItemEntity} links exactly one {@link FinanceNodeEntity} to an
 	* amount.
 	* The collection of all line items must satisfy the Zero-Sum Rule.
+	*
+	* <p>
+	* Uses {@link LinkedHashSet} to keep insertion order stable while preserving
+	* Set semantics. This makes line-item iteration deterministic (UI/DTO order)
+	* without replacing the managed collection instance.
 	*/
 	@OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	@Builder.Default
-	public Set<FinanceLineItemEntity> lineItems = new HashSet<>();
+	public Set<FinanceLineItemEntity> lineItems = new LinkedHashSet<>();
 
 }

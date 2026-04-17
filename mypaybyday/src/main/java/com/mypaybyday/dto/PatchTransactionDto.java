@@ -2,10 +2,8 @@ package com.mypaybyday.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.HashSet;
 
 import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
@@ -39,7 +37,8 @@ public record PatchTransactionDto(
 		FinanceTransactionEntity tx = new FinanceTransactionEntity();
 		tx.transactionDate = this.transactionDate;
 		if (this.lineItems != null) {
-			tx.lineItems = new HashSet<>();
+			// Preserve payload order so PATCH line items keep the same iteration order end-to-end.
+			tx.lineItems = new LinkedHashSet<>();
 			for (LineItemDto li : this.lineItems) {
 				tx.lineItems.add(li.toEntity());
 			}

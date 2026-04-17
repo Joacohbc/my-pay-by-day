@@ -208,6 +208,8 @@ const en = {
     nodeRequired: 'Required',
     amountNonZero: 'Must be a non-zero number',
     minLineItems: 'At least {{count}} line items are required',
+    reorderLineItem: 'Drag to reorder line item',
+    dragLineItemHint: 'Drag and drop line items to change their order.',
     manualMode: 'Manual mode',
     simplifiedMode: 'Simplified mode',
     files: 'Files',
@@ -527,16 +529,28 @@ const en = {
   // ─── Drafts ──────────────────────────────────────────────────────────────
   drafts: {
     title: 'Drafts',
+    chooseDrafts: 'Choose Drafts',
     confirmAll: 'Confirm All',
     confirmAllDesc: 'Confirm all drafts as permanent events',
+    confirmSelected: 'Confirm Selected',
+    deleteSelected: 'Delete Selected',
     untitledDraft: 'Untitled Draft',
     deleteAndExit: 'Delete & exit',
-    deleteAndReset: 'Solo delete',
+    deleteAndReset: 'Reset',
     deleteAll: 'Delete All Drafts',
     deleteAllDesc: 'Permanently remove all current drafts',
     allDeleted: 'All event drafts deleted successfully',
     editingDraft: 'Editing Draft',
     bulkActions: 'Bulk Actions',
+    viewDrafts: 'Drafts',
+    select: 'Select',
+    noDraftsTitle: 'No drafts yet',
+    noDraftsDescription: 'Drafts you save will appear here until you confirm or discard them.',
+    segments: {
+      recent: 'Recent',
+      linked: 'Editing existing',
+      unlinked: 'Not yet created',
+    },
   },
 
   // ─── Validation ──────────────────────────────────────────────────────────
