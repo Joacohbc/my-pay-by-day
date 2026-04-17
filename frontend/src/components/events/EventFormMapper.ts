@@ -125,3 +125,45 @@ export function toDraftDto(values: FormValues, t: (key: string) => string): Part
 
   return draftDto;
 }
+
+// ─── Draft-to-DTO converters (work on FinanceEvent directly) ─────────────────
+
+function draftTransactionDto(draft: FinanceEvent): CreateTransactionDto {
+  return {
+    transactionDate: draft.transactionDate,
+    lineItems: (draft.lineItems ?? []).map((li) => ({
+      financeNode: { id: li.financeNodeId },
+      amount: li.amount,
+    })),
+  };
+}
+
+export function fromDraftToCreateDto(draft: FinanceEvent): CreateEventDto {
+  return {
+    name: draft.name,
+    description: draft.description,
+    type: draft.type,
+    transaction: draftTransactionDto(draft),
+    category: draft.category?.id ? { id: draft.category.id } : undefined,
+    tags: draft.tags?.map((tag) => ({ id: tag.id })),
+    fileIds: draft.files?.map((file) => file.id),
+  };
+}
+
+export function fromDraftToPatchDto(draft: FinanceEvent): PatchEventDto {
+  return {
+    name: draft.name,
+    description: draft.description ?? null,
+    type: draft.type,
+    transaction: draftTransactionDto(draft),
+    category: draft.category?.id ? { id: draft.category.id } : null,
+    tags:
+      draft.tags && draft.tags.length > 0
+        ? draft.tags.map((tag) => ({ id: tag.id }))
+        : null,
+    fileIds:
+      draft.files && draft.files.length > 0
+        ? draft.files.map((file) => file.id)
+        : null,
+  };
+}

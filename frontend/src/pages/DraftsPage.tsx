@@ -12,7 +12,7 @@ import {
 import { eventsService } from '@/services/events.service';
 import { draftsService } from '@/services/drafts.service';
 import { useQueryClient } from '@tanstack/react-query';
-import type { CreateEventDto, FinanceEvent } from '@/models';
+import type { FinanceEvent } from '@/models';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -22,6 +22,7 @@ import { EventCard } from '@/components/events/EventCard';
 import { BulkActionsModal } from '@/components/events/BulkActionsModal';
 import { EventsListView } from '@/components/events/EventsListView';
 import { DraftsPageActions } from '@/components/events/DraftsPageActions';
+import { fromDraftToCreateDto, fromDraftToPatchDto } from '@/components/events/EventFormMapper';
 
 type DraftSegment = 'RECENT' | 'LINKED' | 'UNLINKED';
 
@@ -35,23 +36,6 @@ const isLinkedDraft = (draft: FinanceEvent) =>
 const draftTargetRoute = (draft: FinanceEvent) =>
   isLinkedDraft(draft) ? Routes.EVENT_EDIT(draft.id) : Routes.EVENT_NEW;
 
-const toTransactionDto = (draft: FinanceEvent) => ({
-  transactionDate: draft.transactionDate,
-  lineItems: (draft.lineItems ?? []).map((lineItem) => ({
-    financeNode: { id: lineItem.financeNodeId },
-    amount: lineItem.amount,
-  })),
-});
-
-const toCreateEventDto = (draft: FinanceEvent): CreateEventDto => ({
-  name: draft.name,
-  description: draft.description,
-  type: draft.type,
-  transaction: toTransactionDto(draft),
-  category: draft.category?.id ? { id: draft.category.id } : undefined,
-  tags: draft.tags?.map((tag) => ({ id: tag.id })),
-  fileIds: draft.files?.map((file) => file.id),
-});
 
 export function DraftsPage() {
   const { t } = useTranslation();
@@ -167,10 +151,12 @@ export function DraftsPage() {
 
           const originalEventId = isLinkedDraft(draft) ? draft.id : undefined;
 
-          await eventsService.create(toCreateEventDto(draft));
           if (originalEventId) {
-            await eventsService.delete(originalEventId);
+            await eventsService.update(originalEventId, fromDraftToPatchDto(draft));
+          } else {
+            await eventsService.create(fromDraftToCreateDto(draft));
           }
+
           await draftsService.delete(persistedDraftId);
         }
 

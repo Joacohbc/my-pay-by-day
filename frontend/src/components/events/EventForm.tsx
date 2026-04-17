@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/contexts/AlertContext';
-import { Controller, FormProvider, useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, FormProvider } from 'react-hook-form';
 import { Button } from '@/components/ui/Button';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
@@ -13,9 +12,9 @@ import { useTags } from '@/hooks/useTags';
 import { useTagGroups } from '@/hooks/useTagGroups';
 import { useNodes } from '@/hooks/useNodes';
 import { useAiFormController } from '@/hooks/useAiFormController';
+import { useEventForm } from '@/hooks/useEventForm';
 import { Icon } from '@/components/ui/Icon';
-import type { CreateEventDto, PatchEventDto, FinanceEvent, EventType } from '@/models';
-import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
+import type { CreateEventDto, PatchEventDto, FinanceEvent } from '@/models';
 import { useDebounceCallback } from '@/hooks/useDebounce';
 
 
@@ -25,8 +24,8 @@ import { BasicInfoFields } from '@/components/events/BasicInfoFields';
 import { TypeAndDateFields } from '@/components/events/TypeAndDateFields';
 import { LineItemsEditor } from '@/components/events/LineItemsEditor';
 
-// Mapper and Schema
-import { buildSchema, toCreateDto, toPatchDto, toDraftDto } from '@/components/events/EventFormMapper';
+// Mapper
+import { toCreateDto, toPatchDto, toDraftDto } from '@/components/events/EventFormMapper';
 import type { FormValues } from '@/components/events/EventFormMapper';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 
@@ -67,57 +66,6 @@ interface EventFormProps {
   loading?: boolean;
 }
 
-const MIN_LINE_ITEMS = 2;
-
-const DEFAULT_LINE_ITEMS: FormValues['lineItems'] = [
-  { nodeId: '', amount: '' },
-  { nodeId: '', amount: '' },
-];
-
-/**
- * Builds the initial form values from saved event data (draft, template-as-event, or existing event).
- * Falls back to sensible defaults when no data is provided.
- */
-function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormValues {
-  const transactionDate = defaultValues?.transactionDate
-    ? toLocalDateTimeString(defaultValues.transactionDate)
-    : toLocalDateTimeString(getLocalizedNow());
-
-  const categoryId = defaultValues?.category ? String(defaultValues.category.id) : '';
-
-  const tagIds = defaultValues?.tags?.map((t) => String(t.id)) ?? [];
-
-  // lineItems from a template-as-event have amount === 0; keep the node pre-selected
-  // but leave the amount empty so the user must fill it in.
-  const lineItems =
-    defaultValues?.lineItems?.map((li) => ({
-      nodeId: String(li.financeNodeId),
-      amount: li.amount !== 0 ? String(li.amount) : '',
-    })) ?? DEFAULT_LINE_ITEMS;
-
-  // Simplified mode: pre-selected nodes (from template) OR a brand-new empty form.
-  // Full mode: an existing event with signed amounts in its line items.
-  const numberOfLineItems = defaultValues?.lineItems?.length ?? 0;
-  const numberOfEmptyItems = defaultValues?.lineItems?.filter((li) => !li.financeNodeId).length ?? 0;
-
-  // If there are empty line items (from a incomplete Draft, new event or template-as-event)
-  // If the number of line items is 2 or less the simplified mode is better for the user
-  const isSimplifiedMode = numberOfEmptyItems > 0 && [0, 1, 2].includes(numberOfLineItems);
-
-  return {
-    name: defaultValues?.name ?? '',
-    description: defaultValues?.description ?? '',
-    type: (defaultValues?.type as EventType) ?? 'OUTBOUND',
-    transactionDate,
-    categoryId,
-    tagIds,
-    lineItems,
-    isDraft: defaultValues?.isDraft ?? false,
-    draftId: defaultValues?.draftId,
-    isSimplifiedMode,
-  };
-}
-
 export function EventForm({
   mode,
   baseValues,
@@ -130,8 +78,9 @@ export function EventForm({
   loading = false,
 }: EventFormProps) {
   const { t } = useTranslation();
-  
-  const schema = useMemo(() => buildSchema(t, MIN_LINE_ITEMS), [t]);
+
+  const { methods, formReady } = useEventForm({ baseValues, draftValues });
+
   const { data: categoriesResponse } = useCategories(0, 200);
   const { data: tagsResponse } = useTags(0, 200);
   const { data: tagGroupsResponse } = useTagGroups(0, 100);
@@ -141,27 +90,6 @@ export function EventForm({
   const tags = tagsResponse?.content ?? [];
   const tagGroups = tagGroupsResponse?.content ?? [];
   const nodes = nodesResponse?.content ?? [];
-
-  // `defaultValues` acts as the immutable dirty-tracking baseline (the original saved event).
-  // `values` drives what is actually displayed — the draft when one exists, otherwise the event.
-  // `resetOptions.keepDefaultValues` prevents RHF from overwriting that baseline when `values`
-  // updates, so `dirtyFields` always reflects the real diff between the draft and the original.
-  const computedValues = useMemo(() => buildFormDefaults(draftValues ?? baseValues), [draftValues, baseValues]);
-  const initValues = useMemo(() => buildFormDefaults(baseValues), [baseValues]);
-  
-  const methods = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: initValues,
-    values: computedValues,
-    resetOptions: { keepDefaultValues: true },
-  });
-
-  // When a draft is present, RHF needs one render cycle to apply `values` over `defaultValues`.
-  // Hide the form body until the values have settled to prevent a visible flash in category/tags.
-  const [formReady, setFormReady] = useState(!draftValues);
-  useEffect(() => {
-    if (!formReady) setFormReady(true);
-  }, [formReady]);
 
   
   const {
@@ -331,7 +259,7 @@ export function EventForm({
           )}
         />
 
-        <LineItemsEditor nodes={nodes} minItems={MIN_LINE_ITEMS} />
+        <LineItemsEditor nodes={nodes} minItems={2} />
 
         <div className="flex flex-col gap-2">
           <Button
