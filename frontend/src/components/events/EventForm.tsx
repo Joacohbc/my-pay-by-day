@@ -154,7 +154,7 @@ export function EventForm({
       }
 
       if (onChange) {
-        onChange(values as FormValues, toDraftDto(values as FormValues, t));
+        onChange(toDraftDto(values as FormValues, t), values as FormValues);
       }
     });
 
