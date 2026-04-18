@@ -33,7 +33,8 @@ const FILTER_PARAMS = {
   endDate: { key: 'to', defaultValue: '', type: 'string' },
   dateField: { key: 'df', defaultValue: 'TRANSACTION', type: 'string' },
   categoryId: { key: 'cat', defaultValue: 0, type: 'number' },
-  tagId: { key: 'tag', defaultValue: 0, type: 'number' }
+  tagId: { key: 'tag', defaultValue: 0, type: 'number' },
+  mergeIds: { key: 'mergeIds', defaultValue: '', type: 'string' },
 } satisfies Record<string, ParamConfig>;
 
 export function EventsPage() {
@@ -41,34 +42,40 @@ export function EventsPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // --- 1. URL State Management ---
   const { values, setValues, clearAll } = useSearchParamsBatch(FILTER_PARAMS);
 
   useEffect(() => {
     saveEventsSearch(location.search);
   }, [location.search]);
 
-  const page = values.page as number | undefined;
-  const search = values.search as string;
-  const filter = (values.filter || 'ALL') as FilterType;
-  const startDate = values.startDate as string;
-  const endDate = values.endDate as string;
-  const dateField = (values.dateField || 'TRANSACTION') as DateField;
-  const categoryId = values.categoryId ? Number(values.categoryId) : undefined;
-  const tagId = values.tagId ? Number(values.tagId) : undefined;
+  // Read raw URL params
+  const {
+    page = 0,
+    search = '',
+    filter = 'ALL',
+    startDate = '',
+    endDate = '',
+    dateField = 'TRANSACTION',
+    categoryId,
+    tagId,
+    mergeIdsStr = '',
+  } = useMemo(() => ({
+    page: values.page as number | undefined,
+    search: values.search as string,
+    filter: (values.filter || 'ALL') as FilterType,
+    startDate: values.startDate as string,
+    endDate: values.endDate as string,
+    dateField: (values.dateField || 'TRANSACTION') as DateField,
+    categoryId: values.categoryId ? Number(values.categoryId) : undefined,
+    tagId: values.tagId ? Number(values.tagId) : undefined,
+    mergeIdsStr: values.mergeIds as string,
+  }), [values]);
 
   const debouncedSearch = useDebounce(search, 500);
 
-  const [showPicker, setShowPicker] = useState(false);
-  const [showMerge, setShowMerge] = useState(false);
-
-  const setPage = useCallback((p: number) => setValues({ page: p }), [setValues]);
-  const setSearch = useCallback((s: string) => setValues({ search: s, page: 0 }), [setValues]);
-  const setFilter = useCallback(
-    (f: string) => setValues({ filter: f, page: 0 }),
-    [setValues]
-  );
-
-  const advancedFilters: AdvancedFiltersState = useMemo(
+  // --- 2. Advanced Filters State ---
+  const advancedFilters = useMemo<AdvancedFiltersState>(
     () => ({ startDate, endDate, dateField, categoryId, tagId }),
     [startDate, endDate, dateField, categoryId, tagId]
   );
@@ -86,8 +93,40 @@ export function EventsPage() {
     [setValues]
   );
 
+  const setPage = useCallback((p: number) => setValues({ page: p }), [setValues]);
+  const setSearch = useCallback((s: string) => setValues({ search: s, page: 0 }), [setValues]);
+  const setFilter = useCallback((f: string) => setValues({ filter: f, page: 0 }), [setValues]);
   const clearFilters = useCallback(() => clearAll(), [clearAll]);
 
+  // --- 3. Modals State ---
+  const [showPicker, setShowPicker] = useState(false);
+  const [showMerge, setShowMerge] = useState(false);
+
+  const initialMergeIds = useMemo(() => {
+    return mergeIdsStr
+      ? mergeIdsStr.split(',').map(Number).filter((n) => !isNaN(n))
+      : [];
+  }, [mergeIdsStr]);
+
+  const isMergeModalOpen = showMerge || initialMergeIds.length > 0;
+
+  const handleCloseMerge = useCallback(() => {
+    setShowMerge(false);
+    if (mergeIdsStr) {
+      setValues({ mergeIds: '' });
+    }
+  }, [mergeIdsStr, setValues]);
+
+  const handlePickTemplate = (template: Template | null) => {
+    setShowPicker(false);
+    if (template) {
+      navigate(Routes.EVENT_NEW, { state: { template } });
+    } else {
+      navigate(Routes.EVENT_NEW);
+    }
+  };
+
+  // --- 4. Data Fetching ---
   const { data: paged, isLoading, error } = useEvents({
     page,
     size: 20,
@@ -102,15 +141,6 @@ export function EventsPage() {
 
   const { data: draftEvents } = useFinanceEventDrafts();
   const draftsCount = draftEvents?.length ?? 0;
-
-  const handlePickTemplate = (template: Template | null) => {
-    setShowPicker(false);
-    if (template) {
-      navigate(Routes.EVENT_NEW, { state: { template } });
-    } else {
-      navigate(Routes.EVENT_NEW);
-    }
-  };
 
   const events = useMemo(() => paged?.content ?? [], [paged]);
   const totalPages = paged?.totalPages ?? 1;
@@ -210,7 +240,11 @@ export function EventsPage() {
         onSelect={handlePickTemplate}
       />
 
-      <MergeEventsModal open={showMerge} onClose={() => setShowMerge(false)} />
+      <MergeEventsModal 
+        open={isMergeModalOpen} 
+        initialMergeIds={initialMergeIds}
+        onClose={handleCloseMerge} 
+      />
     </div>
   );
 }

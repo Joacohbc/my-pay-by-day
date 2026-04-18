@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Routes } from '@/lib/routes';
 import { useDebounce } from '@/hooks/useDebounce';
 import {
@@ -39,6 +39,7 @@ const draftTargetRoute = (draft: FinanceEvent) =>
 
 export function DraftsPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: draftEvents, isLoading, error } = useFinanceEventDrafts();
@@ -141,20 +142,24 @@ export function DraftsPage() {
   };
 
   const confirmDrafts = useCallback(
-    async (draftsToConfirm: FinanceEvent[]) => {
-      if (!draftsToConfirm.length || isConfirming) return;
+    async (draftsToConfirm: FinanceEvent[], mode: 'merge' | 'createOnly'): Promise<number[]> => {
+      if (!draftsToConfirm.length || isConfirming) return [];
       setIsConfirming(true);
+      const newIds: number[] = [];
       try {
         for (const draft of draftsToConfirm) {
           const persistedDraftId = draft.draftId;
           if (!persistedDraftId) continue;
 
-          const originalEventId = isLinkedDraft(draft) ? draft.id : undefined;
+          const originalEventId =
+            mode === 'merge' && isLinkedDraft(draft) ? draft.id : undefined;
 
           if (originalEventId) {
-            await eventsService.update(originalEventId, fromDraftToPatchDto(draft));
+            const updated = await eventsService.update(originalEventId, fromDraftToPatchDto(draft));
+            newIds.push(updated.id);
           } else {
-            await eventsService.create(fromDraftToCreateDto(draft));
+            const created = await eventsService.create(fromDraftToCreateDto(draft));
+            newIds.push(created.id);
           }
 
           await draftsService.delete(persistedDraftId);
@@ -163,19 +168,46 @@ export function DraftsPage() {
         await queryClient.invalidateQueries({ queryKey: DRAFTS_KEY });
         exitSelectionMode();
         setIsConfirming(false);
+        return newIds;
       } catch {
         setIsConfirming(false);
+        return newIds;
       }
     },
     [isConfirming, queryClient, exitSelectionMode]
   );
 
-  const handleConfirmAll = async () => {
-    await confirmDrafts(segmentedDrafts);
+  const handleConfirmAllMerge = async () => {
+    const ids = await confirmDrafts(segmentedDrafts, 'merge');
+    if (ids.length > 1) {
+      navigate(`${Routes.EVENTS}?mergeIds=${ids.join(',')}`);
+    } else {
+      navigate(Routes.EVENTS);
+    }
   };
 
-  const handleConfirmSelected = async () => {
-    await confirmDrafts(selectedDrafts);
+  const handleConfirmAllCreate = async () => {
+    const ids = await confirmDrafts(segmentedDrafts, 'createOnly');
+    if (ids.length > 1) {
+      // Just navigate to Events to view created items
+      navigate(Routes.EVENTS);
+    }
+  };
+
+  const handleConfirmSelectedMerge = async () => {
+    const ids = await confirmDrafts(selectedDrafts, 'merge');
+    if (ids.length > 1) {
+      navigate(`${Routes.EVENTS}?mergeIds=${ids.join(',')}`);
+    } else {
+      navigate(Routes.EVENTS);
+    }
+  };
+
+  const handleConfirmSelectedCreate = async () => {
+    const ids = await confirmDrafts(selectedDrafts, 'createOnly');
+    if (ids.length > 1) {
+      navigate(Routes.EVENTS);
+    }
   };
 
   const handleDeleteSelected = async () => {
@@ -326,13 +358,24 @@ export function DraftsPage() {
               </Button>
               <Button
                 size="sm"
+                variant="secondary"
                 className="flex-1 sm:flex-none"
-                onClick={handleConfirmSelected}
+                onClick={handleConfirmSelectedCreate}
                 disabled={actionsBusy}
                 loading={isConfirming}
               >
-                <Icon name="check" className="text-sm" />
-                {t('drafts.confirmSelected')}
+                <Icon name="add_circle" className="text-sm" />
+                {t('drafts.confirmSelectedCreate')}
+              </Button>
+              <Button
+                size="sm"
+                className="flex-1 sm:flex-none"
+                onClick={handleConfirmSelectedMerge}
+                disabled={actionsBusy}
+                loading={isConfirming}
+              >
+                <Icon name="merge" className="text-sm" />
+                {t('drafts.confirmSelectedMerge')}
               </Button>
             </div>
           </div>
@@ -342,13 +385,12 @@ export function DraftsPage() {
       <BulkActionsModal
         open={showBulkActions}
         onClose={() => setShowBulkActions(false)}
-        onConfirmAll={handleConfirmAll}
+        onConfirmAllMerge={handleConfirmAllMerge}
+        onConfirmAllCreate={handleConfirmAllCreate}
         onDeleteAll={handleDeleteAll}
         isConfirming={isConfirming}
         isDeleting={deleteAllDrafts.isPending}
         draftCount={segmentedDrafts.length}
-        confirmLabel={t('drafts.confirmAll')}
-        confirmDescription={t('drafts.confirmAllDesc')}
       />
     </div>
   );

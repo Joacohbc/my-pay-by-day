@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useEvents, useMergeEvents } from '@/hooks/useEvents';
+import { eventsService } from '@/services/events.service';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -19,9 +20,11 @@ type MergeStep = 'select-base' | 'select-sources' | 'configure-grouping' | 'conf
 
 export function MergeEventsModal({
   open,
+  initialMergeIds = [],
   onClose,
 }: {
   open: boolean;
+  initialMergeIds?: number[];
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -40,6 +43,22 @@ export function MergeEventsModal({
   const [mergedName, setMergedName] = useState('');
   const [mergedDescription, setMergedDescription] = useState('');
   const [isMergingDescriptions, setIsMergingDescriptions] = useState(false);
+  const [extraEvents, setExtraEvents] = useState<FinanceEvent[]>([]);
+
+  useEffect(() => {
+    if (open && initialMergeIds.length > 0 && extraEvents.length === 0) {
+      Promise.all(initialMergeIds.map((id) => eventsService.getById(id)))
+        .then((fetched) => {
+          if (fetched.length > 0) {
+            setBaseEvent(fetched[0]);
+            setExtraEvents(fetched);
+            setSelectedSourceIds(new Set(fetched.slice(1).map((e) => e.id)));
+            setStep('select-sources');
+          }
+        })
+        .catch(console.error);
+    }
+  }, [open, initialMergeIds, extraEvents.length]);
 
   const { data: paged, isLoading, error } = useEvents({ page });
 
@@ -54,6 +73,7 @@ export function MergeEventsModal({
     setMergedDescription('');
     setSearch('');
     setPage(0);
+    setExtraEvents([]);
     onClose();
   };
 
@@ -72,7 +92,14 @@ export function MergeEventsModal({
     });
   };
 
-  const allEvents = paged?.content || [];
+  const pagedEvents = useMemo(() => paged?.content || [], [paged]);
+  const allEvents = useMemo(() => {
+    const map = new Map<number, FinanceEvent>();
+    extraEvents.forEach((e) => map.set(e.id, e));
+    pagedEvents.forEach((e) => map.set(e.id, e));
+    return Array.from(map.values());
+  }, [pagedEvents, extraEvents]);
+
   const sourceEvents = allEvents.filter((e) => selectedSourceIds.has(e.id));
 
   // Unique nodes across base + selected sources
