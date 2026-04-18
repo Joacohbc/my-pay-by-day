@@ -529,8 +529,6 @@ const es = {
   drafts: {
     title: 'Borradores',
     chooseDrafts: 'Elegir borradores',
-    confirmAll: 'Confirmar Todos',
-    confirmAllDesc: 'Convertir todos los borradores en eventos permanentes',
     confirmAllMerge: 'Confirmar y mergear',
     confirmAllMergeDesc: 'Actualiza los eventos linkeados y crea los que no lo estén',
     confirmAllCreate: 'Confirmar creando nuevos',

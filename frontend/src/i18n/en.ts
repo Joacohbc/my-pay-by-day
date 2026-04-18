@@ -530,8 +530,6 @@ const en = {
   drafts: {
     title: 'Drafts',
     chooseDrafts: 'Choose Drafts',
-    confirmAll: 'Confirm All',
-    confirmAllDesc: 'Confirm all drafts as permanent events',
     confirmAllMerge: 'Confirm & merge',
     confirmAllMergeDesc: 'Update linked events and create those that are not linked',
     confirmAllCreate: 'Confirm as new',
