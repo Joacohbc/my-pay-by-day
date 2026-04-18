@@ -9,7 +9,7 @@ interface HoldToConfirmButtonProps {
   icon: string;
   label: string;
   description?: string;
-  variant?: 'danger' | 'primary';
+  variant?: 'danger' | 'primary' | 'secondary';
   disabled?: boolean;
 }
 
@@ -58,9 +58,20 @@ export function HoldToConfirmButton({
     setProgress(0);
   };
 
-  const colorClass = variant === 'danger' ? 'text-dn-error' : 'text-dn-primary';
-  const bgColorClass = variant === 'danger' ? 'bg-dn-error/10' : 'bg-dn-primary/10';
-  const progressBgClass = variant === 'danger' ? 'bg-dn-error/20' : 'bg-dn-primary/20';
+  const colorClass = 
+    variant === 'danger' ? 'text-dn-error' : 
+    variant === 'primary' ? 'text-dn-primary' : 
+    'text-dn-secondary';
+  
+  const bgColorClass = 
+    variant === 'danger' ? 'bg-dn-error/10' : 
+    variant === 'primary' ? 'bg-dn-primary/10' : 
+    'bg-dn-secondary/10';
+  
+  const progressBgClass = 
+    variant === 'danger' ? 'bg-dn-error/20' : 
+    variant === 'primary' ? 'bg-dn-primary/20' : 
+    'bg-dn-secondary/20';
 
   return (
     <button

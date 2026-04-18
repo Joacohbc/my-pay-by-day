@@ -7,32 +7,35 @@ import { Icon } from '@/components/ui/Icon';
 interface BulkActionsModalProps {
   open: boolean;
   onClose: () => void;
-  onConfirmAll: () => Promise<void>;
+  onConfirmAllMerge: () => Promise<void>;
+  onConfirmAllCreate: () => Promise<void>;
   onDeleteAll: () => Promise<void>;
   isConfirming: boolean;
   isDeleting: boolean;
   draftCount: number;
-  confirmLabel?: string;
-  confirmDescription?: string;
   onChooseDrafts?: () => void;
 }
 
 export function BulkActionsModal({
   open,
   onClose,
-  onConfirmAll,
+  onConfirmAllMerge,
+  onConfirmAllCreate,
   onDeleteAll,
   isConfirming,
   isDeleting,
   draftCount,
-  confirmLabel,
-  confirmDescription,
   onChooseDrafts,
 }: BulkActionsModalProps) {
   const { t } = useTranslation();
 
-  const handleConfirm = async () => {
-    await onConfirmAll();
+  const handleConfirmMerge = async () => {
+    await onConfirmAllMerge();
+    onClose();
+  };
+
+  const handleConfirmCreate = async () => {
+    await onConfirmAllCreate();
     onClose();
   };
 
@@ -68,12 +71,21 @@ export function BulkActionsModal({
           )}
 
           <HoldToConfirmButton
-            icon="checklist_rtl"
-            label={isConfirming ? t('common.loading') : (confirmLabel || t('drafts.confirmAll'))}
-            description={confirmDescription || t('drafts.confirmAllDesc')}
-            onConfirm={handleConfirm}
+            icon="merge"
+            label={isConfirming ? t('common.loading') : t('drafts.confirmAllMerge')}
+            description={t('drafts.confirmAllMergeDesc')}
+            onConfirm={handleConfirmMerge}
             disabled={isConfirming || isDeleting}
             variant="primary"
+          />
+
+          <HoldToConfirmButton
+            icon="add_circle"
+            label={isConfirming ? t('common.loading') : t('drafts.confirmAllCreate')}
+            description={t('drafts.confirmAllCreateDesc')}
+            onConfirm={handleConfirmCreate}
+            disabled={isConfirming || isDeleting}
+            variant="secondary"
           />
 
           <HoldToConfirmButton
