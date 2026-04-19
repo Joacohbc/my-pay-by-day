@@ -3,6 +3,7 @@ package com.mypaybyday.dto;
 public class DuplicateDetectionSettingsDto {
 	public Long id;
 	public Integer eventTimeThresholdMinutes;
+	public Double eventDateWeight;
 	public Double eventAmountWeight;
 	public Double eventNodeWeight;
 	public Double eventCategoryWeight;

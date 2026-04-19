@@ -23,6 +23,10 @@ public class DuplicateDetectionSettingsEntity extends BaseEntity {
 
 	@Builder.Default
 	@NotNull
+	public Double eventDateWeight = 0.1;
+
+	@Builder.Default
+	@NotNull
 	public Double eventAmountWeight = 0.3;
 
 	@Builder.Default

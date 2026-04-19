@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.jboss.logging.Logger;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
@@ -18,6 +20,8 @@ import com.mypaybyday.repository.EventRepository;
 
 @ApplicationScoped
 public class EventDuplicateDetectionService {
+
+	private static final Logger LOG = Logger.getLogger(EventDuplicateDetectionService.class);
 
 	private final EventRepository eventRepository;
 	private final DuplicateRecordRepository duplicateRecordRepository;
@@ -44,8 +48,6 @@ public class EventDuplicateDetectionService {
 			if (event.id.equals(other.id)) continue;
 
 			double dateScore = calculateDateScore(event, other, settings.eventTimeThresholdMinutes);
-			if (dateScore == 0.0) continue;
-
 			double amountScore = calculateAmountScore(event, other);
 			double nodeScore = calculateNodeScore(event, other);
 			double categoryScore = calculateCategoryScore(event, other);
@@ -53,7 +55,7 @@ public class EventDuplicateDetectionService {
 			double nameScore = DuplicateUtils.calculateTextSimilarityScore(event.name, other.name);
 
 			double totalScore =
-				(dateScore * 0.1) +
+				(dateScore * settings.eventDateWeight) +
 				(amountScore * settings.eventAmountWeight) +
 				(nodeScore * settings.eventNodeWeight) +
 				(categoryScore * settings.eventCategoryWeight) +
@@ -61,6 +63,7 @@ public class EventDuplicateDetectionService {
 				(nameScore * settings.eventNameWeight);
 
 			if (totalScore >= settings.eventTotalThresholdScore) {
+				LOG.infof("Potential duplicate found: Event %d vs %d with score %.4f", event.id, other.id, totalScore);
 				DuplicateUtils.DuplicateRecordData recordData = new DuplicateUtils.DuplicateRecordData(
 					event.id,
 					other.id,

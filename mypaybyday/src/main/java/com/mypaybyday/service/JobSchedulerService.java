@@ -4,12 +4,16 @@ import java.time.LocalDate;
 import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.ObservesAsync;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.entity.SystemJobEntity;
 import com.mypaybyday.enums.JobCategory;
 import com.mypaybyday.enums.JobStatus;
 import com.mypaybyday.repository.SystemJobRepository;
+import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
+import com.mypaybyday.service.duplicate.DuplicateDetectionService;
+
 import io.quarkus.scheduler.Scheduled;
 import org.jboss.logging.Logger;
 
@@ -114,6 +118,21 @@ public class JobSchedulerService {
 		}
 
 		LOG.info("Duplicate detection job completed.");
+	}
+
+	@Transactional
+	public void onDuplicateDetectionRequested(@ObservesAsync DuplicateDetectionEvent event) {
+		LOG.infof("Immediate duplicate detection triggered for %s:%d", event.type(), event.id());
+		try {
+			switch (event.type()) {
+				case "EVENT" -> duplicateDetectionService.detectDuplicatesForEvent(event.id());
+				case "CATEGORY" -> duplicateDetectionService.detectDuplicatesForCategory(event.id());
+				case "TAG" -> duplicateDetectionService.detectDuplicatesForTag(event.id());
+				default -> LOG.warnf("Unknown duplicate detection type: %s", event.type());
+			}
+		} catch (Exception e) {
+			LOG.errorf(e, "Immediate duplicate detection failed for %s:%d", event.type(), event.id());
+		}
 	}
 
 }

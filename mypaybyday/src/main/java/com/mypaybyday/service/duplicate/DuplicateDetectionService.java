@@ -1,4 +1,4 @@
-package com.mypaybyday.service;
+package com.mypaybyday.service.duplicate;
 
 import java.util.List;
 
@@ -15,9 +15,7 @@ import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.DuplicateRecordRepository;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.repository.TagRepository;
-import com.mypaybyday.service.duplicate.CategoryDuplicateDetectionService;
-import com.mypaybyday.service.duplicate.EventDuplicateDetectionService;
-import com.mypaybyday.service.duplicate.TagDuplicateDetectionService;
+import com.mypaybyday.dto.DuplicateRecordDto;
 
 import org.jboss.logging.Logger;
 
@@ -111,5 +109,17 @@ public class DuplicateDetectionService {
 			record.status = DuplicateRecordStatus.RESOLVED_MERGED;
 			duplicateRecordRepository.persist(record);
 		}
+	}
+
+	public List<DuplicateRecordDto> getDuplicates(EntityType type, DuplicateRecordStatus status) {
+		return duplicateRecordRepository.findByEntityTypeAndStatus(type, status).stream()
+				.map(r -> DuplicateRecordDto.fromEntity(r, categoryRepository, tagRepository))
+				.toList();
+	}
+
+	public List<DuplicateRecordDto> getDuplicatesForEntity(EntityType type, Long id, DuplicateRecordStatus status) {
+		return duplicateRecordRepository.findByEntityIdAndStatus(type, id, status).stream()
+				.map(r -> DuplicateRecordDto.fromEntity(r, categoryRepository, tagRepository))
+				.toList();
 	}
 }

@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.PagedResponse;
@@ -13,11 +14,6 @@ import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.dto.TagResolveConfig;
 import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.exception.BusinessException;
-import com.mypaybyday.entity.SystemJobEntity;
-import com.mypaybyday.enums.JobCategory;
-import com.mypaybyday.enums.JobStatus;
-import com.mypaybyday.repository.SystemJobRepository;
-import java.time.LocalDate;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
@@ -25,6 +21,7 @@ import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TagGroupRepository;
 import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TemplateRepository;
+import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.validation.TagValidator;
 
 import io.quarkus.logging.Log;
@@ -34,7 +31,7 @@ import io.quarkus.panache.common.Page;
 public class TagService {
 
 	private final TagRepository tagRepository;
-	private final SystemJobRepository systemJobRepository;
+	private final Event<DuplicateDetectionEvent> duplicateDetectionEventBus;
 	private final Messages messages;
 	private final TagValidator tagValidator;
 	private final EventRepository eventRepository;
@@ -49,10 +46,10 @@ public class TagService {
 			EventRepository eventRepository,
 			TemplateRepository templateRepository,
 			SubscriptionRepository subscriptionRepository,
-			SystemJobRepository systemJobRepository,
+			Event<DuplicateDetectionEvent> duplicateDetectionEventBus,
 			TagGroupRepository tagGroupRepository) {
 		this.tagRepository = tagRepository;
-		this.systemJobRepository = systemJobRepository;
+		this.duplicateDetectionEventBus = duplicateDetectionEventBus;
 		this.messages = messages;
 		this.tagValidator = tagValidator;
 		this.eventRepository = eventRepository;
@@ -194,6 +191,7 @@ public class TagService {
 		tagValidator.validate(tag);
 
 		tagRepository.persist(tag);
+		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forTag(tag.id));
 		return TagDto.from(tag);
 	}
 
@@ -208,6 +206,7 @@ public class TagService {
 
 		tagValidator.validate(tag);
 
+		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forTag(id));
 		return TagDto.from(tag);
 	}
 
@@ -246,15 +245,6 @@ public class TagService {
 		}
 
 		tagRepository.delete(tag);
-	}
-
-	private void scheduleDuplicateDetectionJob(Long tagId) {
-		SystemJobEntity job = new SystemJobEntity();
-		job.jobCategory = JobCategory.DUPLICATE_DETECTION;
-		job.status = JobStatus.PENDING;
-		job.nextExecutionDate = LocalDate.now();
-		job.entityId = "TAG:" + tagId;
-		systemJobRepository.persist(job);
 	}
 
 }

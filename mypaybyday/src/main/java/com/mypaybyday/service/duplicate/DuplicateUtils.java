@@ -1,6 +1,9 @@
 package com.mypaybyday.service.duplicate;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import com.mypaybyday.entity.DuplicateCategoryRecordEntity;
@@ -91,13 +94,13 @@ public class DuplicateUtils {
 		}
 	}
 
-	public static void saveDuplicateRecords(DuplicateRecordRepository repository, EntityType type, Long sharedId, java.util.List<DuplicateRecordData> dataList) {
+	public static void saveDuplicateRecords(DuplicateRecordRepository repository, EntityType type, Long sharedId, List<DuplicateRecordData> dataList) {
 		if (dataList == null || dataList.isEmpty()) return;
 
-		java.util.List<DuplicateRecordEntity> existingRecords = repository.find("entityType = ?1 and (entityId1 = ?2 or entityId2 = ?2)",
+		List<DuplicateRecordEntity> existingRecords = repository.find("entityType = ?1 and (entityId1 = ?2 or entityId2 = ?2)",
 				type, sharedId).list();
 
-		java.util.Map<Long, DuplicateRecordEntity> existingMap = new java.util.HashMap<>();
+		Map<Long, DuplicateRecordEntity> existingMap = new HashMap<>();
 		for (DuplicateRecordEntity record : existingRecords) {
 			Long otherId = record.entityId1.equals(sharedId) ? record.entityId2 : record.entityId1;
 			existingMap.put(otherId, record);

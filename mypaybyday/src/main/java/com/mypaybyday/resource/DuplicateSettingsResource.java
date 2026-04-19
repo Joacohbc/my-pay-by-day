@@ -14,11 +14,11 @@ import jakarta.ws.rs.core.Response;
 import com.mypaybyday.dto.DuplicateDetectionSettingsDto;
 import com.mypaybyday.entity.DuplicateDetectionSettingsEntity;
 import com.mypaybyday.repository.DuplicateDetectionSettingsRepository;
-import com.mypaybyday.service.DuplicateDetectionService;
+import com.mypaybyday.service.duplicate.DuplicateDetectionService;
 
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
-@Path("/api/settings/duplicates")
+@Path("/settings/duplicates")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @Tag(name = "Duplicate Settings", description = "Settings for duplicate detection")
@@ -36,6 +36,7 @@ public class DuplicateSettingsResource {
 		DuplicateDetectionSettingsDto dto = new DuplicateDetectionSettingsDto();
 		dto.id = entity.id;
 		dto.eventTimeThresholdMinutes = entity.eventTimeThresholdMinutes;
+		dto.eventDateWeight = entity.eventDateWeight;
 		dto.eventAmountWeight = entity.eventAmountWeight;
 		dto.eventNodeWeight = entity.eventNodeWeight;
 		dto.eventCategoryWeight = entity.eventCategoryWeight;
@@ -51,6 +52,7 @@ public class DuplicateSettingsResource {
 	public Response updateSettings(DuplicateDetectionSettingsDto request) {
 		DuplicateDetectionSettingsEntity entity = settingsRepository.getSettings();
 		if (request.eventTimeThresholdMinutes != null) entity.eventTimeThresholdMinutes = request.eventTimeThresholdMinutes;
+		if (request.eventDateWeight != null) entity.eventDateWeight = request.eventDateWeight;
 		if (request.eventAmountWeight != null) entity.eventAmountWeight = request.eventAmountWeight;
 		if (request.eventNodeWeight != null) entity.eventNodeWeight = request.eventNodeWeight;
 		if (request.eventCategoryWeight != null) entity.eventCategoryWeight = request.eventCategoryWeight;
@@ -68,6 +70,6 @@ public class DuplicateSettingsResource {
 		new Thread(() -> {
 			duplicateDetectionService.scanAll();
 		}).start();
-		return Response.accepted().build();
+		return Response.noContent().build();
 	}
 }
