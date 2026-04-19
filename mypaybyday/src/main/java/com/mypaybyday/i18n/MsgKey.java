@@ -30,8 +30,6 @@ public enum MsgKey {
 	TAG_GROUP_NOT_FOUND_ARCHIVED("error.tag_group.not_found_archived"),
 	TAG_GROUP_NAME_REQUIRED("error.tag_group.name_required"),
 	TAG_GROUP_MIN_TAGS("error.tag_group.min_tags"),
-	TAG_GROUP_IN_USE("error.tag_group.in_use"),
-	TAG_GROUP_ARCHIVE_IN_USE("error.tag_group.archive_in_use"),
 
 	// ── Event ─────────────────────────────────────────────
 	EVENT_NOT_FOUND("error.event.not_found"),
