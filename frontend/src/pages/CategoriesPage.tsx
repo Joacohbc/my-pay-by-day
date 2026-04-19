@@ -15,6 +15,8 @@ import { Pagination } from '@/components/ui/Pagination';
 import type { Category } from '@/models';
 import { CategoryForm } from '@/components/categories/CategoryForm';
 import { Routes } from '@/lib/routes';
+import { useDuplicates } from '@/services/duplicates.service';
+import { SimpleEntityDuplicatesSection } from '@/components/duplicates/SimpleEntityDuplicatesSection';
 
 type ConfirmActionType = 'archive' | 'unarchive' | 'delete';
 
@@ -29,6 +31,7 @@ export function CategoriesPage() {
   const [page, setPage] = useState(0);
   const [showArchived, setShowArchived] = useState(false);
   const { data: paged, isLoading, error } = useCategories(page, 20, showArchived ? true : undefined);
+  const { data: allDuplicates } = useDuplicates('CATEGORY', 'PENDING');
   const deleteCategory = useDeleteCategory();
   const archiveCategory = useArchiveCategory();
   const unarchiveCategory = useUnarchiveCategory();
@@ -121,7 +124,8 @@ export function CategoriesPage() {
       ) : (
         <div className="px-5 space-y-3">
           {allCategories.map((cat) => (
-            <Card key={cat.id} className={`flex items-center gap-4 ${cat.archived ? 'opacity-60' : ''}`}>
+            <Card key={cat.id} className={`${cat.archived ? 'opacity-60' : ''}`}>
+            <div className="flex items-center gap-4">
               <CategoryIcon category={cat} size="lg" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -170,6 +174,11 @@ export function CategoriesPage() {
                   <Icon name="delete" className="text-base" />
                 </button>
               </div>
+            </div>
+            <SimpleEntityDuplicatesSection
+              records={(allDuplicates ?? []).filter(r => r.entityId1 === cat.id || r.entityId2 === cat.id)}
+              currentId={cat.id}
+            />
             </Card>
           ))}
         </div>

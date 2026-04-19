@@ -118,6 +118,7 @@ export function DuplicateSettingsPage() {
     <Input
       type="number"
       label={t(labelKey) + (isPct(key) ? ' (%)' : '')}
+      hint={t(`${labelKey}Hint`, { defaultValue: '' }) || undefined}
       value={form[key]}
       min={opts?.min ?? 0}
       max={opts?.max ?? (isPct(key) ? 100 : undefined)}
