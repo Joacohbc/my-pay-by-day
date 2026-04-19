@@ -15,6 +15,7 @@ import { useNodes } from '@/hooks/useNodes';
 import { useAiFormController } from '@/hooks/useAiFormController';
 import type { CreateEventDto, PatchEventDto, FinanceEvent } from '@/models';
 import { buildSchema, buildFormDefaults, MIN_LINE_ITEMS, toDraftDto } from '@/components/events/EventFormMapper';
+import { prependMissingArchived } from '@/lib/prependMissingArchived';
 
 
 
@@ -96,8 +97,22 @@ export function EventForm({
   const { data: tagGroupsResponse } = useTagGroups(0, 100);
   const { data: nodesResponse } = useNodes(0, 200);
 
-  const categories = categoriesResponse?.content ?? [];
-  const tags = tagsResponse?.content ?? [];
+  const baseCategory = draftValues?.category ?? baseValues?.category;
+  const baseTags = useMemo(
+    () => [...(baseValues?.tags ?? []), ...(draftValues?.tags ?? [])],
+    [baseValues?.tags, draftValues?.tags],
+  );
+
+  const categories = useMemo(() => {
+    const active = categoriesResponse?.content ?? [];
+    return prependMissingArchived(active, baseCategory ? [baseCategory] : []);
+  }, [categoriesResponse, baseCategory]);
+
+  const tags = useMemo(() => {
+    const active = tagsResponse?.content ?? [];
+    return prependMissingArchived(active, baseTags);
+  }, [tagsResponse, baseTags]);
+
   const tagGroups = tagGroupsResponse?.content ?? [];
   const nodes = nodesResponse?.content ?? [];
 

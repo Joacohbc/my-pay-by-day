@@ -132,9 +132,11 @@ public class FinanceNodeService {
 			throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
 		}
 
-		long templateCount = templateRepository.count("originNode = ?1 or destinationNode = ?1", node);
-		if (templateCount > 0) {
-			throw new BusinessException(messages.get(MsgKey.NODE_IN_TEMPLATE));
+		boolean inUseForRecurring = financeNodeRepository.countInTemplates(node) > 0
+				|| financeNodeRepository.countInSubscriptions(node) > 0;
+
+		if (inUseForRecurring) {
+			throw new BusinessException(messages.get(MsgKey.NODE_ARCHIVE_IN_USE));
 		}
 
 		// It's always allowed to archive, we just don't physically delete
@@ -157,11 +159,13 @@ public class FinanceNodeService {
 			throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
 		}
 
-		long templateCount = templateRepository.count("originNode = ?1 or destinationNode = ?1", node);
-		if (templateCount > 0) {
-			throw new BusinessException(messages.get(MsgKey.NODE_IN_TEMPLATE));
-		}
+		boolean inUseForRecurring = financeNodeRepository.countInTemplates(node) > 0
+				|| financeNodeRepository.countInSubscriptions(node) > 0;
 
+		if (inUseForRecurring) {
+			throw new BusinessException(messages.get(MsgKey.NODE_ARCHIVE_IN_USE));
+		}
+		
 		long txCount = lineItemRepository.count("financeNode", node);
 		if (txCount > 0) {
 			throw new BusinessException(messages.get(MsgKey.NODE_HAS_TRANSACTIONS));

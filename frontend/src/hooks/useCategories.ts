@@ -16,7 +16,7 @@ const FIVE_MINUTES_MS = 1000 * 60 * 5;
 export const categoryKeys = {
   all: ['categories'] as const,
   lists: () => [...categoryKeys.all, 'list'] as const,
-  list: (page: number, size: number) => [...categoryKeys.lists(), page, size] as const,
+  list: (page: number, size: number, archived?: boolean) => [...categoryKeys.lists(), page, size, archived] as const,
   details: () => [...categoryKeys.all, 'detail'] as const,
   detail: (id: number) => [...categoryKeys.details(), id] as const,
 };
@@ -27,10 +27,10 @@ function resolveErrorMessage(err: unknown, fallbackMessage: string): string {
   return err instanceof Error ? err.message : fallbackMessage;
 }
 
-export function useCategories(page = 0, size = 20) {
+export function useCategories(page = 0, size = 20, archived?: boolean) {
   return useQuery({
-    queryKey: categoryKeys.list(page, size),
-    queryFn: () => categoriesService.getAll(page, size),
+    queryKey: categoryKeys.list(page, size, archived),
+    queryFn: () => categoriesService.getAll(page, size, archived),
     staleTime: FIVE_MINUTES_MS,
   });
 }
@@ -94,6 +94,36 @@ export function useUpdateCategory() {
       queryClient.invalidateQueries({ queryKey: categoryKeys.detail(id) });
     },
     onSuccess: () => alert.success(t('common.saved')),
+  });
+}
+
+export function useArchiveCategory() {
+  const queryClient = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+
+  return useMutation({
+    mutationFn: (id: number) => categoriesService.archive(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
+      alert.success(t('common.saved'));
+    },
+    onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
+  });
+}
+
+export function useUnarchiveCategory() {
+  const queryClient = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+
+  return useMutation({
+    mutationFn: (id: number) => categoriesService.unarchive(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
+      alert.success(t('common.saved'));
+    },
+    onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
   });
 }
 

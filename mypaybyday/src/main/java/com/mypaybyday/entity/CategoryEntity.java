@@ -24,4 +24,7 @@ public class CategoryEntity extends BaseEntity {
 
 	public String icon;
 
+	@Builder.Default
+	public boolean archived = false;
+
 }

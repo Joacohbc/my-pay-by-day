@@ -27,18 +27,20 @@ export interface Category extends Identifiable {
   name: string;
   description?: string;
   icon?: string;
+  archived: boolean;
 }
 
-export type CreateCategoryDto = Omit<Category, 'id'>;
+export type CreateCategoryDto = Omit<Category, 'id' | 'archived'>;
 
 // ─── Tag ──────────────────────────────────────────────────────────────────────
 
 export interface Tag extends Identifiable {
   name: string;
   description?: string;
+  archived: boolean;
 }
 
-export type CreateTagDto = Omit<Tag, 'id'>;
+export type CreateTagDto = Omit<Tag, 'id' | 'archived'>;
 
 // ─── FinanceNode ──────────────────────────────────────────────────────────────
 
@@ -270,6 +272,7 @@ export interface TagGroup extends Identifiable {
   name: string;
   description?: string;
   icon?: string;
+  archived: boolean;
   tags: Tag[];
 }
 

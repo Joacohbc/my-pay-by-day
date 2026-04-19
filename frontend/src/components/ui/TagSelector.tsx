@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { TagForm } from '@/components/tags/TagForm';
@@ -41,13 +42,27 @@ export function TagSelector({
 
   const [internalSortMode, setInternalSortMode] = useState<SortMode>('smart');
   const sortMode = sortModeProp ?? internalSortMode;
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 150);
 
   const { data: stats } = useUsageStats('TAG');
   const recordSelection = useRecordSelection();
 
   const sortedTags = useMemo(
-    () => sortByUsage(tags, stats ?? [], sortMode),
+    () => sortByUsage(tags.filter(t => !t.archived), stats ?? [], sortMode),
     [tags, stats, sortMode]
+  );
+
+  const filteredTags = useMemo(
+    () => debouncedSearch.trim()
+      ? sortedTags.filter((t) => t.name.toLowerCase().includes(debouncedSearch.toLowerCase()))
+      : sortedTags,
+    [sortedTags, debouncedSearch]
+  );
+
+  const archivedSelectedTags = useMemo(
+    () => tags.filter(t => t.archived && value?.includes(String(t.id))),
+    [tags, value]
   );
 
   const resolvedLabel = label ?? t('eventForm.tags');
@@ -108,8 +123,32 @@ export function TagSelector({
 
 
       {open && (
-        <div className="flex flex-wrap gap-2">
-          {sortedTags.map((tag) => {
+        <div>
+          {archivedSelectedTags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {archivedSelectedTags.map(tag => (
+                <span
+                  key={tag.id}
+                  className="px-3 py-1.5 rounded-pill text-xs font-medium border border-white/5 bg-dn-surface-low text-dn-text-muted opacity-60 flex items-center gap-1.5"
+                >
+                  #{tag.name}
+                  <span className="border border-white/10 px-1 py-px rounded text-[10px]">{t('common.archived')}</span>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="relative mb-2">
+            <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-dn-text-muted text-sm" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('common.search')}
+              className="w-full bg-dn-surface-low rounded-input pl-8 pr-3 py-1.5 text-xs text-dn-text-main outline-none focus:ring-1 focus:ring-dn-primary/50 placeholder:text-dn-text-muted/50"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+          {filteredTags.map((tag) => {
             const selected = value?.includes(String(tag.id));
             return (
               <button
@@ -138,6 +177,7 @@ export function TagSelector({
               {t('common.new')}
             </button>
           )}
+          </div>
         </div>
       )}
 

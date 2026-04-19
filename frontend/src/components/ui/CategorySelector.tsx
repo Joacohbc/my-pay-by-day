@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useTranslation } from 'react-i18next';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
@@ -45,13 +46,27 @@ export function CategorySelector({
 
   const [internalSortMode, setInternalSortMode] = useState<SortMode>('smart');
   const sortMode = sortModeProp ?? internalSortMode;
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 150);
 
   const { data: stats } = useUsageStats('CATEGORY');
   const recordSelection = useRecordSelection();
 
   const sortedCategories = useMemo(
-    () => sortByUsage(categories, stats ?? [], sortMode),
+    () => sortByUsage(categories.filter(c => !c.archived), stats ?? [], sortMode),
     [categories, stats, sortMode]
+  );
+
+  const filteredCategories = useMemo(
+    () => debouncedSearch.trim()
+      ? sortedCategories.filter((c) => c.name.toLowerCase().includes(debouncedSearch.toLowerCase()))
+      : sortedCategories,
+    [sortedCategories, debouncedSearch]
+  );
+
+  const archivedSelectedCat = useMemo(
+    () => categories.find(c => c.archived && String(c.id) === String(value)),
+    [categories, value]
   );
 
   const resolvedLabel = label ?? t('eventForm.category');
@@ -73,13 +88,20 @@ export function CategorySelector({
     const options = sortedCategories.map((c) => ({ value: String(c.id), label: c.name }));
     return (
       <div className={className}>
+        {archivedSelectedCat && (
+          <div className="mb-2 flex items-center gap-2 px-3 py-2 rounded-input bg-dn-surface-low border border-white/5 opacity-60">
+            <CategoryIcon category={archivedSelectedCat} size="sm" />
+            <span className="text-sm text-dn-text-muted flex-1 truncate">{archivedSelectedCat.name}</span>
+            <span className="text-xs text-dn-text-muted border border-white/10 px-1.5 py-0.5 rounded">{t('common.archived')}</span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <div className="flex-1">
             <SearchableSelect
               label={resolvedLabel}
               placeholder={t('common.none')}
               options={options}
-              value={value}
+              value={archivedSelectedCat ? '' : value}
               onChange={(val) => handleChange(val == null ? '' : String(val))}
             />
           </div>
@@ -149,8 +171,26 @@ export function CategorySelector({
         </button>
       </div>
 
-      {open && <div className="grid grid-cols-4 gap-x-3 gap-y-4">
-        {sortedCategories.map((cat) => {
+      {open && <div>
+        {archivedSelectedCat && (
+          <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-input bg-dn-surface-low border border-white/5 opacity-60">
+            <CategoryIcon category={archivedSelectedCat} size="sm" />
+            <span className="text-sm text-dn-text-muted flex-1 truncate">{archivedSelectedCat.name}</span>
+            <span className="text-xs text-dn-text-muted border border-white/10 px-1.5 py-0.5 rounded">{t('common.archived')}</span>
+          </div>
+        )}
+        <div className="relative mb-3">
+          <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-dn-text-muted text-sm" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('common.search')}
+            className="w-full bg-dn-surface-low rounded-input pl-8 pr-3 py-1.5 text-xs text-dn-text-main outline-none focus:ring-1 focus:ring-dn-primary/50 placeholder:text-dn-text-muted/50"
+          />
+        </div>
+        <div className="grid grid-cols-4 gap-x-3 gap-y-4">
+        {filteredCategories.map((cat) => {
           const selected = value === String(cat.id);
           return (
             <button
@@ -191,6 +231,7 @@ export function CategorySelector({
             </span>
           </button>
         )}
+        </div>
       </div>}
 
       <Modal

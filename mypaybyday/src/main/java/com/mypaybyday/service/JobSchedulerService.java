@@ -28,12 +28,18 @@ public class JobSchedulerService {
 		this.duplicateDetectionService = duplicateDetectionService;
 	}
 
-	@Scheduled(every = "1h", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+	@Scheduled(every = "1h", delayed = "30s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
 	@Transactional
 	public void processSubscriptionsJob() {
 		LOG.info("Starting subscription processor job...");
 
-		List<SystemJobEntity> pendingJobs = systemJobRepository.findPendingJobsByCategory(JobCategory.SUBSCRIPTION_PROCESSOR);
+		List<SystemJobEntity> pendingJobs;
+		try {
+			pendingJobs = systemJobRepository.findPendingJobsByCategory(JobCategory.SUBSCRIPTION_PROCESSOR);
+		} catch (RuntimeException exception) {
+			LOG.warn("Skipping subscription processor job due to temporary database unavailability.", exception);
+			return;
+		}
 
 		for (SystemJobEntity job : pendingJobs) {
 			if (job.nextExecutionDate.isAfter(LocalDate.now())) {

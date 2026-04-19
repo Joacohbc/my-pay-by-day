@@ -14,6 +14,7 @@ import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { LineItemsEditor } from '@/components/events/LineItemsEditor';
 import { useAiFormController } from '@/hooks/useAiFormController';
+import { prependMissingArchived } from '@/lib/prependMissingArchived';
 import {
   buildSchema,
   fromTemplate,
@@ -37,12 +38,24 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
   const { t } = useTranslation();
   const schema = buildSchema(t, MIN_LINE_ITEMS, MAX_LINE_ITEMS);
 
-  const { data: categoriesPaged } = useCategories(0, 200);
-  const { data: tagsPaged } = useTags(0, 200);
-  const { data: nodesPaged } = useNodes(0, 200);
-  const categories = categoriesPaged?.content ?? [];
-  const tags = tagsPaged?.content ?? [];
-  const nodes = nodesPaged?.content ?? [];
+  const { data: categoriesResponse } = useCategories(0, 200);
+  const { data: tagsResponse } = useTags(0, 200);
+  const { data: nodesResponse } = useNodes(0, 200, true);
+
+  const baseCategory = editTarget?.category;
+  const baseTags = useMemo(() => editTarget?.tags ?? [], [editTarget?.tags]);
+
+  const categories = useMemo(() => {
+    const active = categoriesResponse?.content ?? [];
+    return prependMissingArchived(active, baseCategory ? [baseCategory] : []);
+  }, [categoriesResponse, baseCategory]);
+
+  const tags = useMemo(() => {
+    const active = tagsResponse?.content ?? [];
+    return prependMissingArchived(active, baseTags);
+  }, [tagsResponse, baseTags]);
+
+  const nodes = nodesResponse?.content ?? [];
 
   const methods = useForm<FormValues>({
     resolver: zodResolver(schema),

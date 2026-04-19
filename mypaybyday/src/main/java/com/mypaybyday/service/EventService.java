@@ -20,12 +20,14 @@ import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.CategoryBalanceDto;
 import com.mypaybyday.dto.CategoryDto;
+import com.mypaybyday.dto.CategoryResolveConfig;
 import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.EventQuery.DateField;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.PatchEventDto;
 import com.mypaybyday.dto.TagDto;
+import com.mypaybyday.dto.TagResolveConfig;
 import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
@@ -264,18 +266,17 @@ public class EventService {
 
 		// Resolve CategoryEntity reference (only the ID is trusted from clients)
 		if (event.category != null && event.category.id != null) {
-			event.category = categoryService.findEntityById(event.category.id);
+			event.category = categoryService.resolveCategory(CategoryDto.from(event.category), CategoryResolveConfig.forNewEntity());
 		}
 
 		// Resolve TagEntity references
-		event.tags = resolveTags(event.tags);
+		event.tags = tagService.resolveTags(event.tags.stream().map(TagDto::from).toList(), TagResolveConfig.forNewEntity());
 
 		// Resolve File references
 		event.files = resolveFiles(event.fileIds);
 
 		event.transaction = tx;
 
-		// TODO: Events should validate: Don't duplicate tags/files. Categories
 		eventValidator.validate(event);
 
 		eventRepository.persist(event);
@@ -336,31 +337,15 @@ public class EventService {
 		// --- CategoryEntity ---
 		if (patch.getCategory().isPresent()) {
 			CategoryDto catDto = patch.getCategory().get();
-			if (catDto == null) {
-				event.category = null;
-			} else {
-				if (catDto.id() == null) {
-					throw new BusinessException(messages.get(MsgKey.EVENT_CATEGORY_ID_REQUIRED));
-				}
-				event.category = categoryService.findEntityById(catDto.id());
-			}
+			Long existingCatId = event.category != null ? event.category.id : null;
+			event.category = categoryService.resolveCategory(catDto, CategoryResolveConfig.forUpdate(existingCatId));
 		}
 
 		// --- Tags ---
 		if (patch.getTags().isPresent()) {
 			List<TagDto> tagDtos = patch.getTags().get();
-			if (tagDtos == null || tagDtos.isEmpty()) {
-				event.tags = new HashSet<>();
-			} else {
-				Set<TagEntity> resolved = new HashSet<>();
-				for (TagDto tagDto : tagDtos) {
-					if (tagDto.id() == null) {
-						throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
-					}
-					resolved.add(tagService.findTagEntity(tagDto.id()));
-				}
-				event.tags = resolved;
-			}
+			Set<Long> existingTagIds = event.tags.stream().map(t -> t.id).collect(Collectors.toSet());
+			event.tags = tagService.resolveTags(tagDtos, TagResolveConfig.forUpdate(existingTagIds));
 		}
 
 		// --- Files ---
@@ -428,24 +413,6 @@ public class EventService {
 		return eventRepository.list(
 				"category.id = ?1 and transaction.transactionDate >= ?2 and transaction.transactionDate <= ?3",
 				categoryId, from, to);
-	}
-
-	/**
-	* Resolves a list of TagEntity stubs (containing only IDs) into managed TagEntity entities.
-	* Returns an empty list if the input is null.
-	*/
-	private Set<TagEntity> resolveTags(Set<TagEntity> stubs) throws BusinessException {
-		if (stubs == null || stubs.isEmpty()) {
-			return new HashSet<>();
-		}
-		Set<TagEntity> resolved = new HashSet<>();
-		for (TagEntity stub : stubs) {
-			if (stub.id == null) {
-				throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
-			}
-			resolved.add(tagService.findTagEntity(stub.id));
-		}
-		return resolved;
 	}
 
 	/**
@@ -574,11 +541,8 @@ public class EventService {
 		}
 
 		if (tagIds != null) {
-			Set<TagEntity> resolved = new HashSet<>();
-			for (Long tagId : tagIds) {
-				resolved.add(tagService.findTagEntity(tagId));
-			}
-			baseEvent.tags = resolved;
+			List<TagDto> tagDtos = tagIds.stream().map(id -> new TagDto(id, null, null, false)).toList();
+			baseEvent.tags = tagService.resolveTags(tagDtos, TagResolveConfig.forNewEntity());
 		}
 
 		// Break bidirectional relations with external events to prevent Hibernate errors before deletion.
