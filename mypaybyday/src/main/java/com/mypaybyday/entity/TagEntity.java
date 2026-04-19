@@ -21,4 +21,7 @@ public class TagEntity extends BaseEntity {
 	public String name;
 
 	public String description;
+
+	@Builder.Default
+	public boolean archived = false;
 }

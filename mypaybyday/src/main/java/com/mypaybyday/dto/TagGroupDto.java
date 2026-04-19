@@ -10,6 +10,7 @@ public record TagGroupDto(
 		String name,
 		String description,
 		String icon,
+		boolean archived,
 		List<TagDto> tags,
 		@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
 		List<Long> tagIds
@@ -20,6 +21,7 @@ public record TagGroupDto(
 				entity.name,
 				entity.description,
 				entity.icon,
+				entity.archived,
 				entity.tags == null ? List.of() : entity.tags.stream().map(TagDto::from).toList(),
 				null
 		);

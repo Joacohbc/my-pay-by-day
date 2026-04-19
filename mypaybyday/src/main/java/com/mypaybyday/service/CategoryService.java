@@ -48,9 +48,10 @@ public class CategoryService {
 	// -------------------------------------------------------------------------
 
 	@Transactional
-	public PagedResponse<CategoryDto> listAll(int page, int size) {
-		long totalElements = categoryRepository.count();
-		List<CategoryDto> content = categoryRepository.findAll()
+	public PagedResponse<CategoryDto> listAll(int page, int size, Boolean archived) {
+		boolean showArchived = Boolean.TRUE.equals(archived);
+		long totalElements = categoryRepository.count("archived = ?1", showArchived);
+		List<CategoryDto> content = categoryRepository.find("archived = ?1", showArchived)
 				.page(Page.of(page, size))
 				.stream()
 				.map(CategoryDto::from)
@@ -60,17 +61,24 @@ public class CategoryService {
 
 	@Transactional
 	public CategoryDto findById(Long id) throws BusinessException {
-		return CategoryDto.from(findEntityById(id));
+		return CategoryDto.from(findEntityById(id, false));
 	}
 
 	/**
-	* Internal method used by other services that need a managed {@link CategoryEntity} entity
-	* (e.g. {@link EventService} when resolving a category reference).
-	*/
+	 * Internal method used by other services that need a managed {@link CategoryEntity} entity.
+	 * Throws if the category is archived — archived categories cannot be used in new events.
+	 */
 	CategoryEntity findEntityById(Long id) throws BusinessException {
+		return findEntityById(id, true);
+	}
+
+	private CategoryEntity findEntityById(Long id, boolean failIfArchived) throws BusinessException {
 		CategoryEntity category = categoryRepository.findById(id);
 		if (category == null) {
 			throw new BusinessException(messages.get(MsgKey.CATEGORY_NOT_FOUND, id));
+		}
+		if (failIfArchived && category.archived) {
+			throw new BusinessException(messages.get(MsgKey.CATEGORY_NOT_FOUND_ARCHIVED, id));
 		}
 		return category;
 	}
@@ -97,7 +105,7 @@ public class CategoryService {
 
 	@Transactional
 	public CategoryDto update(Long id, CategoryDto dto) throws BusinessException {
-		CategoryEntity category = findEntityById(id);
+		CategoryEntity category = findEntityById(id, false);
 		if (dto.name() == null || dto.name().isBlank()) {
 			throw new BusinessException(messages.get(MsgKey.CATEGORY_NAME_REQUIRED));
 		}
@@ -111,8 +119,20 @@ public class CategoryService {
 	}
 
 	@Transactional
+	public void archive(Long id) throws BusinessException {
+		CategoryEntity category = findEntityById(id, false);
+		category.archived = true;
+	}
+
+	@Transactional
+	public void unarchive(Long id) throws BusinessException {
+		CategoryEntity category = findEntityById(id, false);
+		category.archived = false;
+	}
+
+	@Transactional
 	public void delete(Long id) throws BusinessException {
-		CategoryEntity category = findEntityById(id);
+		CategoryEntity category = findEntityById(id, false);
 
 		boolean inUse = eventRepository.countByCategory(category) > 0
 				|| templateRepository.countByCategory(category) > 0

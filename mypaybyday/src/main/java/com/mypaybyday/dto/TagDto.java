@@ -5,11 +5,12 @@ import com.mypaybyday.entity.TagEntity;
 public record TagDto(
 		Long id,
 		String name,
-		String description
+		String description,
+		boolean archived
 ) {
 
 	public static TagDto from(TagEntity tag) {
-		return new TagDto(tag.id, tag.name, tag.description);
+		return new TagDto(tag.id, tag.name, tag.description, tag.archived);
 	}
 
 

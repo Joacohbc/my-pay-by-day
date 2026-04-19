@@ -6,11 +6,12 @@ public record CategoryDto(
 		Long id,
 		String name,
 		String description,
-		String icon
+		String icon,
+		boolean archived
 ) {
 
 	public static CategoryDto from(CategoryEntity category) {
-		return new CategoryDto(category.id, category.name, category.description, category.icon);
+		return new CategoryDto(category.id, category.name, category.description, category.icon, category.archived);
 	}
 
 

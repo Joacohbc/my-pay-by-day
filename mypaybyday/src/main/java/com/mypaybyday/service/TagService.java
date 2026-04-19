@@ -48,9 +48,10 @@ public class TagService {
 	// -------------------------------------------------------------------------
 
 	@Transactional
-	public PagedResponse<TagDto> listAll(int page, int size) {
-		long totalElements = tagRepository.count();
-		List<TagDto> content = tagRepository.findAll()
+	public PagedResponse<TagDto> listAll(int page, int size, Boolean archived) {
+		boolean showArchived = Boolean.TRUE.equals(archived);
+		long totalElements = tagRepository.count("archived = ?1", showArchived);
+		List<TagDto> content = tagRepository.find("archived = ?1", showArchived)
 				.page(Page.of(page, size))
 				.stream()
 				.map(TagDto::from)
@@ -60,17 +61,24 @@ public class TagService {
 
 	@Transactional
 	public TagDto findById(Long id) throws BusinessException {
-		return TagDto.from(findTagEntity(id));
+		return TagDto.from(findTagEntity(id, false));
 	}
 
 	/**
-	* Internal method used by other services that need a managed {@link TagEntity} entity
-	* (e.g. {@link EventService} when resolving tag references).
-	*/
-	TagEntity findTagEntity(Long id) throws BusinessException {
+	 * Internal method used by other services that need a managed {@link TagEntity} entity.
+	 * Throws if the tag is archived — archived tags cannot be used in new events.
+	 */
+	public TagEntity findTagEntity(Long id) throws BusinessException {
+		return findTagEntity(id, true);
+	}
+
+	TagEntity findTagEntity(Long id, boolean failIfArchived) throws BusinessException {
 		TagEntity tag = tagRepository.findById(id);
 		if (tag == null) {
 			throw new BusinessException(messages.get(MsgKey.TAG_NOT_FOUND, id));
+		}
+		if (failIfArchived && tag.archived) {
+			throw new BusinessException(messages.get(MsgKey.TAG_NOT_FOUND_ARCHIVED, id));
 		}
 		return tag;
 	}
@@ -109,8 +117,20 @@ public class TagService {
 	}
 
 	@Transactional
+	public void archive(Long id) throws BusinessException {
+		TagEntity tag = findTagEntity(id, false);
+		tag.archived = true;
+	}
+
+	@Transactional
+	public void unarchive(Long id) throws BusinessException {
+		TagEntity tag = findTagEntity(id, false);
+		tag.archived = false;
+	}
+
+	@Transactional
 	public void delete(Long id) throws BusinessException {
-		TagEntity tag = findTagEntity(id);
+		TagEntity tag = findTagEntity(id, false);
 
 		boolean inUse = eventRepository.countByTag(tag) > 0
 				|| templateRepository.countByTag(tag) > 0

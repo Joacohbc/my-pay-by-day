@@ -1,6 +1,5 @@
 package com.mypaybyday.service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
@@ -39,9 +38,10 @@ public class TagGroupService {
 	}
 
 	@Transactional
-	public PagedResponse<TagGroupDto> listAll(int page, int size) {
-		long totalElements = tagGroupRepository.count();
-		List<TagGroupDto> content = tagGroupRepository.findAll()
+	public PagedResponse<TagGroupDto> listAll(int page, int size, Boolean archived) {
+		boolean showArchived = Boolean.TRUE.equals(archived);
+		long totalElements = tagGroupRepository.count("archived = ?1", showArchived);
+		List<TagGroupDto> content = tagGroupRepository.find("archived = ?1", showArchived)
 				.page(Page.of(page, size))
 				.stream()
 				.map(TagGroupDto::from)
@@ -51,13 +51,20 @@ public class TagGroupService {
 
 	@Transactional
 	public TagGroupDto findById(Long id) throws BusinessException {
-		return TagGroupDto.from(findEntity(id));
+		return TagGroupDto.from(findEntityById(id, false));
 	}
 
-	private TagGroupEntity findEntity(Long id) throws BusinessException {
+	TagGroupEntity findEntity(Long id) throws BusinessException {
+		return findEntityById(id, true);
+	}
+
+	private TagGroupEntity findEntityById(Long id, boolean failIfArchived) throws BusinessException {
 		TagGroupEntity entity = tagGroupRepository.findById(id);
 		if (entity == null) {
 			throw new BusinessException(messages.get(MsgKey.TAG_GROUP_NOT_FOUND, id));
+		}
+		if (failIfArchived && entity.archived) {
+			throw new BusinessException(messages.get(MsgKey.TAG_GROUP_NOT_FOUND_ARCHIVED, id));
 		}
 		return entity;
 	}
@@ -82,8 +89,20 @@ public class TagGroupService {
 	}
 
 	@Transactional
+	public void archive(Long id) throws BusinessException {
+		TagGroupEntity entity = findEntityById(id, false);
+		entity.archived = true;
+	}
+
+	@Transactional
+	public void unarchive(Long id) throws BusinessException {
+		TagGroupEntity entity = findEntityById(id, false);
+		entity.archived = false;
+	}
+
+	@Transactional
 	public void delete(Long id) throws BusinessException {
-		TagGroupEntity entity = findEntity(id);
+		TagGroupEntity entity = findEntityById(id, false);
 		tagGroupRepository.delete(entity);
 	}
 

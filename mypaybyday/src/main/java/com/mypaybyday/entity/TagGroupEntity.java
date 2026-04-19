@@ -33,6 +33,9 @@ public class TagGroupEntity extends BaseEntity {
 
 	public String icon;
 
+	@Builder.Default
+	public boolean archived = false;
+
 	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(
 			name = "tag_group_tag",
