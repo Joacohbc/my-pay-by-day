@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useTranslation } from 'react-i18next';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
@@ -45,6 +46,8 @@ export function CategorySelector({
 
   const [internalSortMode, setInternalSortMode] = useState<SortMode>('smart');
   const sortMode = sortModeProp ?? internalSortMode;
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 150);
 
   const { data: stats } = useUsageStats('CATEGORY');
   const recordSelection = useRecordSelection();
@@ -52,6 +55,13 @@ export function CategorySelector({
   const sortedCategories = useMemo(
     () => sortByUsage(categories, stats ?? [], sortMode),
     [categories, stats, sortMode]
+  );
+
+  const filteredCategories = useMemo(
+    () => debouncedSearch.trim()
+      ? sortedCategories.filter((c) => c.name.toLowerCase().includes(debouncedSearch.toLowerCase()))
+      : sortedCategories,
+    [sortedCategories, debouncedSearch]
   );
 
   const resolvedLabel = label ?? t('eventForm.category');
@@ -149,8 +159,19 @@ export function CategorySelector({
         </button>
       </div>
 
-      {open && <div className="grid grid-cols-4 gap-x-3 gap-y-4">
-        {sortedCategories.map((cat) => {
+      {open && <div>
+        <div className="relative mb-3">
+          <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-dn-text-muted text-sm" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('common.search')}
+            className="w-full bg-dn-surface-low rounded-input pl-8 pr-3 py-1.5 text-xs text-dn-text-main outline-none focus:ring-1 focus:ring-dn-primary/50 placeholder:text-dn-text-muted/50"
+          />
+        </div>
+        <div className="grid grid-cols-4 gap-x-3 gap-y-4">
+        {filteredCategories.map((cat) => {
           const selected = value === String(cat.id);
           return (
             <button
@@ -191,6 +212,7 @@ export function CategorySelector({
             </span>
           </button>
         )}
+        </div>
       </div>}
 
       <Modal
