@@ -1,20 +1,24 @@
 package com.mypaybyday.service;
 
-import java.util.List;
-import java.util.Set;
 import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.PagedResponse;
+import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.dto.TagGroupDto;
-import com.mypaybyday.entity.TagEntity;
+import com.mypaybyday.dto.TagResolveConfig;
 import com.mypaybyday.entity.TagGroupEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TagGroupRepository;
+import com.mypaybyday.repository.TemplateRepository;
+import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.validation.TagGroupValidator;
 import io.quarkus.panache.common.Page;
 
@@ -25,16 +29,22 @@ public class TagGroupService {
 	private final TagService tagService;
 	private final Messages messages;
 	private final TagGroupValidator tagGroupValidator;
+	private final TemplateRepository templateRepository;
+	private final SubscriptionRepository subscriptionRepository;
 
 	public TagGroupService(
 			TagGroupRepository tagGroupRepository,
 			TagService tagService,
 			Messages messages,
-			TagGroupValidator tagGroupValidator) {
+			TagGroupValidator tagGroupValidator,
+			TemplateRepository templateRepository,
+			SubscriptionRepository subscriptionRepository) {
 		this.tagGroupRepository = tagGroupRepository;
 		this.tagService = tagService;
 		this.messages = messages;
 		this.tagGroupValidator = tagGroupValidator;
+		this.templateRepository = templateRepository;
+		this.subscriptionRepository = subscriptionRepository;
 	}
 
 	@Transactional
@@ -72,8 +82,8 @@ public class TagGroupService {
 	@Transactional
 	public TagGroupDto create(TagGroupDto dto) throws BusinessException {
 		TagGroupEntity entity = new TagGroupEntity();
+		entity.tags = tagService.resolveTags(dto.tags(), TagResolveConfig.forNewEntity());
 		tagGroupValidator.validate(dto, entity);
-		entity.tags = resolveTags(dto.tagIds());
 
 		tagGroupRepository.persist(entity);
 		return TagGroupDto.from(entity);
@@ -82,8 +92,8 @@ public class TagGroupService {
 	@Transactional
 	public TagGroupDto update(Long id, TagGroupDto dto) throws BusinessException {
 		TagGroupEntity entity = findEntity(id);
+		entity.tags = tagService.resolveTags(new HashSet<>(dto.tagIds()), TagResolveConfig.forNewEntity());
 		tagGroupValidator.validate(dto, entity);
-		entity.tags = resolveTags(dto.tagIds());
 
 		return TagGroupDto.from(entity);
 	}
@@ -104,15 +114,5 @@ public class TagGroupService {
 	public void delete(Long id) throws BusinessException {
 		TagGroupEntity entity = findEntityById(id, false);
 		tagGroupRepository.delete(entity);
-	}
-
-	private Set<TagEntity> resolveTags(List<Long> tagIds) throws BusinessException {
-		Set<TagEntity> resolved = new HashSet<>();
-		if (tagIds != null) {
-			for (Long tagId : tagIds) {
-				resolved.add(tagService.findTagEntity(tagId));
-			}
-		}
-		return resolved;
 	}
 }

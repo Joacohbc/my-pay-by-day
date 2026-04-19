@@ -1,21 +1,28 @@
 package com.mypaybyday.service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TagDto;
+import com.mypaybyday.dto.TagResolveConfig;
 import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.repository.SubscriptionRepository;
+import com.mypaybyday.repository.TagGroupRepository;
 import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.validation.TagValidator;
+
+import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
 
 @ApplicationScoped
@@ -27,6 +34,7 @@ public class TagService {
 	private final EventRepository eventRepository;
 	private final TemplateRepository templateRepository;
 	private final SubscriptionRepository subscriptionRepository;
+	private final TagGroupRepository tagGroupRepository;
 
 	public TagService(
 			TagRepository tagRepository,
@@ -34,13 +42,15 @@ public class TagService {
 			TagValidator tagValidator,
 			EventRepository eventRepository,
 			TemplateRepository templateRepository,
-			SubscriptionRepository subscriptionRepository) {
+			SubscriptionRepository subscriptionRepository,
+			TagGroupRepository tagGroupRepository) {
 		this.tagRepository = tagRepository;
 		this.messages = messages;
 		this.tagValidator = tagValidator;
 		this.eventRepository = eventRepository;
 		this.templateRepository = templateRepository;
 		this.subscriptionRepository = subscriptionRepository;
+		this.tagGroupRepository = tagGroupRepository;
 	}
 
 	// -------------------------------------------------------------------------
@@ -83,6 +93,83 @@ public class TagService {
 		return tag;
 	}
 
+	Set<TagEntity> findTagEntitiesBulk(Set<Long> tagIds, boolean failIfArchived) throws BusinessException {
+		if (tagIds == null || tagIds.isEmpty()) {
+			return Set.of();
+		}
+
+		List<TagEntity> foundTags = tagRepository.list("id IN ?1", tagIds);
+		if (foundTags.size() != tagIds.size()) {
+			Set<Long> foundIds = foundTags.stream().map(tag -> tag.id).collect(Collectors.toSet());
+			Long missingId = tagIds.stream().filter(tagId -> !foundIds.contains(tagId)).findFirst().orElse(null);
+			throw new BusinessException(messages.get(MsgKey.TAG_NOT_FOUND, missingId));
+		}
+
+		if (failIfArchived) {
+			foundTags.stream().filter(TagEntity::isArchived)
+			.findFirst()
+			.ifPresent(archivedTag -> {
+				throw new BusinessException(messages.get(MsgKey.TAG_NOT_FOUND_ARCHIVED, archivedTag.id));
+			});
+		}
+
+		return foundTags.stream().collect(Collectors.toSet());
+	}
+
+	/**
+	 * Resolves a list of Tag DTOs into managed {@link TagEntity} entities based on the provided configuration.
+	 */
+	@Transactional
+	public Set<TagEntity> resolveTags(List<TagDto> tagDtos, TagResolveConfig config) throws BusinessException {
+		if (tagDtos == null || tagDtos.isEmpty()) {
+			return new HashSet<>();
+		}
+
+		Set<Long> requestedTagIds = new HashSet<>();
+		for (TagDto tagDto : tagDtos) {
+			if (tagDto.id() == null) {
+				throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
+			}
+			requestedTagIds.add(tagDto.id());
+		}
+
+		return resolveTags(requestedTagIds, config);
+	}
+
+	@Transactional
+	public Set<TagEntity> resolveTags(Set<Long> requestedTagIds, TagResolveConfig config) throws BusinessException {
+		if (requestedTagIds == null || requestedTagIds.isEmpty()) {
+			return new HashSet<>();
+		}
+
+		if (config == null) {
+			config = TagResolveConfig.forNewEntity();
+		}
+
+		if(config.strategy() == TagResolveConfig.Strategy.ALLOW_ALL_ARCHIVED) {
+			return findTagEntitiesBulk(requestedTagIds, false);
+		}
+
+		if(config.strategy() == TagResolveConfig.Strategy.NOT_ALLOW_ARCHIVED) {
+			return findTagEntitiesBulk(requestedTagIds, true);
+		}
+
+		// Fetch all requested tags without failing if archived yet
+		Set<TagEntity> newTagEntities = findTagEntitiesBulk(requestedTagIds, false);
+
+		if (config.strategy() == TagResolveConfig.Strategy.ALLOW_ONLY_EXISTING_ARCHIVED) {
+			Set<Long> existingIds = config.existingTagIds();
+			newTagEntities.stream()
+					.filter(t -> t.archived && !existingIds.contains(t.id))
+					.findFirst()
+					.ifPresent(archivedTag -> {
+						throw new BusinessException(messages.get(MsgKey.TAG_NOT_FOUND_ARCHIVED, archivedTag.id));
+					});
+		}
+
+		return newTagEntities;
+	}
+
 	// -------------------------------------------------------------------------
 	// Commands
 	// -------------------------------------------------------------------------
@@ -119,6 +206,15 @@ public class TagService {
 	@Transactional
 	public void archive(Long id) throws BusinessException {
 		TagEntity tag = findTagEntity(id, false);
+
+		boolean inUseForRecurring = templateRepository.countByTag(tag) > 0
+				|| subscriptionRepository.countByTag(tag) > 0
+				|| tagGroupRepository.countByTag(tag) > 0;
+
+		if (inUseForRecurring) {
+			throw new BusinessException(messages.get(MsgKey.TAG_ARCHIVE_IN_USE));
+		}
+
 		tag.archived = true;
 	}
 
@@ -134,7 +230,8 @@ public class TagService {
 
 		boolean inUse = eventRepository.countByTag(tag) > 0
 				|| templateRepository.countByTag(tag) > 0
-				|| subscriptionRepository.countByTag(tag) > 0;
+				|| subscriptionRepository.countByTag(tag) > 0
+				|| tagGroupRepository.countByTag(tag) > 0;
 
 		if (inUse) {
 			throw new BusinessException(messages.get(MsgKey.TAG_IN_USE));

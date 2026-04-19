@@ -6,6 +6,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.CategoryDto;
+import com.mypaybyday.dto.CategoryResolveConfig;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.exception.BusinessException;
@@ -72,7 +73,10 @@ public class CategoryService {
 		return findEntityById(id, true);
 	}
 
-	private CategoryEntity findEntityById(Long id, boolean failIfArchived) throws BusinessException {
+	/**
+	 * Internal method used by other services that need a managed {@link CategoryEntity} entity.
+	 */
+	public CategoryEntity findEntityById(Long id, boolean failIfArchived) throws BusinessException {
 		CategoryEntity category = categoryRepository.findById(id);
 		if (category == null) {
 			throw new BusinessException(messages.get(MsgKey.CATEGORY_NOT_FOUND, id));
@@ -80,6 +84,37 @@ public class CategoryService {
 		if (failIfArchived && category.archived) {
 			throw new BusinessException(messages.get(MsgKey.CATEGORY_NOT_FOUND_ARCHIVED, id));
 		}
+		return category;
+	}
+
+	/**
+	 * Resolves a CategoryDto into a managed CategoryEntity according to the provided config.
+	 */
+	@Transactional
+	public CategoryEntity resolveCategory(CategoryDto catDto, CategoryResolveConfig config) throws BusinessException {
+		if (catDto == null) {
+			return null;
+		}
+		if (catDto.id() == null) {
+			throw new BusinessException(messages.get(MsgKey.EVENT_CATEGORY_ID_REQUIRED));
+		}
+
+		CategoryEntity category = categoryRepository.findById(catDto.id());
+		if (category == null) {
+			throw new BusinessException(messages.get(MsgKey.CATEGORY_NOT_FOUND, catDto.id()));
+		}
+
+		if (category.archived) {
+			boolean allowed = switch (config.strategy()) {
+				case ALLOW_ALL_ARCHIVED -> true;
+				case ALLOW_ONLY_EXISTING_ARCHIVED -> category.id.equals(config.existingCategoryId());
+				case NOT_ALLOW_ARCHIVED -> false;
+			};
+			if (!allowed) {
+				throw new BusinessException(messages.get(MsgKey.CATEGORY_NOT_FOUND_ARCHIVED, catDto.id()));
+			}
+		}
+
 		return category;
 	}
 
@@ -121,6 +156,14 @@ public class CategoryService {
 	@Transactional
 	public void archive(Long id) throws BusinessException {
 		CategoryEntity category = findEntityById(id, false);
+
+		boolean inUseForRecurring = templateRepository.countByCategory(category) > 0
+				|| subscriptionRepository.countByCategory(category) > 0;
+
+		if (inUseForRecurring) {
+			throw new BusinessException(messages.get(MsgKey.CATEGORY_ARCHIVE_IN_USE));
+		}
+
 		category.archived = true;
 	}
 

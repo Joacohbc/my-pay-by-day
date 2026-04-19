@@ -9,6 +9,10 @@ public record TagDto(
 		boolean archived
 ) {
 
+	public static TagDto ofId(Long id) {
+		return new TagDto(id, null, null, false);
+	}
+
 	public static TagDto from(TagEntity tag) {
 		return new TagDto(tag.id, tag.name, tag.description, tag.archived);
 	}
