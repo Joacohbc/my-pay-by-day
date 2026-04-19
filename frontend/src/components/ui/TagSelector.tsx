@@ -49,7 +49,7 @@ export function TagSelector({
   const recordSelection = useRecordSelection();
 
   const sortedTags = useMemo(
-    () => sortByUsage(tags, stats ?? [], sortMode),
+    () => sortByUsage(tags.filter(t => !t.archived), stats ?? [], sortMode),
     [tags, stats, sortMode]
   );
 
@@ -58,6 +58,11 @@ export function TagSelector({
       ? sortedTags.filter((t) => t.name.toLowerCase().includes(debouncedSearch.toLowerCase()))
       : sortedTags,
     [sortedTags, debouncedSearch]
+  );
+
+  const archivedSelectedTags = useMemo(
+    () => tags.filter(t => t.archived && value?.includes(String(t.id))),
+    [tags, value]
   );
 
   const resolvedLabel = label ?? t('eventForm.tags');
@@ -119,6 +124,19 @@ export function TagSelector({
 
       {open && (
         <div>
+          {archivedSelectedTags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {archivedSelectedTags.map(tag => (
+                <span
+                  key={tag.id}
+                  className="px-3 py-1.5 rounded-pill text-xs font-medium border border-white/5 bg-dn-surface-low text-dn-text-muted opacity-60 flex items-center gap-1.5"
+                >
+                  #{tag.name}
+                  <span className="border border-white/10 px-1 py-px rounded text-[10px]">{t('common.archived')}</span>
+                </span>
+              ))}
+            </div>
+          )}
           <div className="relative mb-2">
             <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-dn-text-muted text-sm" />
             <input
