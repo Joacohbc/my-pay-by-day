@@ -480,6 +480,40 @@ const en = {
     },
   },
 
+  // ─── Duplicates ──────────────────────────────────────────────────────────
+  duplicates: {
+    settings: {
+      title: 'Duplicate Detection',
+      desc: 'Thresholds and weights for duplicate detection',
+      eventTimeThreshold: 'Time Threshold (minutes)',
+      eventDateWeight: 'Date Weight',
+      eventAmountWeight: 'Amount Weight',
+      eventNodeWeight: 'Node Weight',
+      eventCategoryWeight: 'Category Weight',
+      eventTagWeight: 'Tag Weight',
+      eventNameWeight: 'Name Weight',
+      totalThreshold: 'Total Score Threshold',
+      textSimilarityThreshold: 'Text Similarity Threshold',
+      scanAll: 'Run Full Scan',
+      scanAllSuccess: 'Scan started in background',
+      saved: 'Settings saved',
+    },
+    section: {
+      title: 'Potential Duplicates',
+      noDuplicates: 'No pending duplicates',
+      score: 'Match score',
+      dateScore: 'Date',
+      amountScore: 'Amount',
+      nodeScore: 'Node',
+      categoryScore: 'Category',
+      tagScore: 'Tag',
+      nameScore: 'Name',
+      openEvent: 'Open event',
+      markNotDuplicate: 'Not a duplicate',
+      deleteOther: 'Delete other',
+    },
+  },
+
   // ─── Settings ────────────────────────────────────────────────────────────
   settings: {
     title: 'Settings',

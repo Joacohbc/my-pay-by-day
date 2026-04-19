@@ -15,6 +15,7 @@ import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatDateTime, eventNetAmount } from '@/lib/format';
 import { useState } from 'react';
 import { RelatedEventsSection } from '@/components/events/RelatedEventsSection';
+import { EventDuplicatesSection } from '@/components/events/EventDuplicatesSection';
 import { FileUploader } from '@/components/ui/FileUploader';
 import type { FileDto } from '@/models';
 
@@ -197,6 +198,9 @@ export function EventDetailPage() {
 
       {/* Related Events */}
       <RelatedEventsSection event={event} />
+
+      {/* Duplicates */}
+      <EventDuplicatesSection event={event} />
     </div>
   );
 }

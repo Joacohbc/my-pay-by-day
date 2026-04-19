@@ -479,6 +479,40 @@ const es = {
     },
   },
 
+  // ─── Duplicates ──────────────────────────────────────────────────────────
+  duplicates: {
+    settings: {
+      title: 'Detección de Duplicados',
+      desc: 'Umbrales y pesos para la detección de duplicados',
+      eventTimeThreshold: 'Umbral de Tiempo (minutos)',
+      eventDateWeight: 'Peso de Fecha',
+      eventAmountWeight: 'Peso del Monto',
+      eventNodeWeight: 'Peso del Nodo',
+      eventCategoryWeight: 'Peso de Categoría',
+      eventTagWeight: 'Peso de Etiqueta',
+      eventNameWeight: 'Peso del Nombre',
+      totalThreshold: 'Umbral de Puntaje Total',
+      textSimilarityThreshold: 'Umbral de Similitud de Texto',
+      scanAll: 'Ejecutar Escaneo Completo',
+      scanAllSuccess: 'Escaneo iniciado en segundo plano',
+      saved: 'Configuración guardada',
+    },
+    section: {
+      title: 'Posibles Duplicados',
+      noDuplicates: 'Sin duplicados pendientes',
+      score: 'Puntaje de coincidencia',
+      dateScore: 'Fecha',
+      amountScore: 'Monto',
+      nodeScore: 'Nodo',
+      categoryScore: 'Categoría',
+      tagScore: 'Etiqueta',
+      nameScore: 'Nombre',
+      openEvent: 'Abrir evento',
+      markNotDuplicate: 'No es duplicado',
+      deleteOther: 'Eliminar otro',
+    },
+  },
+
   // ─── Settings ────────────────────────────────────────────────────────────
   settings: {
     title: 'Ajustes',

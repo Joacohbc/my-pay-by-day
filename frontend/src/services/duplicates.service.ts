@@ -42,7 +42,11 @@ export function useDuplicates(type: SelectableEntityType, status: DuplicateRecor
   });
 }
 
-export function useEntityDuplicates(type: SelectableEntityType, id: number, status: DuplicateRecordStatus = 'PENDING') {
+export function useEntityDuplicates(
+  type: SelectableEntityType,
+  id: number,
+  status: DuplicateRecordStatus = 'PENDING',
+) {
   return useQuery({
     queryKey: DUPLICATES_KEYS.byEntity(type, id, status),
     queryFn: () => duplicatesApi.getDuplicatesForEntity(type, id, status),

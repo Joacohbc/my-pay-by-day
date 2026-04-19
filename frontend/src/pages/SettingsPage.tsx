@@ -229,6 +229,12 @@ export function SettingsPage() {
             title={t('ai.settings.title')}
             subtitle={t('settings.aiDesc')}
           />
+          <SettingRow
+            to={Routes.SETTINGS_DUPLICATES}
+            icon="find_replace"
+            title={t('duplicates.settings.title')}
+            subtitle={t('duplicates.settings.desc')}
+          />
         </Card>
       </section>
 

@@ -26,6 +26,7 @@ export interface DuplicateEventRecord extends DuplicateRecord {
 export interface DuplicateDetectionSettings {
   id: number;
   eventTimeThresholdMinutes: number;
+  eventDateWeight: number;
   eventAmountWeight: number;
   eventNodeWeight: number;
   eventCategoryWeight: number;
