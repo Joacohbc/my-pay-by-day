@@ -20,10 +20,12 @@ public class JobSchedulerService {
 
 	private final SystemJobRepository systemJobRepository;
 	private final SubscriptionService subscriptionService;
+	private final DuplicateDetectionService duplicateDetectionService;
 
-	public JobSchedulerService(SystemJobRepository systemJobRepository, SubscriptionService subscriptionService) {
+	public JobSchedulerService(SystemJobRepository systemJobRepository, SubscriptionService subscriptionService, DuplicateDetectionService duplicateDetectionService) {
 		this.systemJobRepository = systemJobRepository;
 		this.subscriptionService = subscriptionService;
+		this.duplicateDetectionService = duplicateDetectionService;
 	}
 
 	@Scheduled(every = "1h", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
@@ -60,4 +62,52 @@ public class JobSchedulerService {
 
 		LOG.info("Subscription processor job completed.");
 	}
+
+	@Scheduled(every = "1h", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+	@Transactional
+	public void processDuplicateDetectionJob() {
+		LOG.info("Starting duplicate detection job...");
+
+		List<SystemJobEntity> pendingJobs = systemJobRepository.findPendingJobsByCategory(JobCategory.DUPLICATE_DETECTION);
+
+		for (SystemJobEntity job : pendingJobs) {
+			if (job.nextExecutionDate.isAfter(LocalDate.now())) {
+				continue;
+			}
+
+			try {
+				if (job.entityId != null) {
+					String[] parts = job.entityId.split(":");
+					if (parts.length == 2) {
+						String type = parts[0];
+						Long id = Long.valueOf(parts[1]);
+
+						if ("EVENT".equals(type)) {
+							duplicateDetectionService.detectDuplicatesForEvent(id);
+						} else if ("CATEGORY".equals(type)) {
+							duplicateDetectionService.detectDuplicatesForCategory(id);
+						} else if ("TAG".equals(type)) {
+							duplicateDetectionService.detectDuplicatesForTag(id);
+						}
+					}
+					job.status = JobStatus.COMPLETED;
+					job.message = "Successfully processed duplicate detection " + job.entityId;
+					LOG.infof("Job completed successfully for duplicate detection %s.", job.entityId);
+				} else {
+					job.status = JobStatus.FAILED;
+					job.message = "No entityId associated with this job.";
+					LOG.warn("Job failed: entityId is null.");
+				}
+			} catch (Exception e) {
+				LOG.error("Job failed.", e);
+				job.status = JobStatus.FAILED;
+				job.message = "Failed: " + e.getMessage();
+			}
+
+			systemJobRepository.persist(job);
+		}
+
+		LOG.info("Duplicate detection job completed.");
+	}
+
 }

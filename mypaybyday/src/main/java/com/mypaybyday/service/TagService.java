@@ -9,6 +9,11 @@ import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.entity.SystemJobEntity;
+import com.mypaybyday.enums.JobCategory;
+import com.mypaybyday.enums.JobStatus;
+import com.mypaybyday.repository.SystemJobRepository;
+import java.time.LocalDate;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
@@ -22,6 +27,7 @@ import io.quarkus.panache.common.Page;
 public class TagService {
 
 	private final TagRepository tagRepository;
+	private final SystemJobRepository systemJobRepository;
 	private final Messages messages;
 	private final TagValidator tagValidator;
 	private final EventRepository eventRepository;
@@ -34,8 +40,10 @@ public class TagService {
 			TagValidator tagValidator,
 			EventRepository eventRepository,
 			TemplateRepository templateRepository,
-			SubscriptionRepository subscriptionRepository) {
+			SubscriptionRepository subscriptionRepository,
+			SystemJobRepository systemJobRepository) {
 		this.tagRepository = tagRepository;
+		this.systemJobRepository = systemJobRepository;
 		this.messages = messages;
 		this.tagValidator = tagValidator;
 		this.eventRepository = eventRepository;
@@ -122,4 +130,14 @@ public class TagService {
 
 		tagRepository.delete(tag);
 	}
+
+	private void scheduleDuplicateDetectionJob(Long tagId) {
+		SystemJobEntity job = new SystemJobEntity();
+		job.jobCategory = JobCategory.DUPLICATE_DETECTION;
+		job.status = JobStatus.PENDING;
+		job.nextExecutionDate = LocalDate.now();
+		job.entityId = "TAG:" + tagId;
+		systemJobRepository.persist(job);
+	}
+
 }

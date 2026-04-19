@@ -9,6 +9,11 @@ import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.entity.SystemJobEntity;
+import com.mypaybyday.enums.JobCategory;
+import com.mypaybyday.enums.JobStatus;
+import com.mypaybyday.repository.SystemJobRepository;
+import java.time.LocalDate;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.CategoryRepository;
@@ -22,6 +27,7 @@ import io.quarkus.panache.common.Page;
 public class CategoryService {
 
 	private final CategoryRepository categoryRepository;
+	private final SystemJobRepository systemJobRepository;
 	private final Messages messages;
 	private final CategoryValidator categoryValidator;
 	private final EventRepository eventRepository;
@@ -33,9 +39,11 @@ public class CategoryService {
 			Messages messages,
 			CategoryValidator categoryValidator,
 			EventRepository eventRepository,
+			SystemJobRepository systemJobRepository,
 			TemplateRepository templateRepository,
 			SubscriptionRepository subscriptionRepository) {
 		this.categoryRepository = categoryRepository;
+		this.systemJobRepository = systemJobRepository;
 		this.messages = messages;
 		this.categoryValidator = categoryValidator;
 		this.eventRepository = eventRepository;
@@ -124,4 +132,14 @@ public class CategoryService {
 
 		categoryRepository.delete(category);
 	}
+
+	private void scheduleDuplicateDetectionJob(Long categoryId) {
+		SystemJobEntity job = new SystemJobEntity();
+		job.jobCategory = JobCategory.DUPLICATE_DETECTION;
+		job.status = JobStatus.PENDING;
+		job.nextExecutionDate = LocalDate.now();
+		job.entityId = "CATEGORY:" + categoryId;
+		systemJobRepository.persist(job);
+	}
+
 }

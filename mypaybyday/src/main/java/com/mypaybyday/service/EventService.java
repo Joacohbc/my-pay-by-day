@@ -36,6 +36,11 @@ import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.entity.SystemJobEntity;
+import com.mypaybyday.enums.JobCategory;
+import com.mypaybyday.enums.JobStatus;
+import com.mypaybyday.repository.SystemJobRepository;
+import java.time.LocalDate;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
@@ -63,6 +68,7 @@ public class EventService {
 	private final EventValidator eventValidator;
 	private final FileService fileService;
 	private final DraftService entityDraftService;
+	private final SystemJobRepository systemJobRepository;
 
 	public EventService(
 			EventRepository eventRepository,
@@ -72,7 +78,8 @@ public class EventService {
 			Messages messages,
 			EventValidator eventValidator,
 			FileService fileService,
-			DraftService entityDraftService) {
+			DraftService entityDraftService,
+			SystemJobRepository systemJobRepository) {
 		this.eventRepository = eventRepository;
 		this.transactionService = transactionService;
 		this.categoryService = categoryService;
@@ -81,6 +88,7 @@ public class EventService {
 		this.eventValidator = eventValidator;
 		this.fileService = fileService;
 		this.entityDraftService = entityDraftService;
+		this.systemJobRepository = systemJobRepository;
 	}
 
 	// -------------------------------------------------------------------------
@@ -678,4 +686,14 @@ public class EventService {
 		}
 		return found;
 	}
+
+	private void scheduleDuplicateDetectionJob(Long eventId) {
+		SystemJobEntity job = new SystemJobEntity();
+		job.jobCategory = JobCategory.DUPLICATE_DETECTION;
+		job.status = JobStatus.PENDING;
+		job.nextExecutionDate = LocalDate.now();
+		job.entityId = "EVENT:" + eventId;
+		systemJobRepository.persist(job);
+	}
+
 }
