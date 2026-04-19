@@ -16,7 +16,7 @@ const FIVE_MINUTES_MS = 1000 * 60 * 5;
 export const tagKeys = {
   all: ['tags'] as const,
   lists: () => [...tagKeys.all, 'list'] as const,
-  list: (page: number, size: number) => [...tagKeys.lists(), page, size] as const,
+  list: (page: number, size: number, archived?: boolean) => [...tagKeys.lists(), page, size, archived] as const,
   details: () => [...tagKeys.all, 'detail'] as const,
   detail: (id: number) => [...tagKeys.details(), id] as const,
 };
@@ -27,10 +27,10 @@ function resolveErrorMessage(err: unknown, fallbackMessage: string): string {
   return err instanceof Error ? err.message : fallbackMessage;
 }
 
-export function useTags(page = 0, size = 20) {
+export function useTags(page = 0, size = 20, archived?: boolean) {
   return useQuery({
-    queryKey: tagKeys.list(page, size),
-    queryFn: () => tagsService.getAll(page, size),
+    queryKey: tagKeys.list(page, size, archived),
+    queryFn: () => tagsService.getAll(page, size, archived),
     staleTime: FIVE_MINUTES_MS,
   });
 }
@@ -93,6 +93,36 @@ export function useUpdateTag() {
       queryClient.invalidateQueries({ queryKey: tagKeys.detail(id) });
     },
     onSuccess: () => alert.success(t('common.saved')),
+  });
+}
+
+export function useArchiveTag() {
+  const queryClient = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+
+  return useMutation({
+    mutationFn: (id: number) => tagsService.archive(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tagKeys.all });
+      alert.success(t('common.saved'));
+    },
+    onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
+  });
+}
+
+export function useUnarchiveTag() {
+  const queryClient = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+
+  return useMutation({
+    mutationFn: (id: number) => tagsService.unarchive(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tagKeys.all });
+      alert.success(t('common.saved'));
+    },
+    onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
   });
 }
 

@@ -268,6 +268,8 @@ const en = {
     namePlaceholder: 'e.g. Food, Transport, Utilities',
     descriptionPlaceholder: 'Optional description',
     deleteConfirm: 'Delete this category?',
+    archiveConfirm: 'Archive "{{name}}"? Historical data is preserved.',
+    showArchived: 'Show archived',
     iconLabel: 'Icon',
   },
 
@@ -280,6 +282,8 @@ const en = {
     newTagGroup: 'New Tag Group',
     editTagGroup: 'Edit Tag Group',
     deleteConfirm: 'Are you sure you want to delete this tag group?',
+    archiveConfirm: 'Archive "{{name}}"? Historical data is preserved.',
+    showArchived: 'Show archived',
     iconLabel: 'Icon',
     minTags: 'A tag group must contain at least 2 tags',
   },
@@ -297,6 +301,8 @@ const en = {
     namePlaceholder: 'e.g. Vacation2026, Reimbursable',
     descriptionPlaceholder: 'Optional description',
     deleteConfirm: 'Delete this tag?',
+    archiveConfirm: 'Archive "{{name}}"? Historical data is preserved.',
+    showArchived: 'Show archived',
     explanation:
       'Tags are transversal labels (e.g. #Vacation2026, #Reimbursable) that can be applied to multiple events for cross-cutting reports.',
   },

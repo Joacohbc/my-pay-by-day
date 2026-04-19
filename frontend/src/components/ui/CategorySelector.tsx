@@ -53,7 +53,7 @@ export function CategorySelector({
   const recordSelection = useRecordSelection();
 
   const sortedCategories = useMemo(
-    () => sortByUsage(categories, stats ?? [], sortMode),
+    () => sortByUsage(categories.filter(c => !c.archived), stats ?? [], sortMode),
     [categories, stats, sortMode]
   );
 
@@ -62,6 +62,11 @@ export function CategorySelector({
       ? sortedCategories.filter((c) => c.name.toLowerCase().includes(debouncedSearch.toLowerCase()))
       : sortedCategories,
     [sortedCategories, debouncedSearch]
+  );
+
+  const archivedSelectedCat = useMemo(
+    () => categories.find(c => c.archived && String(c.id) === String(value)),
+    [categories, value]
   );
 
   const resolvedLabel = label ?? t('eventForm.category');
@@ -83,13 +88,20 @@ export function CategorySelector({
     const options = sortedCategories.map((c) => ({ value: String(c.id), label: c.name }));
     return (
       <div className={className}>
+        {archivedSelectedCat && (
+          <div className="mb-2 flex items-center gap-2 px-3 py-2 rounded-input bg-dn-surface-low border border-white/5 opacity-60">
+            <CategoryIcon category={archivedSelectedCat} size="sm" />
+            <span className="text-sm text-dn-text-muted flex-1 truncate">{archivedSelectedCat.name}</span>
+            <span className="text-xs text-dn-text-muted border border-white/10 px-1.5 py-0.5 rounded">{t('common.archived')}</span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <div className="flex-1">
             <SearchableSelect
               label={resolvedLabel}
               placeholder={t('common.none')}
               options={options}
-              value={value}
+              value={archivedSelectedCat ? '' : value}
               onChange={(val) => handleChange(val == null ? '' : String(val))}
             />
           </div>
@@ -160,6 +172,13 @@ export function CategorySelector({
       </div>
 
       {open && <div>
+        {archivedSelectedCat && (
+          <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-input bg-dn-surface-low border border-white/5 opacity-60">
+            <CategoryIcon category={archivedSelectedCat} size="sm" />
+            <span className="text-sm text-dn-text-muted flex-1 truncate">{archivedSelectedCat.name}</span>
+            <span className="text-xs text-dn-text-muted border border-white/10 px-1.5 py-0.5 rounded">{t('common.archived')}</span>
+          </div>
+        )}
         <div className="relative mb-3">
           <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-dn-text-muted text-sm" />
           <input

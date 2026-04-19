@@ -34,8 +34,9 @@ public class CategoryResource {
 			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
 	public Response getAll(
 			@Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
-			@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
-		return Response.ok(categoryService.listAll(page, size)).build();
+			@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size,
+			@Parameter(description = "Filter by archived status") @QueryParam("archived") Boolean archived) {
+		return Response.ok(categoryService.listAll(page, size, archived)).build();
 	}
 
 	@GET
@@ -70,7 +71,7 @@ public class CategoryResource {
 			@APIResponse(responseCode = "200", description = "Category updated",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class))),
 			@APIResponse(responseCode = "400", description = "Validation error"),
-			@APIResponse(responseCode = "404", description = "Category not found")
+			@APIResponse(responseCode = "404", description = "Category not found or archived")
 	})
 	public Response update(
 			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id,
@@ -78,11 +79,40 @@ public class CategoryResource {
 		return Response.ok(categoryService.update(id, categoryDetails)).build();
 	}
 
+	@POST
+	@Path("/{id}/archive")
+	@Operation(summary = "Archive a category")
+	@APIResponses({
+			@APIResponse(responseCode = "204", description = "Category archived"),
+			@APIResponse(responseCode = "404", description = "Category not found")
+	})
+	public Response archive(
+			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id)
+			throws BusinessException {
+		categoryService.archive(id);
+		return Response.noContent().build();
+	}
+
+	@POST
+	@Path("/{id}/unarchive")
+	@Operation(summary = "Unarchive a category")
+	@APIResponses({
+			@APIResponse(responseCode = "204", description = "Category unarchived"),
+			@APIResponse(responseCode = "404", description = "Category not found")
+	})
+	public Response unarchive(
+			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id)
+			throws BusinessException {
+		categoryService.unarchive(id);
+		return Response.noContent().build();
+	}
+
 	@DELETE
 	@Path("/{id}")
 	@Operation(summary = "Delete a category")
 	@APIResponses({
 			@APIResponse(responseCode = "204", description = "Category deleted"),
+			@APIResponse(responseCode = "400", description = "Category in use; archive it instead"),
 			@APIResponse(responseCode = "404", description = "Category not found")
 	})
 	public Response delete(

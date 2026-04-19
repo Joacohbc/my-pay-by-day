@@ -34,8 +34,9 @@ public class TagResource {
 			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
 	public Response getAll(
 			@Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
-			@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
-		return Response.ok(tagService.listAll(page, size)).build();
+			@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size,
+			@Parameter(description = "Filter by archived status") @QueryParam("archived") Boolean archived) {
+		return Response.ok(tagService.listAll(page, size, archived)).build();
 	}
 
 	@GET
@@ -70,7 +71,7 @@ public class TagResource {
 			@APIResponse(responseCode = "200", description = "Tag updated",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TagDto.class))),
 			@APIResponse(responseCode = "400", description = "Validation error"),
-			@APIResponse(responseCode = "404", description = "Tag not found")
+			@APIResponse(responseCode = "404", description = "Tag not found or archived")
 	})
 	public Response update(
 			@Parameter(description = "ID of the tag", required = true) @PathParam("id") Long id,
@@ -78,11 +79,40 @@ public class TagResource {
 		return Response.ok(tagService.update(id, tagDetails)).build();
 	}
 
+	@POST
+	@Path("/{id}/archive")
+	@Operation(summary = "Archive a tag")
+	@APIResponses({
+			@APIResponse(responseCode = "204", description = "Tag archived"),
+			@APIResponse(responseCode = "404", description = "Tag not found")
+	})
+	public Response archive(
+			@Parameter(description = "ID of the tag", required = true) @PathParam("id") Long id)
+			throws BusinessException {
+		tagService.archive(id);
+		return Response.noContent().build();
+	}
+
+	@POST
+	@Path("/{id}/unarchive")
+	@Operation(summary = "Unarchive a tag")
+	@APIResponses({
+			@APIResponse(responseCode = "204", description = "Tag unarchived"),
+			@APIResponse(responseCode = "404", description = "Tag not found")
+	})
+	public Response unarchive(
+			@Parameter(description = "ID of the tag", required = true) @PathParam("id") Long id)
+			throws BusinessException {
+		tagService.unarchive(id);
+		return Response.noContent().build();
+	}
+
 	@DELETE
 	@Path("/{id}")
 	@Operation(summary = "Delete a tag")
 	@APIResponses({
 			@APIResponse(responseCode = "204", description = "Tag deleted"),
+			@APIResponse(responseCode = "400", description = "Tag in use; archive it instead"),
 			@APIResponse(responseCode = "404", description = "Tag not found")
 	})
 	public Response delete(

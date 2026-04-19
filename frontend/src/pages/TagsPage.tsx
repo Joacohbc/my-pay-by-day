@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useTags, useDeleteTag } from '@/hooks/useTags';
+import { useTags, useDeleteTag, useArchiveTag, useUnarchiveTag } from '@/hooks/useTags';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -15,15 +15,26 @@ import type { Tag } from '@/models';
 import { TagForm } from '@/components/tags/TagForm';
 import { Routes } from '@/lib/routes';
 
+type ConfirmActionType = 'archive' | 'unarchive' | 'delete';
+
+const CONFIRM_TITLE_BY_TYPE: Record<ConfirmActionType, 'common.archive' | 'common.active' | 'common.delete'> = {
+  archive: 'common.archive',
+  unarchive: 'common.active',
+  delete: 'common.delete',
+};
+
 export function TagsPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(0);
-  const { data: paged, isLoading, error } = useTags(page);
+  const [showArchived, setShowArchived] = useState(false);
+  const { data: paged, isLoading, error } = useTags(page, 20, showArchived ? true : undefined);
   const deleteTag = useDeleteTag();
+  const archiveTag = useArchiveTag();
+  const unarchiveTag = useUnarchiveTag();
 
   const [editTarget, setEditTarget] = useState<Tag | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ tag: Tag; type: ConfirmActionType } | null>(null);
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
@@ -41,28 +52,37 @@ export function TagsPage() {
     setShowModal(true);
   };
 
-
-  const handleDelete = (id: number) => {
-    setConfirmDeleteId(id);
+  const actionMutationByType: Record<ConfirmActionType, (id: number) => Promise<unknown>> = {
+    archive: archiveTag.mutateAsync,
+    unarchive: unarchiveTag.mutateAsync,
+    delete: deleteTag.mutateAsync,
   };
 
-  const confirmDelete = async () => {
-    if (confirmDeleteId === null) return;
-    await deleteTag.mutateAsync(confirmDeleteId);
-    setConfirmDeleteId(null);
+  const handleConfirmAction = async () => {
+    if (!confirmAction) return;
+    const { tag, type } = confirmAction;
+    await actionMutationByType[type](tag.id);
+    setConfirmAction(null);
   };
 
+  const isPending = archiveTag.isPending || unarchiveTag.isPending || deleteTag.isPending;
+  const confirmTitle = confirmAction ? t(CONFIRM_TITLE_BY_TYPE[confirmAction.type]) : '';
+  const confirmMessage = !confirmAction
+    ? ''
+    : confirmAction.type === 'delete'
+      ? t('tags.deleteConfirm')
+      : t('tags.archiveConfirm', { name: confirmAction.tag.name });
 
   return (
     <div className="space-y-4">
       <ConfirmModal
-        open={confirmDeleteId !== null}
-        onClose={() => setConfirmDeleteId(null)}
-        onConfirm={confirmDelete}
-        title={t('common.delete')}
-        message={t('tags.deleteConfirm')}
-        confirmLabel={t('common.delete')}
-        loading={deleteTag.isPending}
+        open={confirmAction !== null}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={handleConfirmAction}
+        title={confirmTitle}
+        message={confirmMessage}
+        confirmLabel={confirmTitle}
+        loading={isPending}
       />
 
       <PageHeader
@@ -70,10 +90,19 @@ export function TagsPage() {
         back={Routes.SETTINGS}
         subtitle={t('tags.count', { count: paged?.totalElements ?? 0 })}
         action={
-          <Button size="sm" onClick={openCreate}>
-            <Icon name="add" className="text-sm" />
-            {t('common.new')}
-          </Button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setShowArchived(v => !v); setPage(0); }}
+              className={`p-2 rounded-full transition-colors ${showArchived ? 'text-dn-primary bg-dn-primary/10' : 'text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low'}`}
+              title={t('tags.showArchived')}
+            >
+              <Icon name="inventory_2" className="text-base" />
+            </button>
+            <Button size="sm" onClick={openCreate}>
+              <Icon name="add" className="text-sm" />
+              {t('common.new')}
+            </Button>
+          </div>
         }
       />
 
@@ -99,26 +128,52 @@ export function TagsPage() {
       ) : (
         <div className="px-5 space-y-3">
           {allTags.map((tag) => (
-            <Card key={tag.id} className="flex items-center gap-4">
+            <Card key={tag.id} className={`flex items-center gap-4 ${tag.archived ? 'opacity-60' : ''}`}>
               <div className="w-10 h-10 rounded-2xl bg-dn-primary/10 text-dn-primary flex items-center justify-center shrink-0">
                 <span className="text-lg font-bold">#</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-base font-medium text-dn-text-main">{tag.name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-base font-medium text-dn-text-main">{tag.name}</p>
+                  {tag.archived && (
+                    <span className="text-xs bg-dn-surface-low text-dn-text-muted px-1.5 py-0.5 rounded">
+                      {t('common.archived')}
+                    </span>
+                  )}
+                </div>
                 {tag.description && (
                   <p className="text-xs text-dn-text-muted truncate">{tag.description}</p>
                 )}
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                {!tag.archived && (
+                  <button
+                    onClick={() => openEdit(tag)}
+                    className="p-2 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
+                  >
+                    <Icon name="edit" className="text-base" />
+                  </button>
+                )}
+                {tag.archived ? (
+                  <button
+                    onClick={() => setConfirmAction({ tag, type: 'unarchive' })}
+                    disabled={isPending}
+                    className="p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors disabled:opacity-50"
+                  >
+                    <Icon name="unarchive" className="text-base" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setConfirmAction({ tag, type: 'archive' })}
+                    disabled={isPending}
+                    className="p-2 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors disabled:opacity-50"
+                  >
+                    <Icon name="archive" className="text-base" />
+                  </button>
+                )}
                 <button
-                  onClick={() => openEdit(tag)}
-                  className="p-2 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
-                >
-                  <Icon name="edit" className="text-base" />
-                </button>
-                <button
-                  onClick={() => handleDelete(tag.id)}
-                  disabled={deleteTag.isPending}
+                  onClick={() => setConfirmAction({ tag, type: 'delete' })}
+                  disabled={isPending}
                   className="p-2 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors disabled:opacity-50"
                 >
                   <Icon name="delete" className="text-base" />

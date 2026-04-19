@@ -34,8 +34,9 @@ public class TagGroupResource {
 			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
 	public Response getAll(
 			@Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
-			@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
-		return Response.ok(tagGroupService.listAll(page, size)).build();
+			@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size,
+			@Parameter(description = "Filter by archived status") @QueryParam("archived") Boolean archived) {
+		return Response.ok(tagGroupService.listAll(page, size, archived)).build();
 	}
 
 	@GET
@@ -44,7 +45,7 @@ public class TagGroupResource {
 	@APIResponses({
 			@APIResponse(responseCode = "200", description = "Tag group found",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TagGroupDto.class))),
-			@APIResponse(responseCode = "404", description = "Tag group not found")
+			@APIResponse(responseCode = "404", description = "Tag group not found or archived")
 	})
 	public Response getById(
 			@Parameter(description = "ID of the tag group", required = true) @PathParam("id") Long id)
@@ -70,12 +71,40 @@ public class TagGroupResource {
 			@APIResponse(responseCode = "200", description = "Tag group updated",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TagGroupDto.class))),
 			@APIResponse(responseCode = "400", description = "Validation error"),
-			@APIResponse(responseCode = "404", description = "Tag group not found")
+			@APIResponse(responseCode = "404", description = "Tag group not found or archived")
 	})
 	public Response update(
 			@Parameter(description = "ID of the tag group", required = true) @PathParam("id") Long id,
 			TagGroupDto tagGroupDetails) throws BusinessException {
 		return Response.ok(tagGroupService.update(id, tagGroupDetails)).build();
+	}
+
+	@POST
+	@Path("/{id}/archive")
+	@Operation(summary = "Archive a tag group")
+	@APIResponses({
+			@APIResponse(responseCode = "204", description = "Tag group archived"),
+			@APIResponse(responseCode = "404", description = "Tag group not found")
+	})
+	public Response archive(
+			@Parameter(description = "ID of the tag group", required = true) @PathParam("id") Long id)
+			throws BusinessException {
+		tagGroupService.archive(id);
+		return Response.noContent().build();
+	}
+
+	@POST
+	@Path("/{id}/unarchive")
+	@Operation(summary = "Unarchive a tag group")
+	@APIResponses({
+			@APIResponse(responseCode = "204", description = "Tag group unarchived"),
+			@APIResponse(responseCode = "404", description = "Tag group not found")
+	})
+	public Response unarchive(
+			@Parameter(description = "ID of the tag group", required = true) @PathParam("id") Long id)
+			throws BusinessException {
+		tagGroupService.unarchive(id);
+		return Response.noContent().build();
 	}
 
 	@DELETE

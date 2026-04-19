@@ -16,7 +16,7 @@ const FIVE_MINUTES_MS = 1000 * 60 * 5;
 export const tagGroupKeys = {
   all: ['tag-groups'] as const,
   lists: () => [...tagGroupKeys.all, 'list'] as const,
-  list: (page: number, size: number) => [...tagGroupKeys.lists(), page, size] as const,
+  list: (page: number, size: number, archived?: boolean) => [...tagGroupKeys.lists(), page, size, archived] as const,
   details: () => [...tagGroupKeys.all, 'detail'] as const,
   detail: (id: number) => [...tagGroupKeys.details(), id] as const,
 };
@@ -25,10 +25,10 @@ function resolveErrorMessage(err: unknown, fallbackMessage: string): string {
   return err instanceof Error ? err.message : fallbackMessage;
 }
 
-export function useTagGroups(page = 0, size = 20) {
+export function useTagGroups(page = 0, size = 20, archived?: boolean) {
   return useQuery({
-    queryKey: tagGroupKeys.list(page, size),
-    queryFn: () => tagGroupsService.getAll(page, size),
+    queryKey: tagGroupKeys.list(page, size, archived),
+    queryFn: () => tagGroupsService.getAll(page, size, archived),
     staleTime: FIVE_MINUTES_MS,
   });
 }
@@ -91,6 +91,36 @@ export function useUpdateTagGroup() {
       queryClient.invalidateQueries({ queryKey: tagGroupKeys.detail(id) });
     },
     onSuccess: () => alert.success(t('common.saved')),
+  });
+}
+
+export function useArchiveTagGroup() {
+  const queryClient = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+
+  return useMutation({
+    mutationFn: (id: number) => tagGroupsService.archive(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tagGroupKeys.all });
+      alert.success(t('common.saved'));
+    },
+    onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
+  });
+}
+
+export function useUnarchiveTagGroup() {
+  const queryClient = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+
+  return useMutation({
+    mutationFn: (id: number) => tagGroupsService.unarchive(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tagGroupKeys.all });
+      alert.success(t('common.saved'));
+    },
+    onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
   });
 }
 

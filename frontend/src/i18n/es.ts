@@ -267,6 +267,8 @@ const es = {
     namePlaceholder: 'ej. Comida, Transporte, Servicios',
     descriptionPlaceholder: 'Descripción opcional',
     deleteConfirm: '¿Eliminar esta categoría?',
+    archiveConfirm: '¿Archivar "{{name}}"? Los datos históricos se conservan.',
+    showArchived: 'Ver archivadas',
     iconLabel: 'Ícono',
   },
 
@@ -279,6 +281,8 @@ const es = {
     newTagGroup: 'Nuevo Grupo de Etiquetas',
     editTagGroup: 'Editar Grupo de Etiquetas',
     deleteConfirm: '¿Eliminar este grupo de etiquetas?',
+    archiveConfirm: '¿Archivar "{{name}}"? Los datos históricos se conservan.',
+    showArchived: 'Ver archivados',
     iconLabel: 'Ícono',
     minTags: 'Un grupo de etiquetas debe tener al menos 2 etiquetas',
   },
@@ -296,6 +300,8 @@ const es = {
     namePlaceholder: 'ej. Vacaciones2026, Reembolsable',
     descriptionPlaceholder: 'Descripción opcional',
     deleteConfirm: '¿Eliminar esta etiqueta?',
+    archiveConfirm: '¿Archivar "{{name}}"? Los datos históricos se conservan.',
+    showArchived: 'Ver archivadas',
     explanation:
       'Las etiquetas son marcadores transversales (ej. #Vacaciones2026, #Reembolsable) que se pueden aplicar a múltiples eventos para reportes cruzados.',
   },
