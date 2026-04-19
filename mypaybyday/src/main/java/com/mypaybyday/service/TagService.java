@@ -49,7 +49,8 @@ public class TagService {
 			EventRepository eventRepository,
 			TemplateRepository templateRepository,
 			SubscriptionRepository subscriptionRepository,
-			SystemJobRepository systemJobRepository) {
+			SystemJobRepository systemJobRepository,
+			TagGroupRepository tagGroupRepository) {
 		this.tagRepository = tagRepository;
 		this.systemJobRepository = systemJobRepository;
 		this.messages = messages;
