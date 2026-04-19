@@ -34,7 +34,6 @@ import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.entity.FinanceTransactionEntity;
-import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
@@ -42,7 +41,6 @@ import com.mypaybyday.entity.SystemJobEntity;
 import com.mypaybyday.enums.JobCategory;
 import com.mypaybyday.enums.JobStatus;
 import com.mypaybyday.repository.SystemJobRepository;
-import java.time.LocalDate;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
@@ -651,6 +649,7 @@ public class EventService {
 		return found;
 	}
 
+	// TODO: Implementar esto con logica y patron de Observer
 	private void scheduleDuplicateDetectionJob(Long eventId) {
 		SystemJobEntity job = new SystemJobEntity();
 		job.jobCategory = JobCategory.DUPLICATE_DETECTION;

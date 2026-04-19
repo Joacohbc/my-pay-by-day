@@ -16,7 +16,11 @@ import com.mypaybyday.entity.DuplicateEventRecordEntity;
 import com.mypaybyday.entity.DuplicateRecordEntity;
 import com.mypaybyday.entity.DuplicateTagRecordEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
+import com.mypaybyday.entity.SubscriptionEntity;
 import com.mypaybyday.entity.TagEntity;
+import com.mypaybyday.entity.TagGroupEntity;
+import com.mypaybyday.entity.TemplateEntity;
+import com.mypaybyday.entity.TimePeriodBudgetEntity;
 import com.mypaybyday.enums.DuplicateRecordStatus;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.repository.CategoryRepository;
@@ -172,9 +176,9 @@ public class DuplicateDetectionService {
 
 		eventRepository.update("category = ?1 where category = ?2", keepCategory, deleteCategory);
 
-		com.mypaybyday.entity.TimePeriodBudgetEntity.update("category = ?1 where category = ?2", keepCategory, deleteCategory);
-		com.mypaybyday.entity.TemplateEntity.update("category = ?1 where category = ?2", keepCategory, deleteCategory);
-		com.mypaybyday.entity.SubscriptionEntity.update("category = ?1 where category = ?2", keepCategory, deleteCategory);
+		TimePeriodBudgetEntity.update("category = ?1 where category = ?2", keepCategory, deleteCategory);
+		TemplateEntity.update("category = ?1 where category = ?2", keepCategory, deleteCategory);
+		SubscriptionEntity.update("category = ?1 where category = ?2", keepCategory, deleteCategory);
 
 		categoryRepository.delete(deleteCategory);
 	}
@@ -191,8 +195,8 @@ public class DuplicateDetectionService {
 			eventRepository.persist(event);
 		}
 
-		List<com.mypaybyday.entity.TagGroupEntity> groups = com.mypaybyday.entity.TagGroupEntity.find("select g from TagGroup g join g.tags t where t = ?1", deleteTag).list();
-		for (com.mypaybyday.entity.TagGroupEntity group : groups) {
+		List<TagGroupEntity> groups = TagGroupEntity.find("select g from TagGroup g join g.tags t where t = ?1", deleteTag).list();
+		for (TagGroupEntity group : groups) {
 			group.tags.remove(deleteTag);
 			group.tags.add(keepTag);
 			group.persist();

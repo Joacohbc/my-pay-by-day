@@ -10,6 +10,7 @@ import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.MergeEventsRequestDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.PatchEventDto;
+import com.mypaybyday.enums.EventType;
 import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.EventService;
@@ -44,7 +45,7 @@ public class EventResource {
 	@Parameter(description = "Filter by start date (YYYY-MM-DD)") @QueryParam("startDate") String startDate,
 	@Parameter(description = "Filter by end date (YYYY-MM-DD)") @QueryParam("endDate") String endDate,
 	@Parameter(description = "Date field to filter on: TRANSACTION, CREATED, UPDATED") @QueryParam("dateField") @DefaultValue("TRANSACTION") DateField dateField,
-	@Parameter(description = "Filter by event type") @QueryParam("type") com.mypaybyday.enums.EventType type,
+	@Parameter(description = "Filter by event type") @QueryParam("type") EventType type,
 	@Parameter(description = "Filter by category ID") @QueryParam("categoryId") Long categoryId,
 	@Parameter(description = "Filter by tag ID") @QueryParam("tagId") Long tagId) {
 

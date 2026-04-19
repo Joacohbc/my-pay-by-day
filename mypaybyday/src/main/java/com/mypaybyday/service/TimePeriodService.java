@@ -15,6 +15,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.CategoryBudgetSummaryDto;
+import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.dto.DynamicTimePeriodBalanceDto;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.PagedResponse;
@@ -152,7 +153,7 @@ public class TimePeriodService {
 		return budgets.stream().map(budget -> {
 			BigDecimal spent = spentPerCategory.getOrDefault(budget.category.id, BigDecimal.ZERO);
 			return new CategoryBudgetSummaryDto(
-					com.mypaybyday.dto.CategoryDto.from(budget.category),
+					CategoryDto.from(budget.category),
 					budget.budgetedAmount,
 					spent
 			);

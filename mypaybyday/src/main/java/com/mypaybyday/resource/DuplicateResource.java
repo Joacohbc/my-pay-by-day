@@ -13,6 +13,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import com.mypaybyday.dto.DuplicateEventRecordDto;
 import com.mypaybyday.dto.DuplicateRecordDto;
 import com.mypaybyday.dto.ResolveDuplicateRequestDto;
 import com.mypaybyday.entity.DuplicateRecordEntity;
@@ -76,9 +77,9 @@ public class DuplicateResource {
 	}
 
 	private DuplicateRecordDto toDto(DuplicateRecordEntity entity) {
-		com.mypaybyday.dto.DuplicateRecordDto dto;
+		DuplicateRecordDto dto;
 		if (entity instanceof DuplicateEventRecordEntity) {
-			com.mypaybyday.dto.DuplicateEventRecordDto eventDto = new com.mypaybyday.dto.DuplicateEventRecordDto();
+			DuplicateEventRecordDto eventDto = new DuplicateEventRecordDto();
 			DuplicateEventRecordEntity eventEntity = (DuplicateEventRecordEntity) entity;
 			eventDto.dateScore = eventEntity.dateScore;
 			eventDto.amountScore = eventEntity.amountScore;
