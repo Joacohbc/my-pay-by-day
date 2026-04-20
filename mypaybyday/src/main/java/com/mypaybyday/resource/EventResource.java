@@ -7,6 +7,7 @@ import jakarta.ws.rs.core.Response;
 import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.EventQuery.DateField;
 import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.dto.BulkPatchEventDto;
 import com.mypaybyday.dto.MergeEventsRequestDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.PatchEventDto;
@@ -100,6 +101,21 @@ public class EventResource {
 	@Parameter(description = "ID of the event", required = true) @PathParam("id") Long id,
 	PatchEventDto patch) throws BusinessException {
 	return Response.ok(eventService.update(id, patch)).build();
+    }
+
+    @PATCH
+    @Operation(
+        summary = "Bulk update category and/or tags on multiple events",
+        description = "Applies the same category and/or tag changes to all specified events in one atomic transaction. " +
+            "Uses JsonNullable semantics: absent field = skip, explicit null = clear, value = replace all. " +
+            "Returns the updated list of events.")
+    @APIResponses({
+        @APIResponse(responseCode = "200", description = "All events updated successfully",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
+        @APIResponse(responseCode = "400", description = "Validation error (e.g., event not found, archived category/tag)")
+    })
+    public Response bulkUpdate(BulkPatchEventDto patch) throws BusinessException {
+        return Response.ok(eventService.bulkUpdate(patch)).build();
     }
 
     @DELETE

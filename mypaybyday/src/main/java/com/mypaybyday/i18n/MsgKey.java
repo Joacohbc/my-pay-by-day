@@ -42,6 +42,8 @@ public enum MsgKey {
 	EVENT_MERGE_SELF("error.event.merge_self"),
 	EVENT_MERGE_MIXED_TYPES("error.event.merge_mixed_types"),
 	EVENT_MERGE_NO_SOURCES("error.event.merge_no_sources"),
+	EVENT_BULK_NO_IDS("error.event.bulk_no_ids"),
+	EVENT_BULK_EVENTS_NOT_FOUND("error.event.bulk_events_not_found"),
 
 	// ── Finance Node ──────────────────────────────────────
 	NODE_NOT_FOUND("error.node.not_found"),

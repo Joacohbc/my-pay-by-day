@@ -1,5 +1,6 @@
 package com.mypaybyday.service.event;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -9,13 +10,16 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.transaction.Transactional;
 
+import com.mypaybyday.dto.BulkPatchEventDto;
 import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.dto.CategoryResolveConfig;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.PatchEventDto;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.dto.TagResolveConfig;
+import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
+import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
@@ -112,5 +116,56 @@ public class EventUpdateService {
 		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forEvent(id));
 		Log.infof("Event Bus fired for event: %d", id);
 		return FinanceEventDto.from(event);
+	}
+
+	@Transactional
+	public List<FinanceEventDto> bulkUpdate(BulkPatchEventDto patch) throws BusinessException {
+		if (patch.getEventIds() == null || patch.getEventIds().isEmpty()) {
+			throw new BusinessException(messages.get(MsgKey.EVENT_BULK_NO_IDS));
+		}
+
+		List<FinanceEventEntity> events = eventRepository.list("id IN ?1", patch.getEventIds());
+		if (events.size() != patch.getEventIds().size()) {
+			throw new BusinessException(messages.get(MsgKey.EVENT_BULK_EVENTS_NOT_FOUND));
+		}
+
+		boolean applyCategory = patch.getCategory().isPresent();
+		CategoryEntity resolvedCategory = null;
+		if (applyCategory) {
+			CategoryDto categoryDto = patch.getCategory().get();
+			if (categoryDto != null) {
+				resolvedCategory = categoryService.resolveCategory(categoryDto, CategoryResolveConfig.forNewEntity());
+			}
+		}
+
+		boolean applyTags = patch.getTags().isPresent();
+		Set<TagEntity> resolvedTags = null;
+		if (applyTags) {
+			List<TagDto> tagDtos = patch.getTags().get();
+			if (tagDtos != null && !tagDtos.isEmpty()) {
+				resolvedTags = tagService.resolveTags(tagDtos, TagResolveConfig.forNewEntity());
+			} else {
+				resolvedTags = new HashSet<>();
+			}
+		}
+
+		List<Long> updatedIds = new ArrayList<>();
+		for (FinanceEventEntity event : events) {
+			if (applyCategory) {
+				event.category = resolvedCategory;
+			}
+			if (applyTags) {
+				event.tags.clear();
+				event.tags.addAll(resolvedTags);
+			}
+			updatedIds.add(event.id);
+		}
+
+		for (Long eventId : updatedIds) {
+			duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forEvent(eventId));
+			Log.infof("Event Bus fired for bulk-updated event: %d", eventId);
+		}
+
+		return events.stream().map(FinanceEventDto::from).toList();
 	}
 }
