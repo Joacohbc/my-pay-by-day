@@ -18,3 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_finance_transaction_date ON FinanceTransaction (t
 
 -- TimePeriod indexes
 CREATE INDEX IF NOT EXISTS idx_time_period_dates ON TimePeriod (startDate, endDate);
+
+-- DuplicateRecord indexes
+CREATE INDEX IF NOT EXISTS idx_duplicate_record_type_status_entity1 ON duplicate_record (entityType, status, entityId1);
+CREATE INDEX IF NOT EXISTS idx_duplicate_record_type_entity_pair ON duplicate_record (entityType, entityId1, entityId2);
