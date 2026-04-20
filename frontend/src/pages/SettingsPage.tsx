@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Routes } from '@/lib/routes';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/Card';
@@ -21,6 +21,8 @@ import { currenciesList } from '@/utils/currencies';
 import { useAlert } from '@/contexts/AlertContext';
 import { idbRemove } from '@/lib/idbStorage';
 import { useDismissedBannersStore } from '@/store/dismissedBannersStore';
+import { dataTransferService } from '@/services/data-transfer.service';
+import type { DataTransferDto } from '@/models';
 
 interface SettingRowProps {
   to: string;
@@ -55,11 +57,13 @@ function SettingRow({ to, icon, title, subtitle, count }: SettingRowProps) {
 
 export function SettingsPage() {
   const { t, i18n } = useTranslation();
-  const { success } = useAlert();
+  const { success, error } = useAlert();
   const queryClient = useQueryClient();
   const resetDismissedBanners = useDismissedBannersStore((s) => s.reset);
   const [currency, _setCurrency] = useState(getCurrency);
   const [timezone, _setTimezone] = useState(() => localStorage.getItem('user-timezone') || '');
+  const [isImporting, setIsImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const { data: categoriesPaged } = useCategories();
   const { data: tagsPaged } = useTags();
   const { data: tagGroupsPaged } = useTagGroups();
@@ -80,6 +84,48 @@ export function SettingsPage() {
     resetDismissedBanners();
     success(t('settings.clearCacheSuccess'));
     window.location.reload();
+  };
+
+  const handleExport = async () => {
+    const data = await dataTransferService.exportAll();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    const exportDate = new Date().toISOString().slice(0, 10);
+    anchor.href = url;
+    anchor.download = `mypaybyday-export-${exportDate}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    success(t('settings.exportSuccess'));
+  };
+
+  const handleImportFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const dto = JSON.parse(text) as DataTransferDto;
+      const result = await dataTransferService.importAll(dto);
+      const summary = t('settings.importSuccess', {
+        tags: result.importedTags,
+        categories: result.importedCategories,
+        nodes: result.importedNodes,
+        tagGroups: result.importedTagGroups,
+        events: result.importedEvents,
+      });
+      const skippedSuffix =
+        result.skippedEvents.length > 0
+          ? ` — ${t('settings.importSkipped', { count: result.skippedEvents.length })}`
+          : '';
+      success(`${summary}${skippedSuffix}`);
+      queryClient.invalidateQueries();
+    } catch (err) {
+      error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const handleTimezoneChange = (tz: string) => {
@@ -235,6 +281,53 @@ export function SettingsPage() {
             title={t('duplicates.settings.title')}
             subtitle={t('duplicates.settings.desc')}
           />
+        </Card>
+      </section>
+
+      {/* Data Transfer */}
+      <section className="px-5">
+        <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-3">
+          {t('settings.exportData')} / {t('settings.importData')}
+        </p>
+        <Card padding={false} className="overflow-hidden divide-y divide-white/5">
+          <div className="flex items-center gap-4 px-4 py-3.5">
+            <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-surface-low text-dn-text-muted shrink-0">
+              <Icon name="download" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dn-text-main">{t('settings.exportData')}</p>
+              <p className="text-xs text-dn-text-muted">{t('settings.exportDataDesc')}</p>
+            </div>
+            <button
+              onClick={handleExport}
+              className="shrink-0 px-3 py-1.5 text-xs font-medium rounded-lg bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface-low/70 transition-colors"
+            >
+              {t('settings.exportData')}
+            </button>
+          </div>
+          <div className="flex items-center gap-4 px-4 py-3.5">
+            <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-surface-low text-dn-text-muted shrink-0">
+              <Icon name="upload" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dn-text-main">{t('settings.importData')}</p>
+              <p className="text-xs text-dn-text-muted">{t('settings.importDataDesc')}</p>
+            </div>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={handleImportFileSelected}
+            />
+            <button
+              onClick={() => importInputRef.current?.click()}
+              disabled={isImporting}
+              className="shrink-0 px-3 py-1.5 text-xs font-medium rounded-lg bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface-low/70 transition-colors disabled:opacity-50"
+            >
+              {isImporting ? t('settings.importing') : t('settings.importData')}
+            </button>
+          </div>
         </Card>
       </section>
 

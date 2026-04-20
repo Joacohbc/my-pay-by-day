@@ -556,6 +556,15 @@ const es = {
     clearCache: 'Limpiar Caché',
     clearCacheDesc: 'Elimina todos los datos en caché local y recarga',
     clearCacheSuccess: 'Caché limpiado',
+    exportData: 'Exportar Datos',
+    exportDataDesc: 'Descargá todos los datos como archivo JSON',
+    importData: 'Importar Datos',
+    importDataDesc: 'Restaurá datos desde un archivo JSON exportado previamente',
+    exportSuccess: 'Exportación descargada',
+    importSuccess:
+      'Importado: {{tags}} etiquetas, {{categories}} categorías, {{nodes}} nodos, {{tagGroups}} grupos, {{events}} eventos',
+    importSkipped: '{{count}} evento(s) omitido(s)',
+    importing: 'Importando…',
   },
 
   // ─── Offline ─────────────────────────────────────────────────────────────

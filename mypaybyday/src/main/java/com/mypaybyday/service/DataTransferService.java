@@ -1,6 +1,7 @@
 package com.mypaybyday.service;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -94,7 +95,7 @@ public class DataTransferService {
 
         return new DataTransferDto(
                 DataTransferDto.CURRENT_VERSION,
-                Instant.now(),
+                LocalDateTime.now(ZoneOffset.UTC),
                 tags,
                 categories,
                 nodes,

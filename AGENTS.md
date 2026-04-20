@@ -378,6 +378,14 @@ When creating or updating entities in the backend service layer (e.g., `Category
 
 String fields like names and descriptions are strictly validated for regex and max length (Names: 255 chars, alphanumeric/spaces/dashes/dots; Descriptions: 5100 chars, alphanumeric/spaces/punctuation).
 
+#### Data Transfer Import
+
+`DataTransferService.importAll` uses the same service methods (and therefore the same validators) as the regular CRUD endpoints. **Whenever a new field is added to an entity or a validator rule changes, verify that the import path still handles the new shape correctly.** Key invariants:
+
+* The import remaps all IDs to avoid conflicts with existing data — never assume imported IDs are stable.
+* Events that fail validation during import are **skipped and reported** in `DataTransferResult.skippedEvents`, not thrown as a global error.
+* When adding a new required entity type to the system (e.g., a new aggregate that Events reference), `DataTransferDto` and `DataTransferService` must be updated to include that type in both export and import flows in the same change.
+
 ---
 
 ### Date and Timezone Handling

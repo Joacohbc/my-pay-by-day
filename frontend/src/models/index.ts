@@ -284,3 +284,24 @@ export interface CreateTagGroupDto {
 }
 
 export * from './duplicates';
+
+// ─── DataTransfer ─────────────────────────────────────────────────────────────
+
+export interface DataTransferDto {
+  version: string;
+  exportedAt: string;
+  tags: Tag[];
+  categories: Category[];
+  financeNodes: FinanceNode[];
+  tagGroups: TagGroup[];
+  events: FinanceEvent[];
+}
+
+export interface DataTransferResult {
+  importedTags: number;
+  importedCategories: number;
+  importedNodes: number;
+  importedTagGroups: number;
+  importedEvents: number;
+  skippedEvents: string[];
+}

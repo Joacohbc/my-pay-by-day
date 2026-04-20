@@ -1,11 +1,11 @@
 package com.mypaybyday.dto;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public record DataTransferDto(
         String version,
-        Instant exportedAt,
+        LocalDateTime exportedAt,
         List<TagDto> tags,
         List<CategoryDto> categories,
         List<FinanceNodeDto> financeNodes,
