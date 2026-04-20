@@ -10,7 +10,7 @@ import {
   useDuplicateSettings,
   useUpdateDuplicateSettings,
   useScanAllDuplicates,
-} from '@/services/duplicates.service';
+} from '@/hooks/useDuplicates';
 import type { DuplicateDetectionSettings } from '@/models';
 
 // Form state stores weights/thresholds as percentages (0-100) for display.

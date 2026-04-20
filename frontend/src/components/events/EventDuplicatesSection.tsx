@@ -4,7 +4,7 @@ import { Icon } from '@/components/ui/Icon';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
 import { Routes } from '@/lib/routes';
-import { useEntityDuplicates, useResolveDuplicate } from '@/services/duplicates.service';
+import { useEntityDuplicates, useResolveDuplicate } from '@/hooks/useDuplicates';
 import { useEvent } from '@/hooks/useEvents';
 import { useAlert } from '@/contexts/AlertContext';
 import { EventCard } from '@/components/events/EventCard';

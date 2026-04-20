@@ -5,7 +5,7 @@ import { Routes, saveEventsSearch } from '@/lib/routes';
 import { useEvents } from '@/hooks/useEvents';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useFinanceEventDrafts } from '@/hooks/useDrafts';
-import { useDuplicates } from '@/services/duplicates.service';
+import { useDuplicates } from '@/hooks/useDuplicates';
 import { useSearchParamsBatch } from '@/hooks/useSearchParamsState';
 import type { ParamConfig } from '@/hooks/useSearchParamsState';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';

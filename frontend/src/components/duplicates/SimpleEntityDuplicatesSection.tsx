@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
-import { useResolveDuplicate } from '@/services/duplicates.service';
+import { useResolveDuplicate } from '@/hooks/useDuplicates';
 import { useAlert } from '@/contexts/AlertContext';
 import type { DuplicateRecord } from '@/models';
 

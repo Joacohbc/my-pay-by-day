@@ -15,7 +15,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import type { Category } from '@/models';
 import { CategoryForm } from '@/components/categories/CategoryForm';
 import { Routes } from '@/lib/routes';
-import { useDuplicates } from '@/services/duplicates.service';
+import { useDuplicates } from '@/hooks/useDuplicates';
 import { SimpleEntityDuplicatesSection } from '@/components/duplicates/SimpleEntityDuplicatesSection';
 
 type ConfirmActionType = 'archive' | 'unarchive' | 'delete';

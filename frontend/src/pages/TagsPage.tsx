@@ -14,7 +14,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import type { Tag } from '@/models';
 import { TagForm } from '@/components/tags/TagForm';
 import { Routes } from '@/lib/routes';
-import { useDuplicates } from '@/services/duplicates.service';
+import { useDuplicates } from '@/hooks/useDuplicates';
 import { SimpleEntityDuplicatesSection } from '@/components/duplicates/SimpleEntityDuplicatesSection';
 
 type ConfirmActionType = 'archive' | 'unarchive' | 'delete';

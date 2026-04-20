@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Routes } from '@/lib/routes';
-import { useDuplicates, useResolveDuplicate } from '@/services/duplicates.service';
+import { useDuplicates, useResolveDuplicate } from '@/hooks/useDuplicates';
 import { useEvent } from '@/hooks/useEvents';
 import { useAlert } from '@/contexts/AlertContext';
 import { PageHeader } from '@/components/ui/PageHeader';
