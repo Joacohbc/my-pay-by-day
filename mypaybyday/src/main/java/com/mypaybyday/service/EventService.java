@@ -427,8 +427,7 @@ public class EventService {
 		for (Long fileId : fileIds) {
 			FileEntity file = FileEntity.findById(fileId);
 			if (file == null) {
-				// TODO: Use messages.get(MsgKey.FILE_NOT_FOUND)
-				throw new BusinessException("file.not.found");
+				throw new BusinessException(messages.get(MsgKey.FILE_NOT_FOUND));
 			}
 			resolved.add(file);
 		}

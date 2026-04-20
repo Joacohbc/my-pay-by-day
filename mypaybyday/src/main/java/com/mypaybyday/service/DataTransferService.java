@@ -28,6 +28,8 @@ import com.mypaybyday.entity.FinanceTransactionEntity;
 import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.entity.TagGroupEntity;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.repository.FinanceNodeRepository;
@@ -54,6 +56,7 @@ public class DataTransferService {
     private final FinanceNodeValidator financeNodeValidator;
     private final RegexValidator regexValidator;
     private final TransactionValidator transactionValidator;
+    private final Messages messages;
 
     public DataTransferService(
             TagRepository tagRepository,
@@ -66,7 +69,8 @@ public class DataTransferService {
             CategoryValidator categoryValidator,
             FinanceNodeValidator financeNodeValidator,
             RegexValidator regexValidator,
-            TransactionValidator transactionValidator) {
+            TransactionValidator transactionValidator,
+            Messages messages) {
         this.tagRepository = tagRepository;
         this.categoryRepository = categoryRepository;
         this.financeNodeRepository = financeNodeRepository;
@@ -78,6 +82,7 @@ public class DataTransferService {
         this.financeNodeValidator = financeNodeValidator;
         this.regexValidator = regexValidator;
         this.transactionValidator = transactionValidator;
+        this.messages = messages;
     }
 
     // -------------------------------------------------------------------------
@@ -246,12 +251,11 @@ public class DataTransferService {
             for (FinanceLineItemDto liDto : dto.lineItems()) {
                 Long newNodeId = nodeIdMap.get(liDto.financeNodeId());
                 if (newNodeId == null) {
-                    throw new BusinessException(
-                            "Line item references unknown node id=%d".formatted(liDto.financeNodeId()));
+                    throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
                 }
                 FinanceNodeEntity node = financeNodeRepository.findById(newNodeId);
                 if (node == null) {
-                    throw new BusinessException("Node not found after import: id=%d".formatted(newNodeId));
+                    throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
                 }
                 FinanceLineItemEntity li = new FinanceLineItemEntity();
                 li.amount = liDto.amount();
