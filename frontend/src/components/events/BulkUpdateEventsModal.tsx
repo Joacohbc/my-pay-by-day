@@ -8,9 +8,8 @@ import { useEventModalFilters } from '@/hooks/useEventModalFilters';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { Input } from '@/components/ui/Input';
-import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { EventSelectionList } from '@/components/events/EventSelectionList';
+import { EventSearchbarFilter } from '@/components/events/EventSearchbarFilter';
 import type { Category, Tag } from '@/models';
 
 type BulkUpdateStep = 'select' | 'configure' | 'confirm';
@@ -65,8 +64,6 @@ export function BulkUpdateEventsModal({
   const allEvents = useMemo(() => pagedEvents?.content ?? [], [pagedEvents]);
   const categories = useMemo(() => pagedCategories?.content ?? [], [pagedCategories]);
   const tags = useMemo(() => pagedTags?.content ?? [], [pagedTags]);
-  const filterCategories = useMemo(() => categories.filter((c) => !c.archived), [categories]);
-  const filterTags = useMemo(() => tags.filter((t) => !t.archived), [tags]);
   const nodes = useMemo(() => nodesPaged?.content ?? [], [nodesPaged]);
 
   const selectedCategory = useMemo(
@@ -142,143 +139,49 @@ export function BulkUpdateEventsModal({
 
         {step === 'select' && (
           <>
-            {showFilters && (
-              <div className="space-y-4 rounded-3xl p-4 border border-white/5">
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-sm font-medium text-dn-text-main">{t('common.filters')}</span>
-                  {hasAnyFilter && (
-                    <button
-                      onClick={resetFilters}
-                      className="text-xs text-dn-primary font-medium hover:text-dn-primary/80"
-                    >
-                      {t('common.clearFilters')}
-                    </button>
-                  )}
-                </div>
-
-                <SearchableSelect
-                  label={t('events.dateField')}
-                  value={eventFilters.dateField}
-                  options={[
-                    { value: 'TRANSACTION', label: t('events.dateFieldTransaction') },
-                    { value: 'CREATED', label: t('events.dateFieldCreated') },
-                    { value: 'UPDATED', label: t('events.dateFieldUpdated') },
-                  ]}
-                  onChange={(val) => setDateField((val as 'TRANSACTION' | 'CREATED' | 'UPDATED') || 'TRANSACTION')}
+            <EventSearchbarFilter
+              showFilters={showFilters}
+              hasAnyFilter={hasAnyFilter}
+              filters={eventFilters}
+              categories={categories}
+              tags={tags}
+              nodes={nodes}
+              onToggleFilters={toggleFilters}
+              onResetFilters={resetFilters}
+              onToggleCategory={toggleFilterCategory}
+              onToggleTag={toggleFilterTag}
+              onDateFieldChange={setDateField}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+              onNodeIdChange={setNodeId}
+              onPageReset={() => setPage(0)}
+            >
+              {(filterButton) => (
+                <EventSelectionList
+                  events={allEvents}
+                  isLoading={eventsLoading}
+                  error={eventsError}
+                  search={search}
+                  onSearchChange={(value) => {
+                    setSearch(value);
+                    setPage(0);
+                  }}
+                  searchPlaceholder={t('events.searchPlaceholder')}
+                  emptyStateTitle={search || hasAnyFilter ? t('events.noEventsFoundSearch') : t('events.noEventsFound')}
+                  onSelectEvent={(event) => handleToggleEvent(event.id)}
+                  selectionIndicator="checkbox"
+                  selectedIds={selectedEventIds}
+                  maxHeightClass="max-h-[40vh]"
+                  searchTrailing={filterButton}
+                  pagination={{
+                    page,
+                    totalPages: pagedEvents?.totalPages ?? 1,
+                    onPageChange: setPage,
+                    hideWhenSearching: false,
+                  }}
                 />
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    type="date"
-                    label={t('events.startDate')}
-                    value={eventFilters.startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                  <Input
-                    type="date"
-                    label={t('events.endDate')}
-                    value={eventFilters.endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                </div>
-
-                {filterCategories.length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2">
-                      {t('common.category')}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {filterCategories.map((c) => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => { toggleFilterCategory(c.id); setPage(0); }}
-                          className={[
-                            'px-3 py-1.5 rounded-pill text-xs font-medium border transition-all cursor-pointer',
-                            eventFilters.categoryIds.includes(c.id)
-                              ? 'bg-dn-primary/20 border-dn-primary/30 text-dn-primary'
-                              : 'bg-dn-surface-low border-white/5 text-dn-text-muted hover:border-white/10',
-                          ].join(' ')}
-                        >
-                          {c.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {filterTags.length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2">
-                      {t('common.tag')}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {filterTags.map((tag) => (
-                        <button
-                          key={tag.id}
-                          type="button"
-                          onClick={() => { toggleFilterTag(tag.id); setPage(0); }}
-                          className={[
-                            'px-3 py-1.5 rounded-pill text-xs font-medium border transition-all cursor-pointer',
-                            eventFilters.tagIds.includes(tag.id)
-                              ? 'bg-dn-primary/20 border-dn-primary/30 text-dn-primary'
-                              : 'bg-dn-surface-low border-white/5 text-dn-text-muted hover:border-white/10',
-                          ].join(' ')}
-                        >
-                          #{tag.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {nodes.length > 0 && (
-                  <SearchableSelect
-                    label={t('events.filterNode')}
-                    value={eventFilters.nodeId ?? ''}
-                    options={[
-                      { value: '', label: t('events.filterNodePlaceholder') },
-                      ...nodes.map((n) => ({ value: n.id, label: n.name })),
-                    ]}
-                    onChange={(val) => { setNodeId(val ? Number(val) : undefined); setPage(0); }}
-                    placeholder={t('events.filterNodePlaceholder')}
-                  />
-                )}
-              </div>
-            )}
-
-            <EventSelectionList
-              events={allEvents}
-              isLoading={eventsLoading}
-              error={eventsError}
-              search={search}
-              onSearchChange={(v) => { setSearch(v); setPage(0); }}
-              searchPlaceholder={t('events.searchPlaceholder')}
-              emptyStateTitle={search || hasAnyFilter ? t('events.noEventsFoundSearch') : t('events.noEventsFound')}
-              onSelectEvent={(event) => handleToggleEvent(event.id)}
-              selectionIndicator="checkbox"
-              selectedIds={selectedEventIds}
-              maxHeightClass="max-h-[40vh]"
-              searchTrailing={
-                <Button
-                  variant={showFilters ? 'primary' : 'secondary'}
-                  className="shrink-0 aspect-square p-0 w-4 flex items-center justify-center rounded-input"
-                  onClick={toggleFilters}
-                >
-                  {showFilters ? (
-                    <Icon name="filter_alt_off" className="text-xl" />
-                  ) : (
-                    <Icon name="filter_alt" className={`text-xl${hasAnyFilter ? ' text-dn-primary' : ''}`} />
-                  )}
-                </Button>
-              }
-              pagination={{
-                page,
-                totalPages: pagedEvents?.totalPages ?? 1,
-                onPageChange: setPage,
-                hideWhenSearching: false,
-              }}
-            />
+              )}
+            </EventSearchbarFilter>
 
             {selectedEventIds.size > 0 && (
               <p className="text-xs text-dn-primary font-medium px-1">
