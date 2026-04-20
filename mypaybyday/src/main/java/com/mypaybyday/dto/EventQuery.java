@@ -3,7 +3,7 @@ package com.mypaybyday.dto;
 import com.mypaybyday.enums.EventType;
 
 /**
- * Query parameters for {@link com.mypaybyday.service.EventService#listAll}.
+ * Query parameters for {@link com.mypaybyday.service.event.EventService#listAll}.
  * Use {@link #builder()} to construct instances with only the filters you need.
  */
 public record EventQuery(

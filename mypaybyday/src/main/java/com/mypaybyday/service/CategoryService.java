@@ -74,7 +74,7 @@ public class CategoryService {
 	 * Internal method used by other services that need a managed {@link CategoryEntity} entity.
 	 * Throws if the category is archived — archived categories cannot be used in new events.
 	 */
-	CategoryEntity findEntityById(Long id) throws BusinessException {
+	public CategoryEntity findEntityById(Long id) throws BusinessException {
 		return findEntityById(id, true);
 	}
 

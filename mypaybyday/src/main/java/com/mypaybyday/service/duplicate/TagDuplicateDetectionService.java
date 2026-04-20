@@ -2,6 +2,7 @@ package com.mypaybyday.service.duplicate;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -13,8 +14,6 @@ import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.entity.TagGroupEntity;
 import com.mypaybyday.enums.DuplicateRecordStatus;
 import com.mypaybyday.enums.EntityType;
-import java.util.Map;
-import java.util.stream.Collectors;
 import com.mypaybyday.repository.DuplicateDetectionSettingsRepository;
 import com.mypaybyday.repository.DuplicateRecordRepository;
 import com.mypaybyday.repository.EventRepository;

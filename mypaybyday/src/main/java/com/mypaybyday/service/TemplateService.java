@@ -1,9 +1,8 @@
 package com.mypaybyday.service;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.HashSet;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -15,7 +14,6 @@ import com.mypaybyday.entity.TemplateEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
-import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.validation.TemplateValidator;
 import io.quarkus.panache.common.Page;
@@ -24,7 +22,6 @@ import io.quarkus.panache.common.Page;
 public class TemplateService {
 
 	private final TemplateRepository templateRepository;
-	private final SubscriptionRepository subscriptionRepository;
 	private final CategoryService categoryService;
 	private final TagService tagService;
 	private final FinanceNodeService financeNodeService;
@@ -33,14 +30,12 @@ public class TemplateService {
 
 	public TemplateService(
 			TemplateRepository templateRepository,
-			SubscriptionRepository subscriptionRepository,
 			CategoryService categoryService,
 			TagService tagService,
 			FinanceNodeService financeNodeService,
 			Messages messages,
 			TemplateValidator templateValidator) {
 		this.templateRepository = templateRepository;
-		this.subscriptionRepository = subscriptionRepository;
 		this.categoryService = categoryService;
 		this.tagService = tagService;
 		this.financeNodeService = financeNodeService;

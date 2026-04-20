@@ -1,4 +1,4 @@
-package com.mypaybyday.service;
+package com.mypaybyday.validation;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
@@ -14,7 +14,6 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
-import com.mypaybyday.validation.DateValidator;
 
 /**
  * Stateless validator for {@link FinanceTransactionEntity} integrity rules.

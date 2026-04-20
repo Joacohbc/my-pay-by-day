@@ -17,6 +17,8 @@ import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Page;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -24,13 +26,19 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @ApplicationScoped
 public class FileService {
 
+	private final Messages messages;
+
+	public FileService(Messages messages) {
+		this.messages = messages;
+	}
+
 	@ConfigProperty(name = "mypaybyday.files.max-size")
 	long maxFileSize;
 
 	@Transactional
 	public FileDto uploadBase64(Base64FileUploadRequestDto request) throws BusinessException {
 		if (request.base64Content() == null || request.base64Content().isBlank()) {
-			throw new BusinessException("file.content.empty");
+			throw new BusinessException(messages.get(MsgKey.FILE_CONTENT_EMPTY));
 		}
 
 		byte[] decodedBytes;
@@ -41,7 +49,7 @@ public class FileService {
 			}
 			decodedBytes = Base64.getDecoder().decode(base64);
 		} catch (IllegalArgumentException e) {
-			throw new BusinessException("file.content.invalid.base64");
+			throw new BusinessException(messages.get(MsgKey.FILE_CONTENT_INVALID_BASE64));
 		}
 
 		return saveFile(request.fileName(), request.mimeType(), decodedBytes);
@@ -49,7 +57,7 @@ public class FileService {
 
 	private FileDto saveFile(String fileName, String mimeType, byte[] data) throws BusinessException {
 		if (data.length > maxFileSize) {
-			throw new BusinessException("file.size.exceeded");
+			throw new BusinessException(messages.get(MsgKey.FILE_SIZE_EXCEEDED));
 		}
 
 		String hash = computeHash(data);
@@ -81,7 +89,7 @@ public class FileService {
 	public FileDto getFileMetadata(Long id) throws BusinessException {
 		FileEntity file = FileEntity.findById(id);
 		if (file == null) {
-			throw new BusinessException("file.not.found");
+			throw new BusinessException(messages.get(MsgKey.FILE_NOT_FOUND));
 		}
 		return FileDto.from(file, isOrphan(id));
 	}
@@ -89,7 +97,7 @@ public class FileService {
 	public FileEntity getFileContent(Long id) throws BusinessException {
 		FileEntity file = FileEntity.findById(id);
 		if (file == null) {
-			throw new BusinessException("file.not.found");
+			throw new BusinessException(messages.get(MsgKey.FILE_NOT_FOUND));
 		}
 		return file;
 	}
@@ -135,7 +143,7 @@ public class FileService {
 	public void deleteFile(Long id) throws BusinessException {
 		FileEntity file = FileEntity.findById(id);
 		if (file == null) {
-			throw new BusinessException("file.not.found");
+			throw new BusinessException(messages.get(MsgKey.FILE_NOT_FOUND));
 		}
 
 		long eventCount = FileEntity.getEntityManager().createQuery(
@@ -144,7 +152,7 @@ public class FileService {
 			.getSingleResult();
 
 		if (eventCount > 0) {
-			throw new BusinessException("file.in.use");
+			throw new BusinessException(messages.get(MsgKey.FILE_IN_USE));
 		}
 
 		file.delete();

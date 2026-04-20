@@ -12,7 +12,6 @@ import com.mypaybyday.dto.DataTransferDto;
 import com.mypaybyday.dto.DataTransferResult;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.DataTransferService;
-
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;

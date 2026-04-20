@@ -2,9 +2,8 @@ package com.mypaybyday.service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 import java.util.HashSet;
+import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -31,6 +30,7 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.SystemJobRepository;
+import com.mypaybyday.service.event.EventService;
 import com.mypaybyday.validation.SubscriptionValidator;
 import io.quarkus.panache.common.Page;
 import org.jboss.logging.Logger;

@@ -5,24 +5,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import org.jboss.logging.Logger;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
-import com.mypaybyday.entity.DuplicateRecordEntity;
-import com.mypaybyday.enums.DuplicateRecordStatus;
 import com.mypaybyday.entity.DuplicateDetectionSettingsEntity;
+import com.mypaybyday.entity.DuplicateEventRecordEntity;
+import com.mypaybyday.entity.DuplicateRecordEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
+import com.mypaybyday.enums.DuplicateRecordStatus;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.repository.DuplicateDetectionSettingsRepository;
 import com.mypaybyday.repository.DuplicateRecordRepository;
 import com.mypaybyday.repository.EventRepository;
-import com.mypaybyday.entity.DuplicateEventRecordEntity;
+import org.jboss.logging.Logger;
 
 @ApplicationScoped
 public class EventDuplicateDetectionService {

@@ -4,7 +4,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.exception.BusinessException;
-import com.mypaybyday.service.TransactionValidator;
 
 @ApplicationScoped
 public class EventValidator {
@@ -25,7 +24,6 @@ public class EventValidator {
 
         regexValidator.validateNameAndDescription(event.name, event.description);
 
-        // TODO: A Transaction can't be null in a Event Creation/Update
         if (event.transaction != null) {
             transactionValidator.validate(event.transaction);
         }

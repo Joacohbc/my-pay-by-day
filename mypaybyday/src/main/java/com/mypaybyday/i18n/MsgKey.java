@@ -87,6 +87,13 @@ public enum MsgKey {
 	// ── AI Text Generation ───────────────────────────────
 	AI_TEXT_GENERATION_FAILED("error.ai_text.generation_failed"),
 
+	// ── File ─────────────────────────────────────────────
+	FILE_CONTENT_EMPTY("file.content.empty"),
+	FILE_CONTENT_INVALID_BASE64("file.content.invalid.base64"),
+	FILE_SIZE_EXCEEDED("file.size.exceeded"),
+	FILE_NOT_FOUND("file.not.found"),
+	FILE_IN_USE("file.in.use"),
+
 	// ── Validation ───────────────────────────────────────
 	VALIDATION_ONLY_LETTERS_INVALID_CHARS("error.validation.only_letters_invalid_chars"),
 	VALIDATION_ONLY_NUMBERS_INVALID_CHARS("error.validation.only_numbers_invalid_chars"),

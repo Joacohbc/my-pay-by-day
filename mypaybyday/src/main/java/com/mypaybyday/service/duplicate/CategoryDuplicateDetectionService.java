@@ -2,19 +2,18 @@ package com.mypaybyday.service.duplicate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.entity.CategoryEntity;
-import com.mypaybyday.entity.DuplicateRecordEntity;
-import com.mypaybyday.enums.DuplicateRecordStatus;
-import java.util.Map;
-import java.util.stream.Collectors;
 import com.mypaybyday.entity.DuplicateDetectionSettingsEntity;
+import com.mypaybyday.entity.DuplicateRecordEntity;
 import com.mypaybyday.entity.SubscriptionEntity;
 import com.mypaybyday.entity.TemplateEntity;
 import com.mypaybyday.entity.TimePeriodBudgetEntity;
+import com.mypaybyday.enums.DuplicateRecordStatus;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.DuplicateDetectionSettingsRepository;

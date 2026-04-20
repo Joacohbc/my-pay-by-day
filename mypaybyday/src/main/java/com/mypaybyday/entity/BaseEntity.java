@@ -11,7 +11,6 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import lombok.EqualsAndHashCode;
 
 /**
  * Common base for all domain entities.

@@ -1,11 +1,11 @@
 package com.mypaybyday.validation;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-
 import jakarta.inject.Inject;
 
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 @QuarkusTest
 class RegexValidatorTest {

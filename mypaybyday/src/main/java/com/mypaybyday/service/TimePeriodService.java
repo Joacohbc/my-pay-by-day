@@ -6,9 +6,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
-import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -32,6 +31,7 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TimePeriodRepository;
+import com.mypaybyday.service.event.EventService;
 import com.mypaybyday.validation.DateValidator;
 import com.mypaybyday.validation.TimePeriodValidator;
 import io.quarkus.panache.common.Page;
