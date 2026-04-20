@@ -51,6 +51,8 @@ export function useEntityDuplicates(
     queryKey: DUPLICATES_KEYS.byEntity(type, id, status),
     queryFn: () => duplicatesApi.getDuplicatesForEntity(type, id, status),
     enabled: !!id,
+    staleTime: 0,
+    gcTime: 0,
   });
 }
 
