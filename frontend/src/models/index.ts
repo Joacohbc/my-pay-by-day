@@ -162,6 +162,13 @@ export interface PatchEventDto {
   transaction?: CreateTransactionDto;
 }
 
+/** Bulk PATCH — applies same category/tags change to multiple events in one request */
+export interface BulkPatchEventDto {
+  eventIds: number[];
+  category?: { id: number } | null;
+  tags?: { id: number }[] | null;
+}
+
 // ─── Template ─────────────────────────────────────────────────────────────────
 
 export interface Template extends Identifiable {

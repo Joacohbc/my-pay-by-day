@@ -8,6 +8,7 @@ interface EventsPageActionsProps {
   duplicatesCount: number;
   onViewDrafts: () => void;
   onMergeEvents: () => void;
+  onBulkUpdate: () => void;
   onViewDuplicates: () => void;
   onNewEvent: () => void;
 }
@@ -17,6 +18,7 @@ export function EventsPageActions({
   duplicatesCount,
   onViewDrafts,
   onMergeEvents,
+  onBulkUpdate,
   onViewDuplicates,
   onNewEvent,
 }: EventsPageActionsProps) {
@@ -89,6 +91,14 @@ export function EventsPageActions({
           >
             <Icon name="merge" className="text-base text-dn-primary" />
             {t('events.merge')}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleActionClick(onBulkUpdate)}
+            className="flex w-full items-center gap-2 px-4 py-3 text-sm text-dn-text-main transition-colors hover:bg-dn-surface-low"
+          >
+            <Icon name="drive_file_rename_outline" className="text-base text-dn-primary" />
+            {t('events.bulkUpdate')}
           </button>
           <button
             type="button"

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { eventsService, type EventFilters } from '@/services/events.service';
 import { usePendingEventsStore } from '@/store/pendingEventsStore';
-import type { CreateEventDto, PatchEventDto, FinanceEvent, Category, Tag, FinanceNode, FinanceLineItem } from '@/models';
+import type { CreateEventDto, PatchEventDto, BulkPatchEventDto, FinanceEvent, Category, Tag, FinanceNode, FinanceLineItem } from '@/models';
 import {
   type QueriesSnapshot,
   snapshotAndCancel,
@@ -259,6 +259,21 @@ export function useRemoveEventRelations() {
       queryClient.invalidateQueries({ queryKey: ['duplicates'] });
       queryClient.invalidateQueries({ queryKey: ['drafts'] });
       alert.success(t('common.saved'));
+    },
+    onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
+  });
+}
+
+export function useBulkUpdateEvents() {
+  const queryClient = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: (dto: BulkPatchEventDto) => eventsService.bulkUpdate(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: eventKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      alert.success(t('events.bulkUpdateSuccess'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
   });

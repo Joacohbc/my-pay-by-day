@@ -1,4 +1,4 @@
-import type { FinanceEvent, CreateEventDto, PatchEventDto, PagedResponse } from '@/models';
+import type { FinanceEvent, CreateEventDto, PatchEventDto, BulkPatchEventDto, PagedResponse } from '@/models';
 import { api } from '@/services/api';
 
 export type DateField = 'TRANSACTION' | 'CREATED' | 'UPDATED';
@@ -42,4 +42,6 @@ export const eventsService = {
     api.delete<FinanceEvent>(`/events/${id}/relations`, relatedIds),
   mergeEvents: (baseId: number, sourceIds: number[], groupByNodeIds: number[], categoryId: number | null, tagIds: number[], name: string, description: string) =>
     api.post<FinanceEvent>(`/events/${baseId}/merge`, { sourceIds, groupByNodeIds, categoryId, tagIds, name, description }),
+  bulkUpdate: (dto: BulkPatchEventDto) =>
+    api.patch<FinanceEvent[]>('/events', dto),
 };
