@@ -7,6 +7,10 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.entity.CategoryEntity;
+import com.mypaybyday.entity.DuplicateRecordEntity;
+import com.mypaybyday.enums.DuplicateRecordStatus;
+import java.util.Map;
+import java.util.stream.Collectors;
 import com.mypaybyday.entity.DuplicateDetectionSettingsEntity;
 import com.mypaybyday.entity.SubscriptionEntity;
 import com.mypaybyday.entity.TemplateEntity;
@@ -43,9 +47,32 @@ public class CategoryDuplicateDetectionService {
 		DuplicateDetectionSettingsEntity settings = settingsRepository.getSettings();
 		List<CategoryEntity> allCategories = categoryRepository.listAll();
 
+		List<DuplicateRecordEntity> existingRecordsList = duplicateRecordRepository.findAllByEntity(EntityType.CATEGORY, category.id);
+		Map<Long, DuplicateRecordEntity> existingRecordsMap = DuplicateUtils.buildExistingRecordsMap(existingRecordsList, category.id);
+
 		List<DuplicateUtils.DuplicateRecordData> potentialDuplicates = new ArrayList<>();
 		for (CategoryEntity other : allCategories) {
 			if (category.id.equals(other.id)) continue;
+
+			DuplicateRecordEntity existingRecord = existingRecordsMap.get(other.id);
+			if (existingRecord != null && !existingRecord.updatedAt.isBefore(category.updatedAt) && !existingRecord.updatedAt.isBefore(other.updatedAt)) {
+				// No changes since last calculation, reuse previous results
+				if (existingRecord.status == DuplicateRecordStatus.PENDING) {
+					potentialDuplicates.add(new DuplicateUtils.DuplicateRecordData(
+						category.id,
+						other.id,
+						EntityType.CATEGORY,
+						existingRecord.score,
+						null,
+						null,
+						null,
+						null,
+						null,
+						existingRecord.score
+					));
+				}
+				continue;
+			}
 
 			double similarity = DuplicateUtils.calculateTextSimilarityScore(category.name, other.name);
 			if (similarity >= settings.textSimilarityThresholdScore) {

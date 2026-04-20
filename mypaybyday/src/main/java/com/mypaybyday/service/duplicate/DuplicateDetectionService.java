@@ -89,9 +89,17 @@ public class DuplicateDetectionService {
 		DuplicateRecordEntity record = duplicateRecordRepository.findById(recordId);
 		if (record == null) return;
 
+		List<DuplicateRecordEntity> pairRecords = duplicateRecordRepository.findAllByEntities(
+			record.entityType,
+			record.entityId1,
+			record.entityId2
+		);
+
 		if (action == DuplicateRecordStatus.ACCEPTED_NOT_DUPLICATE) {
-			record.status = DuplicateRecordStatus.ACCEPTED_NOT_DUPLICATE;
-			duplicateRecordRepository.persist(record);
+			for (DuplicateRecordEntity pairRecord : pairRecords) {
+				pairRecord.status = DuplicateRecordStatus.ACCEPTED_NOT_DUPLICATE;
+				duplicateRecordRepository.persist(pairRecord);
+			}
 			return;
 		}
 
@@ -106,8 +114,10 @@ public class DuplicateDetectionService {
 				eventDuplicateDetectionService.delete(deleteEntityId);
 			}
 
-			record.status = DuplicateRecordStatus.RESOLVED_MERGED;
-			duplicateRecordRepository.persist(record);
+			for (DuplicateRecordEntity pairRecord : pairRecords) {
+				pairRecord.status = DuplicateRecordStatus.RESOLVED_MERGED;
+				duplicateRecordRepository.persist(pairRecord);
+			}
 		}
 	}
 

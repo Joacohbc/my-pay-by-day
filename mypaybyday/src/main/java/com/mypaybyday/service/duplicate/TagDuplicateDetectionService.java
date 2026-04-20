@@ -7,10 +7,14 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.entity.DuplicateDetectionSettingsEntity;
+import com.mypaybyday.entity.DuplicateRecordEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.entity.TagGroupEntity;
+import com.mypaybyday.enums.DuplicateRecordStatus;
 import com.mypaybyday.enums.EntityType;
+import java.util.Map;
+import java.util.stream.Collectors;
 import com.mypaybyday.repository.DuplicateDetectionSettingsRepository;
 import com.mypaybyday.repository.DuplicateRecordRepository;
 import com.mypaybyday.repository.EventRepository;
@@ -42,9 +46,32 @@ public class TagDuplicateDetectionService {
 		DuplicateDetectionSettingsEntity settings = settingsRepository.getSettings();
 		List<TagEntity> allTags = tagRepository.listAll();
 
+		List<DuplicateRecordEntity> existingRecordsList = duplicateRecordRepository.findAllByEntity(EntityType.TAG, tag.id);
+		Map<Long, DuplicateRecordEntity> existingRecordsMap = DuplicateUtils.buildExistingRecordsMap(existingRecordsList, tag.id);
+
 		List<DuplicateUtils.DuplicateRecordData> potentialDuplicates = new LinkedList<>();
 		for (TagEntity other : allTags) {
 			if (tag.id.equals(other.id)) continue;
+
+			DuplicateRecordEntity existingRecord = existingRecordsMap.get(other.id);
+			if (existingRecord != null && !existingRecord.updatedAt.isBefore(tag.updatedAt) && !existingRecord.updatedAt.isBefore(other.updatedAt)) {
+				// No changes since last calculation, reuse previous results
+				if (existingRecord.status == DuplicateRecordStatus.PENDING) {
+					potentialDuplicates.add(new DuplicateUtils.DuplicateRecordData(
+						tag.id,
+						other.id,
+						EntityType.TAG,
+						existingRecord.score,
+						null,
+						null,
+						null,
+						null,
+						null,
+						existingRecord.score
+					));
+				}
+				continue;
+			}
 
 			double similarity = DuplicateUtils.calculateTextSimilarityScore(tag.name, other.name);
 			if (similarity >= settings.textSimilarityThresholdScore) {

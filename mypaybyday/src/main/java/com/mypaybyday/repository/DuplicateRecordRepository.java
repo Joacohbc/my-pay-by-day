@@ -21,7 +21,15 @@ public class DuplicateRecordRepository implements PanacheRepository<DuplicateRec
 		return find("entityType = ?1 and status = ?2 and (entityId1 = ?3 or entityId2 = ?3)", type, status, entityId).list();
 	}
 
+	public List<DuplicateRecordEntity> findAllByEntity(EntityType type, Long entityId) {
+		return find("entityType = ?1 and (entityId1 = ?2 or entityId2 = ?2)", type, entityId).list();
+	}
+
 	public Optional<DuplicateRecordEntity> findByEntities(EntityType type, Long entityId1, Long entityId2) {
 		return find("entityType = ?1 and ((entityId1 = ?2 and entityId2 = ?3) or (entityId1 = ?3 and entityId2 = ?2))", type, entityId1, entityId2).firstResultOptional();
+	}
+
+	public List<DuplicateRecordEntity> findAllByEntities(EntityType type, Long entityId1, Long entityId2) {
+		return find("entityType = ?1 and ((entityId1 = ?2 and entityId2 = ?3) or (entityId1 = ?3 and entityId2 = ?2))", type, entityId1, entityId2).list();
 	}
 }

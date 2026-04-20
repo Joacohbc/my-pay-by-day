@@ -3,7 +3,10 @@ package com.mypaybyday.service.duplicate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.jboss.logging.Logger;
@@ -11,12 +14,15 @@ import org.jboss.logging.Logger;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
+import com.mypaybyday.entity.DuplicateRecordEntity;
+import com.mypaybyday.enums.DuplicateRecordStatus;
 import com.mypaybyday.entity.DuplicateDetectionSettingsEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.repository.DuplicateDetectionSettingsRepository;
 import com.mypaybyday.repository.DuplicateRecordRepository;
 import com.mypaybyday.repository.EventRepository;
+import com.mypaybyday.entity.DuplicateEventRecordEntity;
 
 @ApplicationScoped
 public class EventDuplicateDetectionService {
@@ -35,18 +41,89 @@ public class EventDuplicateDetectionService {
 		this.settingsRepository = settingsRepository;
 	}
 
+	/**
+	 * Executes the duplicate detection algorithm for a single event against all other events.
+	 * 
+	 * Business Rule (State Tracking): The system intentionally maintains all possible duplicate 
+	 * pairings. This preserves the history of manually resolved duplicates and allows unseen 
+	 * pending records to dynamically transition between PENDING and AUTO_RESOLVED_NOT_DUPLICATED 
+	 * as the user updates event details and their similarity scores fluctuate.
+	 * 
+	 * Implementation note (Optimization): Employs a timestamp-based caching mechanism. 
+	 * If neither the target event nor the compared event has been updated since their last 
+	 * recorded calculation, the expensive text and math scoring logic is completely bypassed.
+	 *
+	 * @param eventId The ID of the event to evaluate.
+	 */
 	@Transactional
 	public void detectDuplicates(Long eventId) {
 		FinanceEventEntity event = eventRepository.findById(eventId);
 		if (event == null) return;
 
+		LOG.infof("Starting duplicate detection for Event %d: %s", event.id, event.name);
+
 		DuplicateDetectionSettingsEntity settings = settingsRepository.getSettings();
 		List<FinanceEventEntity> allEvents = eventRepository.listAll();
+
+		List<DuplicateRecordEntity> existingRecordsList = duplicateRecordRepository.findAllByEntity(EntityType.FINANCE_EVENT, event.id);
+		Map<Long, DuplicateRecordEntity> existingRecordsMap = DuplicateUtils.buildExistingRecordsMap(existingRecordsList, event.id);
 
 		List<DuplicateUtils.DuplicateRecordData> potentialDuplicates = new ArrayList<>();
 		for (FinanceEventEntity other : allEvents) {
 			if (event.id.equals(other.id)) continue;
 
+			// Check if we can skip calculation based on timestamps (caching optimization)
+			DuplicateRecordEntity existingRecord = existingRecordsMap.get(other.id);
+			
+			boolean isRecordCached = existingRecord != null;
+			if(isRecordCached) {
+				boolean isUnchanged = 
+					!existingRecord.updatedAt.isBefore(event.updatedAt) 
+					&& !existingRecord.updatedAt.isBefore(other.updatedAt);
+
+				boolean notResolvedByUser = 
+					existingRecord.status == DuplicateRecordStatus.PENDING 
+					|| existingRecord.status == DuplicateRecordStatus.AUTO_RESOLVED_NOT_DUPLICATED;
+
+				// If the record is cached and both events are unchanged since last calculation, 
+				// we can reuse the existing score and skip recalculation
+				if (isUnchanged) {
+					if (notResolvedByUser) {
+						Double dateScore = null, amountScore = null, nodeScore = null, categoryScore = null, tagScore = null, nameScore = null;
+						
+						if (existingRecord instanceof DuplicateEventRecordEntity eventRecord) {
+							dateScore = eventRecord.dateScore;
+							amountScore = eventRecord.amountScore;
+							nodeScore = eventRecord.nodeScore;
+							categoryScore = eventRecord.categoryScore;
+							tagScore = eventRecord.tagScore;
+							nameScore = eventRecord.nameScore;
+						} else {
+							// In case of data inconsistency where we have a non-event record for finance events, we log a warning and fallback to using the total score only
+							LOG.warnf("Data inconsistency detected: Expected DuplicateEventRecordEntity but found %s for Event %d vs %d. Falling back to total score only.", 
+								existingRecord.getClass().getSimpleName(), event.id, other.id);
+							continue;
+						}
+
+						potentialDuplicates.add(new DuplicateUtils.DuplicateRecordData(
+							event.id,
+							other.id,
+							EntityType.FINANCE_EVENT,
+							existingRecord.score,
+							dateScore,
+							amountScore,
+							nodeScore,
+							categoryScore,
+							tagScore,
+							nameScore
+						));
+					}
+					
+					continue;
+				}
+			}
+
+			// Perform full calculation if not cached or if events have changed since last calculation
 			double dateScore = calculateDateScore(event, other, settings.eventTimeThresholdMinutes);
 			double amountScore = calculateAmountScore(event, other);
 			double nodeScore = calculateNodeScore(event, other);
@@ -61,6 +138,9 @@ public class EventDuplicateDetectionService {
 				(categoryScore * settings.eventCategoryWeight) +
 				(tagScore * settings.eventTagWeight) +
 				(nameScore * settings.eventNameWeight);
+			
+			LOG.infof("EventDuplicateDetectionService: Event %d vs %d - dateScore: %.4f, amountScore: %.4f, nodeScore: %.4f, categoryScore: %.4f, tagScore: %.4f, nameScore: %.4f, totalScore: %.4f",
+				event.id, other.id, dateScore, amountScore, nodeScore, categoryScore, tagScore, nameScore, totalScore);
 
 			if (totalScore >= settings.eventTotalThresholdScore) {
 				LOG.infof("Potential duplicate found: Event %d vs %d with score %.4f", event.id, other.id, totalScore);

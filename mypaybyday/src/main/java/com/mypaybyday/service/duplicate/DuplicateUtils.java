@@ -65,11 +65,24 @@ public class DuplicateUtils {
 		Double categoryScore, Double tagScore, Double nameScore
 	) {}
 
+	/**
+	 * Builds a robust map of existing duplicate records to efficiently bypass repetitive mathematical
+	 * operations for unmutated entities during the detection sweep.
+	 */
+	public static Map<Long, DuplicateRecordEntity> buildExistingRecordsMap(List<DuplicateRecordEntity> records, Long entityId) {
+		return records.stream()
+			.collect(java.util.stream.Collectors.toMap(
+				record -> record.entityId1.equals(entityId) ? record.entityId2 : record.entityId1,
+				record -> record,
+				(first, second) -> first
+			));
+	}
+
 	public static void saveDuplicateRecord(DuplicateRecordRepository duplicateRecordRepository, Long id1, Long id2, EntityType type, double score, Double dateScore, Double amountScore, Double nodeScore, Double categoryScore, Double tagScore, Double nameScore) {
 		Long firstId = Math.min(id1, id2);
 		Long secondId = Math.max(id1, id2);
 
-		Optional<DuplicateRecordEntity> existingOpt = duplicateRecordRepository.find("entityType = ?1 and entityId1 = ?2 and entityId2 = ?3", type, firstId, secondId).firstResultOptional();
+		Optional<DuplicateRecordEntity> existingOpt = duplicateRecordRepository.findByEntities(type, firstId, secondId);
 
 		if (existingOpt.isPresent()) {
 			DuplicateRecordEntity existing = existingOpt.get();
@@ -94,9 +107,17 @@ public class DuplicateUtils {
 		}
 	}
 
+	/**
+	 * Persists duplicate records symmetrically (A to B, and B to A) ensuring bidirectional capability.
+	 * Evaluates current database records against newly calculated duplicates to orchestrate status 
+	 * transitions (PENDING vs AUTO_RESOLVED_NOT_DUPLICATED) gracefully without redundant calculations.
+	 * 
+	 * @param repository The managed persistence context for duplicates.
+	 * @param type The entity type being compared.
+	 * @param sharedId The ID of the core entity under evaluation.
+	 * @param dataList The freshly calculated candidate list exceeding the duplicate threshold score.
+	 */
 	public static void saveDuplicateRecords(DuplicateRecordRepository repository, EntityType type, Long sharedId, List<DuplicateRecordData> dataList) {
-		if (dataList == null || dataList.isEmpty()) return;
-
 		List<DuplicateRecordEntity> existingRecords = repository.find("entityType = ?1 and (entityId1 = ?2 or entityId2 = ?2)",
 				type, sharedId).list();
 
@@ -106,25 +127,74 @@ public class DuplicateUtils {
 			existingMap.put(otherId, record);
 		}
 
-		for (DuplicateRecordData data : dataList) {
-			Long otherId = data.id1().equals(sharedId) ? data.id2() : data.id1();
-			DuplicateRecordEntity existing = existingMap.get(otherId);
+		Map<Long, DuplicateRecordData> targetDataMap = new HashMap<>();
+		if (dataList != null) {
+			for (DuplicateRecordData data : dataList) {
+				Long otherId = data.id1().equals(sharedId) ? data.id2() : data.id1();
+				targetDataMap.put(otherId, data);
+			}
+		}
 
-			if (existing != null) {
-				if (existing.status != DuplicateRecordStatus.PENDING) continue;
-				existing.score = data.score();
-				existing.calculatedAt = Instant.now();
-				if (type == EntityType.FINANCE_EVENT && existing instanceof DuplicateEventRecordEntity eventRecord) {
-					eventRecord.dateScore = data.dateScore();
-					eventRecord.amountScore = data.amountScore();
-					eventRecord.nodeScore = data.nodeScore();
-					eventRecord.categoryScore = data.categoryScore();
-					eventRecord.tagScore = data.tagScore();
-					eventRecord.nameScore = data.nameScore();
+		for (Map.Entry<Long, DuplicateRecordEntity> entry : existingMap.entrySet()) {
+			Long otherId = entry.getKey();
+			DuplicateRecordEntity existingRecord = entry.getValue();
+			
+			boolean isNoLongerConsideredDuplicate = !targetDataMap.containsKey(otherId);
+			boolean isCurrentlyPending = existingRecord.status == DuplicateRecordStatus.PENDING;
+			
+			if (isNoLongerConsideredDuplicate && isCurrentlyPending) {
+				List<DuplicateRecordEntity> pairedRecords = repository.findAllByEntities(type, sharedId, otherId);
+				for (DuplicateRecordEntity pr : pairedRecords) {
+					pr.status = DuplicateRecordStatus.AUTO_RESOLVED_NOT_DUPLICATED;
+					repository.persist(pr);
+				}
+			}
+		}
+
+		for (DuplicateRecordData data : targetDataMap.values()) {
+			Long otherId = data.id1().equals(sharedId) ? data.id2() : data.id1();
+			List<DuplicateRecordEntity> pairedRecords = repository.findAllByEntities(type, sharedId, otherId);
+
+			if (!pairedRecords.isEmpty()) {
+				for (DuplicateRecordEntity existing : pairedRecords) {
+					boolean isApplicableForUpdate = existing.status == DuplicateRecordStatus.PENDING || 
+													existing.status == DuplicateRecordStatus.AUTO_RESOLVED_NOT_DUPLICATED;
+					
+					if (!isApplicableForUpdate) continue;
+
+					boolean needsPendingRevert = existing.status == DuplicateRecordStatus.AUTO_RESOLVED_NOT_DUPLICATED;
+					if (needsPendingRevert) {
+						existing.status = DuplicateRecordStatus.PENDING;
+					}
+					existing.score = data.score();
+					existing.calculatedAt = Instant.now();
+					if (type == EntityType.FINANCE_EVENT && existing instanceof DuplicateEventRecordEntity eventRecord) {
+						eventRecord.dateScore = data.dateScore();
+						eventRecord.amountScore = data.amountScore();
+						eventRecord.nodeScore = data.nodeScore();
+						eventRecord.categoryScore = data.categoryScore();
+						eventRecord.tagScore = data.tagScore();
+						eventRecord.nameScore = data.nameScore();
+					}
+					repository.persist(existing);
+				}
+				
+				boolean isMissingSymmetricRow = pairedRecords.size() == 1;
+				if (isMissingSymmetricRow) {
+					DuplicateRecordEntity existing = pairedRecords.get(0);
+					DuplicateRecordEntity mirrorRecord;
+					if (existing.entityId1.equals(sharedId)) {
+						mirrorRecord = createRecord(type, otherId, sharedId, data.score(), data.dateScore(), data.amountScore(), data.nodeScore(), data.categoryScore(), data.tagScore(), data.nameScore());
+					} else {
+						mirrorRecord = createRecord(type, sharedId, otherId, data.score(), data.dateScore(), data.amountScore(), data.nodeScore(), data.categoryScore(), data.tagScore(), data.nameScore());
+					}
+					repository.persist(mirrorRecord);
 				}
 			} else {
-				DuplicateRecordEntity record = createRecord(type, Math.min(data.id1(), data.id2()), Math.max(data.id1(), data.id2()), data.score(), data.dateScore(), data.amountScore(), data.nodeScore(), data.categoryScore(), data.tagScore(), data.nameScore());
-				repository.persist(record);
+				DuplicateRecordEntity record1 = createRecord(type, sharedId, otherId, data.score(), data.dateScore(), data.amountScore(), data.nodeScore(), data.categoryScore(), data.tagScore(), data.nameScore());
+				DuplicateRecordEntity record2 = createRecord(type, otherId, sharedId, data.score(), data.dateScore(), data.amountScore(), data.nodeScore(), data.categoryScore(), data.tagScore(), data.nameScore());
+				repository.persist(record1);
+				repository.persist(record2);
 			}
 		}
 	}
