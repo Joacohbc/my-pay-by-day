@@ -185,6 +185,7 @@ export function EventsPage() {
             draftsCount={draftsCount}
             onViewDrafts={() => navigate(Routes.EVENT_DRAFTS)}
             onMergeEvents={() => setShowMerge(true)}
+            onViewDuplicates={() => navigate(Routes.EVENTS_DUPLICATES)}
             onNewEvent={() => setShowPicker(true)}
           />
         }

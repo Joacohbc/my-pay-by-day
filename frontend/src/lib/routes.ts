@@ -4,6 +4,7 @@ export const Routes = {
   EVENTS: '/events',
   EVENT_DRAFTS: '/events/drafts',
   EVENT_NEW: '/events/new',
+  EVENTS_DUPLICATES: '/events/duplicates',
   EVENT_DETAIL: (id: number | string) => `/events/${id}`,
   EVENT_EDIT: (id: number | string) => `/events/${id}/edit`,
 

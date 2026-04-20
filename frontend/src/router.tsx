@@ -19,6 +19,7 @@ import { ChatPage } from '@/pages/ChatPage';
 import { FilesPage } from '@/pages/FilesPage';
 import { AiSettingsPage } from '@/pages/AiSettingsPage';
 import { DuplicateSettingsPage } from '@/pages/DuplicateSettingsPage';
+import { EventDuplicatesPage } from '@/pages/EventDuplicatesPage';
 import { Routes } from '@/lib/routes';
 
 export const router = createBrowserRouter([
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
 
       // Events
       { path: 'events', element: <EventsPage /> },
+      { path: 'events/duplicates', element: <EventDuplicatesPage /> },
       { path: 'events/drafts', element: <DraftsPage /> },
       { path: 'events/new', element: <EventNewPage /> },
       { path: 'events/:id', element: <EventDetailPage /> },

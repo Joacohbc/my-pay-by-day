@@ -520,6 +520,12 @@ const es = {
       markNotDuplicate: 'No es duplicado',
       deleteOther: 'Eliminar otro',
     },
+    list: {
+      title: 'Eventos Duplicados Pendientes',
+      viewAll: 'Ver Duplicados',
+      empty: 'Sin eventos duplicados pendientes',
+      pair: 'Par {{index}}',
+    },
   },
 
   // ─── Settings ────────────────────────────────────────────────────────────

@@ -521,6 +521,12 @@ const en = {
       markNotDuplicate: 'Not a duplicate',
       deleteOther: 'Delete other',
     },
+    list: {
+      title: 'Pending Duplicate Events',
+      viewAll: 'View Duplicates',
+      empty: 'No pending duplicate events',
+      pair: 'Pair {{index}}',
+    },
   },
 
   // ─── Settings ────────────────────────────────────────────────────────────
