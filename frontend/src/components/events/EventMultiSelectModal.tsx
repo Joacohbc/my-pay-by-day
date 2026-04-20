@@ -14,11 +14,15 @@ import type { EventFilters } from '@/services/events.service';
 interface EventMultiSelectModalProps {
   open: boolean;
   onClose: () => void;
+  onCancel?: () => void;
   title: string;
   onConfirm: (selectedIds: Set<number>) => void;
   confirmLabel?: string;
+  cancelLabel?: string;
   minSelection?: number;
+  maxSelection?: number;
   initialSelectedIds?: ReadonlySet<number>;
+  excludeEventIds?: ReadonlySet<number>;
   /** Static filters pre-applied by the caller (merged with the user's interactive filters). */
   eventFilters?: Omit<EventFilters, 'page' | 'search'>;
 }
@@ -26,11 +30,15 @@ interface EventMultiSelectModalProps {
 export function EventMultiSelectModal({
   open,
   onClose,
+  onCancel,
   title,
   onConfirm,
   confirmLabel,
+  cancelLabel,
   minSelection = 1,
+  maxSelection,
   initialSelectedIds = new Set(),
+  excludeEventIds = new Set(),
   eventFilters = {},
 }: EventMultiSelectModalProps) {
   const { t } = useTranslation();
@@ -75,13 +83,21 @@ export function EventMultiSelectModal({
 
   const { data: paged, isLoading, error } = useEvents(combinedFilters);
 
-  const allEvents = useMemo(() => paged?.content ?? [], [paged]);
+  const allEvents = useMemo(
+    () => (paged?.content ?? []).filter((event) => !excludeEventIds.has(event.id)),
+    [excludeEventIds, paged]
+  );
 
   const handleToggle = (id: number) => {
     setSelectedIds((prev) => {
+      if (maxSelection === 1) {
+        if (prev.has(id)) return new Set<number>();
+        return new Set<number>([id]);
+      }
+
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
-      else next.add(id);
+      else if (!maxSelection || next.size < maxSelection) next.add(id);
       return next;
     });
   };
@@ -92,6 +108,19 @@ export function EventMultiSelectModal({
     setSelectedIds(new Set(initialSelectedIds));
     resetFilters();
     setShowFilters(false);
+    onClose();
+  };
+
+  const handleCancel = () => {
+    setPage(0);
+    setSearch('');
+    setSelectedIds(new Set(initialSelectedIds));
+    resetFilters();
+    setShowFilters(false);
+    if (onCancel) {
+      onCancel();
+      return;
+    }
     onClose();
   };
 
@@ -163,10 +192,13 @@ export function EventMultiSelectModal({
         )}
 
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={handleClose}>
-            {t('common.cancel')}
+          <Button variant="ghost" onClick={handleCancel}>
+            {cancelLabel ?? t('common.cancel')}
           </Button>
-          <Button onClick={handleConfirm} disabled={selectedIds.size < minSelection}>
+          <Button
+            onClick={handleConfirm}
+            disabled={selectedIds.size < minSelection || (maxSelection !== undefined && selectedIds.size > maxSelection)}
+          >
             {confirmLabel ?? t('common.confirm')}
           </Button>
         </div>
