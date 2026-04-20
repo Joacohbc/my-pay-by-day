@@ -188,6 +188,8 @@ const en = {
     dateFieldTransaction: 'Transaction date',
     dateFieldCreated: 'Creation date',
     dateFieldUpdated: 'Update date',
+    filterNode: 'Node',
+    filterNodePlaceholder: 'All nodes',
   },
 
   // ─── Event Types ─────────────────────────────────────────────────────────

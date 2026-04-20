@@ -3,6 +3,7 @@ package com.mypaybyday.resource;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.List;
 
 import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.EventQuery.DateField;
@@ -49,12 +50,16 @@ public class EventResource {
 	@Parameter(description = "Date field to filter on: TRANSACTION, CREATED, UPDATED") @QueryParam("dateField") @DefaultValue("TRANSACTION") DateField dateField,
 	@Parameter(description = "Filter by event type") @QueryParam("type") EventType type,
 	@Parameter(description = "Filter by category ID") @QueryParam("categoryId") Long categoryId,
-	@Parameter(description = "Filter by tag ID") @QueryParam("tagId") Long tagId) {
+	@Parameter(description = "Filter by tag ID") @QueryParam("tagId") Long tagId,
+	@Parameter(description = "Filter by multiple category IDs (OR)") @QueryParam("categoryIds") List<Long> categoryIds,
+	@Parameter(description = "Filter by multiple tag IDs (OR)") @QueryParam("tagIds") List<Long> tagIds,
+	@Parameter(description = "Filter by finance node ID") @QueryParam("nodeId") Long nodeId) {
 
 	return Response.ok(eventService.listAll(EventQuery.builder()
 		.page(page).size(size)
 		.search(search).startDate(startDate).endDate(endDate).dateField(dateField)
 		.type(type).categoryId(categoryId).tagId(tagId)
+		.categoryIds(categoryIds).tagIds(tagIds).nodeId(nodeId)
 		.build())).build();
     }
 

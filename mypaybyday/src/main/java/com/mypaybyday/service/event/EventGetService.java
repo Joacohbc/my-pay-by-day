@@ -83,9 +83,24 @@ public class EventGetService {
 			params.put("categoryId", queryRequest.categoryId());
 		}
 
+		if (queryRequest.categoryIds() != null && !queryRequest.categoryIds().isEmpty()) {
+			query.append(" and category.id in :categoryIds");
+			params.put("categoryIds", queryRequest.categoryIds());
+		}
+
 		if (queryRequest.tagId() != null) {
 			query.append(" and exists (select t from Tag t where t.id = :tagId and t member of tags)");
 			params.put("tagId", queryRequest.tagId());
+		}
+
+		if (queryRequest.tagIds() != null && !queryRequest.tagIds().isEmpty()) {
+			query.append(" and exists (select t from Tag t where t.id in :tagIds and t member of tags)");
+			params.put("tagIds", queryRequest.tagIds());
+		}
+
+		if (queryRequest.nodeId() != null) {
+			query.append(" and exists (select li from FinanceLineItem li where li.transaction = transaction and li.financeNode.id = :nodeId)");
+			params.put("nodeId", queryRequest.nodeId());
 		}
 
 		query.append(" ORDER BY ").append(dateFieldExpression).append(" DESC");

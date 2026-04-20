@@ -13,6 +13,9 @@ export interface EventFilters {
   type?: string;
   categoryId?: number;
   tagId?: number;
+  categoryIds?: number[];
+  tagIds?: number[];
+  nodeId?: number;
 }
 
 export const eventsService = {
@@ -28,6 +31,9 @@ export const eventsService = {
     if (filters.type && filters.type !== 'ALL') params.append('type', filters.type);
     if (filters.categoryId) params.append('categoryId', filters.categoryId.toString());
     if (filters.tagId) params.append('tagId', filters.tagId.toString());
+    filters.categoryIds?.forEach((id) => params.append('categoryIds', id.toString()));
+    filters.tagIds?.forEach((id) => params.append('tagIds', id.toString()));
+    if (filters.nodeId) params.append('nodeId', filters.nodeId.toString());
 
     return api.get<PagedResponse<FinanceEvent>>(`/events?${params.toString()}`);
   },
