@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.PagedResponse;
@@ -20,6 +21,7 @@ import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TagGroupRepository;
 import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TemplateRepository;
+import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.validation.TagValidator;
 
 import io.quarkus.logging.Log;
@@ -29,6 +31,7 @@ import io.quarkus.panache.common.Page;
 public class TagService {
 
 	private final TagRepository tagRepository;
+	private final Event<DuplicateDetectionEvent> duplicateDetectionEventBus;
 	private final Messages messages;
 	private final TagValidator tagValidator;
 	private final EventRepository eventRepository;
@@ -43,8 +46,10 @@ public class TagService {
 			EventRepository eventRepository,
 			TemplateRepository templateRepository,
 			SubscriptionRepository subscriptionRepository,
+			Event<DuplicateDetectionEvent> duplicateDetectionEventBus,
 			TagGroupRepository tagGroupRepository) {
 		this.tagRepository = tagRepository;
+		this.duplicateDetectionEventBus = duplicateDetectionEventBus;
 		this.messages = messages;
 		this.tagValidator = tagValidator;
 		this.eventRepository = eventRepository;
@@ -186,6 +191,7 @@ public class TagService {
 		tagValidator.validate(tag);
 
 		tagRepository.persist(tag);
+		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forTag(tag.id));
 		return TagDto.from(tag);
 	}
 
@@ -200,6 +206,7 @@ public class TagService {
 
 		tagValidator.validate(tag);
 
+		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forTag(id));
 		return TagDto.from(tag);
 	}
 
@@ -239,4 +246,5 @@ public class TagService {
 
 		tagRepository.delete(tag);
 	}
+
 }

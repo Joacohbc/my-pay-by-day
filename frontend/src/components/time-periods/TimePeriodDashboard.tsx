@@ -136,5 +136,5 @@ export function TimePeriodDashboard({
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function formatPeriodLabel(tp: TimePeriod): string {
-  return `${formatDateFromParts(tp.startDate)} – ${formatDateFromParts(tp.endDate)}`;
+  return `${formatDateFromParts(tp.startDate)} - ${formatDateFromParts(tp.endDate)}`;
 }

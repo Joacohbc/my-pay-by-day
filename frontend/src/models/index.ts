@@ -282,3 +282,5 @@ export interface CreateTagGroupDto {
   icon?: string;
   tagIds: number[];
 }
+
+export * from './duplicates';

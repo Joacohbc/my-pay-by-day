@@ -14,6 +14,8 @@ import { Pagination } from '@/components/ui/Pagination';
 import type { Tag } from '@/models';
 import { TagForm } from '@/components/tags/TagForm';
 import { Routes } from '@/lib/routes';
+import { useDuplicates } from '@/hooks/useDuplicates';
+import { SimpleEntityDuplicatesSection } from '@/components/duplicates/SimpleEntityDuplicatesSection';
 
 type ConfirmActionType = 'archive' | 'unarchive' | 'delete';
 
@@ -28,6 +30,7 @@ export function TagsPage() {
   const [page, setPage] = useState(0);
   const [showArchived, setShowArchived] = useState(false);
   const { data: paged, isLoading, error } = useTags(page, 20, showArchived ? true : undefined);
+  const { data: allDuplicates } = useDuplicates('TAG', 'PENDING');
   const deleteTag = useDeleteTag();
   const archiveTag = useArchiveTag();
   const unarchiveTag = useUnarchiveTag();
@@ -128,7 +131,8 @@ export function TagsPage() {
       ) : (
         <div className="px-5 space-y-3">
           {allTags.map((tag) => (
-            <Card key={tag.id} className={`flex items-center gap-4 ${tag.archived ? 'opacity-60' : ''}`}>
+            <Card key={tag.id} className={`${tag.archived ? 'opacity-60' : ''}`}>
+            <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-2xl bg-dn-primary/10 text-dn-primary flex items-center justify-center shrink-0">
                 <span className="text-lg font-bold">#</span>
               </div>
@@ -179,6 +183,11 @@ export function TagsPage() {
                   <Icon name="delete" className="text-base" />
                 </button>
               </div>
+            </div>
+            <SimpleEntityDuplicatesSection
+              records={(allDuplicates ?? []).filter(r => r.entityId1 === tag.id || r.entityId2 === tag.id)}
+              currentId={tag.id}
+            />
             </Card>
           ))}
         </div>

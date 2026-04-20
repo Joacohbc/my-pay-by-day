@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.CategoryBalanceDto;
@@ -34,15 +35,16 @@ import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.entity.FinanceTransactionEntity;
-import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
+import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.validation.EventValidator;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
+import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
 import org.openapitools.jackson.nullable.JsonNullable;
 
@@ -65,6 +67,7 @@ public class EventService {
 	private final EventValidator eventValidator;
 	private final FileService fileService;
 	private final DraftService entityDraftService;
+	private final Event<DuplicateDetectionEvent> duplicateDetectionEventBus;
 
 	public EventService(
 			EventRepository eventRepository,
@@ -74,7 +77,8 @@ public class EventService {
 			Messages messages,
 			EventValidator eventValidator,
 			FileService fileService,
-			DraftService entityDraftService) {
+			DraftService entityDraftService,
+			Event<DuplicateDetectionEvent> duplicateDetectionEventBus) {
 		this.eventRepository = eventRepository;
 		this.transactionService = transactionService;
 		this.categoryService = categoryService;
@@ -83,6 +87,7 @@ public class EventService {
 		this.eventValidator = eventValidator;
 		this.fileService = fileService;
 		this.entityDraftService = entityDraftService;
+		this.duplicateDetectionEventBus = duplicateDetectionEventBus;
 	}
 
 	// -------------------------------------------------------------------------
@@ -272,6 +277,7 @@ public class EventService {
 		eventValidator.validate(event);
 
 		eventRepository.persist(event);
+		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forEvent(event.id));
 		return FinanceEventDto.from(event);
 	}
 
@@ -357,6 +363,8 @@ public class EventService {
 
 		eventValidator.validate(event);
 
+		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forEvent(id));
+		Log.infof("Event Bus fired for event: %d", id);
 		return FinanceEventDto.from(event);
 	}
 
@@ -642,4 +650,5 @@ public class EventService {
 		}
 		return found;
 	}
+
 }

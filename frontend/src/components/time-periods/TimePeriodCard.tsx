@@ -74,7 +74,7 @@ export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardP
 
           {/* Date range */}
           <p className="text-sm text-dn-text-muted mt-1">
-            {formatCardDate(tp.startDate)} – {formatCardDate(tp.endDate)}
+            {formatCardDate(tp.startDate)} - {formatCardDate(tp.endDate)}
           </p>
 
           {/* Async balance row */}

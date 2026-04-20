@@ -53,6 +53,7 @@ export function useCreateCategory() {
     mutationFn: (dto: CreateCategoryDto) => categoriesService.create(dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: categoryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -92,6 +93,7 @@ export function useUpdateCategory() {
     onSettled: (_data, _error, { id }) => {
       queryClient.invalidateQueries({ queryKey: categoryKeys.all });
       queryClient.invalidateQueries({ queryKey: categoryKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
     },
     onSuccess: () => alert.success(t('common.saved')),
   });
@@ -106,6 +108,7 @@ export function useArchiveCategory() {
     mutationFn: (id: number) => categoriesService.archive(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: categoryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -121,6 +124,7 @@ export function useUnarchiveCategory() {
     mutationFn: (id: number) => categoriesService.unarchive(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: categoryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -144,7 +148,10 @@ export function useDeleteCategory() {
       if (context?.previousLists) restoreSnapshot(queryClient, context.previousLists);
       alert.error(resolveErrorMessage(err, t('common.error')));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: categoryKeys.all }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+    },
     onSuccess: () => alert.success(t('common.saved')),
   });
 }

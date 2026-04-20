@@ -5,6 +5,7 @@ import { Routes, saveEventsSearch } from '@/lib/routes';
 import { useEvents } from '@/hooks/useEvents';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useFinanceEventDrafts } from '@/hooks/useDrafts';
+import { useDuplicates } from '@/hooks/useDuplicates';
 import { useSearchParamsBatch } from '@/hooks/useSearchParamsState';
 import type { ParamConfig } from '@/hooks/useSearchParamsState';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
@@ -142,6 +143,9 @@ export function EventsPage() {
   const { data: draftEvents } = useFinanceEventDrafts();
   const draftsCount = draftEvents?.length ?? 0;
 
+  const { data: pendingDuplicates } = useDuplicates('FINANCE_EVENT', 'PENDING');
+  const duplicatesCount = pendingDuplicates?.length ?? 0;
+
   const events = useMemo(() => paged?.content ?? [], [paged]);
   const totalPages = paged?.totalPages ?? 1;
   const totalElements = paged?.totalElements ?? 0;
@@ -183,8 +187,10 @@ export function EventsPage() {
         action={
           <EventsPageActions
             draftsCount={draftsCount}
+            duplicatesCount={duplicatesCount}
             onViewDrafts={() => navigate(Routes.EVENT_DRAFTS)}
             onMergeEvents={() => setShowMerge(true)}
+            onViewDuplicates={() => navigate(Routes.EVENTS_DUPLICATES)}
             onNewEvent={() => setShowPicker(true)}
           />
         }

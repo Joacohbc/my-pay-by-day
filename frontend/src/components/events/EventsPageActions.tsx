@@ -5,21 +5,23 @@ import { Icon } from '@/components/ui/Icon';
 
 interface EventsPageActionsProps {
   draftsCount: number;
+  duplicatesCount: number;
   onViewDrafts: () => void;
   onMergeEvents: () => void;
+  onViewDuplicates: () => void;
   onNewEvent: () => void;
 }
 
 export function EventsPageActions({
   draftsCount,
+  duplicatesCount,
   onViewDrafts,
   onMergeEvents,
+  onViewDuplicates,
   onNewEvent,
 }: EventsPageActionsProps) {
   const { t } = useTranslation();
   const [showMenu, setShowMenu] = useState(false);
-
-  const hasDrafts = draftsCount > 0;
 
   const handleActionClick = (action: () => void) => {
     setShowMenu(false);
@@ -40,31 +42,17 @@ export function EventsPageActions({
     }
   };
 
-  const draftsBadge = hasDrafts && (
+  const badge = (count: number) => (
     <span className="bg-dn-error text-white text-[10px] leading-tight font-semibold px-1.5 py-0.5 rounded-full min-w-4.5 text-center inline-block">
-      {draftsCount}
+      {count}
     </span>
   );
 
+  const totalBadgeCount = draftsCount + duplicatesCount;
+
   return (
     <div className="relative" onBlur={handleBlur} onKeyDown={handleKeyDown}>
-      <div className="hidden flex-wrap items-center gap-2 sm:flex">
-        <Button size="sm" variant="secondary" onClick={onViewDrafts}>
-          <Icon name="edit_note" className="text-sm" />
-          {t('drafts.viewDrafts')}
-          {draftsBadge}
-        </Button>
-        <Button size="sm" variant="secondary" onClick={onMergeEvents}>
-          <Icon name="merge" className="text-sm" />
-          {t('events.merge')}
-        </Button>
-        <Button size="sm" onClick={onNewEvent}>
-          <Icon name="add" className="text-sm" />
-          {t('common.new')}
-        </Button>
-      </div>
-
-      <div className="sm:hidden">
+      <div className="flex items-center gap-2">
         <Button
           size="sm"
           variant="secondary"
@@ -75,39 +63,52 @@ export function EventsPageActions({
         >
           <Icon name="more_horiz" className="text-sm" />
           {t('common.moreActions')}
-          {draftsBadge}
+          {totalBadgeCount > 0 && badge(totalBadgeCount)}
         </Button>
-
-        {showMenu && (
-          <div className="absolute right-0 top-full z-30 mt-2 w-56 overflow-hidden rounded-card border border-white/10 bg-dn-surface shadow-xl">
-            <button
-              type="button"
-              onClick={() => handleActionClick(onViewDrafts)}
-              className="flex w-full items-center gap-2 px-4 py-3 text-sm text-dn-text-main transition-colors hover:bg-dn-surface-low"
-            >
-              <Icon name="edit_note" className="text-base text-dn-primary" />
-              <span className="flex-1 text-left">{t('drafts.viewDrafts')}</span>
-              {draftsBadge}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleActionClick(onMergeEvents)}
-              className="flex w-full items-center gap-2 px-4 py-3 text-sm text-dn-text-main transition-colors hover:bg-dn-surface-low"
-            >
-              <Icon name="merge" className="text-base text-dn-primary" />
-              {t('events.merge')}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleActionClick(onNewEvent)}
-              className="flex w-full items-center gap-2 px-4 py-3 text-sm text-dn-text-main transition-colors hover:bg-dn-surface-low"
-            >
-              <Icon name="add" className="text-base text-dn-primary" />
-              {t('common.new')}
-            </button>
-          </div>
-        )}
+        <Button size="sm" onClick={onNewEvent}>
+          <Icon name="add" className="text-sm" />
+          {t('common.new')}
+        </Button>
       </div>
+
+      {showMenu && (
+        <div className="absolute right-0 top-full z-30 mt-2 w-56 overflow-hidden rounded-card border border-white/10 bg-dn-surface shadow-xl">
+          <button
+            type="button"
+            onClick={() => handleActionClick(onViewDrafts)}
+            className="flex w-full items-center gap-2 px-4 py-3 text-sm text-dn-text-main transition-colors hover:bg-dn-surface-low"
+          >
+            <Icon name="edit_note" className="text-base text-dn-primary" />
+            <span className="flex-1 text-left">{t('drafts.viewDrafts')}</span>
+            {draftsCount > 0 && badge(draftsCount)}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleActionClick(onMergeEvents)}
+            className="flex w-full items-center gap-2 px-4 py-3 text-sm text-dn-text-main transition-colors hover:bg-dn-surface-low"
+          >
+            <Icon name="merge" className="text-base text-dn-primary" />
+            {t('events.merge')}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleActionClick(onViewDuplicates)}
+            className="flex w-full items-center gap-2 px-4 py-3 text-sm text-dn-text-main transition-colors hover:bg-dn-surface-low"
+          >
+            <Icon name="find_replace" className="text-base text-dn-primary" />
+            <span className="flex-1 text-left">{t('duplicates.list.viewAll')}</span>
+            {duplicatesCount > 0 && badge(duplicatesCount)}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleActionClick(onNewEvent)}
+            className="flex w-full items-center gap-2 px-4 py-3 text-sm text-dn-text-main transition-colors hover:bg-dn-surface-low"
+          >
+            <Icon name="add" className="text-base text-dn-primary" />
+            {t('common.new')}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

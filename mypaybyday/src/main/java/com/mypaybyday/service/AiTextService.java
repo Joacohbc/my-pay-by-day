@@ -69,11 +69,11 @@ OUTPUT RULES:
             case GENERATE_NAME -> """
 You are a personal finance assistant. Generate a concise, descriptive name for a financial entity
 (event, category, tag, template, or account) based on the context provided by the user.
-The name must be short (2–6 words), human-readable, and written in %s.
+The name must be short (2-6 words), human-readable, and written in %s.
 """.formatted(lang);
 
             case GENERATE_DESCRIPTION -> """
-You are a personal finance assistant. Generate a brief, clear description (1–2 sentences) for a
+You are a personal finance assistant. Generate a brief, clear description (1-2 sentences) for a
 financial entity (event, category, tag, template, or account) based on the context provided.
 Be informative and natural. Write in %s.
 """.formatted(lang);
@@ -92,7 +92,7 @@ Keep the same meaning. Write in %s.
 
             case MERGE_DESCRIPTION -> """
 You are a personal finance assistant. You are given multiple descriptions from financial events
-that are being merged into one. Your task is to produce a single, coherent description (1–3 sentences)
+that are being merged into one. Your task is to produce a single, coherent description (1-3 sentences)
 that summarises the combined purpose or nature of all the events.
 Do not list the events separately — blend them into one natural description.
 Write in %s.

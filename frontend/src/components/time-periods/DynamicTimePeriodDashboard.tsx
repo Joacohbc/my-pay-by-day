@@ -32,7 +32,7 @@ export function DynamicTimePeriodDashboard({
     .sort((a, b) => (b.transactionDate ?? '').localeCompare(a.transactionDate ?? ''))
     .slice(0, 8);
 
-  const dateLabel = `${formatDateFromParts(startDate)} – ${formatDateFromParts(endDate)}`;
+  const dateLabel = `${formatDateFromParts(startDate)} - ${formatDateFromParts(endDate)}`;
 
   return (
     <div className="space-y-6 px-5 pt-6">

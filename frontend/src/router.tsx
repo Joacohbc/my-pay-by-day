@@ -18,6 +18,8 @@ import { TimePeriodDetailPage } from '@/pages/TimePeriodDetailPage';
 import { ChatPage } from '@/pages/ChatPage';
 import { FilesPage } from '@/pages/FilesPage';
 import { AiSettingsPage } from '@/pages/AiSettingsPage';
+import { DuplicateSettingsPage } from '@/pages/DuplicateSettingsPage';
+import { EventDuplicatesPage } from '@/pages/EventDuplicatesPage';
 import { Routes } from '@/lib/routes';
 
 export const router = createBrowserRouter([
@@ -29,6 +31,7 @@ export const router = createBrowserRouter([
 
       // Events
       { path: 'events', element: <EventsPage /> },
+      { path: 'events/duplicates', element: <EventDuplicatesPage /> },
       { path: 'events/drafts', element: <DraftsPage /> },
       { path: 'events/new', element: <EventNewPage /> },
       { path: 'events/:id', element: <EventDetailPage /> },
@@ -53,6 +56,7 @@ export const router = createBrowserRouter([
       { path: 'settings/nodes', element: <NodesPage /> },
       { path: 'settings/files', element: <FilesPage /> },
       { path: 'settings/ai', element: <AiSettingsPage /> },
+      { path: 'settings/duplicates', element: <DuplicateSettingsPage /> },
 
       // Fallback
       { path: '*', element: <Navigate to={Routes.DASHBOARD} replace /> },

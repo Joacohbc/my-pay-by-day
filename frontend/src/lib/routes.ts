@@ -4,6 +4,7 @@ export const Routes = {
   EVENTS: '/events',
   EVENT_DRAFTS: '/events/drafts',
   EVENT_NEW: '/events/new',
+  EVENTS_DUPLICATES: '/events/duplicates',
   EVENT_DETAIL: (id: number | string) => `/events/${id}`,
   EVENT_EDIT: (id: number | string) => `/events/${id}/edit`,
 
@@ -22,6 +23,7 @@ export const Routes = {
   SETTINGS_NODES: '/settings/nodes',
   SETTINGS_FILES: '/settings/files',
   SETTINGS_AI: '/settings/ai',
+  SETTINGS_DUPLICATES: '/settings/duplicates',
 } as const;
 
 const EVENTS_SEARCH_KEY = 'events.lastSearch';
