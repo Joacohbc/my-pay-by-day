@@ -501,7 +501,7 @@ const es = {
       totalThreshold: 'Umbral de Puntaje Total',
       totalThresholdHint: 'Puntaje mínimo (0–100) para marcar dos eventos como posibles duplicados.',
       textSimilarityThreshold: 'Umbral de Similitud de Texto',
-      textSimilarityThresholdHint: 'Similitud mínima entre nombres para considerar que coinciden.',
+      textSimilarityThresholdHint: 'Similitud mínima entre nombres aplicable a eventos, etiquetas y categorías para considerar que coinciden.',
       scanAll: 'Ejecutar Escaneo Completo',
       scanAllSuccess: 'Escaneo iniciado en segundo plano',
       saved: 'Configuración guardada',

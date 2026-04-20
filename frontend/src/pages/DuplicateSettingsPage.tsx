@@ -87,7 +87,10 @@ export function DuplicateSettingsPage() {
   const [form, setForm] = useState<FormState>(DEFAULT);
 
   useEffect(() => {
-    if (settings) setForm(toDisplay(settings));
+    if (settings) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setForm(toDisplay(settings));
+    }
   }, [settings]);
 
   const set = (key: keyof FormState, value: string) =>
