@@ -21,8 +21,9 @@ import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TimePeriodRepository;
-import com.mypaybyday.service.EventService;
 import com.mypaybyday.service.IntelligentEventService;
+import com.mypaybyday.service.event.EventService;
+
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import io.quarkus.runtime.annotations.RegisterForReflection;

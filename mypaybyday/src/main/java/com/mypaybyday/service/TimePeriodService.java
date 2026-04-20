@@ -31,6 +31,7 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TimePeriodRepository;
+import com.mypaybyday.service.event.EventService;
 import com.mypaybyday.validation.DateValidator;
 import com.mypaybyday.validation.TimePeriodValidator;
 import io.quarkus.panache.common.Page;

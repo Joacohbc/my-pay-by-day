@@ -30,6 +30,7 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.SystemJobRepository;
+import com.mypaybyday.service.event.EventService;
 import com.mypaybyday.validation.SubscriptionValidator;
 import io.quarkus.panache.common.Page;
 import org.jboss.logging.Logger;

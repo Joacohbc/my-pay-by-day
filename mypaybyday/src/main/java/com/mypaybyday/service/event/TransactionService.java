@@ -1,4 +1,4 @@
-package com.mypaybyday.service;
+package com.mypaybyday.service.event;
 
 import java.util.List;
 
@@ -13,6 +13,7 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.TransactionRepository;
+import com.mypaybyday.validation.TransactionValidator;
 
 @ApplicationScoped
 public class TransactionService {

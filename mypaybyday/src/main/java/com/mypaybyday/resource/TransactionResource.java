@@ -6,7 +6,8 @@ import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.FinanceTransactionDto;
 import com.mypaybyday.exception.BusinessException;
-import com.mypaybyday.service.TransactionService;
+import com.mypaybyday.service.event.TransactionService;
+
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;

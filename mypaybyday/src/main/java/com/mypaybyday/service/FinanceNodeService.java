@@ -16,6 +16,7 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.LineItemRepository;
+import com.mypaybyday.service.event.TransactionService;
 import com.mypaybyday.validation.FinanceNodeValidator;
 import io.quarkus.panache.common.Page;
 
