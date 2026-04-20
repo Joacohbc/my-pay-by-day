@@ -5,6 +5,7 @@ import { Icon } from '@/components/ui/Icon';
 
 interface EventsPageActionsProps {
   draftsCount: number;
+  duplicatesCount: number;
   onViewDrafts: () => void;
   onMergeEvents: () => void;
   onViewDuplicates: () => void;
@@ -13,6 +14,7 @@ interface EventsPageActionsProps {
 
 export function EventsPageActions({
   draftsCount,
+  duplicatesCount,
   onViewDrafts,
   onMergeEvents,
   onViewDuplicates,
@@ -20,8 +22,6 @@ export function EventsPageActions({
 }: EventsPageActionsProps) {
   const { t } = useTranslation();
   const [showMenu, setShowMenu] = useState(false);
-
-  const hasDrafts = draftsCount > 0;
 
   const handleActionClick = (action: () => void) => {
     setShowMenu(false);
@@ -42,11 +42,13 @@ export function EventsPageActions({
     }
   };
 
-  const draftsBadge = hasDrafts && (
+  const badge = (count: number) => (
     <span className="bg-dn-error text-white text-[10px] leading-tight font-semibold px-1.5 py-0.5 rounded-full min-w-4.5 text-center inline-block">
-      {draftsCount}
+      {count}
     </span>
   );
+
+  const totalBadgeCount = draftsCount + duplicatesCount;
 
   return (
     <div className="relative" onBlur={handleBlur} onKeyDown={handleKeyDown}>
@@ -61,7 +63,7 @@ export function EventsPageActions({
         >
           <Icon name="more_horiz" className="text-sm" />
           {t('common.moreActions')}
-          {draftsBadge}
+          {totalBadgeCount > 0 && badge(totalBadgeCount)}
         </Button>
         <Button size="sm" onClick={onNewEvent}>
           <Icon name="add" className="text-sm" />
@@ -78,7 +80,7 @@ export function EventsPageActions({
           >
             <Icon name="edit_note" className="text-base text-dn-primary" />
             <span className="flex-1 text-left">{t('drafts.viewDrafts')}</span>
-            {draftsBadge}
+            {draftsCount > 0 && badge(draftsCount)}
           </button>
           <button
             type="button"
@@ -94,7 +96,8 @@ export function EventsPageActions({
             className="flex w-full items-center gap-2 px-4 py-3 text-sm text-dn-text-main transition-colors hover:bg-dn-surface-low"
           >
             <Icon name="find_replace" className="text-base text-dn-primary" />
-            {t('duplicates.list.viewAll')}
+            <span className="flex-1 text-left">{t('duplicates.list.viewAll')}</span>
+            {duplicatesCount > 0 && badge(duplicatesCount)}
           </button>
           <button
             type="button"

@@ -140,6 +140,8 @@ export function useCreateEvent() {
     mutationFn: (dto: CreateEventDto) => eventsService.create(dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: eventKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['drafts'] });
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -195,6 +197,8 @@ export function useUpdateEvent() {
     onSettled: (_data, _error, { id }) => {
       queryClient.invalidateQueries({ queryKey: eventKeys.all });
       queryClient.invalidateQueries({ queryKey: eventKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['drafts'] });
     },
     onSuccess: () => alert.success(t('common.saved')),
   });
@@ -217,7 +221,11 @@ export function useDeleteEvent() {
       if (context?.previousLists) restoreSnapshot(queryClient, context.previousLists);
       alert.error(resolveErrorMessage(err, t('common.error')));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: eventKeys.all }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: eventKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['drafts'] });
+    },
     onSuccess: () => alert.success(t('common.saved')),
   });
 }
@@ -231,6 +239,8 @@ export function useAddEventRelations() {
       eventsService.addRelations(id, relatedIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: eventKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['drafts'] });
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -246,6 +256,8 @@ export function useRemoveEventRelations() {
       eventsService.removeRelations(id, relatedIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: eventKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['drafts'] });
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -261,6 +273,8 @@ export function useMergeEvents() {
       eventsService.mergeEvents(baseId, sourceIds, groupByNodeIds, categoryId, tagIds, name, description),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: eventKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['drafts'] });
       alert.success(t('events.mergeSuccess'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),

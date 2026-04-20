@@ -52,6 +52,7 @@ export function useCreateTag() {
     mutationFn: (dto: CreateTagDto) => tagsService.create(dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tagKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -91,6 +92,7 @@ export function useUpdateTag() {
     onSettled: (_data, _error, { id }) => {
       queryClient.invalidateQueries({ queryKey: tagKeys.all });
       queryClient.invalidateQueries({ queryKey: tagKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
     },
     onSuccess: () => alert.success(t('common.saved')),
   });
@@ -105,6 +107,7 @@ export function useArchiveTag() {
     mutationFn: (id: number) => tagsService.archive(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tagKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -120,6 +123,7 @@ export function useUnarchiveTag() {
     mutationFn: (id: number) => tagsService.unarchive(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tagKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -143,7 +147,10 @@ export function useDeleteTag() {
       if (context?.previousLists) restoreSnapshot(queryClient, context.previousLists);
       alert.error(resolveErrorMessage(err, t('common.error')));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: tagKeys.all }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: tagKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+    },
     onSuccess: () => alert.success(t('common.saved')),
   });
 }
