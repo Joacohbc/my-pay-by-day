@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.mypaybyday.entity.DuplicateCategoryRecordEntity;
 import com.mypaybyday.entity.DuplicateEventRecordEntity;
@@ -70,12 +73,28 @@ public class DuplicateUtils {
 	 * operations for unmutated entities during the detection sweep.
 	 */
 	public static Map<Long, DuplicateRecordEntity> buildExistingRecordsMap(List<DuplicateRecordEntity> records, Long entityId) {
-		return records.stream()
-			.collect(java.util.stream.Collectors.toMap(
-				record -> record.entityId1.equals(entityId) ? record.entityId2 : record.entityId1,
-				record -> record,
-				(first, second) -> first
+		
+		// This map is build in this way because the key must be the "other" event ID, not the current event ID
+		// to facilitate quick lookups during iteration (performance optimization)
+		Function<DuplicateRecordEntity, Long> extractOtherEventId = record -> 
+			record.entityId1.equals(entityId) ? record.entityId2 : record.entityId1;
+
+		// Build a map of existing records for quick lookup, with conflict resolution to handle potential duplicates in the database
+		Function<DuplicateRecordEntity, DuplicateRecordEntity> identityMapper = record -> record;
+		
+		// In case of multiple records for the same pair (which shouldn't happen but we want to be safe), 
+		// we keep the first one and ignore the rest
+		BinaryOperator<DuplicateRecordEntity> keepFirstOnConflict = (first, second) -> first;
+
+		// Build the existing records map for the current event
+		Map<Long, DuplicateRecordEntity> existingRecordsMap = records.stream()
+			.collect(Collectors.toMap(
+				extractOtherEventId,
+				identityMapper,
+				keepFirstOnConflict
 			));
+			
+		return existingRecordsMap;
 	}
 
 	public static void saveDuplicateRecord(DuplicateRecordRepository duplicateRecordRepository, Long id1, Long id2, EntityType type, double score, Double dateScore, Double amountScore, Double nodeScore, Double categoryScore, Double tagScore, Double nameScore) {

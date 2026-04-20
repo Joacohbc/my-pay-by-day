@@ -13,12 +13,20 @@ import io.quarkus.hibernate.orm.panache.PanacheRepository;
 @ApplicationScoped
 public class DuplicateRecordRepository implements PanacheRepository<DuplicateRecordEntity> {
 
+	/**
+	 * Retrieves duplicates for the UI.
+	 * 
+	 * Implementation note (Optimization): Since the system stores symmetric pairs (A->B and B->A) 
+	 * to facilitate individual queries, the 'entityId1 < entityId2' condition delegates 
+	 * deduplication to the database. It ensures only one representative record per pair 
+	 * is returned, preventing visually duplicated items in the frontend without in-memory filtering.
+	 */
 	public List<DuplicateRecordEntity> findByEntityTypeAndStatus(EntityType type, DuplicateRecordStatus status) {
-		return find("entityType = ?1 and status = ?2", type, status).list();
+		return find("entityType = ?1 and status = ?2 and entityId1 < entityId2", type, status).list();
 	}
 
 	public List<DuplicateRecordEntity> findByEntityIdAndStatus(EntityType type, Long entityId, DuplicateRecordStatus status) {
-		return find("entityType = ?1 and status = ?2 and (entityId1 = ?3 or entityId2 = ?3)", type, status, entityId).list();
+		return find("entityType = ?1 and status = ?2 and entityId1 = ?3", type, status, entityId).list();
 	}
 
 	public List<DuplicateRecordEntity> findAllByEntity(EntityType type, Long entityId) {
