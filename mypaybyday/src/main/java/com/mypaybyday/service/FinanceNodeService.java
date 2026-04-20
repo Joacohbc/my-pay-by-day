@@ -16,7 +16,6 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.LineItemRepository;
-import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.validation.FinanceNodeValidator;
 import io.quarkus.panache.common.Page;
 
@@ -25,19 +24,16 @@ public class FinanceNodeService {
 
 	private final FinanceNodeRepository financeNodeRepository;
 	private final LineItemRepository lineItemRepository;
-	private final TemplateRepository templateRepository;
 	private final Messages messages;
 	private final FinanceNodeValidator financeNodeValidator;
 
 	public FinanceNodeService(
 			FinanceNodeRepository financeNodeRepository,
 			LineItemRepository lineItemRepository,
-			TemplateRepository templateRepository,
 			Messages messages,
 			FinanceNodeValidator financeNodeValidator) {
 		this.financeNodeRepository = financeNodeRepository;
 		this.lineItemRepository = lineItemRepository;
-		this.templateRepository = templateRepository;
 		this.messages = messages;
 		this.financeNodeValidator = financeNodeValidator;
 	}

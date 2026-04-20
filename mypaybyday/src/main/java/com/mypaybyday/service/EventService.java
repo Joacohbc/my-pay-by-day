@@ -65,7 +65,6 @@ public class EventService {
 	private final TagService tagService;
 	private final Messages messages;
 	private final EventValidator eventValidator;
-	private final FileService fileService;
 	private final DraftService entityDraftService;
 	private final Event<DuplicateDetectionEvent> duplicateDetectionEventBus;
 
@@ -76,7 +75,6 @@ public class EventService {
 			TagService tagService,
 			Messages messages,
 			EventValidator eventValidator,
-			FileService fileService,
 			DraftService entityDraftService,
 			Event<DuplicateDetectionEvent> duplicateDetectionEventBus) {
 		this.eventRepository = eventRepository;
@@ -85,7 +83,6 @@ public class EventService {
 		this.tagService = tagService;
 		this.messages = messages;
 		this.eventValidator = eventValidator;
-		this.fileService = fileService;
 		this.entityDraftService = entityDraftService;
 		this.duplicateDetectionEventBus = duplicateDetectionEventBus;
 	}

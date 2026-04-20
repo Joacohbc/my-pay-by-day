@@ -26,8 +26,6 @@ public class TagGroupService {
 	private final TagService tagService;
 	private final Messages messages;
 	private final TagGroupValidator tagGroupValidator;
-	private final TemplateRepository templateRepository;
-	private final SubscriptionRepository subscriptionRepository;
 
 	public TagGroupService(
 			TagGroupRepository tagGroupRepository,
@@ -39,9 +37,7 @@ public class TagGroupService {
 		this.tagGroupRepository = tagGroupRepository;
 		this.tagService = tagService;
 		this.messages = messages;
-		this.tagGroupValidator = tagGroupValidator;
-		this.templateRepository = templateRepository;
-		this.subscriptionRepository = subscriptionRepository;
+		this.tagGroupValidator = tagGroupValidator;;
 	}
 
 	@Transactional

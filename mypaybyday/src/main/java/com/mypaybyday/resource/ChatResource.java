@@ -18,7 +18,6 @@ import jakarta.ws.rs.core.Response;
 import com.mypaybyday.ai.AgentFinanceEventCreator;
 import com.mypaybyday.ai.ChatMemoryOnRAM;
 import com.mypaybyday.dto.ChatResponseDto;
-import com.mypaybyday.i18n.LanguageContext;
 import dev.langchain4j.data.image.Image;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -44,15 +43,12 @@ public class ChatResource {
 	private static final Logger log = Logger.getLogger(ChatResource.class);
 
 	private final AgentFinanceEventCreator agentFinanceEventCreator;
-	private final LanguageContext languageContext;
 	private final ChatMemoryOnRAM chatMemoryBean;
 
 	public ChatResource(
 			AgentFinanceEventCreator agentFinanceEventCreator,
-			LanguageContext languageContext,
 			ChatMemoryOnRAM chatMemoryBean) {
 		this.agentFinanceEventCreator = agentFinanceEventCreator;
-		this.languageContext = languageContext;
 		this.chatMemoryBean = chatMemoryBean;
 	}
 

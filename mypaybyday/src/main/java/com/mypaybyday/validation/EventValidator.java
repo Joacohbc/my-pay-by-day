@@ -25,7 +25,6 @@ public class EventValidator {
 
         regexValidator.validateNameAndDescription(event.name, event.description);
 
-        // TODO: A Transaction can't be null in a Event Creation/Update
         if (event.transaction != null) {
             transactionValidator.validate(event.transaction);
         }
