@@ -505,6 +505,8 @@ const es = {
       scanAll: 'Ejecutar Escaneo Completo',
       scanAllSuccess: 'Escaneo iniciado en segundo plano',
       saved: 'Configuración guardada',
+      weightsSum: 'Suma de pesos: {{sum}}%',
+      weightsSumError: 'Los pesos deben sumar 100%',
     },
     section: {
       title: 'Posibles Duplicados',

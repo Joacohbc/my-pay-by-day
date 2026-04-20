@@ -27,6 +27,15 @@ type FormState = {
   textSimilarityThresholdScore: number;
 };
 
+const WEIGHT_FIELDS: (keyof FormState)[] = [
+  'eventDateWeight',
+  'eventAmountWeight',
+  'eventNodeWeight',
+  'eventCategoryWeight',
+  'eventTagWeight',
+  'eventNameWeight',
+];
+
 const PCT_FIELDS: (keyof Omit<FormState, 'eventTimeThresholdMinutes'>)[] = [
   'eventDateWeight',
   'eventAmountWeight',
@@ -98,6 +107,9 @@ export function DuplicateSettingsPage() {
 
   const isPct = (key: keyof FormState) =>
     (PCT_FIELDS as string[]).includes(key);
+
+  const weightSum = WEIGHT_FIELDS.reduce((acc, key) => acc + (form[key] as number), 0);
+  const weightsValid = weightSum === 100;
 
   const handleSave = () => {
     update.mutate(toApi(form), {
@@ -173,6 +185,12 @@ export function DuplicateSettingsPage() {
             t('duplicates.settings.eventNameWeight'),
             t('duplicates.settings.eventNameWeightHint')
           )}
+          <p className={`text-sm font-medium ${weightsValid ? 'text-green-600' : 'text-red-500'}`}>
+            {weightsValid
+              ? t('duplicates.settings.weightsSum', { sum: weightSum })
+              : `${t('duplicates.settings.weightsSumError')} (${t('duplicates.settings.weightsSum', { sum: weightSum })})`}
+          </p>
+
           {field(
             'eventTotalThresholdScore',
             t('duplicates.settings.totalThreshold'),
@@ -194,7 +212,7 @@ export function DuplicateSettingsPage() {
           >
             {t('duplicates.settings.scanAll')}
           </Button>
-          <Button onClick={handleSave} loading={update.isPending} className="flex-1">
+          <Button onClick={handleSave} loading={update.isPending} className="flex-1" disabled={!weightsValid}>
             {t('common.save')}
           </Button>
         </div>

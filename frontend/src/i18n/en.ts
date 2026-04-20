@@ -506,6 +506,8 @@ const en = {
       scanAll: 'Run Full Scan',
       scanAllSuccess: 'Scan started in background',
       saved: 'Settings saved',
+      weightsSum: 'Weights sum: {{sum}}%',
+      weightsSumError: 'Weights must sum to 100%',
     },
     section: {
       title: 'Potential Duplicates',

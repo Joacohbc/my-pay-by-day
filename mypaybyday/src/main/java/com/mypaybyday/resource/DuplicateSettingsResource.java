@@ -13,6 +13,9 @@ import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.DuplicateDetectionSettingsDto;
 import com.mypaybyday.entity.DuplicateDetectionSettingsEntity;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.DuplicateDetectionSettingsRepository;
 import com.mypaybyday.service.duplicate.DuplicateDetectionService;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -28,6 +31,9 @@ public class DuplicateSettingsResource {
 
 	@Inject
 	DuplicateDetectionService duplicateDetectionService;
+
+	@Inject
+	Messages messages;
 
 	@GET
 	public Response getSettings() {
@@ -59,6 +65,13 @@ public class DuplicateSettingsResource {
 		if (request.eventNameWeight != null) entity.eventNameWeight = request.eventNameWeight;
 		if (request.eventTotalThresholdScore != null) entity.eventTotalThresholdScore = request.eventTotalThresholdScore;
 		if (request.textSimilarityThresholdScore != null) entity.textSimilarityThresholdScore = request.textSimilarityThresholdScore;
+
+		double weightSum = entity.eventDateWeight + entity.eventAmountWeight + entity.eventNodeWeight
+				+ entity.eventCategoryWeight + entity.eventTagWeight + entity.eventNameWeight;
+		if (Math.abs(weightSum - 1.0) > 0.001) {
+			throw new BusinessException(messages.get(MsgKey.DUPLICATE_SETTINGS_WEIGHTS_SUM_INVALID, Math.round(weightSum * 100)));
+		}
+
 		settingsRepository.persist(entity);
 		return Response.ok(request).build();
 	}
