@@ -13,8 +13,8 @@ import {
 } from '@/services/duplicates.service';
 import type { DuplicateDetectionSettings } from '@/models';
 
-// Form state stores weights/thresholds as percentages (0–100) for display.
-// Converted to/from 0–1 fractions when talking to the API.
+// Form state stores weights/thresholds as percentages (0-100) for display.
+// Converted to/from 0-1 fractions when talking to the API.
 type FormState = {
   eventTimeThresholdMinutes: number;
   eventDateWeight: number;
@@ -115,13 +115,14 @@ export function DuplicateSettingsPage() {
 
   const field = (
     key: keyof FormState,
-    labelKey: string,
+    label: string,
+    hint?: string,
     opts?: { min?: number; max?: number; step?: number }
   ) => (
     <Input
       type="number"
-      label={t(labelKey) + (isPct(key) ? ' (%)' : '')}
-      hint={t(`${labelKey}Hint`, { defaultValue: '' }) || undefined}
+      label={label + (isPct(key) ? ' (%)' : '')}
+      hint={hint}
       value={form[key]}
       min={opts?.min ?? 0}
       max={opts?.max ?? (isPct(key) ? 100 : undefined)}
@@ -136,15 +137,52 @@ export function DuplicateSettingsPage() {
 
       <section className="px-5 space-y-4">
         <Card className="space-y-4">
-          {field('eventTimeThresholdMinutes', 'duplicates.settings.eventTimeThreshold', { min: 1 })}
-          {field('eventDateWeight', 'duplicates.settings.eventDateWeight')}
-          {field('eventAmountWeight', 'duplicates.settings.eventAmountWeight')}
-          {field('eventNodeWeight', 'duplicates.settings.eventNodeWeight')}
-          {field('eventCategoryWeight', 'duplicates.settings.eventCategoryWeight')}
-          {field('eventTagWeight', 'duplicates.settings.eventTagWeight')}
-          {field('eventNameWeight', 'duplicates.settings.eventNameWeight')}
-          {field('eventTotalThresholdScore', 'duplicates.settings.totalThreshold')}
-          {field('textSimilarityThresholdScore', 'duplicates.settings.textSimilarityThreshold')}
+          {field(
+            'eventTimeThresholdMinutes',
+            t('duplicates.settings.eventTimeThreshold'),
+            t('duplicates.settings.eventTimeThresholdHint'),
+            { min: 1 }
+          )}
+          {field(
+            'eventDateWeight',
+            t('duplicates.settings.eventDateWeight'),
+            t('duplicates.settings.eventDateWeightHint')
+          )}
+          {field(
+            'eventAmountWeight',
+            t('duplicates.settings.eventAmountWeight'),
+            t('duplicates.settings.eventAmountWeightHint')
+          )}
+          {field(
+            'eventNodeWeight',
+            t('duplicates.settings.eventNodeWeight'),
+            t('duplicates.settings.eventNodeWeightHint')
+          )}
+          {field(
+            'eventCategoryWeight',
+            t('duplicates.settings.eventCategoryWeight'),
+            t('duplicates.settings.eventCategoryWeightHint')
+          )}
+          {field(
+            'eventTagWeight',
+            t('duplicates.settings.eventTagWeight'),
+            t('duplicates.settings.eventTagWeightHint')
+          )}
+          {field(
+            'eventNameWeight',
+            t('duplicates.settings.eventNameWeight'),
+            t('duplicates.settings.eventNameWeightHint')
+          )}
+          {field(
+            'eventTotalThresholdScore',
+            t('duplicates.settings.totalThreshold'),
+            t('duplicates.settings.totalThresholdHint')
+          )}
+          {field(
+            'textSimilarityThresholdScore',
+            t('duplicates.settings.textSimilarityThreshold'),
+            t('duplicates.settings.textSimilarityThresholdHint')
+          )}
         </Card>
 
         <div className="flex gap-3">

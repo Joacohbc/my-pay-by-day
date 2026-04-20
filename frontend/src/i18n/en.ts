@@ -500,7 +500,7 @@ const en = {
       eventNameWeight: 'Name Weight',
       eventNameWeightHint: 'How much name/description similarity contributes.',
       totalThreshold: 'Total Score Threshold',
-      totalThresholdHint: 'Minimum score (0–100) required to flag two events as potential duplicates.',
+      totalThresholdHint: 'Minimum score (0-100) required to flag two events as potential duplicates.',
       textSimilarityThreshold: 'Text Similarity Threshold',
       textSimilarityThresholdHint: 'Minimum text similarity between names to count as a match for events, tags, and categories.',
       scanAll: 'Run Full Scan',

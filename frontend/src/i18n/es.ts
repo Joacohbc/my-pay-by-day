@@ -499,7 +499,7 @@ const es = {
       eventNameWeight: 'Peso del Nombre',
       eventNameWeightHint: 'Importancia de la similitud del nombre/descripción.',
       totalThreshold: 'Umbral de Puntaje Total',
-      totalThresholdHint: 'Puntaje mínimo (0–100) para marcar dos eventos como posibles duplicados.',
+      totalThresholdHint: 'Puntaje mínimo (0-100) para marcar dos eventos como posibles duplicados.',
       textSimilarityThreshold: 'Umbral de Similitud de Texto',
       textSimilarityThresholdHint: 'Similitud mínima entre nombres aplicable a eventos, etiquetas y categorías para considerar que coinciden.',
       scanAll: 'Ejecutar Escaneo Completo',
