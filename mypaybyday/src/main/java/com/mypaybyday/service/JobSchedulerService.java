@@ -13,7 +13,6 @@ import com.mypaybyday.enums.JobStatus;
 import com.mypaybyday.repository.SystemJobRepository;
 import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.service.duplicate.DuplicateDetectionService;
-
 import io.quarkus.scheduler.Scheduled;
 import org.jboss.logging.Logger;
 

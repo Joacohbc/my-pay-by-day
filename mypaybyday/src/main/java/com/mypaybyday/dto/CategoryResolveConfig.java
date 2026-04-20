@@ -1,7 +1,5 @@
 package com.mypaybyday.dto;
 
-import java.util.Set;
-
 /**
  * Configuration for resolving categories from DTOs to entities.
  *

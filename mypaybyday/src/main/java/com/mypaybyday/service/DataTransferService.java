@@ -38,7 +38,6 @@ import com.mypaybyday.validation.CategoryValidator;
 import com.mypaybyday.validation.FinanceNodeValidator;
 import com.mypaybyday.validation.RegexValidator;
 import com.mypaybyday.validation.TagValidator;
-
 import io.quarkus.logging.Log;
 
 @ApplicationScoped

@@ -23,8 +23,6 @@ import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.validation.TagValidator;
-
-import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
 
 @ApplicationScoped

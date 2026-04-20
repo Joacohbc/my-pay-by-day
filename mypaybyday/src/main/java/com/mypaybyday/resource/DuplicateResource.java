@@ -1,6 +1,5 @@
 package com.mypaybyday.resource;
 
-
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -16,7 +15,6 @@ import com.mypaybyday.dto.ResolveDuplicateRequestDto;
 import com.mypaybyday.enums.DuplicateRecordStatus;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.service.duplicate.DuplicateDetectionService;
-
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 @Path("/duplicates")

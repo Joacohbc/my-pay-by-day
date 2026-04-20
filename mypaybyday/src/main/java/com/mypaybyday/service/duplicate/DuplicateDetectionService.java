@@ -5,6 +5,7 @@ import java.util.List;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
+import com.mypaybyday.dto.DuplicateRecordDto;
 import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.DuplicateRecordEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
@@ -15,8 +16,6 @@ import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.DuplicateRecordRepository;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.repository.TagRepository;
-import com.mypaybyday.dto.DuplicateRecordDto;
-
 import org.jboss.logging.Logger;
 
 @ApplicationScoped

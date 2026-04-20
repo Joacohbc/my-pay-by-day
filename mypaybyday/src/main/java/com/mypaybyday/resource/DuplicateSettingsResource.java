@@ -15,7 +15,6 @@ import com.mypaybyday.dto.DuplicateDetectionSettingsDto;
 import com.mypaybyday.entity.DuplicateDetectionSettingsEntity;
 import com.mypaybyday.repository.DuplicateDetectionSettingsRepository;
 import com.mypaybyday.service.duplicate.DuplicateDetectionService;
-
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 @Path("/settings/duplicates")

@@ -3,8 +3,6 @@ package com.mypaybyday.ai;
 import java.math.BigDecimal;
 import java.time.temporal.Temporal;
 import java.util.List;
-import java.util.Set;
-import java.util.HashSet;
 import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;

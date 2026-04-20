@@ -4,7 +4,6 @@ import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
-
 import com.mypaybyday.entity.FinanceLineItemEntity;
 import io.quarkus.hibernate.orm.panache.PanacheRepository;
 

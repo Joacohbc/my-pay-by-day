@@ -1,6 +1,7 @@
 package com.mypaybyday.repository;
 
 import java.util.List;
+
 import jakarta.enterprise.context.ApplicationScoped;
 
 import com.mypaybyday.entity.CategoryEntity;

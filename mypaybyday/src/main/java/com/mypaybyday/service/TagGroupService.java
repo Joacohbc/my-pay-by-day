@@ -2,23 +2,20 @@ package com.mypaybyday.service;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.PagedResponse;
-import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.dto.TagGroupDto;
 import com.mypaybyday.dto.TagResolveConfig;
 import com.mypaybyday.entity.TagGroupEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
+import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TagGroupRepository;
 import com.mypaybyday.repository.TemplateRepository;
-import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.validation.TagGroupValidator;
 import io.quarkus.panache.common.Page;
 
