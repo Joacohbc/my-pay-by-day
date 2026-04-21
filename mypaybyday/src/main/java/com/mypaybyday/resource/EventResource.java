@@ -3,10 +3,12 @@ package com.mypaybyday.resource;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.List;
 
 import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.EventQuery.DateField;
 import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.dto.BulkPatchEventDto;
 import com.mypaybyday.dto.MergeEventsRequestDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.PatchEventDto;
@@ -48,12 +50,16 @@ public class EventResource {
 	@Parameter(description = "Date field to filter on: TRANSACTION, CREATED, UPDATED") @QueryParam("dateField") @DefaultValue("TRANSACTION") DateField dateField,
 	@Parameter(description = "Filter by event type") @QueryParam("type") EventType type,
 	@Parameter(description = "Filter by category ID") @QueryParam("categoryId") Long categoryId,
-	@Parameter(description = "Filter by tag ID") @QueryParam("tagId") Long tagId) {
+	@Parameter(description = "Filter by tag ID") @QueryParam("tagId") Long tagId,
+	@Parameter(description = "Filter by multiple category IDs (OR)") @QueryParam("categoryIds") List<Long> categoryIds,
+	@Parameter(description = "Filter by multiple tag IDs (OR)") @QueryParam("tagIds") List<Long> tagIds,
+	@Parameter(description = "Filter by finance node ID") @QueryParam("nodeId") Long nodeId) {
 
 	return Response.ok(eventService.listAll(EventQuery.builder()
 		.page(page).size(size)
 		.search(search).startDate(startDate).endDate(endDate).dateField(dateField)
 		.type(type).categoryId(categoryId).tagId(tagId)
+		.categoryIds(categoryIds).tagIds(tagIds).nodeId(nodeId)
 		.build())).build();
     }
 
@@ -100,6 +106,21 @@ public class EventResource {
 	@Parameter(description = "ID of the event", required = true) @PathParam("id") Long id,
 	PatchEventDto patch) throws BusinessException {
 	return Response.ok(eventService.update(id, patch)).build();
+    }
+
+    @PATCH
+    @Operation(
+        summary = "Bulk update category and/or tags on multiple events",
+        description = "Applies the same category and/or tag changes to all specified events in one atomic transaction. " +
+            "Uses JsonNullable semantics: absent field = skip, explicit null = clear, value = replace all. " +
+            "Returns the updated list of events.")
+    @APIResponses({
+        @APIResponse(responseCode = "200", description = "All events updated successfully",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
+        @APIResponse(responseCode = "400", description = "Validation error (e.g., event not found, archived category/tag)")
+    })
+    public Response bulkUpdate(BulkPatchEventDto patch) throws BusinessException {
+        return Response.ok(eventService.bulkUpdate(patch)).build();
     }
 
     @DELETE

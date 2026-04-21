@@ -10,6 +10,7 @@ import com.mypaybyday.dto.CategoryBalanceDto;
 import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.PagedResponse;
+import com.mypaybyday.dto.BulkPatchEventDto;
 import com.mypaybyday.dto.PatchEventDto;
 import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.enums.EntityType;
@@ -75,6 +76,11 @@ public class EventService {
 	@Transactional
 	public FinanceEventDto update(Long id, PatchEventDto patch) throws BusinessException {
 		return eventUpdateService.update(id, patch);
+	}
+
+	@Transactional
+	public List<FinanceEventDto> bulkUpdate(BulkPatchEventDto patch) throws BusinessException {
+		return eventUpdateService.bulkUpdate(patch);
 	}
 
 	@Transactional

@@ -42,6 +42,8 @@ public enum MsgKey {
 	EVENT_MERGE_SELF("error.event.merge_self"),
 	EVENT_MERGE_MIXED_TYPES("error.event.merge_mixed_types"),
 	EVENT_MERGE_NO_SOURCES("error.event.merge_no_sources"),
+	EVENT_BULK_NO_IDS("error.event.bulk_no_ids"),
+	EVENT_BULK_EVENTS_NOT_FOUND("error.event.bulk_events_not_found"),
 
 	// ── Finance Node ──────────────────────────────────────
 	NODE_NOT_FOUND("error.node.not_found"),
@@ -109,7 +111,10 @@ public enum MsgKey {
 
 	// ── Selection History ────────────────────────────────
 	SELECTION_HISTORY_ENTITY_TYPE_REQUIRED("error.selection_history.entity_type_required"),
-	SELECTION_HISTORY_ENTITY_ID_REQUIRED("error.selection_history.entity_id_required");
+	SELECTION_HISTORY_ENTITY_ID_REQUIRED("error.selection_history.entity_id_required"),
+
+	// ── Duplicate Settings ───────────────────────────────
+	DUPLICATE_SETTINGS_WEIGHTS_SUM_INVALID("error.duplicate_settings.weights_sum_invalid");
 
 
 	/** The property key used to look up this message in the resource bundle. */

@@ -1,6 +1,7 @@
 package com.mypaybyday.dto;
 
 import com.mypaybyday.enums.EventType;
+import java.util.List;
 
 /**
  * Query parameters for {@link com.mypaybyday.service.event.EventService#listAll}.
@@ -15,7 +16,10 @@ public record EventQuery(
 	DateField dateField,
 	EventType type,
 	Long categoryId,
-	Long tagId
+	Long tagId,
+	List<Long> tagIds,
+	List<Long> categoryIds,
+	Long nodeId
 ) {
 
 	public enum DateField { TRANSACTION, CREATED, UPDATED }
@@ -35,36 +39,25 @@ public record EventQuery(
 		private EventType type;
 		private Long categoryId;
 		private Long tagId;
+		private List<Long> tagIds;
+		private List<Long> categoryIds;
+		private Long nodeId;
 
-		public Builder page(int page)                  { this.page = page; return this; }
-
-
-		public Builder size(int size)                  { this.size = size; return this; }
-
-
-		public Builder search(String search)           { this.search = search; return this; }
-
-
-		public Builder startDate(String startDate)     { this.startDate = startDate; return this; }
-
-
-		public Builder endDate(String endDate)         { this.endDate = endDate; return this; }
-
-
-		public Builder dateField(DateField dateField)  { this.dateField = dateField; return this; }
-
-
-		public Builder type(EventType type)            { this.type = type; return this; }
-
-
-		public Builder categoryId(Long categoryId)     { this.categoryId = categoryId; return this; }
-
-
-		public Builder tagId(Long tagId)               { this.tagId = tagId; return this; }
-
+		public Builder page(int page)                        { this.page = page; return this; }
+		public Builder size(int size)                        { this.size = size; return this; }
+		public Builder search(String search)                 { this.search = search; return this; }
+		public Builder startDate(String startDate)           { this.startDate = startDate; return this; }
+		public Builder endDate(String endDate)               { this.endDate = endDate; return this; }
+		public Builder dateField(DateField dateField)        { this.dateField = dateField; return this; }
+		public Builder type(EventType type)                  { this.type = type; return this; }
+		public Builder categoryId(Long categoryId)           { this.categoryId = categoryId; return this; }
+		public Builder tagId(Long tagId)                     { this.tagId = tagId; return this; }
+		public Builder tagIds(List<Long> tagIds)             { this.tagIds = tagIds; return this; }
+		public Builder categoryIds(List<Long> categoryIds)   { this.categoryIds = categoryIds; return this; }
+		public Builder nodeId(Long nodeId)                   { this.nodeId = nodeId; return this; }
 
 		public EventQuery build() {
-			return new EventQuery(page, size, search, startDate, endDate, dateField, type, categoryId, tagId);
+			return new EventQuery(page, size, search, startDate, endDate, dateField, type, categoryId, tagId, tagIds, categoryIds, nodeId);
 		}
 	}
 }

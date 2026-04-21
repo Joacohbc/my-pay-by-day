@@ -8,6 +8,7 @@ interface EventsPageActionsProps {
   duplicatesCount: number;
   onViewDrafts: () => void;
   onMergeEvents: () => void;
+  onBulkUpdate: () => void;
   onViewDuplicates: () => void;
   onNewEvent: () => void;
 }
@@ -17,6 +18,7 @@ export function EventsPageActions({
   duplicatesCount,
   onViewDrafts,
   onMergeEvents,
+  onBulkUpdate,
   onViewDuplicates,
   onNewEvent,
 }: EventsPageActionsProps) {
@@ -92,20 +94,20 @@ export function EventsPageActions({
           </button>
           <button
             type="button"
+            onClick={() => handleActionClick(onBulkUpdate)}
+            className="flex w-full items-center gap-2 px-4 py-3 text-sm text-dn-text-main transition-colors hover:bg-dn-surface-low"
+          >
+            <Icon name="drive_file_rename_outline" className="text-base text-dn-primary" />
+            {t('events.bulkUpdate')}
+          </button>
+          <button
+            type="button"
             onClick={() => handleActionClick(onViewDuplicates)}
             className="flex w-full items-center gap-2 px-4 py-3 text-sm text-dn-text-main transition-colors hover:bg-dn-surface-low"
           >
             <Icon name="find_replace" className="text-base text-dn-primary" />
             <span className="flex-1 text-left">{t('duplicates.list.viewAll')}</span>
             {duplicatesCount > 0 && badge(duplicatesCount)}
-          </button>
-          <button
-            type="button"
-            onClick={() => handleActionClick(onNewEvent)}
-            className="flex w-full items-center gap-2 px-4 py-3 text-sm text-dn-text-main transition-colors hover:bg-dn-surface-low"
-          >
-            <Icon name="add" className="text-base text-dn-primary" />
-            {t('common.new')}
           </button>
         </div>
       )}

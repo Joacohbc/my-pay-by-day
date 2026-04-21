@@ -11,6 +11,7 @@ import type { ParamConfig } from '@/hooks/useSearchParamsState';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import { PendingEventsSync } from '@/components/events/PendingEventsSync';
 import { MergeEventsModal } from '@/components/events/MergeEventsModal';
+import { BulkUpdateEventsModal } from '@/components/events/BulkUpdateEventsModal';
 import type { Template, EventType } from '@/models';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -102,6 +103,7 @@ export function EventsPage() {
   // --- 3. Modals State ---
   const [showPicker, setShowPicker] = useState(false);
   const [showMerge, setShowMerge] = useState(false);
+  const [showBulkUpdate, setShowBulkUpdate] = useState(false);
 
   const initialMergeIds = useMemo(() => {
     return mergeIdsStr
@@ -190,6 +192,7 @@ export function EventsPage() {
             duplicatesCount={duplicatesCount}
             onViewDrafts={() => navigate(Routes.EVENT_DRAFTS)}
             onMergeEvents={() => setShowMerge(true)}
+            onBulkUpdate={() => setShowBulkUpdate(true)}
             onViewDuplicates={() => navigate(Routes.EVENTS_DUPLICATES)}
             onNewEvent={() => setShowPicker(true)}
           />
@@ -246,10 +249,15 @@ export function EventsPage() {
         onSelect={handlePickTemplate}
       />
 
-      <MergeEventsModal 
-        open={isMergeModalOpen} 
+      <MergeEventsModal
+        open={isMergeModalOpen}
         initialMergeIds={initialMergeIds}
-        onClose={handleCloseMerge} 
+        onClose={handleCloseMerge}
+      />
+
+      <BulkUpdateEventsModal
+        open={showBulkUpdate}
+        onClose={() => setShowBulkUpdate(false)}
       />
     </div>
   );

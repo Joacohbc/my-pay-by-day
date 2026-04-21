@@ -1,4 +1,4 @@
-import type { FinanceEvent, CreateEventDto, PatchEventDto, PagedResponse } from '@/models';
+import type { FinanceEvent, CreateEventDto, PatchEventDto, BulkPatchEventDto, PagedResponse } from '@/models';
 import { api } from '@/services/api';
 
 export type DateField = 'TRANSACTION' | 'CREATED' | 'UPDATED';
@@ -13,6 +13,9 @@ export interface EventFilters {
   type?: string;
   categoryId?: number;
   tagId?: number;
+  categoryIds?: number[];
+  tagIds?: number[];
+  nodeId?: number;
 }
 
 export const eventsService = {
@@ -28,6 +31,9 @@ export const eventsService = {
     if (filters.type && filters.type !== 'ALL') params.append('type', filters.type);
     if (filters.categoryId) params.append('categoryId', filters.categoryId.toString());
     if (filters.tagId) params.append('tagId', filters.tagId.toString());
+    filters.categoryIds?.forEach((id) => params.append('categoryIds', id.toString()));
+    filters.tagIds?.forEach((id) => params.append('tagIds', id.toString()));
+    if (filters.nodeId) params.append('nodeId', filters.nodeId.toString());
 
     return api.get<PagedResponse<FinanceEvent>>(`/events?${params.toString()}`);
   },
@@ -42,4 +48,6 @@ export const eventsService = {
     api.delete<FinanceEvent>(`/events/${id}/relations`, relatedIds),
   mergeEvents: (baseId: number, sourceIds: number[], groupByNodeIds: number[], categoryId: number | null, tagIds: number[], name: string, description: string) =>
     api.post<FinanceEvent>(`/events/${baseId}/merge`, { sourceIds, groupByNodeIds, categoryId, tagIds, name, description }),
+  bulkUpdate: (dto: BulkPatchEventDto) =>
+    api.patch<FinanceEvent[]>('/events', dto),
 };

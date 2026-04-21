@@ -1,14 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { useEvents, useMergeEvents } from '@/hooks/useEvents';
+import { useMergeEvents } from '@/hooks/useEvents';
 import { eventsService } from '@/services/events.service';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
-import { EventSelectionList } from '@/components/events/EventSelectionList';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { EventMultiSelectModal } from '@/components/events/EventMultiSelectModal';
 import { formatCurrency, eventNetAmount } from '@/lib/format';
 import { Routes } from '@/lib/routes';
 import { aiService } from '@/services/ai.service';
@@ -33,8 +32,6 @@ export function MergeEventsModal({
   const mergeEvents = useMergeEvents();
 
   const [step, setStep] = useState<MergeStep>('select-base');
-  const [page, setPage] = useState(0);
-  const [search, setSearch] = useState('');
   const [baseEvent, setBaseEvent] = useState<FinanceEvent | null>(null);
   const [selectedSourceIds, setSelectedSourceIds] = useState<Set<number>>(new Set());
   const [groupByNodeIds, setGroupByNodeIds] = useState<Set<number>>(new Set());
@@ -60,8 +57,6 @@ export function MergeEventsModal({
     }
   }, [open, initialMergeIds, extraEvents.length]);
 
-  const { data: paged, isLoading, error } = useEvents({ page });
-
   const handleClose = () => {
     setStep('select-base');
     setBaseEvent(null);
@@ -71,8 +66,6 @@ export function MergeEventsModal({
     setSelectedTagIds(new Set());
     setMergedName('');
     setMergedDescription('');
-    setSearch('');
-    setPage(0);
     setExtraEvents([]);
     onClose();
   };
@@ -80,25 +73,15 @@ export function MergeEventsModal({
   const handleSelectBase = (event: FinanceEvent) => {
     setBaseEvent(event);
     setSelectedSourceIds(new Set());
+    setExtraEvents([event]);
     setStep('select-sources');
   };
 
-  const handleToggleSource = (id: number) => {
-    setSelectedSourceIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const pagedEvents = useMemo(() => paged?.content || [], [paged]);
   const allEvents = useMemo(() => {
     const map = new Map<number, FinanceEvent>();
     extraEvents.forEach((e) => map.set(e.id, e));
-    pagedEvents.forEach((e) => map.set(e.id, e));
     return Array.from(map.values());
-  }, [pagedEvents, extraEvents]);
+  }, [extraEvents]);
 
   const sourceEvents = allEvents.filter((e) => selectedSourceIds.has(e.id));
 
@@ -138,11 +121,6 @@ export function MergeEventsModal({
     sourceEvents.forEach(addTags);
     return Array.from(tagMap.values());
   }, [baseEvent, sourceEvents]);
-
-  const handleGoToGrouping = () => {
-    setGroupByNodeIds(new Set(allNodes.map((n) => n.id)));
-    setStep('configure-grouping');
-  };
 
   const handleGoToMeta = () => {
     // Default: base event's name, description, category and union of all tags
@@ -206,21 +184,6 @@ export function MergeEventsModal({
     navigate(Routes.EVENT_DETAIL(merged.id));
   };
 
-  const baseFilteredEvents = allEvents.filter((e) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    const matchesName = e.name.toLowerCase().includes(q) || e.description?.toLowerCase().includes(q);
-    const matchesCategory = e.category?.name.toLowerCase().includes(q);
-    return matchesName || matchesCategory;
-  });
-
-  const sourceFilteredEvents = baseFilteredEvents.filter((e) => {
-    if (!baseEvent) return false;
-    if (e.id === baseEvent.id) return false;
-    if (e.type !== baseEvent.type) return false;
-    return true;
-  });
-
   const mergedTotal = baseEvent
     ? eventNetAmount(baseEvent) +
       Array.from(selectedSourceIds).reduce((sum, id) => {
@@ -237,89 +200,63 @@ export function MergeEventsModal({
     'confirm': t('events.mergeConfirm'),
   };
 
+  const handleConfirmBaseSelection = async (selectedIds: Set<number>) => {
+    const selectedBaseId = Array.from(selectedIds)[0];
+    if (!selectedBaseId) return;
+    const selectedBaseEvent = await eventsService.getById(selectedBaseId);
+    handleSelectBase(selectedBaseEvent);
+  };
+
+  const handleConfirmSourceSelection = async (selectedIds: Set<number>) => {
+    if (!baseEvent) return;
+    const sourceIds = Array.from(selectedIds).filter((id) => id !== baseEvent.id);
+    const selectedSources = await Promise.all(sourceIds.map((id) => eventsService.getById(id)));
+    setSelectedSourceIds(new Set(sourceIds));
+    setExtraEvents([baseEvent, ...selectedSources]);
+
+    const nodeIds = new Set<number>();
+    [baseEvent, ...selectedSources].forEach((event) => {
+      event.lineItems.forEach((lineItem) => nodeIds.add(lineItem.financeNodeId));
+    });
+    setGroupByNodeIds(nodeIds);
+    setStep('configure-grouping');
+  };
+
+  if (step === 'select-base') {
+    return (
+      <EventMultiSelectModal
+        open={open}
+        onClose={handleClose}
+        title={stepTitle[step]}
+        onConfirm={handleConfirmBaseSelection}
+        confirmLabel={t('common.next')}
+        minSelection={1}
+        maxSelection={1}
+      />
+    );
+  }
+
+  if (step === 'select-sources' && baseEvent) {
+    return (
+      <EventMultiSelectModal
+        open={open}
+        onClose={handleClose}
+        onCancel={() => setStep('select-base')}
+        title={stepTitle[step]}
+        onConfirm={handleConfirmSourceSelection}
+        confirmLabel={t('common.next')}
+        cancelLabel={t('common.back')}
+        minSelection={1}
+        initialSelectedIds={selectedSourceIds}
+        excludeEventIds={new Set([baseEvent.id])}
+        eventFilters={{ type: baseEvent.type }}
+      />
+    );
+  }
+
   return (
     <Modal open={open} onClose={handleClose} title={stepTitle[step]}>
       <div className="space-y-4">
-
-        {step === 'select-base' && (
-          <EventSelectionList
-            events={baseFilteredEvents}
-            isLoading={isLoading}
-            error={error}
-            search={search}
-            onSearchChange={setSearch}
-            searchPlaceholder={t('events.searchPlaceholder')}
-            emptyStateTitle={search ? t('events.noEventsFoundSearch') : t('events.noEventsFound')}
-            onSelectEvent={handleSelectBase}
-            selectionIndicator="radio"
-            selectedIds={new Set()}
-            maxHeightClass="max-h-[50vh]"
-            pagination={{
-              page,
-              totalPages: paged?.totalPages ?? 1,
-              onPageChange: setPage,
-              hideWhenSearching: true,
-            }}
-          />
-        )}
-
-        {step === 'select-sources' && baseEvent && (
-          <>
-            <div className="flex items-center gap-2 p-3 rounded-2xl bg-dn-surface border border-dn-primary/30">
-              <Icon name="flag" className="text-dn-primary text-base shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-dn-text-muted">{t('events.mergeBaseEvent')}</p>
-                <p className="text-sm font-medium text-dn-text-main truncate">{baseEvent.name}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => { setStep('select-base'); setSelectedSourceIds(new Set()); }}
-                className="text-dn-text-muted hover:text-dn-primary transition-colors"
-              >
-                <Icon name="edit" className="text-base" />
-              </button>
-            </div>
-
-            {sourceFilteredEvents.length === 0 && !isLoading ? (
-              <EmptyState title={t('events.mergeNoCompatible')} />
-            ) : (
-              <EventSelectionList
-                events={sourceFilteredEvents}
-                isLoading={isLoading}
-                error={error}
-                search={search}
-                onSearchChange={setSearch}
-                searchPlaceholder={t('events.searchPlaceholder')}
-                emptyStateTitle={search ? t('events.noEventsFoundSearch') : t('events.noEventsFound')}
-                onSelectEvent={(event) => handleToggleSource(event.id)}
-                selectionIndicator="checkbox"
-                selectedIds={selectedSourceIds}
-                maxHeightClass="max-h-[50vh]"
-                pagination={{
-                  page,
-                  totalPages: paged?.totalPages ?? 1,
-                  onPageChange: setPage,
-                  hideWhenSearching: true,
-                }}
-              />
-            )}
-
-            {selectedSourceIds.size > 0 && (
-              <p className="text-xs text-dn-primary font-medium px-1">
-                {t('events.selectedCount', { count: selectedSourceIds.size })}
-              </p>
-            )}
-
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setStep('select-base')}>
-                {t('common.back')}
-              </Button>
-              <Button onClick={handleGoToGrouping} disabled={selectedSourceIds.size === 0}>
-                {t('common.next')}
-              </Button>
-            </div>
-          </>
-        )}
 
         {step === 'configure-grouping' && (
           <ConfigureGroupingStep

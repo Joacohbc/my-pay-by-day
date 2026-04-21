@@ -29,7 +29,7 @@ public class DuplicateDetectionSettingsEntity extends BaseEntity {
 	 */
 	@Builder.Default
 	@NotNull
-	public Double eventDateWeight = 0.1;
+	public Double eventDateWeight = 0.6;
 
 	/**
 	 * Represents the influence of numeric values (money spent/received) in the total calculated score for Events.
@@ -43,28 +43,28 @@ public class DuplicateDetectionSettingsEntity extends BaseEntity {
 	 */
 	@Builder.Default
 	@NotNull
-	public Double eventNodeWeight = 0.3;
+	public Double eventNodeWeight = 0.02;
 
 	/**
 	 * Represents the influence of an identical category assignation in the total calculated score for Events.
 	 */
 	@Builder.Default
 	@NotNull
-	public Double eventCategoryWeight = 0.1;
+	public Double eventCategoryWeight = 0.02;
 
 	/**
 	 * Represents the influence of identical intersecting tags in the total calculated score for Events.
 	 */
 	@Builder.Default
 	@NotNull
-	public Double eventTagWeight = 0.1;
+	public Double eventTagWeight = 0.02;
 
 	/**
 	 * Represents the influence of structural sequence matching for event names in the total calculated score for Events.
 	 */
 	@Builder.Default
 	@NotNull
-	public Double eventNameWeight = 0.2;
+	public Double eventNameWeight = 0.04;
 
 	/**
 	 * Value threshold that the combined weights must exceed to consider any two events potential duplicates.
