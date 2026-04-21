@@ -109,14 +109,6 @@ export function EventsPageActions({
             <span className="flex-1 text-left">{t('duplicates.list.viewAll')}</span>
             {duplicatesCount > 0 && badge(duplicatesCount)}
           </button>
-          <button
-            type="button"
-            onClick={() => handleActionClick(onNewEvent)}
-            className="flex w-full items-center gap-2 px-4 py-3 text-sm text-dn-text-main transition-colors hover:bg-dn-surface-low"
-          >
-            <Icon name="add" className="text-base text-dn-primary" />
-            {t('common.new')}
-          </button>
         </div>
       )}
     </div>
