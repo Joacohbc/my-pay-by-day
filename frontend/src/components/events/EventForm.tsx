@@ -179,9 +179,43 @@ export function EventForm({
   const buildAiContext = () => {
     const values = getValues();
     const parts: string[] = [];
+
     if (values.name) parts.push(`Name: ${values.name}`);
     if (values.description) parts.push(`Description: ${values.description}`);
     if (values.type) parts.push(`Type: ${values.type}`);
+    if (values.transactionDate) parts.push(`Date: ${values.transactionDate}`);
+
+    if (values.categoryId) {
+      const category = categories.find((c) => String(c.id) === values.categoryId);
+      if (category) {
+        let catLine = `Category: ${category.name}`;
+        if (category.description) catLine += ` (${category.description})`;
+        parts.push(catLine);
+      }
+    }
+
+    if (values.tagIds?.length) {
+      const selectedTags = tags.filter((tag) => values.tagIds!.includes(String(tag.id)));
+      if (selectedTags.length > 0) {
+        const tagLines = selectedTags.map((tag) => {
+          let line = `- ${tag.name}`;
+          if (tag.description) line += ` (${tag.description})`;
+          return line;
+        });
+        parts.push(`Tags:\n${tagLines.join('\n')}`);
+      }
+    }
+
+    const filledLineItems = values.lineItems.filter((li) => li.nodeId);
+    if (filledLineItems.length > 0) {
+      const nodeLines = filledLineItems.map((li) => {
+        const node = nodes.find((n) => String(n.id) === li.nodeId);
+        const nodeName = node ? node.name : `Node ${li.nodeId}`;
+        return `- ${nodeName}: ${li.amount}`;
+      });
+      parts.push(`Nodes:\n${nodeLines.join('\n')}`);
+    }
+
     return parts.join('\n');
   };
 
