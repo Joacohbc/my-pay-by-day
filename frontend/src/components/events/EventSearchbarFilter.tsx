@@ -143,13 +143,19 @@ export function EventSearchbarFilter({
                   type="date"
                   label={t('events.startDate')}
                   value={filters.startDate}
-                  onChange={(event) => onStartDateChange(event.target.value)}
+                  onChange={(event) => {
+                    onStartDateChange(event.target.value);
+                    onPageReset?.();
+                  }}
                 />
                 <Input
                   type="date"
                   label={t('events.endDate')}
                   value={filters.endDate}
-                  onChange={(event) => onEndDateChange(event.target.value)}
+                  onChange={(event) => {
+                    onEndDateChange(event.target.value);
+                    onPageReset?.();
+                  }}
                 />
               </div>
 

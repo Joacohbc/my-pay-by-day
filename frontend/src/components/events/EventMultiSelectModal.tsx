@@ -134,7 +134,6 @@ export function EventMultiSelectModal({
   };
 
   const toggleFilters = () => {
-    if (showFilters && hasAnyFilter) resetFilters();
     setShowFilters((v) => !v);
   };
 

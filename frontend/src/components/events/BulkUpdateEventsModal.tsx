@@ -86,7 +86,6 @@ export function BulkUpdateEventsModal({
   };
 
   const toggleFilters = () => {
-    if (showFilters && hasAnyFilter) resetFilters();
     setShowFilters((v) => !v);
   };
 
