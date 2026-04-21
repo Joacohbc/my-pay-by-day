@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Icon } from '@/components/ui/Icon';
 import { useAlert } from '@/contexts/AlertContext';
 import { Routes } from '@/lib/routes';
 import {
@@ -77,12 +78,12 @@ function toApi(f: FormState): Omit<DuplicateDetectionSettings, 'id'> {
 
 const DEFAULT: FormState = {
   eventTimeThresholdMinutes: 60,
-  eventDateWeight: 10,
+  eventDateWeight: 60,
   eventAmountWeight: 30,
-  eventNodeWeight: 30,
-  eventCategoryWeight: 10,
-  eventTagWeight: 10,
-  eventNameWeight: 20,
+  eventNodeWeight: 2,
+  eventCategoryWeight: 2,
+  eventTagWeight: 2,
+  eventNameWeight: 4,
   eventTotalThresholdScore: 80,
   textSimilarityThresholdScore: 85,
 };
@@ -110,6 +111,7 @@ export function DuplicateSettingsPage() {
 
   const weightSum = WEIGHT_FIELDS.reduce((acc, key) => acc + (form[key] as number), 0);
   const weightsValid = weightSum === 100;
+  const weightMessage = t('duplicates.settings.weightsSum', { sum: weightSum });
 
   const handleSave = () => {
     update.mutate(toApi(form), {
@@ -185,11 +187,21 @@ export function DuplicateSettingsPage() {
             t('duplicates.settings.eventNameWeight'),
             t('duplicates.settings.eventNameWeightHint')
           )}
-          <p className={`text-sm font-medium ${weightsValid ? 'text-green-600' : 'text-red-500'}`}>
-            {weightsValid
-              ? t('duplicates.settings.weightsSum', { sum: weightSum })
-              : `${t('duplicates.settings.weightsSumError')} (${t('duplicates.settings.weightsSum', { sum: weightSum })})`}
-          </p>
+          <div
+            className={[
+              'flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium',
+              weightsValid
+                ? 'border-dn-success/30 bg-dn-success/10 text-dn-success'
+                : 'border-dn-error/30 bg-dn-error/10 text-dn-error',
+            ].join(' ')}
+          >
+            <Icon name={weightsValid ? 'check_circle' : 'error'} className="text-base" />
+            <span>
+              {weightsValid
+                ? weightMessage
+                : `${t('duplicates.settings.weightsSumError')} (${weightMessage})`}
+            </span>
+          </div>
 
           {field(
             'eventTotalThresholdScore',
