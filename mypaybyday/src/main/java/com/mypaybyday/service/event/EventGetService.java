@@ -44,15 +44,15 @@ public class EventGetService {
 
 	@Transactional
 	public PagedResponse<FinanceEventDto> listAll(EventQuery queryRequest) {
-		StringBuilder query = new StringBuilder("1=1");
+		StringBuilder query = new StringBuilder("select e from FinanceEvent e where 1=1");
 		Map<String, Object> params = new HashMap<>();
 
 		DateField dateField = queryRequest.dateField() != null ? queryRequest.dateField() : DateField.TRANSACTION;
 		boolean instantDateField = dateField == DateField.CREATED || dateField == DateField.UPDATED;
 		String dateFieldExpression = switch (dateField) {
-			case CREATED -> "createdAt";
-			case UPDATED -> "updatedAt";
-			case TRANSACTION -> "transaction.transactionDate";
+			case CREATED -> "e.createdAt";
+			case UPDATED -> "e.updatedAt";
+			case TRANSACTION -> "e.transaction.transactionDate";
 		};
 
 		if (queryRequest.startDate() != null && !queryRequest.startDate().isBlank()) {
@@ -74,32 +74,32 @@ public class EventGetService {
 		}
 
 		if (queryRequest.type() != null) {
-			query.append(" and type = :type");
+			query.append(" and e.type = :type");
 			params.put("type", queryRequest.type());
 		}
 
 		if (queryRequest.categoryId() != null) {
-			query.append(" and category.id = :categoryId");
+			query.append(" and e.category.id = :categoryId");
 			params.put("categoryId", queryRequest.categoryId());
 		}
 
 		if (queryRequest.categoryIds() != null && !queryRequest.categoryIds().isEmpty()) {
-			query.append(" and category.id in :categoryIds");
+			query.append(" and e.category.id in :categoryIds");
 			params.put("categoryIds", queryRequest.categoryIds());
 		}
 
 		if (queryRequest.tagId() != null) {
-			query.append(" and exists (select t from Tag t where t.id = :tagId and t member of tags)");
+			query.append(" and exists (select t from Tag t where t.id = :tagId and t member of e.tags)");
 			params.put("tagId", queryRequest.tagId());
 		}
 
 		if (queryRequest.tagIds() != null && !queryRequest.tagIds().isEmpty()) {
-			query.append(" and exists (select t from Tag t where t.id in :tagIds and t member of tags)");
+			query.append(" and exists (select t from Tag t where t.id in :tagIds and t member of e.tags)");
 			params.put("tagIds", queryRequest.tagIds());
 		}
 
 		if (queryRequest.nodeId() != null) {
-			query.append(" and exists (select li from FinanceLineItem li where li.transaction = transaction and li.financeNode.id = :nodeId)");
+			query.append(" and exists (select li from FinanceLineItem li where li member of e.transaction.lineItems and li.financeNode.id = :nodeId)");
 			params.put("nodeId", queryRequest.nodeId());
 		}
 
