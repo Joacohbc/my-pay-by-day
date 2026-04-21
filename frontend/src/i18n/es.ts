@@ -154,7 +154,6 @@ const es = {
     mergeMetaTagsTitle: 'Tags',
     mergeMetaTagsHint: 'Seleccioná los tags que querés conservar en el evento mergeado.',
     mergeBaseEvent: 'Evento base',
-    mergeNoCompatible: 'No hay eventos compatibles (se requiere el mismo tipo)',
     mergeTotalAmount: 'Total combinado',
     mergeWarning: '{{count}} evento(s) será(n) eliminados permanentemente luego del merge.',
     mergeConfirmAction: 'Mergear y eliminar fuentes',

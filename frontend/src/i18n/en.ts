@@ -155,7 +155,6 @@ const en = {
     mergeMetaTagsTitle: 'Tags',
     mergeMetaTagsHint: 'Select the tags to keep on the merged event.',
     mergeBaseEvent: 'Base event',
-    mergeNoCompatible: 'No compatible events (same type required)',
     mergeTotalAmount: 'Combined total',
     mergeWarning: '{{count}} event(s) will be permanently deleted after merging.',
     mergeConfirmAction: 'Merge & delete sources',
