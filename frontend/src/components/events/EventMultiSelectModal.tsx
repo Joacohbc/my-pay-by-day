@@ -141,6 +141,12 @@ export function EventMultiSelectModal({
     <Modal open={open} onClose={handleClose} title={title}>
       <div className="space-y-4">
         <EventSearchbarFilter
+          search={search}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(0);
+          }}
+          searchPlaceholder={t('events.searchPlaceholder')}
           showFilters={showFilters}
           hasAnyFilter={hasAnyFilter}
           filters={filters}
@@ -157,31 +163,22 @@ export function EventMultiSelectModal({
           onNodeIdChange={setNodeId}
           onPageReset={() => setPage(0)}
         >
-          {(filterButton) => (
-            <EventSelectionList
-              events={allEvents}
-              isLoading={isLoading}
-              error={error}
-              search={search}
-              onSearchChange={(value) => {
-                setSearch(value);
-                setPage(0);
-              }}
-              searchPlaceholder={t('events.searchPlaceholder')}
-              emptyStateTitle={search || hasAnyFilter ? t('events.noEventsFoundSearch') : t('events.noEventsFound')}
-              onSelectEvent={(event) => handleToggle(event.id)}
-              selectionIndicator="checkbox"
-              selectedIds={selectedIds}
-              searchTrailing={filterButton}
-              maxHeightClass="max-h-[40vh]"
-              pagination={{
-                page,
-                totalPages: paged?.totalPages ?? 1,
-                onPageChange: setPage,
-                hideWhenSearching: false,
-              }}
-            />
-          )}
+          <EventSelectionList
+            events={allEvents}
+            isLoading={isLoading}
+            error={error}
+            emptyStateTitle={search || hasAnyFilter ? t('events.noEventsFoundSearch') : t('events.noEventsFound')}
+            onSelectEvent={(event) => handleToggle(event.id)}
+            selectionIndicator="checkbox"
+            selectedIds={selectedIds}
+            maxHeightClass="max-h-[40vh]"
+            pagination={{
+              page,
+              totalPages: paged?.totalPages ?? 1,
+              onPageChange: setPage,
+              hideWhenSearching: false,
+            }}
+          />
         </EventSearchbarFilter>
 
         {selectedIds.size > 0 && (

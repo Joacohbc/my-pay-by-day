@@ -34,8 +34,8 @@ const FILTER_PARAMS = {
   startDate: { key: 'from', defaultValue: '', type: 'string' },
   endDate: { key: 'to', defaultValue: '', type: 'string' },
   dateField: { key: 'df', defaultValue: 'TRANSACTION', type: 'string' },
-  categoryId: { key: 'cat', defaultValue: 0, type: 'number' },
-  tagId: { key: 'tag', defaultValue: 0, type: 'number' },
+  categoryIds: { key: 'cats', defaultValue: '', type: 'string' },
+  tagIds: { key: 'tags', defaultValue: '', type: 'string' },
   mergeIds: { key: 'mergeIds', defaultValue: '', type: 'string' },
 } satisfies Record<string, ParamConfig>;
 
@@ -59,8 +59,8 @@ export function EventsPage() {
     startDate = '',
     endDate = '',
     dateField = 'TRANSACTION',
-    categoryId,
-    tagId,
+    categoryIdsStr = '',
+    tagIdsStr = '',
     mergeIdsStr = '',
   } = useMemo(() => ({
     page: values.page as number | undefined,
@@ -69,17 +69,26 @@ export function EventsPage() {
     startDate: values.startDate as string,
     endDate: values.endDate as string,
     dateField: (values.dateField || 'TRANSACTION') as DateField,
-    categoryId: values.categoryId ? Number(values.categoryId) : undefined,
-    tagId: values.tagId ? Number(values.tagId) : undefined,
+    categoryIdsStr: values.categoryIds as string,
+    tagIdsStr: values.tagIds as string,
     mergeIdsStr: values.mergeIds as string,
   }), [values]);
+
+  const categoryIdsArr = useMemo(
+    () => (categoryIdsStr ? categoryIdsStr.split(',').map(Number).filter(Boolean) : []),
+    [categoryIdsStr]
+  );
+  const tagIdsArr = useMemo(
+    () => (tagIdsStr ? tagIdsStr.split(',').map(Number).filter(Boolean) : []),
+    [tagIdsStr]
+  );
 
   const debouncedSearch = useDebounce(search, 500);
 
   // --- 2. Advanced Filters State ---
   const advancedFilters = useMemo<AdvancedFiltersState>(
-    () => ({ startDate, endDate, dateField, categoryId, tagId }),
-    [startDate, endDate, dateField, categoryId, tagId]
+    () => ({ startDate, endDate, dateField, categoryIds: categoryIdsArr, tagIds: tagIdsArr }),
+    [startDate, endDate, dateField, categoryIdsArr, tagIdsArr]
   );
 
   const setAdvancedFilters = useCallback(
@@ -88,8 +97,8 @@ export function EventsPage() {
         startDate: next.startDate,
         endDate: next.endDate,
         dateField: next.dateField,
-        categoryId: next.categoryId ?? 0,
-        tagId: next.tagId ?? 0,
+        categoryIds: next.categoryIds.length ? next.categoryIds.join(',') : '',
+        tagIds: next.tagIds.length ? next.tagIds.join(',') : '',
         page: 0,
       }),
     [setValues]
@@ -138,8 +147,8 @@ export function EventsPage() {
     endDate,
     dateField,
     type: filter !== 'ALL' ? (filter as EventType) : undefined,
-    categoryId,
-    tagId,
+    categoryIds: categoryIdsArr.length ? categoryIdsArr : undefined,
+    tagIds: tagIdsArr.length ? tagIdsArr : undefined,
   });
 
   const { data: draftEvents } = useFinanceEventDrafts();

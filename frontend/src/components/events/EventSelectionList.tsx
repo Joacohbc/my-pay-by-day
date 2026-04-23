@@ -19,9 +19,9 @@ type EventSelectionListProps = {
   events: FinanceEvent[];
   isLoading: boolean;
   error: unknown;
-  search: string;
-  onSearchChange: (value: string) => void;
-  searchPlaceholder: string;
+  search?: string;
+  onSearchChange?: (value: string) => void;
+  searchPlaceholder?: string;
   emptyStateTitle: string;
   onSelectEvent?: (event: FinanceEvent) => void;
   selectedIds?: ReadonlySet<number>;
@@ -57,22 +57,24 @@ export function EventSelectionList({
   const shouldRenderPagination =
     !!pagination &&
     pagination.totalPages > 1 &&
-    !(pagination.hideWhenSearching && search.length > 0);
+    !(pagination.hideWhenSearching && search?.length ? search.length > 0 : false);
 
   return (
     <>
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-xl" />
-          <input
-            value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
-            placeholder={searchPlaceholder}
-            className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 scheme-dark"
-          />
+      {search !== undefined && (
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-xl" />
+            <input
+              value={search}
+              onChange={(event) => onSearchChange?.(event.target.value)}
+              placeholder={searchPlaceholder}
+              className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 scheme-dark"
+            />
+          </div>
+          {searchTrailing}
         </div>
-        {searchTrailing}
-      </div>
+      )}
 
       <div className={[maxHeightClass, 'overflow-y-auto pr-1 space-y-2'].join(' ')}>
         {isLoading && <div className="py-4 text-center"><Spinner /></div>}
