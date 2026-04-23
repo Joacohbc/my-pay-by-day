@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Routes, saveEventsSearch } from '@/lib/routes';
+import { Routes, saveEventsSearch, eventsRoute } from '@/lib/routes';
 import { useEvents } from '@/hooks/useEvents';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useFinanceEventDrafts } from '@/hooks/useDrafts';
@@ -228,6 +228,7 @@ export function EventsPage() {
       <EventsListView
         events={events}
         isLoading={isLoading}
+        from={eventsRoute()}
         search={search}
         onSearchChange={setSearch}
         searchPlaceholder={t('events.searchPlaceholder')}

@@ -293,7 +293,7 @@ export function DraftsPage() {
     return (
       <Link
         to={targetRoute}
-        state={{ draft }}
+        state={{ draft, from: Routes.EVENT_DRAFTS }}
         className={rowClass}
         onClick={handleClick}
         onPointerDown={() => startLongPress(draft)}

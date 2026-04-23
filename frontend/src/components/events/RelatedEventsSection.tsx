@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -14,13 +14,15 @@ import { Routes } from "@/lib/routes";
 export function RelatedEventsSection({ event }: { event: FinanceEvent }) {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const location = useLocation();
     const removeRelation = useRemoveEventRelations();
 
     const [toRemove, setToRemove] = useState<RelatedEvent | null>(null);
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
 
     const handleCreateAndLink = () => {
-        navigate(Routes.EVENT_NEW, { state: { relatedToEventId: event.id } });
+        const from = (location.state as { from?: string } | null)?.from;
+        navigate(Routes.EVENT_NEW, { state: { relatedToEventId: event.id, from } });
     };
 
     const handleRemove = async () => {
@@ -104,7 +106,7 @@ export function RelatedEventsSection({ event }: { event: FinanceEvent }) {
 										key={related.id}
 										className="group p-2 border border-transparent hover:border-dn-primary/50 transition-colors rounded-2xl flex items-center justify-between gap-5"
 									>
-										<EventCard event={fakeEvent} />
+										<EventCard event={fakeEvent} from={Routes.EVENT_DETAIL(event.id)} />
 										<button
 											type="button"
 											onClick={() => setToRemove(related)}

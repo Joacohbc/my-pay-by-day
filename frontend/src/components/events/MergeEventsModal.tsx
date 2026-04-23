@@ -9,7 +9,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
 import { EventMultiSelectModal } from '@/components/events/EventMultiSelectModal';
 import { formatCurrency, eventNetAmount } from '@/lib/format';
-import { Routes } from '@/lib/routes';
+import { Routes, eventsRoute } from '@/lib/routes';
 import { aiService } from '@/services/ai.service';
 import { useAlert } from '@/contexts/AlertContext';
 import { aiPromptsStore } from '@/store/aiPromptsStore';
@@ -173,7 +173,7 @@ export function MergeEventsModal({
     if (!baseEvent) return;
     const merged = await mergeEvents.mutateAsync({
       baseId: baseEvent.id,
-      sourceIds: Array.from(selectedSourceIds),
+      sourceIds: Array.from(selectedSourceIds), 
       groupByNodeIds: Array.from(groupByNodeIds),
       categoryId: selectedCategoryId,
       tagIds: Array.from(selectedTagIds),
@@ -181,7 +181,7 @@ export function MergeEventsModal({
       description: mergedDescription,
     });
     handleClose();
-    navigate(Routes.EVENT_DETAIL(merged.id));
+    navigate(Routes.EVENT_DETAIL(merged.id), { state: { from: eventsRoute() } });
   };
 
   const mergedTotal = baseEvent

@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Routes } from '@/lib/routes';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -17,6 +17,8 @@ export function EventEditPage() {
   const [resetVersion, setResetVersion] = useState(0);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromRoute = (location.state as { from?: string } | null)?.from;
   const { data: event, refetch: refetchEvent, isLoading } = useEvent(Number(id));
   const { data: fetchedDraft, isLoading: isLoadingDraft } = useFinanceEventDraftByEntityId(Number(id));
 
@@ -49,7 +51,7 @@ export function EventEditPage() {
     if (fetchedDraft?.draftId) {
       await deleteDraft.mutateAsync(fetchedDraft.draftId);
     }
-    navigate(Routes.EVENT_DETAIL(Number(id)));
+    navigate(Routes.EVENT_DETAIL(Number(id)), { state: { from: fromRoute } });
   };
 
   const handleResetDraft = async () => {
@@ -67,7 +69,7 @@ export function EventEditPage() {
 
   const handleSubmit = async (dto: CreateEventDto | PatchEventDto) => {
     // Navigate immediately to optimistically update the UI
-    navigate(Routes.EVENT_DETAIL(id!));
+    navigate(Routes.EVENT_DETAIL(id!), { state: { from: fromRoute } });
 
     // Update the event, it is async so the unmount would happen before the mutation completes
     await updateEvent.mutateAsync({ id: Number(id), dto: dto as PatchEventDto });
@@ -78,7 +80,7 @@ export function EventEditPage() {
     <div className="space-y-4">
       <PageHeader
         title={t('events.editEvent')}
-        back={Routes.EVENT_DETAIL(id!)}
+        back={() => navigate(Routes.EVENT_DETAIL(id!), { state: { from: fromRoute } })}
         action={
           !!fetchedDraft?.draftId && (
             <div className="flex items-center gap-1">

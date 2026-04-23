@@ -38,10 +38,11 @@ export function EventNewPage() {
   const updateDraft = useUpdateFinanceEventDraft();
   const deleteDraft = useDeleteDraft();
 
-  const state = location.state as { template?: Template; draft?: FinanceEvent; relatedToEventId?: number } | null;
+  const state = location.state as { template?: Template; draft?: FinanceEvent; relatedToEventId?: number; from?: string } | null;
   const template = state?.template;
   const draft = state?.draft;
   const relatedToEventId = state?.relatedToEventId;
+  const fromRoute = state?.from;
 
   const templateValues = template ? mapTemplateToEventValues(template) : undefined;
 
@@ -64,9 +65,9 @@ export function EventNewPage() {
       if (currentDraftId) deleteDraft.mutate(currentDraftId);
       if (relatedToEventId) {
         await addRelations.mutateAsync({ id: relatedToEventId, relatedIds: [created.id] });
-        navigate(Routes.EVENT_DETAIL(relatedToEventId), { replace: true });
+        navigate(Routes.EVENT_DETAIL(relatedToEventId), { replace: true, state: { from: fromRoute } });
       } else {
-        navigate(Routes.EVENT_DETAIL(created.id), { replace: true });
+        navigate(Routes.EVENT_DETAIL(created.id), { replace: true, state: { from: eventsRoute() } });
       }
     } else {
       navigate(eventsRoute());
@@ -86,7 +87,7 @@ export function EventNewPage() {
     <div className="space-y-4">
       <PageHeader
         title={t('events.newEventTitle')}
-        back={relatedToEventId ? Routes.EVENT_DETAIL(relatedToEventId) : eventsRoute()}
+        back={() => navigate(relatedToEventId ? Routes.EVENT_DETAIL(relatedToEventId) : eventsRoute(), { state: { from: fromRoute } })}
         action={
           !!currentDraftId && (
             <div className="flex items-center gap-1">
