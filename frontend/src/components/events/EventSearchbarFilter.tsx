@@ -68,10 +68,11 @@ export function EventSearchbarFilter({
     <>
       {showFilters && (
         <div className="space-y-4 rounded-3xl p-4 border border-white/5">
-          <div className="flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center justify-between gap-2 px-1 cursor-pointer"
+            onClick={() => setIsFilterPanelCollapsed((value) => !value)}>
             <button
               type="button"
-              onClick={() => setIsFilterPanelCollapsed((value) => !value)}
+              onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-2 min-w-0"
             >
               <span className="text-sm font-medium text-dn-text-main">{t('common.filters')}</span>
