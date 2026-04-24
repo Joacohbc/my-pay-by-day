@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -13,15 +13,14 @@ import { Routes } from "@/lib/routes";
 
 export function RelatedEventsSection({ event }: { event: FinanceEvent }) {
     const { t } = useTranslation();
-    const navigate = useNavigate();
-    const location = useLocation();
+    const { navigate, state } = useAppNavigation();
     const removeRelation = useRemoveEventRelations();
 
     const [toRemove, setToRemove] = useState<RelatedEvent | null>(null);
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
 
     const handleCreateAndLink = () => {
-        const from = (location.state as { from?: string } | null)?.from;
+        const from = state.from;
         navigate(Routes.EVENT_NEW, { state: { relatedToEventId: event.id, from } });
     };
 

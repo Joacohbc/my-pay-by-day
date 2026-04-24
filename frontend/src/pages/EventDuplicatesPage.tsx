@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { Routes } from '@/lib/routes';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useDuplicates, useResolveDuplicate } from '@/hooks/useDuplicates';
 import { useEvent } from '@/hooks/useEvents';
 import { useAlert } from '@/contexts/AlertContext';
@@ -22,7 +22,7 @@ function ScorePill({ label, value }: { label: string; value?: number }) {
 
 function DuplicatePairCard({ record, index }: { record: DuplicateEventRecord; index: number }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { navigate } = useAppNavigation();
   const alert = useAlert();
   const resolve = useResolveDuplicate();
 

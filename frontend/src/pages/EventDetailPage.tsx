@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { eventsRoute } from '@/lib/routes';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useEvent, useDeleteEvent, useUpdateEvent } from '@/hooks/useEvents';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -46,9 +47,8 @@ const eventTypeConfig = {
 export function EventDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const backRoute = (location.state as { from?: string } | null)?.from ?? eventsRoute();
+  const { navigateBack, fromRoute } = useAppNavigation();
+  const backRoute = fromRoute ?? eventsRoute();
 
   const { data: event, isLoading, error } = useEvent(Number(id));
   const deleteEvent = useDeleteEvent();
@@ -62,7 +62,7 @@ export function EventDetailPage() {
   const net = eventNetAmount(event);
 
   const confirmDelete = () => {
-    navigate(backRoute);
+    navigateBack(eventsRoute());
     deleteEvent.mutate(event.id);
   };
 

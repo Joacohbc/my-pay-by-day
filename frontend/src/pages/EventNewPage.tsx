@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { Routes, eventsRoute } from '@/lib/routes';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { DraftBadge } from '@/components/ui/DraftBadge';
 import { useCreateEvent, useAddEventRelations } from '@/hooks/useEvents';
 import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft } from '@/hooks/useDrafts';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import type { CreateEventDto, PatchEventDto, Template, FinanceEvent, FinanceLineItem } from '@/models';
 import { useDebounceCallback } from '@/hooks/useDebounce';
 import { Icon } from '@/components/ui/Icon';
@@ -30,19 +30,12 @@ function mapTemplateToEventValues(template: Template): Partial<FinanceEvent> {
 
 export function EventNewPage() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { navigate, fromRoute, template, draft, relatedToEventId } = useAppNavigation();
   const createEvent = useCreateEvent();
   const addRelations = useAddEventRelations();
   const createDraft = useCreateFinanceEventDraft();
   const updateDraft = useUpdateFinanceEventDraft();
   const deleteDraft = useDeleteDraft();
-
-  const state = location.state as { template?: Template; draft?: FinanceEvent; relatedToEventId?: number; from?: string } | null;
-  const template = state?.template;
-  const draft = state?.draft;
-  const relatedToEventId = state?.relatedToEventId;
-  const fromRoute = state?.from;
 
   const templateValues = template ? mapTemplateToEventValues(template) : undefined;
 

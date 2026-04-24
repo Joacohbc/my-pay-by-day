@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { Icon } from '@/components/ui/Icon';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
@@ -28,7 +28,7 @@ function DuplicateEventCard({
   currentEventId: number;
 }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { navigate } = useAppNavigation();
   const alert = useAlert();
   const resolve = useResolveDuplicate();
   const otherId = record.entityId1 === currentEventId ? record.entityId2 : record.entityId1;

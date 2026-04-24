@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Routes } from '@/lib/routes';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useDefaultTimePeriod } from '@/hooks/useDefaultTimePeriod';
 import { useTimePeriods } from '@/hooks/useTimePeriods';
 import { TimePeriodDashboard } from '@/components/time-periods/TimePeriodDashboard';
@@ -20,7 +21,7 @@ export function DashboardPage() {
   const { t } = useTranslation();
   const { defaultId } = useDefaultTimePeriod();
   const { data: periods, isLoading } = useTimePeriods();
-  const navigate = useNavigate();
+  const { navigate } = useAppNavigation();
   const [showPicker, setShowPicker] = useState(false);
   const [dynamicPeriod, setDynamicPeriod] = useState<DynamicPeriodOption | null>(null);
 

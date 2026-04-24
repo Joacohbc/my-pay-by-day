@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { useMergeEvents } from '@/hooks/useEvents';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { eventsService } from '@/services/events.service';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -27,7 +27,7 @@ export function MergeEventsModal({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { navigate } = useAppNavigation();
   const alert = useAlert();
   const mergeEvents = useMergeEvents();
 

@@ -1,8 +1,9 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Routes, saveEventsSearch, eventsRoute } from '@/lib/routes';
 import { useEvents } from '@/hooks/useEvents';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useFinanceEventDrafts } from '@/hooks/useDrafts';
 import { useDuplicates } from '@/hooks/useDuplicates';
@@ -41,7 +42,7 @@ const FILTER_PARAMS = {
 
 export function EventsPage() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { navigate } = useAppNavigation();
   const location = useLocation();
 
   // --- 1. URL State Management ---
