@@ -139,6 +139,12 @@ export function BulkUpdateEventsModal({
         {step === 'select' && (
           <>
             <EventSearchbarFilter
+              search={search}
+              onSearchChange={(value) => {
+                setSearch(value);
+                setPage(0);
+              }}
+              searchPlaceholder={t('events.searchPlaceholder')}
               showFilters={showFilters}
               hasAnyFilter={hasAnyFilter}
               filters={eventFilters}
@@ -155,31 +161,22 @@ export function BulkUpdateEventsModal({
               onNodeIdChange={setNodeId}
               onPageReset={() => setPage(0)}
             >
-              {(filterButton) => (
-                <EventSelectionList
-                  events={allEvents}
-                  isLoading={eventsLoading}
-                  error={eventsError}
-                  search={search}
-                  onSearchChange={(value) => {
-                    setSearch(value);
-                    setPage(0);
-                  }}
-                  searchPlaceholder={t('events.searchPlaceholder')}
-                  emptyStateTitle={search || hasAnyFilter ? t('events.noEventsFoundSearch') : t('events.noEventsFound')}
-                  onSelectEvent={(event) => handleToggleEvent(event.id)}
-                  selectionIndicator="checkbox"
-                  selectedIds={selectedEventIds}
-                  maxHeightClass="max-h-[40vh]"
-                  searchTrailing={filterButton}
-                  pagination={{
-                    page,
-                    totalPages: pagedEvents?.totalPages ?? 1,
-                    onPageChange: setPage,
-                    hideWhenSearching: false,
-                  }}
-                />
-              )}
+              <EventSelectionList
+                events={allEvents}
+                isLoading={eventsLoading}
+                error={eventsError}
+                emptyStateTitle={search || hasAnyFilter ? t('events.noEventsFoundSearch') : t('events.noEventsFound')}
+                onSelectEvent={(event) => handleToggleEvent(event.id)}
+                selectionIndicator="checkbox"
+                selectedIds={selectedEventIds}
+                maxHeightClass="max-h-[40vh]"
+                pagination={{
+                  page,
+                  totalPages: pagedEvents?.totalPages ?? 1,
+                  onPageChange: setPage,
+                  hideWhenSearching: false,
+                }}
+              />
             </EventSearchbarFilter>
 
             {selectedEventIds.size > 0 && (

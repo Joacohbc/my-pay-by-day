@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { Routes } from '@/lib/routes';
 import { useDebounce } from '@/hooks/useDebounce';
 import {
@@ -39,7 +40,7 @@ const draftTargetRoute = (draft: FinanceEvent) =>
 
 export function DraftsPage() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { navigate } = useAppNavigation();
   const queryClient = useQueryClient();
 
   const { data: draftEvents, isLoading, error } = useFinanceEventDrafts();
@@ -293,7 +294,7 @@ export function DraftsPage() {
     return (
       <Link
         to={targetRoute}
-        state={{ draft }}
+        state={{ draft, from: Routes.EVENT_DRAFTS }}
         className={rowClass}
         onClick={handleClick}
         onPointerDown={() => startLongPress(draft)}

@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Routes } from '@/lib/routes';
 import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -8,6 +8,7 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { DraftBadge } from '@/components/ui/DraftBadge';
 import { useEvent, useUpdateEvent } from '@/hooks/useEvents';
 import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft, useFinanceEventDraftByEntityId } from '@/hooks/useDrafts';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import type { CreateEventDto, PatchEventDto, FinanceEvent } from '@/models';
 import { useDebounceCallback } from '@/hooks/useDebounce';
 import { Icon } from '@/components/ui/Icon';
@@ -16,7 +17,7 @@ export function EventEditPage() {
   const { t } = useTranslation();
   const [resetVersion, setResetVersion] = useState(0);
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { navigateBack } = useAppNavigation();
   const { data: event, refetch: refetchEvent, isLoading } = useEvent(Number(id));
   const { data: fetchedDraft, isLoading: isLoadingDraft } = useFinanceEventDraftByEntityId(Number(id));
 
@@ -25,14 +26,16 @@ export function EventEditPage() {
   const updateDraft = useUpdateFinanceEventDraft();
   const deleteDraft = useDeleteDraft();
 
-  // This ensures EventForm only receives the initial value fetched by React Query.
-  // Since EventForm manages its own draft state internally, continuously syncing
-  // it with fetchedDraft would trigger a circular re-render cycle via the cache.
-  const draftInitial = useRef<{ data: typeof fetchedDraft; captured: boolean }>({ data: undefined, captured: false });
-  if (!isLoadingDraft && !draftInitial.current.captured) {
-    draftInitial.current = { data: fetchedDraft, captured: true };
-  }
-  const draftToForm = draftInitial.current.data ?? undefined;
+  const draftInitial = useRef<{ data: typeof fetchedDraft | undefined; captured: boolean }>({ data: undefined, captured: false });
+  const [draftToForm, setDraftToForm] = useState<typeof fetchedDraft | undefined>(undefined);
+
+  useEffect(() => {
+    if (!isLoadingDraft && !draftInitial.current.captured) {
+      draftInitial.current = { data: fetchedDraft ?? undefined, captured: true };
+      // eslint-disable-next-line
+      setDraftToForm(fetchedDraft ?? undefined);
+    }
+  }, [isLoadingDraft, fetchedDraft]);
 
   const handleSaveDraft = useCallback(async (dto: Partial<FinanceEvent>) => {
     if (fetchedDraft?.draftId) {
@@ -49,7 +52,7 @@ export function EventEditPage() {
     if (fetchedDraft?.draftId) {
       await deleteDraft.mutateAsync(fetchedDraft.draftId);
     }
-    navigate(Routes.EVENT_DETAIL(Number(id)));
+    navigateBack(Routes.EVENT_DETAIL(Number(id)));
   };
 
   const handleResetDraft = async () => {
@@ -67,7 +70,7 @@ export function EventEditPage() {
 
   const handleSubmit = async (dto: CreateEventDto | PatchEventDto) => {
     // Navigate immediately to optimistically update the UI
-    navigate(Routes.EVENT_DETAIL(id!));
+    navigateBack(Routes.EVENT_DETAIL(id!));
 
     // Update the event, it is async so the unmount would happen before the mutation completes
     await updateEvent.mutateAsync({ id: Number(id), dto: dto as PatchEventDto });
@@ -78,7 +81,7 @@ export function EventEditPage() {
     <div className="space-y-4">
       <PageHeader
         title={t('events.editEvent')}
-        back={Routes.EVENT_DETAIL(id!)}
+        back={() => navigateBack(Routes.EVENT_DETAIL(id!))}
         action={
           !!fetchedDraft?.draftId && (
             <div className="flex items-center gap-1">
@@ -110,7 +113,7 @@ export function EventEditPage() {
           key={resetVersion}
           mode="edit"
           baseValues={event}
-          draftValues={draftToForm}
+          draftValues={draftToForm ?? undefined}
           onSubmit={handleSubmit}
           onChange={debouncedSaveDraft}
           submitLabel={t('events.updateEvent')}

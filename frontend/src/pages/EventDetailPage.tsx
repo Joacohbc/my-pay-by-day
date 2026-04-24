@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { eventsRoute } from '@/lib/routes';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useEvent, useDeleteEvent, useUpdateEvent } from '@/hooks/useEvents';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -46,7 +47,8 @@ const eventTypeConfig = {
 export function EventDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { navigateBack, fromRoute } = useAppNavigation();
+  const backRoute = fromRoute ?? eventsRoute();
 
   const { data: event, isLoading, error } = useEvent(Number(id));
   const deleteEvent = useDeleteEvent();
@@ -60,7 +62,7 @@ export function EventDetailPage() {
   const net = eventNetAmount(event);
 
   const confirmDelete = () => {
-    navigate(eventsRoute());
+    navigateBack(eventsRoute());
     deleteEvent.mutate(event.id);
   };
 
@@ -93,10 +95,10 @@ export function EventDetailPage() {
 
       <PageHeader
         title={t('events.detail')}
-        back={eventsRoute()}
+        back={backRoute}
         action={
           <div className="flex gap-2">
-            <Link to={`/events/${event.id}/edit`}>
+            <Link to={`/events/${event.id}/edit`} state={{ from: backRoute }}>
               <Button variant="secondary" size="sm">
                 <Icon name="edit" className="text-base" />
               </Button>

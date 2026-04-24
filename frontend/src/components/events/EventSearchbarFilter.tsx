@@ -14,6 +14,9 @@ type EventNodeFilterItem = {
 };
 
 type EventSearchbarFilterProps = {
+  search: string;
+  onSearchChange: (value: string) => void;
+  searchPlaceholder?: string;
   showFilters: boolean;
   hasAnyFilter: boolean;
   filters: EventModalFiltersState;
@@ -29,10 +32,13 @@ type EventSearchbarFilterProps = {
   onEndDateChange: (value: string) => void;
   onNodeIdChange: (nodeId: number | undefined) => void;
   onPageReset?: () => void;
-  children: (filterButton: ReactNode) => ReactNode;
+  children?: ReactNode;
 };
 
 export function EventSearchbarFilter({
+  search,
+  onSearchChange,
+  searchPlaceholder,
   showFilters,
   hasAnyFilter,
   filters,
@@ -58,28 +64,15 @@ export function EventSearchbarFilter({
   const hasActiveDateRange = filters.startDate !== '' || filters.endDate !== '';
   const hasActiveNode = filters.nodeId !== undefined;
 
-  const filterButton = (
-    <Button
-      variant={showFilters ? 'primary' : 'secondary'}
-      className="shrink-0 aspect-square p-0 w-4 flex items-center justify-center rounded-input"
-      onClick={onToggleFilters}
-    >
-      {showFilters ? (
-        <Icon name="filter_alt_off" className="text-xl" />
-      ) : (
-        <Icon name="filter_alt" className={`text-xl${hasAnyFilter ? ' text-dn-primary' : ''}`} />
-      )}
-    </Button>
-  );
-
   return (
     <>
       {showFilters && (
         <div className="space-y-4 rounded-3xl p-4 border border-white/5">
-          <div className="flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center justify-between gap-2 px-1 cursor-pointer"
+            onClick={() => setIsFilterPanelCollapsed((value) => !value)}>
             <button
               type="button"
-              onClick={() => setIsFilterPanelCollapsed((value) => !value)}
+              onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-2 min-w-0"
             >
               <span className="text-sm font-medium text-dn-text-main">{t('common.filters')}</span>
@@ -235,7 +228,33 @@ export function EventSearchbarFilter({
         </div>
       )}
 
-      {children(filterButton)}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Icon
+            name="search"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-xl"
+          />
+          <input
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder={searchPlaceholder ?? t('events.searchPlaceholder')}
+            className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 scheme-dark"
+          />
+        </div>
+        <Button
+          variant={showFilters ? 'primary' : 'secondary'}
+          className="shrink-0 aspect-square p-0 w-4 flex items-center justify-center rounded-input"
+          onClick={onToggleFilters}
+        >
+          {showFilters ? (
+            <Icon name="filter_alt_off" className="text-xl" />
+          ) : (
+            <Icon name="filter_alt" className={`text-xl${hasAnyFilter ? ' text-dn-primary' : ''}`} />
+          )}
+        </Button>
+      </div>
+
+      {children}
     </>
   );
 }

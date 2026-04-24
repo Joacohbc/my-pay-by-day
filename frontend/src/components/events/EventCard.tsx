@@ -10,6 +10,7 @@ interface EventCardProps {
   readonly event: FinanceEvent;
   readonly to?: string;
   readonly state?: unknown;
+  readonly from?: string;
 }
 
 const typeConfig = {
@@ -33,7 +34,7 @@ const typeConfig = {
   },
 };
 
-export function EventCard({ event, disableLink }: EventCardProps) {
+export function EventCard({ event, disableLink, from }: EventCardProps) {
   const { t } = useTranslation();
   const cfg = typeConfig[event.type as keyof typeof typeConfig] || typeConfig.OTHER;
   const net = eventNetAmount(event);
@@ -86,7 +87,7 @@ export function EventCard({ event, disableLink }: EventCardProps) {
   }
 
   return (
-    <Link to={finalTo} state={{ draft: event }} className={containerClass}>
+    <Link to={finalTo} state={{ draft: event, from }} className={containerClass}>
       {content}
     </Link>
   );
