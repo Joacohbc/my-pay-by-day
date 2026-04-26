@@ -84,7 +84,7 @@ const CI_MODE = args.includes('--ci');
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
 const SRC = join(ROOT, 'src');
-const I18N_FILE = join(SRC, 'i18n', `${LANG}.ts`);
+const I18N_FILE = join(SRC, 'lib', 'i18n', `${LANG}.ts`);
 
 // ── Phase 1: Extract defined keys ─────────────────────────────────────────────
 
@@ -201,7 +201,7 @@ function parityCheck() {
   const keysByLang = new Map();
 
   for (const lang of ALL_LANGS) {
-    const filePath = join(SRC, 'i18n', `${lang}.ts`);
+    const filePath = join(SRC, 'lib', 'i18n', `${lang}.ts`);
     const obj = parseTranslationFile(filePath);
     keysByLang.set(lang, new Set(flattenKeys(obj)));
   }
