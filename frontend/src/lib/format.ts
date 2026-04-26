@@ -1,6 +1,6 @@
-import i18n from '@/i18n';
+import i18n from '@/lib/i18n';
 import type { FinanceEvent } from '@/models';
-import { getUserTimezone } from '@/utils/dateUtils';
+import { getUserTimezone } from '@/lib/utils/dateUtils';
 
 const LOCALE_MAP: Record<string, string> = {
   en: 'en-US',

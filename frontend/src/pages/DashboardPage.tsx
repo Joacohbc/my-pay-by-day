@@ -8,7 +8,7 @@ import { useTimePeriods } from '@/hooks/useTimePeriods';
 import { TimePeriodDashboard } from '@/components/time-periods/TimePeriodDashboard';
 import { DynamicTimePeriodDashboard } from '@/components/time-periods/DynamicTimePeriodDashboard';
 import { DynamicTimePeriodSelector, type DynamicPeriodOption } from '@/components/time-periods/DynamicTimePeriodSelector';
-import { getDynamicPeriodDates } from '@/utils/dateUtils';
+import { getDynamicPeriodDates } from '@/lib/utils/dateUtils';
 import { getLocalizedNow } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';

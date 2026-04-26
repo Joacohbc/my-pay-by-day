@@ -1,7 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import en from '@/i18n/en';
-import es from '@/i18n/es';
+import en from '@/lib/i18n/en';
+import es from '@/lib/i18n/es';
 
 const LANG_KEY = 'app-language';
 
