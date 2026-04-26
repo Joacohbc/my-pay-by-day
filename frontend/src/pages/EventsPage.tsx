@@ -38,6 +38,7 @@ const FILTER_PARAMS = {
   categoryIds: { key: 'cats', defaultValue: '', type: 'string' },
   tagIds: { key: 'tags', defaultValue: '', type: 'string' },
   mergeIds: { key: 'mergeIds', defaultValue: '', type: 'string' },
+  nodeId: { key: 'node', defaultValue: '', type: 'string' },
 } satisfies Record<string, ParamConfig>;
 
 export function EventsPage() {
@@ -63,6 +64,7 @@ export function EventsPage() {
     categoryIdsStr = '',
     tagIdsStr = '',
     mergeIdsStr = '',
+    nodeIdStr = '',
   } = useMemo(() => ({
     page: values.page as number | undefined,
     search: values.search as string,
@@ -73,12 +75,15 @@ export function EventsPage() {
     categoryIdsStr: values.categoryIds as string,
     tagIdsStr: values.tagIds as string,
     mergeIdsStr: values.mergeIds as string,
+    nodeIdStr: values.nodeId as string,
   }), [values]);
 
   const categoryIdsArr = useMemo(
     () => (categoryIdsStr ? categoryIdsStr.split(',').map(Number).filter(Boolean) : []),
     [categoryIdsStr]
   );
+  const nodeIdNum = useMemo(() => (nodeIdStr ? Number(nodeIdStr) : undefined), [nodeIdStr]);
+
   const tagIdsArr = useMemo(
     () => (tagIdsStr ? tagIdsStr.split(',').map(Number).filter(Boolean) : []),
     [tagIdsStr]
@@ -88,8 +93,8 @@ export function EventsPage() {
 
   // --- 2. Advanced Filters State ---
   const advancedFilters = useMemo<AdvancedFiltersState>(
-    () => ({ startDate, endDate, dateField, categoryIds: categoryIdsArr, tagIds: tagIdsArr }),
-    [startDate, endDate, dateField, categoryIdsArr, tagIdsArr]
+    () => ({ startDate, endDate, dateField, categoryIds: categoryIdsArr, tagIds: tagIdsArr, nodeId: nodeIdNum }),
+    [startDate, endDate, dateField, categoryIdsArr, tagIdsArr, nodeIdNum]
   );
 
   const setAdvancedFilters = useCallback(
@@ -100,6 +105,7 @@ export function EventsPage() {
         dateField: next.dateField,
         categoryIds: next.categoryIds.length ? next.categoryIds.join(',') : '',
         tagIds: next.tagIds.length ? next.tagIds.join(',') : '',
+        nodeId: next.nodeId ? String(next.nodeId) : '',
         page: 0,
       }),
     [setValues]
@@ -150,6 +156,7 @@ export function EventsPage() {
     type: filter !== 'ALL' ? (filter as EventType) : undefined,
     categoryIds: categoryIdsArr.length ? categoryIdsArr : undefined,
     tagIds: tagIdsArr.length ? tagIdsArr : undefined,
+    nodeId: nodeIdNum,
   });
 
   const { data: draftEvents } = useFinanceEventDrafts();
