@@ -20,6 +20,7 @@ import { FilesPage } from '@/pages/FilesPage';
 import { AiSettingsPage } from '@/pages/AiSettingsPage';
 import { DuplicateSettingsPage } from '@/pages/DuplicateSettingsPage';
 import { EventDuplicatesPage } from '@/pages/EventDuplicatesPage';
+import { ShareTargetPage } from '@/pages/ShareTargetPage';
 import { Routes } from '@/lib/routes';
 
 export const router = createBrowserRouter([
@@ -57,6 +58,9 @@ export const router = createBrowserRouter([
       { path: 'settings/files', element: <FilesPage /> },
       { path: 'settings/ai', element: <AiSettingsPage /> },
       { path: 'settings/duplicates', element: <DuplicateSettingsPage /> },
+
+      // Share Target
+      { path: 'share-target', element: <ShareTargetPage /> },
 
       // Fallback
       { path: '*', element: <Navigate to={Routes.DASHBOARD} replace /> },

@@ -24,6 +24,8 @@ export const Routes = {
   SETTINGS_FILES: '/settings/files',
   SETTINGS_AI: '/settings/ai',
   SETTINGS_DUPLICATES: '/settings/duplicates',
+
+  SHARE_TARGET: '/share-target/',
 } as const;
 
 const EVENTS_SEARCH_KEY = 'events.lastSearch';
