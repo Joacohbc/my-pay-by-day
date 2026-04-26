@@ -7,11 +7,13 @@ public record FinanceNodeDto(
 		Long id,
 		String name,
 		FinanceNodeType type,
+		String description,
+		String icon,
 		boolean archived
 ) {
 
 	public static FinanceNodeDto from(FinanceNodeEntity node) {
-		return new FinanceNodeDto(node.id, node.name, node.type, node.archived);
+		return new FinanceNodeDto(node.id, node.name, node.type, node.description, node.icon, node.archived);
 	}
 
 
@@ -20,6 +22,8 @@ public record FinanceNodeDto(
 		node.id = this.id;
 		node.name = this.name;
 		node.type = this.type;
+		node.description = this.description;
+		node.icon = this.icon;
 		node.archived = this.archived;
 		return node;
 	}
