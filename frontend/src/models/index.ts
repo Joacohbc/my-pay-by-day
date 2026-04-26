@@ -56,6 +56,8 @@ export interface UsageStats {
 export interface FinanceNode extends Identifiable {
   name: string;
   type: FinanceNodeType;
+  description?: string;
+  icon?: string;
   archived: boolean;
 }
 
@@ -67,6 +69,7 @@ export type CreateFinanceNodeDto = Omit<FinanceNode, 'id' | 'archived'>;
 export interface FinanceLineItem {
   financeNodeId: number;
   financeNodeName: string;
+  financeNodeIcon?: string;
   amount: number;
 }
 

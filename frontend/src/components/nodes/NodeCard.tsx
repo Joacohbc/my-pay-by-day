@@ -3,6 +3,7 @@ import type { FinanceNode } from '@/models';
 import { formatCurrency, formatCompactCurrency } from '@/lib/format';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
+import { NodeIcon } from '@/components/ui/NodeIcon';
 
 interface NodeCardProps {
   node: FinanceNode;
@@ -14,20 +15,14 @@ interface NodeCardProps {
 
 const nodeTypeConfig = {
   OWN: {
-    icon: 'account_balance_wallet',
-    iconBg: 'bg-dn-primary/10 text-dn-primary',
     labelKey: 'nodeType.OWN',
     badgeVariant: 'indigo' as const,
   },
   EXTERNAL: {
-    icon: 'storefront',
-    iconBg: 'bg-dn-tertiary/10 text-dn-tertiary',
     labelKey: 'nodeType.EXTERNAL',
     badgeVariant: 'neutral' as const,
   },
   CONTACT: {
-    icon: 'group',
-    iconBg: 'bg-dn-success/10 text-dn-success',
     labelKey: 'nodeType.CONTACT',
     badgeVariant: 'income' as const,
   },
@@ -48,11 +43,11 @@ export function NodeCard({ node, balance, onClick, actions, hideTypeBadge }: Nod
         .join(' ')}
       onClick={onClick}
     >
-      <div className={`shrink-0 w-12 h-12 flex items-center justify-center rounded-2xl ${cfg.iconBg}`}>
+      <div className={`shrink-0 w-12 h-12 flex items-center justify-center rounded-2xl`}>
         {node.archived ? (
           <Icon name="archive" className="text-dn-text-muted" />
         ) : (
-          <Icon name={cfg.icon} />
+          <NodeIcon node={node} />
         )}
       </div>
 
