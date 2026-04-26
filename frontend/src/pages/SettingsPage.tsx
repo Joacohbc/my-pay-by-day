@@ -16,7 +16,7 @@ import { useFiles } from '@/hooks/useFiles';
 import { changeLanguage } from '@/i18n';
 import { getCurrency, setCurrency, onCurrencyChange } from '@/lib/format';
 import { commonTimezones } from '@/utils/timezones';
-import { getUserTimezone } from '@/utils/dateUtils';
+import { getUserTimezone, setUserTimezone } from '@/utils/dateUtils';
 import { currenciesList } from '@/utils/currencies';
 import { useAlert } from '@/contexts/AlertContext';
 import { idbRemove } from '@/lib/idbStorage';
@@ -61,7 +61,7 @@ export function SettingsPage() {
   const queryClient = useQueryClient();
   const resetDismissedBanners = useDismissedBannersStore((s) => s.reset);
   const [currency, _setCurrency] = useState(getCurrency);
-  const [timezone, _setTimezone] = useState(() => localStorage.getItem('user-timezone') || '');
+  const [timezone, _setTimezone] = useState(() => getUserTimezone());
   const [isImporting, setIsImporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
   const { data: categoriesPaged } = useCategories();
@@ -129,7 +129,7 @@ export function SettingsPage() {
   };
 
   const handleTimezoneChange = (tz: string) => {
-    localStorage.setItem('user-timezone', tz === '' ? getUserTimezone() : tz);
+    setUserTimezone(tz);
     _setTimezone(tz);
     // Force a reload to quickly apply timezone to all cached date-fns-tz computations across the app
     window.location.reload();

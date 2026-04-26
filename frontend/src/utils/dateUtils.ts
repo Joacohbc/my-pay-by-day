@@ -1,14 +1,25 @@
 // Date utilities to handle timezone conversions between user's local and server's UTC
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 
+const USER_TIMEZONE_KEY = 'user-timezone';
+
 export function getUserTimezone(): string {
-  // Try to get from localStorage, fallback to browser's default
-  const stored = localStorage.getItem('user-timezone');
+  const stored = localStorage.getItem(USER_TIMEZONE_KEY);
   if (stored) return stored;
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   } catch {
     return 'UTC';
+  }
+}
+
+export function setUserTimezone(tz: string): void {
+  localStorage.setItem(USER_TIMEZONE_KEY, tz || getUserTimezone());
+}
+
+export function initUserTimezone(): void {
+  if (!localStorage.getItem(USER_TIMEZONE_KEY)) {
+    localStorage.setItem(USER_TIMEZONE_KEY, getUserTimezone());
   }
 }
 

@@ -3,11 +3,9 @@ import { createRoot } from 'react-dom/client'
 import '@/i18n'
 import '@/index.css'
 import App from '@/App.tsx'
-import { getUserTimezone } from '@/utils/dateUtils'
+import { initUserTimezone } from '@/utils/dateUtils'
 
-if (!localStorage.getItem('user-timezone')) {
-  localStorage.setItem('user-timezone', getUserTimezone());
-}
+initUserTimezone();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
