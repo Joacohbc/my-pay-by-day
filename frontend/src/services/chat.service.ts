@@ -1,4 +1,4 @@
-import i18n from '@/i18n';
+import i18n from '@/lib/i18n';
 import { BASE_URL } from '@/services/api';
 import type { ChatSendParams, ChatResponse } from '@/models/chat';
 

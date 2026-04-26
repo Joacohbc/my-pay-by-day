@@ -5,7 +5,7 @@ import { useAlert } from '@/contexts/AlertContext';
 import { mergeFieldTextWithTranscription } from '@/lib/aiAudioText';
 import { aiService, type AiTextAction } from '@/services/ai.service';
 import type { AiPrompts } from '@/store/aiPromptsStore';
-import { aiPromptsStore } from '@/store/aiPromptsStore';
+import { useAiPromptsStore } from '@/store/aiPromptsStore';
 
 type AiFieldSemantic = 'name' | 'description';
 
@@ -111,6 +111,8 @@ export function useAiFormController<T extends FieldValues>({
     setValue(fieldName, nextValue as never, { shouldDirty });
   };
 
+  const getPromptForAction = useAiPromptsStore((s) => s.getPromptForAction);
+
   const runActionForActiveField = async (mode: 'generate' | 'fix') => {
     if (!activeField) {
       return;
@@ -133,7 +135,7 @@ export function useAiFormController<T extends FieldValues>({
         action: mode === 'generate' ? actionConfig.generateAction : actionConfig.fixAction,
         context: buildContext(),
         currentValue: mode === 'fix' ? currentValue : undefined,
-        customPrompt: aiPromptsStore.getPromptForAction(
+        customPrompt: getPromptForAction(
           mode === 'generate' ? actionConfig.generatePromptKey : actionConfig.fixPromptKey
         ),
       });

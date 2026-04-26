@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { CreateEventDto } from '@/models';
+import { zustandStorage } from '@/lib/idbStorage';
 
 export interface PendingEvent {
   localId: string;
@@ -34,6 +35,9 @@ export const usePendingEventsStore = create<PendingEventsState>()(
         set((s) => ({ pending: s.pending.filter((p) => p.localId !== localId) })),
       clearAll: () => set({ pending: [] }),
     }),
-    { name: 'mpbd-pending-events' }
+    {
+      name: 'mpbd-pending-events',
+      storage: createJSONStorage(() => zustandStorage),
+    }
   )
 );

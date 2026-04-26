@@ -1,4 +1,6 @@
-const STORAGE_KEY = 'ai-prompts';
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { zustandStorage } from '@/lib/idbStorage';
 
 export interface AiPrompts {
   generateName: string;
@@ -6,6 +8,13 @@ export interface AiPrompts {
   fixNameSpelling: string;
   fixDescriptionSpelling: string;
   mergeDescription: string;
+}
+
+interface AiPromptsState {
+  prompts: AiPrompts;
+  setPrompts: (prompts: AiPrompts) => void;
+  setPromptForAction: (action: keyof AiPrompts, value: string) => void;
+  getPromptForAction: (action: keyof AiPrompts) => string;
 }
 
 const DEFAULT_PROMPTS: AiPrompts = {
@@ -16,25 +25,17 @@ const DEFAULT_PROMPTS: AiPrompts = {
   mergeDescription: '',
 };
 
-function loadPrompts(): AiPrompts {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return { ...DEFAULT_PROMPTS };
-    return { ...DEFAULT_PROMPTS, ...JSON.parse(stored) };
-  } catch {
-    return { ...DEFAULT_PROMPTS };
-  }
-}
-
-function savePrompts(prompts: AiPrompts): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(prompts));
-}
-
-export const aiPromptsStore = {
-  get: loadPrompts,
-  set: (prompts: AiPrompts) => savePrompts(prompts),
-  getPromptForAction: (action: keyof AiPrompts): string => {
-    const prompts = loadPrompts();
-    return prompts[action] ?? '';
-  },
-};
+export const useAiPromptsStore = create<AiPromptsState>()(
+  persist(
+    (set, get) => ({
+      prompts: DEFAULT_PROMPTS,
+      setPrompts: (prompts) => set({ prompts }),
+      setPromptForAction: (action, value) =>
+        set((state) => ({
+          prompts: { ...state.prompts, [action]: value },
+        })),
+      getPromptForAction: (action) => get().prompts[action] ?? '',
+    }),
+    { name: 'mpbd-ai-prompts', storage: createJSONStorage(() => zustandStorage) }
+  )
+);

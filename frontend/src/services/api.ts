@@ -1,5 +1,5 @@
-import i18n from '@/i18n';
-import { fromServerDate, toServerDate, transformDates } from '@/utils/dateUtils';
+import i18n from '@/lib/i18n';
+import { fromServerDate, toServerDate, transformDates } from '@/lib/utils/dateUtils';
 
 // In production (Docker) VITE_API_BASE_URL is injected at container startup
 // via /env.js into window.__env__. In dev, Vite exposes it through import.meta.env.

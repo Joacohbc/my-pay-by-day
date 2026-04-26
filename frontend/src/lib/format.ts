@@ -1,5 +1,6 @@
-import i18n from '@/i18n';
+import i18n from '@/lib/i18n';
 import type { FinanceEvent } from '@/models';
+import { getUserTimezone } from '@/lib/utils/dateUtils';
 
 const LOCALE_MAP: Record<string, string> = {
   en: 'en-US',
@@ -82,8 +83,6 @@ export function formatCurrencyShort(amount: number): string {
     maximumFractionDigits: 0,
   }).format(amount);
 }
-
-import { getUserTimezone } from '@/utils/dateUtils';
 
 export function formatDate(input: string | Date): string {
   const date = typeof input === 'string' ? new Date(input) : input;

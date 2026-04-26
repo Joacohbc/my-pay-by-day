@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { zustandStorage } from '@/lib/idbStorage';
 
 export const BANNER_IDS = {
   PERIODS_INFO: 'periods-info',
@@ -27,7 +28,7 @@ export const useDismissedBannersStore = create<DismissedBannersState>()(
         })),
       reset: () => set({ dismissedIds: [] }),
     }),
-    { name: 'mpbd-dismissed-banners' }
+    { name: 'mpbd-dismissed-banners', storage: createJSONStorage(() => zustandStorage) }
   )
 );
 
