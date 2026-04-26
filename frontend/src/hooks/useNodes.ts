@@ -6,10 +6,10 @@ import type { CreateFinanceNodeDto, FinanceNodeType } from '@/models';
 
 export const NODES_KEY = ['financeNodes'] as const;
 
-export function useNodes(page = 0, size = 20, archived?: boolean, type?: FinanceNodeType) {
+export function useNodes(archived?: boolean, type?: FinanceNodeType) {
   return useQuery({
-    queryKey: [...NODES_KEY, page, size, archived, type],
-    queryFn: () => nodesService.getAll(page, size, archived, type),
+    queryKey: [...NODES_KEY, archived, type],
+    queryFn: () => nodesService.getAll(archived, type),
   });
 }
 

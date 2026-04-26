@@ -57,14 +57,14 @@ export function BulkUpdateEventsModal({
   );
 
   const { data: pagedEvents, isLoading: eventsLoading, error: eventsError } = useEvents(combinedFilters);
-  const { data: pagedCategories } = useCategories(0, 100);
-  const { data: pagedTags } = useTags(0, 100);
+  const { data: pagedCategories } = useCategories();
+  const { data: pagedTags } = useTags();
   const { data: nodesPaged } = useNodes();
 
   const allEvents = useMemo(() => pagedEvents?.content ?? [], [pagedEvents]);
-  const categories = useMemo(() => pagedCategories?.content ?? [], [pagedCategories]);
-  const tags = useMemo(() => pagedTags?.content ?? [], [pagedTags]);
-  const nodes = useMemo(() => nodesPaged?.content ?? [], [nodesPaged]);
+  const categories = useMemo(() => pagedCategories ?? [], [pagedCategories]);
+  const tags = useMemo(() => pagedTags ?? [], [pagedTags]);
+  const nodes = useMemo(() => nodesPaged ?? [], [nodesPaged]);
 
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === selectedCategoryId) ?? null,

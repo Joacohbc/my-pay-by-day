@@ -100,18 +100,18 @@ export function EventsListView({
   const { t } = useTranslation();
 
 
-  const { data: nodesResponse } = useNodes(0, 200);
+  const { data: nodesResponse } = useNodes();
   const nodes = Array.isArray(nodesResponse)
     ? nodesResponse
-    : nodesResponse?.content || [];
+    : nodesResponse || [];
 
   const { data: categoriesResponse } = useCategories();
   const categories = Array.isArray(categoriesResponse)
     ? categoriesResponse
-    : categoriesResponse?.content || [];
+    : categoriesResponse || [];
 
   const { data: tagsResponse } = useTags();
-  const tags = Array.isArray(tagsResponse) ? tagsResponse : tagsResponse?.content || [];
+  const tags = Array.isArray(tagsResponse) ? tagsResponse : tagsResponse || [];
 
   const filtersValue = advancedFilters ?? EMPTY_FILTERS;
   const hasAdvancedFilters = hasAnyAdvanced(filtersValue);

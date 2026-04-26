@@ -1,16 +1,13 @@
-import type { FinanceNode, CreateFinanceNodeDto, PagedResponse, FinanceNodeType } from '@/models';
+import type { FinanceNode, CreateFinanceNodeDto, FinanceNodeType } from '@/models';
 import { api } from '@/services/api';
 
 export const nodesService = {
-  getAll: (page = 0, size = 20, archived?: boolean, type?: FinanceNodeType) => {
-    let url = `/finance-nodes?page=${page}&size=${size}`;
-    if (archived !== undefined) {
-      url += `&archived=${archived}`;
-    }
-    if (type !== undefined) {
-      url += `&type=${type}`;
-    }
-    return api.get<PagedResponse<FinanceNode>>(url);
+  getAll: (archived?: boolean, type?: FinanceNodeType) => {
+    const params: string[] = [];
+    if (archived !== undefined) params.push(`archived=${archived}`);
+    if (type !== undefined) params.push(`type=${type}`);
+    const url = params.length ? `/finance-nodes?${params.join('&')}` : '/finance-nodes';
+    return api.get<FinanceNode[]>(url);
   },
   getById: (id: number) => api.get<FinanceNode>(`/finance-nodes/${id}`),
   getBalance: (id: number) => api.get<number>(`/finance-nodes/${id}/balance`),

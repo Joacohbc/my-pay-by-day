@@ -16,7 +16,7 @@ const FIVE_MINUTES_MS = 1000 * 60 * 5;
 export const categoryKeys = {
   all: ['categories'] as const,
   lists: () => [...categoryKeys.all, 'list'] as const,
-  list: (page: number, size: number, archived?: boolean) => [...categoryKeys.lists(), page, size, archived] as const,
+  list: (archived?: boolean) => [...categoryKeys.lists(), archived] as const,
   details: () => [...categoryKeys.all, 'detail'] as const,
   detail: (id: number) => [...categoryKeys.details(), id] as const,
 };
@@ -27,10 +27,10 @@ function resolveErrorMessage(err: unknown, fallbackMessage: string): string {
   return err instanceof Error ? err.message : fallbackMessage;
 }
 
-export function useCategories(page = 0, size = 20, archived?: boolean) {
+export function useCategories(archived?: boolean) {
   return useQuery({
-    queryKey: categoryKeys.list(page, size, archived),
-    queryFn: () => categoriesService.getAll(page, size, archived),
+    queryKey: categoryKeys.list(archived),
+    queryFn: () => categoriesService.getAll(archived),
     staleTime: FIVE_MINUTES_MS,
   });
 }

@@ -1,11 +1,10 @@
-import type { Tag, CreateTagDto, PagedResponse } from '@/models';
+import type { Tag, CreateTagDto } from '@/models';
 import { api } from '@/services/api';
 
 export const tagsService = {
-  getAll: (page = 0, size = 20, archived?: boolean) => {
-    let url = `/tags?page=${page}&size=${size}`;
-    if (archived !== undefined) url += `&archived=${archived}`;
-    return api.get<PagedResponse<Tag>>(url);
+  getAll: (archived?: boolean) => {
+    const url = archived !== undefined ? `/tags?archived=${archived}` : '/tags';
+    return api.get<Tag[]>(url);
   },
   getById: (id: number) => api.get<Tag>(`/tags/${id}`),
   create: (dto: CreateTagDto) => api.post<Tag>('/tags', dto),

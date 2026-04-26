@@ -8,7 +8,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.FinanceNodeDto;
-import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.enums.FinanceNodeType;
 import com.mypaybyday.exception.BusinessException;
@@ -18,7 +17,6 @@ import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.LineItemRepository;
 import com.mypaybyday.service.event.TransactionService;
 import com.mypaybyday.validation.FinanceNodeValidator;
-import io.quarkus.panache.common.Page;
 
 @ApplicationScoped
 public class FinanceNodeService {
@@ -40,7 +38,7 @@ public class FinanceNodeService {
 	}
 
 	@Transactional
-	public PagedResponse<FinanceNodeDto> listAll(int page, int size, Boolean archived, FinanceNodeType type) {
+	public List<FinanceNodeDto> listAll(Boolean archived, FinanceNodeType type) {
 		StringBuilder queryBuilder = new StringBuilder();
 		List<Object> params = new ArrayList<>();
 
@@ -63,14 +61,10 @@ public class FinanceNodeService {
 		}
 
 		Object[] paramsArray = params.toArray();
-		long totalElements = financeNodeRepository.count(query, paramsArray);
-		List<FinanceNodeDto> content = financeNodeRepository.find(query, paramsArray)
-				.page(Page.of(page, size))
+		return financeNodeRepository.find(query, paramsArray)
 				.stream()
 				.map(FinanceNodeDto::from)
 				.toList();
-
-		return PagedResponse.of(content, page, size, totalElements);
 	}
 
 	@Transactional

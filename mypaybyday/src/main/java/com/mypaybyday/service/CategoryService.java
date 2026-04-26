@@ -8,7 +8,6 @@ import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.dto.CategoryResolveConfig;
-import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
@@ -19,7 +18,6 @@ import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.validation.CategoryValidator;
-import io.quarkus.panache.common.Page;
 
 @ApplicationScoped
 public class CategoryService {
@@ -54,15 +52,12 @@ public class CategoryService {
 	// -------------------------------------------------------------------------
 
 	@Transactional
-	public PagedResponse<CategoryDto> listAll(int page, int size, Boolean archived) {
+	public List<CategoryDto> listAll(Boolean archived) {
 		boolean showArchived = Boolean.TRUE.equals(archived);
-		long totalElements = categoryRepository.count("archived = ?1", showArchived);
-		List<CategoryDto> content = categoryRepository.find("archived = ?1", showArchived)
-				.page(Page.of(page, size))
+		return categoryRepository.find("archived = ?1", showArchived)
 				.stream()
 				.map(CategoryDto::from)
 				.toList();
-		return PagedResponse.of(content, page, size, totalElements);
 	}
 
 	@Transactional

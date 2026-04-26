@@ -11,7 +11,6 @@ import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
-import { Pagination } from '@/components/ui/Pagination';
 import type { Category } from '@/models';
 import { CategoryForm } from '@/components/categories/CategoryForm';
 import { Routes } from '@/lib/routes';
@@ -28,9 +27,8 @@ const CONFIRM_TITLE_BY_TYPE: Record<ConfirmActionType, 'common.archive' | 'commo
 
 export function CategoriesPage() {
   const { t } = useTranslation();
-  const [page, setPage] = useState(0);
   const [showArchived, setShowArchived] = useState(false);
-  const { data: paged, isLoading, error } = useCategories(page, 20, showArchived ? true : undefined);
+  const { data: paged, isLoading, error } = useCategories(showArchived ? true : undefined);
   const { data: allDuplicates } = useDuplicates('CATEGORY', 'PENDING');
   const deleteCategory = useDeleteCategory();
   const archiveCategory = useArchiveCategory();
@@ -39,12 +37,15 @@ export function CategoriesPage() {
   const [editTarget, setEditTarget] = useState<Category | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ category: Category; type: ConfirmActionType } | null>(null);
+  const [search, setSearch] = useState('');
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
 
-  const allCategories = paged?.content ?? [];
-  const totalPages = paged?.totalPages ?? 1;
+  const allCategories = paged ?? [];
+  const filtered = search.trim()
+    ? allCategories.filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
+    : allCategories;
 
   const openCreate = () => {
     setEditTarget(null);
@@ -92,11 +93,11 @@ export function CategoriesPage() {
       <PageHeader
         title={t('categories.title')}
         back={Routes.SETTINGS}
-        subtitle={t('categories.count', { count: paged?.totalElements ?? 0 })}
+        subtitle={t('categories.count', { count: allCategories.length })}
         action={
           <div className="flex items-center gap-2">
             <button
-              onClick={() => { setShowArchived(v => !v); setPage(0); }}
+              onClick={() => setShowArchived(v => !v)}
               className={`p-2 rounded-full transition-colors ${showArchived ? 'text-dn-primary bg-dn-primary/10' : 'text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low'}`}
               title={t('categories.showArchived')}
             >
@@ -110,7 +111,20 @@ export function CategoriesPage() {
         }
       />
 
-      {allCategories.length === 0 ? (
+      <div className="px-5">
+        <div className="relative">
+          <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-dn-text-muted text-sm" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('common.search')}
+            className="w-full bg-dn-surface-low rounded-input pl-8 pr-3 py-1.5 text-xs text-dn-text-main outline-none focus:ring-1 focus:ring-dn-primary/50 placeholder:text-dn-text-muted/50"
+          />
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
         <EmptyState
           title={t('categories.noCategories')}
           description={t('categories.noCategoriesDesc')}
@@ -123,7 +137,7 @@ export function CategoriesPage() {
         />
       ) : (
         <div className="px-5 space-y-3">
-          {allCategories.map((cat) => (
+          {filtered.map((cat) => (
             <Card key={cat.id} className={`${cat.archived ? 'opacity-60' : ''}`}>
             <div className="flex items-center gap-4">
               <CategoryIcon category={cat} size="lg" />
@@ -136,9 +150,6 @@ export function CategoriesPage() {
                     </span>
                   )}
                 </div>
-                {cat.description && (
-                  <p className="text-xs text-dn-text-muted truncate">{cat.description}</p>
-                )}
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {!cat.archived && (
@@ -175,6 +186,9 @@ export function CategoriesPage() {
                 </button>
               </div>
             </div>
+            {cat.description && (
+              <p className="text-xs text-dn-text-muted mt-2 p-2 text-pretty">{cat.description}</p>
+            )}
             <SimpleEntityDuplicatesSection
               records={(allDuplicates ?? []).filter(r => r.entityId1 === cat.id || r.entityId2 === cat.id)}
               currentId={cat.id}
@@ -184,7 +198,6 @@ export function CategoriesPage() {
         </div>
       )}
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       <Modal
         open={showModal}

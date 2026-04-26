@@ -1,11 +1,10 @@
-import type { Category, CreateCategoryDto, PagedResponse } from '@/models';
+import type { Category, CreateCategoryDto } from '@/models';
 import { api } from '@/services/api';
 
 export const categoriesService = {
-  getAll: (page = 0, size = 20, archived?: boolean) => {
-    let url = `/categories?page=${page}&size=${size}`;
-    if (archived !== undefined) url += `&archived=${archived}`;
-    return api.get<PagedResponse<Category>>(url);
+  getAll: (archived?: boolean) => {
+    const url = archived !== undefined ? `/categories?archived=${archived}` : '/categories';
+    return api.get<Category[]>(url);
   },
   getById: (id: number) => api.get<Category>(`/categories/${id}`),
   create: (dto: CreateCategoryDto) => api.post<Category>('/categories', dto),

@@ -33,7 +33,7 @@ export function TagGroupForm({ initialData, onSuccess, onCancel }: TagGroupFormP
   const { t } = useTranslation();
   const createTagGroup = useCreateTagGroup();
   const updateTagGroup = useUpdateTagGroup();
-  const { data: tagsPaged } = useTags(0, 100);
+  const { data: tagsPaged } = useTags();
 
   const schema = useMemo(() => buildSchema(t), [t]);
 
@@ -72,7 +72,7 @@ export function TagGroupForm({ initialData, onSuccess, onCancel }: TagGroupFormP
     }
   };
 
-  const allTags = tagsPaged?.content ?? [];
+  const allTags = tagsPaged ?? [];
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

@@ -117,26 +117,24 @@ export function TemplatesPage() {
       ) : (
         <div className="px-5 space-y-3">
           {allTemplates.map((tpl) => (
-            <Card key={tpl.id} className="flex items-start gap-4">
-              <div className="w-12 h-12 flex items-center justify-center rounded-full bg-dn-primary/10 text-dn-primary shrink-0 mt-0.5">
-                <Icon name="auto_fix_high" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-base font-medium text-dn-text-main">
-                    {truncate(tpl.name, 40)}
-                  </p>
-                  {tpl.eventType && (
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-pill font-medium ${EVENT_TYPE_COLORS[tpl.eventType] ?? 'text-dn-text-muted bg-dn-surface-low'}`}
-                    >
-                      {EVENT_TYPE_LABELS[tpl.eventType]}
-                    </span>
-                  )}
+            <Card key={tpl.id} className="flex flex-col gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 flex items-center justify-center rounded-full bg-dn-primary/10 text-dn-primary shrink-0 mt-0.5">
+                  <Icon name="auto_fix_high" />
                 </div>
-                {tpl.description && (
-                  <p className="text-xs text-dn-text-muted mt-2">{truncate(tpl.description, 50)}</p>
-                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-base font-medium text-dn-text-main">
+                      {truncate(tpl.name, 40)}
+                    </p>
+                    {tpl.eventType && (
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-pill font-medium ${EVENT_TYPE_COLORS[tpl.eventType] ?? 'text-dn-text-muted bg-dn-surface-low'}`}
+                      >
+                        {EVENT_TYPE_LABELS[tpl.eventType]}
+                      </span>
+                    )}
+                </div>
                 {(tpl.originNodeName || tpl.destinationNodeName) && (
                   <p className="text-xs text-dn-text-muted mt-2">
                     {tpl.originNodeName}
@@ -181,7 +179,11 @@ export function TemplatesPage() {
                   <Icon name="delete" className="text-base" />
                 </button>
               </div>
-            </Card>
+            </div>
+            {tpl.description && (
+              <p className="text-xs text-dn-text-muted mt-2 p-2 text-pretty">{tpl.description}</p>
+            )}
+          </Card>
           ))}
         </div>
       )}

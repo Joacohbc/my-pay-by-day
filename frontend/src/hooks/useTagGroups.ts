@@ -16,7 +16,7 @@ const FIVE_MINUTES_MS = 1000 * 60 * 5;
 export const tagGroupKeys = {
   all: ['tag-groups'] as const,
   lists: () => [...tagGroupKeys.all, 'list'] as const,
-  list: (page: number, size: number, archived?: boolean) => [...tagGroupKeys.lists(), page, size, archived] as const,
+  list: (archived?: boolean) => [...tagGroupKeys.lists(), archived] as const,
   details: () => [...tagGroupKeys.all, 'detail'] as const,
   detail: (id: number) => [...tagGroupKeys.details(), id] as const,
 };
@@ -25,10 +25,10 @@ function resolveErrorMessage(err: unknown, fallbackMessage: string): string {
   return err instanceof Error ? err.message : fallbackMessage;
 }
 
-export function useTagGroups(page = 0, size = 20, archived?: boolean) {
+export function useTagGroups(archived?: boolean) {
   return useQuery({
-    queryKey: tagGroupKeys.list(page, size, archived),
-    queryFn: () => tagGroupsService.getAll(page, size, archived),
+    queryKey: tagGroupKeys.list(archived),
+    queryFn: () => tagGroupsService.getAll(archived),
     staleTime: FIVE_MINUTES_MS,
   });
 }

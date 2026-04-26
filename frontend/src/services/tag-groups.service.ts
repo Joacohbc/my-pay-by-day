@@ -1,11 +1,10 @@
 import { api } from '@/services/api';
-import type { TagGroup, CreateTagGroupDto, PagedResponse } from '@/models';
+import type { TagGroup, CreateTagGroupDto } from '@/models';
 
 export const tagGroupsService = {
-  getAll: (page = 0, size = 20, archived?: boolean) => {
-    let url = `/tag-groups?page=${page}&size=${size}`;
-    if (archived !== undefined) url += `&archived=${archived}`;
-    return api.get<PagedResponse<TagGroup>>(url);
+  getAll: (archived?: boolean) => {
+    const url = archived !== undefined ? `/tag-groups?archived=${archived}` : '/tag-groups';
+    return api.get<TagGroup[]>(url);
   },
 
   getById: (id: number) =>

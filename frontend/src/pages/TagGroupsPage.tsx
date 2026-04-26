@@ -21,9 +21,8 @@ const CONFIRM_TITLE_BY_TYPE: Record<ConfirmActionType, 'common.archive' | 'commo
 
 export function TagGroupsPage() {
   const { t } = useTranslation();
-  const page = 0;
   const [showArchived, setShowArchived] = useState(false);
-  const { data: paged, isLoading, error } = useTagGroups(page, 20, showArchived ? true : undefined);
+  const { data: paged, isLoading, error } = useTagGroups(showArchived ? true : undefined);
   const deleteTagGroup = useDeleteTagGroup();
   const archiveTagGroup = useArchiveTagGroup();
   const unarchiveTagGroup = useUnarchiveTagGroup();
@@ -31,8 +30,12 @@ export function TagGroupsPage() {
   const [editTarget, setEditTarget] = useState<TagGroup | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ group: TagGroup; type: ConfirmActionType } | null>(null);
+  const [search, setSearch] = useState('');
 
-  const allTagGroups = paged?.content ?? [];
+  const allTagGroups = paged ?? [];
+  const filtered = search.trim()
+    ? allTagGroups.filter(g => g.name.toLowerCase().includes(search.toLowerCase()))
+    : allTagGroups;
 
   const openNew = () => {
     setEditTarget(null);
@@ -102,6 +105,19 @@ export function TagGroupsPage() {
         }
       />
 
+      <div className="px-5">
+        <div className="relative">
+          <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-dn-text-muted text-sm" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('common.search')}
+            className="w-full bg-dn-surface-low rounded-input pl-8 pr-3 py-1.5 text-xs text-dn-text-main outline-none focus:ring-1 focus:ring-dn-primary/50 placeholder:text-dn-text-muted/50"
+          />
+        </div>
+      </div>
+
       <div className="px-5 space-y-4">
         {isLoading && allTagGroups.length === 0 && (
           <div className="flex justify-center p-8">
@@ -109,7 +125,7 @@ export function TagGroupsPage() {
           </div>
         )}
 
-        {!isLoading && allTagGroups.length === 0 ? (
+        {!isLoading && filtered.length === 0 ? (
           <EmptyState
             icon={<Icon name="auto_awesome_mosaic" />}
             title={t('tagGroups.noTagGroups')}
@@ -123,7 +139,7 @@ export function TagGroupsPage() {
           />
         ) : (
           <div className="space-y-3">
-            {allTagGroups.map((group) => (
+            {filtered.map((group) => (
               <Card key={group.id} className={`group relative ${group.archived ? 'opacity-60' : ''}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -139,9 +155,6 @@ export function TagGroupsPage() {
                         </span>
                       )}
                     </div>
-                    {group.description && (
-                      <p className="text-sm text-dn-text-muted mt-1">{group.description}</p>
-                    )}
                     <div className="flex flex-wrap gap-1 mt-2">
                       {group.tags.map(t => (
                         <span key={t.id} className="text-xs bg-dn-surface-low px-2 py-0.5 rounded-pill text-dn-text-muted border border-white/5">
@@ -186,6 +199,9 @@ export function TagGroupsPage() {
                     </button>
                   </div>
                 </div>
+                {group.description && (
+                  <p className="text-xs text-dn-text-muted mt-2 p-2 text-pretty">{group.description}</p>
+                )}
               </Card>
             ))}
           </div>

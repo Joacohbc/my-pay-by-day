@@ -64,11 +64,11 @@ export function SettingsPage() {
   const [timezone, _setTimezone] = useState(() => getUserTimezone());
   const [isImporting, setIsImporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
-  const { data: categoriesPaged } = useCategories();
-  const { data: tagsPaged } = useTags();
-  const { data: tagGroupsPaged } = useTagGroups();
+  const { data: categories } = useCategories();
+  const { data: tags } = useTags();
+  const { data: tagGroups } = useTagGroups();
   const { data: templatesPaged } = useTemplates();
-  const { data: nodesPaged } = useNodes();
+  const { data: nodes } = useNodes();
   const { data: filesPaged } = useFiles(0, 1);
 
   useEffect(() => onCurrencyChange(() => _setCurrency(getCurrency())), []);
@@ -228,28 +228,28 @@ export function SettingsPage() {
             icon="account_balance_wallet"
             title={t('nodes.title')}
             subtitle={t('settings.nodesDesc')}
-            count={nodesPaged?.totalElements}
+            count={nodes?.length}
           />
           <SettingRow
             to={Routes.SETTINGS_CATEGORIES}
             icon="folder_open"
             title={t('categories.title')}
             subtitle={t('settings.categoriesDesc')}
-            count={categoriesPaged?.totalElements}
+            count={categories?.length}
           />
           <SettingRow
             to={Routes.SETTINGS_TAGS}
             icon="tag"
             title={t('tags.title')}
             subtitle={t('settings.tagsDesc')}
-            count={tagsPaged?.totalElements}
+            count={tags?.length}
           />
           <SettingRow
             to={Routes.SETTINGS_TAG_GROUPS}
             icon="auto_awesome_mosaic"
             title={t('tagGroups.title')}
             subtitle={t('settings.tagGroupsDesc')}
-            count={tagGroupsPaged?.totalElements}
+            count={tagGroups?.length}
           />
           <SettingRow
             to={Routes.SETTINGS_TEMPLATES}
