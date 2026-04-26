@@ -1,11 +1,10 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { useAlert } from '@/contexts/AlertContext';
-import { aiPromptsStore, type AiPrompts } from '@/store/aiPromptsStore';
+import { useAiPromptsStore, type AiPrompts } from '@/store/aiPromptsStore';
 import { useBanner, BANNER_IDS } from '@/store/dismissedBannersStore';
 import { Icon } from '@/components/ui/Icon';
 import { Routes } from '@/lib/routes';
@@ -13,12 +12,14 @@ import { Routes } from '@/lib/routes';
 export function AiSettingsPage() {
   const { t } = useTranslation();
   const alert = useAlert();
-  const [prompts, setPrompts] = useState<AiPrompts>(aiPromptsStore.get);
+  const prompts = useAiPromptsStore((s) => s.prompts);
+  const setPrompts = useAiPromptsStore((s) => s.setPrompts);
+  const setPromptForAction = useAiPromptsStore((s) => s.setPromptForAction);
 
   const infoBanner = useBanner(BANNER_IDS.AI_SETTINGS_INFO);
 
   const handleSave = () => {
-    aiPromptsStore.set(prompts);
+    setPrompts(prompts);
     alert.success(t('ai.settings.saved'));
   };
 
@@ -31,7 +32,6 @@ export function AiSettingsPage() {
       mergeDescription: '',
     };
     setPrompts(defaultPrompts);
-    aiPromptsStore.set(defaultPrompts);
     alert.success(t('ai.settings.saved'));
   };
 
@@ -67,35 +67,35 @@ export function AiSettingsPage() {
             label={t('ai.settings.generateNameLabel')}
             placeholder={t('ai.settings.generateNamePlaceholder')}
             value={prompts.generateName}
-            onChange={(e) => setPrompts((prev) => ({ ...prev, generateName: e.target.value }))}
+            onChange={(e) => setPromptForAction('generateName', e.target.value)}
             rows={4}
           />
           <Textarea
             label={t('ai.settings.generateDescriptionLabel')}
             placeholder={t('ai.settings.generateDescriptionPlaceholder')}
             value={prompts.generateDescription}
-            onChange={(e) => setPrompts((prev) => ({ ...prev, generateDescription: e.target.value }))}
+            onChange={(e) => setPromptForAction('generateDescription', e.target.value)}
             rows={4}
           />
           <Textarea
             label={t('ai.settings.fixNameSpellingLabel')}
             placeholder={t('ai.settings.fixNameSpellingPlaceholder')}
             value={prompts.fixNameSpelling}
-            onChange={(e) => setPrompts((prev) => ({ ...prev, fixNameSpelling: e.target.value }))}
+            onChange={(e) => setPromptForAction('fixNameSpelling', e.target.value)}
             rows={4}
           />
           <Textarea
             label={t('ai.settings.fixDescriptionSpellingLabel')}
             placeholder={t('ai.settings.fixDescriptionSpellingPlaceholder')}
             value={prompts.fixDescriptionSpelling}
-            onChange={(e) => setPrompts((prev) => ({ ...prev, fixDescriptionSpelling: e.target.value }))}
+            onChange={(e) => setPromptForAction('fixDescriptionSpelling', e.target.value)}
             rows={4}
           />
           <Textarea
             label={t('ai.settings.mergeDescriptionLabel')}
             placeholder={t('ai.settings.mergeDescriptionPlaceholder')}
             value={prompts.mergeDescription}
-            onChange={(e) => setPrompts((prev) => ({ ...prev, mergeDescription: e.target.value }))}
+            onChange={(e) => setPromptForAction('mergeDescription', e.target.value)}
             rows={4}
           />
         </Card>
