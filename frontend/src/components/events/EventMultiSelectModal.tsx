@@ -62,18 +62,18 @@ export function EventMultiSelectModal({
 
   const { data: categoriesResponse } = useCategories();
   const categories = useMemo(
-    () => (Array.isArray(categoriesResponse) ? categoriesResponse : categoriesResponse?.content ?? []),
+    () => (Array.isArray(categoriesResponse) ? categoriesResponse : categoriesResponse ?? []),
     [categoriesResponse]
   );
 
   const { data: tagsResponse } = useTags();
   const tags = useMemo(
-    () => (Array.isArray(tagsResponse) ? tagsResponse : tagsResponse?.content ?? []).filter((t) => !t.archived),
+    () => (Array.isArray(tagsResponse) ? tagsResponse : tagsResponse ?? []).filter((t) => !t.archived),
     [tagsResponse]
   );
 
   const { data: nodesPaged } = useNodes();
-  const nodes = useMemo(() => nodesPaged?.content ?? [], [nodesPaged]);
+  const nodes = useMemo(() => nodesPaged ?? [], [nodesPaged]);
 
   const combinedFilters: EventFilters = useMemo(
     () => ({ ...eventFilters, ...toEventFilters(), page, search }),

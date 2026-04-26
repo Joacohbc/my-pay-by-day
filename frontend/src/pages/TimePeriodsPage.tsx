@@ -62,7 +62,7 @@ export function TimePeriodsPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(0);
   const { data: paged, isLoading, error } = useTimePeriods(page);
-  const { data: categoriesPaged } = useCategories(0, 500);
+  const { data: categoriesPaged } = useCategories();
   const createPeriod = useCreateTimePeriod();
   const updatePeriod = useUpdateTimePeriod();
   const deletePeriod = useDeleteTimePeriod();
@@ -458,7 +458,7 @@ export function TimePeriodsPage() {
                       <SearchableSelect
                         options={[
                           { value: '', label: t('common.selectCategory') },
-                          ...(categoriesPaged?.content.map(c => ({ value: String(c.id), label: c.name })) || [])
+                          ...(categoriesPaged?.map(c => ({ value: String(c.id), label: c.name })) || [])
                         ]}
                         {...f}
                       />

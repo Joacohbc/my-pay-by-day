@@ -43,11 +43,15 @@ export function NodeIcon({
     ? nodeTypeConfig[node.type]
     : nodeTypeConfig.DEFAULT;
 
-  const iconName = !node
-    ? cfg.icon
-    : isFinanceNode(node)
-      ? (node.icon ?? cfg.icon)
-      : (node.financeNodeIcon ?? cfg.icon);
+  
+  const isFinanceNodeWithCustomIcon = node && isFinanceNode(node) && node.icon;
+  const isFinanceLineItemWithCustomIcon = node && !isFinanceNode(node) && node.financeNodeIcon;
+
+  const iconName = isFinanceNodeWithCustomIcon 
+    ? node.icon!
+    : isFinanceLineItemWithCustomIcon
+      ? node.financeNodeIcon!
+      : cfg.icon;
 
   const archived = !!node && isFinanceNode(node) && node.archived;
 

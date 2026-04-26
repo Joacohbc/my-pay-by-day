@@ -92,10 +92,10 @@ export function EventForm({
     if (!formReady) setFormReady(true);
   }, [formReady]);
 
-  const { data: categoriesResponse } = useCategories(0, 200);
-  const { data: tagsResponse } = useTags(0, 200);
-  const { data: tagGroupsResponse } = useTagGroups(0, 100);
-  const { data: nodesResponse } = useNodes(0, 200);
+  const { data: categoriesResponse } = useCategories();
+  const { data: tagsResponse } = useTags();
+  const { data: tagGroupsResponse } = useTagGroups();
+  const { data: nodesResponse } = useNodes();
 
   const baseCategory = draftValues?.category ?? baseValues?.category;
   const baseTags = useMemo(
@@ -104,17 +104,17 @@ export function EventForm({
   );
 
   const categories = useMemo(() => {
-    const active = categoriesResponse?.content ?? [];
+    const active = categoriesResponse ?? [];
     return prependMissingArchived(active, baseCategory ? [baseCategory] : []);
   }, [categoriesResponse, baseCategory]);
 
   const tags = useMemo(() => {
-    const active = tagsResponse?.content ?? [];
+    const active = tagsResponse ?? [];
     return prependMissingArchived(active, baseTags);
   }, [tagsResponse, baseTags]);
 
-  const tagGroups = tagGroupsResponse?.content ?? [];
-  const nodes = nodesResponse?.content ?? [];
+  const tagGroups = tagGroupsResponse ?? [];
+  const nodes = nodesResponse ?? [];
 
   const {
     handleSubmit,

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
@@ -10,6 +9,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useTagGroups, useDeleteTagGroup, useArchiveTagGroup, useUnarchiveTagGroup } from '@/hooks/useTagGroups';
 import type { TagGroup } from '@/models';
 import { TagGroupForm } from '@/components/tag-groups/TagGroupForm';
+import { TagGroupCard } from '@/components/tag-groups/TagGroupCard';
 
 type ConfirmActionType = 'archive' | 'unarchive' | 'delete';
 
@@ -21,9 +21,8 @@ const CONFIRM_TITLE_BY_TYPE: Record<ConfirmActionType, 'common.archive' | 'commo
 
 export function TagGroupsPage() {
   const { t } = useTranslation();
-  const page = 0;
   const [showArchived, setShowArchived] = useState(false);
-  const { data: paged, isLoading, error } = useTagGroups(page, 20, showArchived ? true : undefined);
+  const { data: paged, isLoading, error } = useTagGroups(showArchived ? true : undefined);
   const deleteTagGroup = useDeleteTagGroup();
   const archiveTagGroup = useArchiveTagGroup();
   const unarchiveTagGroup = useUnarchiveTagGroup();
@@ -31,8 +30,12 @@ export function TagGroupsPage() {
   const [editTarget, setEditTarget] = useState<TagGroup | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ group: TagGroup; type: ConfirmActionType } | null>(null);
+  const [search, setSearch] = useState('');
 
-  const allTagGroups = paged?.content ?? [];
+  const allTagGroups = paged ?? [];
+  const filtered = search.trim()
+    ? allTagGroups.filter(g => g.name.toLowerCase().includes(search.toLowerCase()))
+    : allTagGroups;
 
   const openNew = () => {
     setEditTarget(null);
@@ -102,6 +105,19 @@ export function TagGroupsPage() {
         }
       />
 
+      <div className="px-5">
+        <div className="relative">
+          <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-dn-text-muted text-sm" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('common.search')}
+            className="w-full bg-dn-surface-low rounded-input pl-8 pr-3 py-1.5 text-xs text-dn-text-main outline-none focus:ring-1 focus:ring-dn-primary/50 placeholder:text-dn-text-muted/50"
+          />
+        </div>
+      </div>
+
       <div className="px-5 space-y-4">
         {isLoading && allTagGroups.length === 0 && (
           <div className="flex justify-center p-8">
@@ -109,7 +125,7 @@ export function TagGroupsPage() {
           </div>
         )}
 
-        {!isLoading && allTagGroups.length === 0 ? (
+        {!isLoading && filtered.length === 0 ? (
           <EmptyState
             icon={<Icon name="auto_awesome_mosaic" />}
             title={t('tagGroups.noTagGroups')}
@@ -123,70 +139,16 @@ export function TagGroupsPage() {
           />
         ) : (
           <div className="space-y-3">
-            {allTagGroups.map((group) => (
-              <Card key={group.id} className={`group relative ${group.archived ? 'opacity-60' : ''}`}>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-dn-primary/10 text-dn-primary flex items-center justify-center shrink-0">
-                      <Icon name={group.icon ?? 'label'} className="text-xl" />
-                    </div>
-                    <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-dn-text-main">{group.name}</h3>
-                      {group.archived && (
-                        <span className="text-xs bg-dn-surface-low text-dn-text-muted px-1.5 py-0.5 rounded">
-                          {t('common.archived')}
-                        </span>
-                      )}
-                    </div>
-                    {group.description && (
-                      <p className="text-sm text-dn-text-muted mt-1">{group.description}</p>
-                    )}
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {group.tags.map(t => (
-                        <span key={t.id} className="text-xs bg-dn-surface-low px-2 py-0.5 rounded-pill text-dn-text-muted border border-white/5">
-                          #{t.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  </div>
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {!group.archived && (
-                      <button
-                        onClick={() => openEdit(group)}
-                        className="p-2 text-dn-text-muted hover:text-dn-primary transition-colors cursor-pointer"
-                      >
-                        <Icon name="edit" />
-                      </button>
-                    )}
-                    {group.archived ? (
-                      <button
-                        onClick={() => setConfirmAction({ group, type: 'unarchive' })}
-                        className="p-2 text-dn-text-muted hover:text-dn-primary transition-colors cursor-pointer"
-                        disabled={isPending}
-                      >
-                        <Icon name="unarchive" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmAction({ group, type: 'archive' })}
-                        className="p-2 text-dn-text-muted hover:text-dn-text-main transition-colors cursor-pointer"
-                        disabled={isPending}
-                      >
-                        <Icon name="archive" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setConfirmAction({ group, type: 'delete' })}
-                      className="p-2 text-dn-text-muted hover:text-dn-status-critical transition-colors cursor-pointer"
-                      disabled={isPending}
-                    >
-                      <Icon name="delete" />
-                    </button>
-                  </div>
-                </div>
-              </Card>
+            {filtered.map((group) => (
+              <TagGroupCard
+                key={group.id}
+                group={group}
+                isPending={isPending}
+                onEdit={openEdit}
+                onArchive={(selectedGroup) => setConfirmAction({ group: selectedGroup, type: 'archive' })}
+                onUnarchive={(selectedGroup) => setConfirmAction({ group: selectedGroup, type: 'unarchive' })}
+                onDelete={(selectedGroup) => setConfirmAction({ group: selectedGroup, type: 'delete' })}
+              />
             ))}
           </div>
         )}

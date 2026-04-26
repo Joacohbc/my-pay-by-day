@@ -6,7 +6,6 @@ import java.util.List;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
-import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TagGroupDto;
 import com.mypaybyday.dto.TagResolveConfig;
 import com.mypaybyday.entity.TagGroupEntity;
@@ -17,7 +16,6 @@ import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TagGroupRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.validation.TagGroupValidator;
-import io.quarkus.panache.common.Page;
 
 @ApplicationScoped
 public class TagGroupService {
@@ -41,15 +39,12 @@ public class TagGroupService {
 	}
 
 	@Transactional
-	public PagedResponse<TagGroupDto> listAll(int page, int size, Boolean archived) {
+	public List<TagGroupDto> listAll(Boolean archived) {
 		boolean showArchived = Boolean.TRUE.equals(archived);
-		long totalElements = tagGroupRepository.count("archived = ?1", showArchived);
-		List<TagGroupDto> content = tagGroupRepository.find("archived = ?1", showArchived)
-				.page(Page.of(page, size))
+		return tagGroupRepository.find("archived = ?1", showArchived)
 				.stream()
 				.map(TagGroupDto::from)
 				.toList();
-		return PagedResponse.of(content, page, size, totalElements);
 	}
 
 	@Transactional

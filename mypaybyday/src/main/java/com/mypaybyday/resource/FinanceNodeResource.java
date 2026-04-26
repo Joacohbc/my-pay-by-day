@@ -7,7 +7,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.FinanceNodeDto;
-import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.enums.FinanceNodeType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.FinanceNodeService;
@@ -32,15 +31,12 @@ public class FinanceNodeResource {
     }
 
     @GET
-    @Operation(summary = "List active finance nodes (paginated)", description = "Returns only non-archived nodes. Use ?page=0&size=20 to control pagination.")
-    @APIResponse(responseCode = "200", description = "Paginated list of active nodes",
-	content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
+    @Operation(summary = "List finance nodes")
+    @APIResponse(responseCode = "200", description = "List of finance nodes")
     public Response getAll(
-	@Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
-	@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size,
 	@Parameter(description = "Filter by archived status") @QueryParam("archived") Boolean archived,
 	@Parameter(description = "Filter by node type") @QueryParam("type") FinanceNodeType type) {
-	return Response.ok(financeNodeService.listAll(page, size, archived, type)).build();
+	return Response.ok(financeNodeService.listAll(archived, type)).build();
     }
 
     @GET

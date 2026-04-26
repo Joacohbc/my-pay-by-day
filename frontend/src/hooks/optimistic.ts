@@ -23,17 +23,15 @@ export function updateItemInLists<T extends Identifiable>(
   targetId: number,
   patch: Partial<T>
 ) {
-  const applyPatchToMatchingItem = (item: T): T =>
-    item.id === targetId ? { ...item, ...patch } : item;
+  const applyPatch = (item: T): T => item.id === targetId ? { ...item, ...patch } : item;
 
-  const updatePageContent = (page: PagedResponse<T>): PagedResponse<T> => ({
-    ...page,
-    content: page.content.map(applyPatchToMatchingItem),
-  });
-
-  queryClient.setQueriesData<PagedResponse<T>>(
+  queryClient.setQueriesData<T[] | PagedResponse<T>>(
     { queryKey: listsKeyPrefix },
-    (currentPage) => currentPage ? updatePageContent(currentPage) : currentPage
+    (current) => {
+      if (!current) return current;
+      if (Array.isArray(current)) return current.map(applyPatch);
+      return { ...current, content: current.content.map(applyPatch) };
+    }
   );
 }
 
@@ -50,9 +48,11 @@ export function findInPagedListCaches<T extends Identifiable>(
   listsKeyPrefix: readonly unknown[],
   targetId: number
 ): T | undefined {
-  const listCaches = queryClient.getQueriesData<PagedResponse<T>>({ queryKey: listsKeyPrefix });
-  for (const [, page] of listCaches) {
-    const found = page?.content?.find((item) => item.id === targetId);
+  const listCaches = queryClient.getQueriesData<T[] | PagedResponse<T>>({ queryKey: listsKeyPrefix });
+  for (const [, data] of listCaches) {
+    if (!data) continue;
+    const items = Array.isArray(data) ? data : data.content;
+    const found = items.find((item) => item.id === targetId);
     if (found) return found;
   }
   return undefined;
@@ -63,16 +63,14 @@ export function removeItemFromLists<T extends Identifiable>(
   listsKeyPrefix: readonly unknown[],
   targetId: number
 ) {
-  const isNotTargetItem = (item: T) => item.id !== targetId;
+  const exclude = (item: T) => item.id !== targetId;
 
-  const removeFromPageContent = (page: PagedResponse<T>): PagedResponse<T> => ({
-    ...page,
-    content: page.content.filter(isNotTargetItem),
-    totalElements: page.totalElements - 1,
-  });
-
-  queryClient.setQueriesData<PagedResponse<T>>(
+  queryClient.setQueriesData<T[] | PagedResponse<T>>(
     { queryKey: listsKeyPrefix },
-    (currentPage) => currentPage ? removeFromPageContent(currentPage) : currentPage
+    (current) => {
+      if (!current) return current;
+      if (Array.isArray(current)) return current.filter(exclude);
+      return { ...current, content: current.content.filter(exclude), totalElements: current.totalElements - 1 };
+    }
   );
 }

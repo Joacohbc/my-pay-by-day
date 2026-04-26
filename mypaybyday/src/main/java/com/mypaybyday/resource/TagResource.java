@@ -4,7 +4,6 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TagService;
@@ -29,14 +28,11 @@ public class TagResource {
 	}
 
 	@GET
-	@Operation(summary = "List tags (paginated)")
-	@APIResponse(responseCode = "200", description = "Paginated list of tags",
-			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
+	@Operation(summary = "List tags")
+	@APIResponse(responseCode = "200", description = "List of tags")
 	public Response getAll(
-			@Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
-			@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size,
 			@Parameter(description = "Filter by archived status") @QueryParam("archived") Boolean archived) {
-		return Response.ok(tagService.listAll(page, size, archived)).build();
+		return Response.ok(tagService.listAll(archived)).build();
 	}
 
 	@GET

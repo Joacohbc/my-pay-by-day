@@ -9,7 +9,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.transaction.Transactional;
 
-import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.dto.TagResolveConfig;
 import com.mypaybyday.entity.TagEntity;
@@ -23,7 +22,6 @@ import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.validation.TagValidator;
-import io.quarkus.panache.common.Page;
 
 @ApplicationScoped
 public class TagService {
@@ -61,15 +59,12 @@ public class TagService {
 	// -------------------------------------------------------------------------
 
 	@Transactional
-	public PagedResponse<TagDto> listAll(int page, int size, Boolean archived) {
+	public List<TagDto> listAll(Boolean archived) {
 		boolean showArchived = Boolean.TRUE.equals(archived);
-		long totalElements = tagRepository.count("archived = ?1", showArchived);
-		List<TagDto> content = tagRepository.find("archived = ?1", showArchived)
-				.page(Page.of(page, size))
+		return tagRepository.find("archived = ?1", showArchived)
 				.stream()
 				.map(TagDto::from)
 				.toList();
-		return PagedResponse.of(content, page, size, totalElements);
 	}
 
 	@Transactional

@@ -16,7 +16,7 @@ const FIVE_MINUTES_MS = 1000 * 60 * 5;
 export const tagKeys = {
   all: ['tags'] as const,
   lists: () => [...tagKeys.all, 'list'] as const,
-  list: (page: number, size: number, archived?: boolean) => [...tagKeys.lists(), page, size, archived] as const,
+  list: (archived?: boolean) => [...tagKeys.lists(), archived] as const,
   details: () => [...tagKeys.all, 'detail'] as const,
   detail: (id: number) => [...tagKeys.details(), id] as const,
 };
@@ -27,10 +27,10 @@ function resolveErrorMessage(err: unknown, fallbackMessage: string): string {
   return err instanceof Error ? err.message : fallbackMessage;
 }
 
-export function useTags(page = 0, size = 20, archived?: boolean) {
+export function useTags(archived?: boolean) {
   return useQuery({
-    queryKey: tagKeys.list(page, size, archived),
-    queryFn: () => tagsService.getAll(page, size, archived),
+    queryKey: tagKeys.list(archived),
+    queryFn: () => tagsService.getAll(archived),
     staleTime: FIVE_MINUTES_MS,
   });
 }

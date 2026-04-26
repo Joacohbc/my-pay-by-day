@@ -36,24 +36,24 @@ export function SubscriptionForm({ editTarget, onSubmit, onCancel, loading }: Su
   const { t } = useTranslation();
   const schema = buildSchema(t, MIN_LINE_ITEMS, MAX_LINE_ITEMS);
 
-  const { data: categoriesResponse } = useCategories(0, 200);
-  const { data: tagsResponse } = useTags(0, 200);
-  const { data: nodesResponse } = useNodes(0, 200, true);
+  const { data: categoriesResponse } = useCategories();
+  const { data: tagsResponse } = useTags();
+  const { data: nodesResponse } = useNodes(true);
 
   const baseCategory = editTarget?.category;
   const baseTags = useMemo(() => editTarget?.tags ?? [], [editTarget?.tags]);
 
   const categories = useMemo(() => {
-    const active = categoriesResponse?.content ?? [];
+    const active = categoriesResponse ?? [];
     return prependMissingArchived(active, baseCategory ? [baseCategory] : []);
   }, [categoriesResponse, baseCategory]);
 
   const tags = useMemo(() => {
-    const active = tagsResponse?.content ?? [];
+    const active = tagsResponse ?? [];
     return prependMissingArchived(active, baseTags);
   }, [tagsResponse, baseTags]);
 
-  const nodes = nodesResponse?.content ?? [];
+  const nodes = nodesResponse ?? [];
 
   const methods = useForm<FormValues>({
     resolver: zodResolver(schema),
