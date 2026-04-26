@@ -12,10 +12,8 @@ import type { SortMode } from '@/lib/usageSorter';
 import { useUsageStats, useRecordSelection } from '@/hooks/useSelectionHistory';
 
 
-interface CategorySelectorProps {
+type CategorySelectorBase = {
   categories: Category[];
-  value: string | number;
-  onChange: (id: string) => void;
   /** 'grid' renders an icon grid (default). 'select' renders a SearchableSelect dropdown. */
   variant?: 'grid' | 'select';
   label?: string;
@@ -25,20 +23,34 @@ interface CategorySelectorProps {
   /** Override the active sort mode from outside (controlled). Omit to let the selector manage it. */
   sortMode?: SortMode;
   onSortModeChange?: (mode: SortMode) => void;
-}
+};
 
-export function CategorySelector({
-  categories,
-  value,
-  onChange,
-  variant = 'grid',
-  label,
-  className = '',
-  showAdd = false,
-  collapsible = false,
-  sortMode: sortModeProp,
-  onSortModeChange,
-}: CategorySelectorProps) {
+type SingleCategoryProps = CategorySelectorBase & {
+  multiSelect?: false;
+  value: string | number;
+  onChange: (id: string) => void;
+};
+
+type MultiCategoryProps = CategorySelectorBase & {
+  multiSelect: true;
+  value: string[];
+  onChange: (ids: string[]) => void;
+};
+
+type CategorySelectorProps = SingleCategoryProps | MultiCategoryProps;
+
+export function CategorySelector(props: CategorySelectorProps) {
+  const {
+    categories,
+    variant = 'grid',
+    label,
+    className = '',
+    showAdd = false,
+    collapsible = false,
+    sortMode: sortModeProp,
+    onSortModeChange,
+  } = props;
+
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [open, setOpen] = useState(!collapsible);
@@ -64,10 +76,10 @@ export function CategorySelector({
     [sortedCategories, debouncedSearch]
   );
 
-  const archivedSelectedCat = useMemo(
-    () => categories.find(c => c.archived && String(c.id) === String(value)),
-    [categories, value]
-  );
+  const archivedSelectedCat = useMemo(() => {
+    if (props.multiSelect) return undefined;
+    return categories.find(c => c.archived && String(c.id) === String(props.value));
+  }, [categories, props]);
 
   const resolvedLabel = label ?? t('eventForm.category');
 
@@ -78,14 +90,40 @@ export function CategorySelector({
     else setInternalSortMode(next);
   };
 
-  const handleChange = (val: string) => {
-    onChange(val);
-    if (val) recordSelection.mutate({ type: 'CATEGORY', id: Number(val) });
+  const isSelected = (catId: string): boolean => {
+    if (props.multiSelect) return props.value.includes(catId);
+    return String(props.value) === catId;
   };
+
+  const handleGridClick = (catId: string) => {
+    if (props.multiSelect) {
+      const current = props.value;
+      if (current.includes(catId)) {
+        props.onChange(current.filter(id => id !== catId));
+      } else {
+        props.onChange([...current, catId]);
+        recordSelection.mutate({ type: 'CATEGORY', id: Number(catId) });
+      }
+    } else {
+      const next = String(props.value) === catId ? '' : catId;
+      props.onChange(next);
+      if (next) recordSelection.mutate({ type: 'CATEGORY', id: Number(next) });
+    }
+  };
+
+  const handleSelectChange = (val: string) => {
+    if (!props.multiSelect) {
+      props.onChange(val);
+      if (val) recordSelection.mutate({ type: 'CATEGORY', id: Number(val) });
+    }
+  };
+
+  const hasValue = props.multiSelect ? props.value.length > 0 : !!props.value;
 
 
   if (variant === 'select') {
     const options = sortedCategories.map((c) => ({ value: String(c.id), label: c.name }));
+    const selectValue = props.multiSelect ? '' : (archivedSelectedCat ? '' : props.value);
     return (
       <div className={className}>
         {archivedSelectedCat && (
@@ -101,8 +139,8 @@ export function CategorySelector({
               label={resolvedLabel}
               placeholder={t('common.none')}
               options={options}
-              value={archivedSelectedCat ? '' : value}
-              onChange={(val) => handleChange(val == null ? '' : String(val))}
+              value={selectValue}
+              onChange={(val) => handleSelectChange(val == null ? '' : String(val))}
             />
           </div>
           <button
@@ -131,7 +169,7 @@ export function CategorySelector({
         >
           <CategoryForm
             onSuccess={(newCat) => {
-              handleChange(String(newCat.id));
+              handleSelectChange(String(newCat.id));
               setShowModal(false);
             }}
             onCancel={() => setShowModal(false)}
@@ -153,7 +191,7 @@ export function CategorySelector({
           ].join(' ')}
           onClick={collapsible ? toggleOpen : undefined}
         >
-          {collapsible && value && (
+          {collapsible && hasValue && (
             <span className="w-1.5 h-1.5 rounded-full bg-dn-primary inline-block mr-0.5" />
           )}
           {resolvedLabel}
@@ -191,12 +229,12 @@ export function CategorySelector({
         </div>
         <div className="grid grid-cols-4 gap-x-3 gap-y-4">
         {filteredCategories.map((cat) => {
-          const selected = value === String(cat.id);
+          const selected = isSelected(String(cat.id));
           return (
             <button
               key={cat.id}
               type="button"
-              onClick={() => handleChange(selected ? '' : String(cat.id))}
+              onClick={() => handleGridClick(String(cat.id))}
               className="flex flex-col items-center gap-2"
             >
               <CategoryIcon
@@ -241,7 +279,7 @@ export function CategorySelector({
       >
         <CategoryForm
           onSuccess={(newCat) => {
-            onChange(String(newCat.id));
+            if (!props.multiSelect) props.onChange(String(newCat.id));
             setShowModal(false);
           }}
           onCancel={() => setShowModal(false)}
@@ -250,4 +288,3 @@ export function CategorySelector({
     </div>
   );
 }
-
