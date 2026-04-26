@@ -101,6 +101,8 @@ public class FinanceNodeService {
 		FinanceNodeEntity node = new FinanceNodeEntity();
 		node.name = dto.name();
 		node.type = dto.type();
+		node.description = dto.description();
+		node.icon = dto.icon();
 
 		financeNodeValidator.validate(node);
 
@@ -116,6 +118,8 @@ public class FinanceNodeService {
 		}
 		node.name = dto.name();
 		node.type = dto.type();
+		node.description = dto.description();
+		node.icon = dto.icon();
 
 		financeNodeValidator.validate(node);
 

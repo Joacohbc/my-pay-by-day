@@ -39,6 +39,10 @@ public class FinanceNodeEntity extends BaseEntity {
 	@Enumerated(EnumType.STRING)
 	public FinanceNodeType type;
 
+	public String description;
+
+	public String icon;
+
 	@Builder.Default
 	public boolean archived = false;
 

@@ -188,6 +188,8 @@ const es = {
     dateFieldUpdated: 'Fecha de actualización',
     filterNode: 'Nodo',
     filterNodePlaceholder: 'Todos los nodos',
+    iconSourceCategory: 'Ícono de categoría',
+    iconSourceNode: 'Ícono de nodo',
   },
 
   // ─── Event Types ─────────────────────────────────────────────────────────
@@ -260,6 +262,8 @@ const es = {
     archiveConfirm: '¿Archivar "{{name}}"? El nodo se ocultará pero los datos históricos se mantienen.',
     setAsDefault: 'Establecer como predeterminado',
     removeAsDefault: 'Quitar como predeterminado',
+    descriptionPlaceholder: 'Descripción opcional',
+    iconLabel: 'Ícono',
   },
 
   // ─── Node Types ──────────────────────────────────────────────────────────

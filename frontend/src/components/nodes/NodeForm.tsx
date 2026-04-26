@@ -1,14 +1,21 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { IconPicker } from '@/components/ui/IconPicker';
+import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { useCreateNode, useUpdateNode } from '@/hooks/useNodes';
+import { useAiFormController } from '@/hooks/useAiFormController';
 import type { FinanceNode, FinanceNodeType } from '@/models';
 
 interface NodeFormValues {
   name: string;
   type: FinanceNodeType;
+  description: string;
+  icon: string;
 }
 
 interface NodeFormProps {
@@ -22,11 +29,34 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
   const createNode = useCreateNode();
   const updateNode = useUpdateNode();
 
-  const { register, handleSubmit, control, formState: { errors } } = useForm<NodeFormValues>({
+  const { register, handleSubmit, control, getValues, setValue, formState: { errors } } = useForm<NodeFormValues>({
     defaultValues: {
       name: editTarget?.name ?? '',
       type: editTarget?.type ?? 'OWN',
+      description: editTarget?.description ?? '',
+      icon: editTarget?.icon ?? '',
     },
+  });
+
+  const buildContext = () => {
+    const values = getValues();
+    const parts: string[] = ['Entity type: Finance Node (account, external entity, or contact)'];
+    if (values.name) parts.push(`Name: ${values.name}`);
+    if (values.description) parts.push(`Description: ${values.description}`);
+    if (values.type) parts.push(`Type: ${values.type}`);
+    return parts.join('\n');
+  };
+
+  const aiFields = useMemo(() => [
+    { key: 'name', name: 'name' as const, label: t('common.name'), semantic: 'name' as const, allowVoice: true },
+    { key: 'description', name: 'description' as const, label: t('common.description'), semantic: 'description' as const, allowVoice: true },
+  ], [t]);
+
+  const aiController = useAiFormController<NodeFormValues>({
+    fields: aiFields,
+    getValues,
+    setValue,
+    buildContext,
   });
 
   const nodeTypeOptions = [
@@ -53,11 +83,12 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
   const isSubmitting = createNode.isPending || updateNode.isPending;
 
   return (
-    <form 
+    <>
+    <form
       onSubmit={(e) => {
         e.stopPropagation();
         handleSubmit(onSubmit)(e);
-      }} 
+      }}
       className="space-y-4"
     >
       <Input
@@ -65,6 +96,24 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
         placeholder={t('nodes.nodeNamePlaceholder')}
         error={errors.name?.message}
         {...register('name', { required: t('common.nameRequired') })}
+        onFocus={() => aiController.markFieldAsActive('name')}
+      />
+      <Textarea
+        label={t('common.description')}
+        placeholder={t('nodes.descriptionPlaceholder')}
+        {...register('description')}
+        onFocus={() => aiController.markFieldAsActive('description')}
+      />
+      <Controller
+        name="icon"
+        control={control}
+        render={({ field }) => (
+          <IconPicker
+            label={t('nodes.iconLabel')}
+            value={field.value}
+            onChange={field.onChange}
+          />
+        )}
       />
       <Controller
         name="type"
@@ -94,5 +143,7 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
         </Button>
       </div>
     </form>
+    <AiFormActionsFab controller={aiController} />
+    </>
   );
 }

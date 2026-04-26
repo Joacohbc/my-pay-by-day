@@ -189,6 +189,8 @@ const en = {
     dateFieldUpdated: 'Update date',
     filterNode: 'Node',
     filterNodePlaceholder: 'All nodes',
+    iconSourceCategory: 'Category icon',
+    iconSourceNode: 'Node icon',
   },
 
   // ─── Event Types ─────────────────────────────────────────────────────────
@@ -261,6 +263,8 @@ const en = {
     archiveConfirm: 'Archive "{{name}}"? This node will be hidden but historical data remains.',
     setAsDefault: 'Set as Home default',
     removeAsDefault: 'Remove as default',
+    descriptionPlaceholder: 'Optional description',
+    iconLabel: 'Icon',
   },
 
   // ─── Node Types ──────────────────────────────────────────────────────────

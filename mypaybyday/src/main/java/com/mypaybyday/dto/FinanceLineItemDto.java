@@ -7,6 +7,7 @@ import com.mypaybyday.entity.FinanceLineItemEntity;
 public record FinanceLineItemDto(
 	Long financeNodeId,
 	String financeNodeName,
+	String financeNodeIcon,
 	BigDecimal amount
 ) {
 
@@ -14,6 +15,7 @@ public record FinanceLineItemDto(
 	return new FinanceLineItemDto(
 		item.financeNode != null ? item.financeNode.id : null,
 		item.financeNode != null ? item.financeNode.name : null,
+		item.financeNode != null ? item.financeNode.icon : null,
 		item.amount
 	);
     }
