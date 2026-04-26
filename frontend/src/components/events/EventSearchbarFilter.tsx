@@ -161,8 +161,8 @@ export function EventSearchbarFilter({
                     const prev = filters.categoryIds.map(String);
                     [...newIds.filter(id => !prev.includes(id)), ...prev.filter(id => !newIds.includes(id))]
                       .forEach(id => onToggleCategory(Number(id)));
-                          onPageReset?.();
-                        }}
+                    onPageReset?.();
+                  }}
                   showAdd={false}
                 />
               )}
@@ -175,8 +175,8 @@ export function EventSearchbarFilter({
                     const prev = filters.tagIds.map(String);
                     [...newIds.filter(id => !prev.includes(id)), ...prev.filter(id => !newIds.includes(id))]
                       .forEach(id => onToggleTag(Number(id)));
-                          onPageReset?.();
-                        }}
+                    onPageReset?.();
+                  }}
                   showAdd={false}
                 />
               )}
@@ -196,6 +196,11 @@ export function EventSearchbarFilter({
                   placeholder={t('events.filterNodePlaceholder')}
                 />
               )}
+
+              <div className="flex justify-center items-center" 
+                onClick={() => setIsFilterPanelCollapsed((value) => !value)}>
+                <Icon name="keyboard_arrow_up" className="text-xl" />
+              </div>
             </>
           )}
         </div>
