@@ -6,6 +6,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
 import { EventCard } from '@/components/events/EventCard';
+import { Icon } from '@/components/ui/Icon';
 import { EventSearchbarFilter } from '@/components/events/EventSearchbarFilter';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Card } from '@/components/ui/Card';
@@ -117,6 +118,16 @@ export function EventsListView({
 
   const [showFilters, setShowFilters] = useState(hasAdvancedFilters);
 
+  const [iconSource, setIconSource] = useState<'category' | 'node'>(
+    () => (localStorage.getItem('events-icon-source') as 'category' | 'node') ?? 'category'
+  );
+
+  const toggleIconSource = () => {
+    const next = iconSource === 'category' ? 'node' : 'category';
+    setIconSource(next);
+    localStorage.setItem('events-icon-source', next);
+  };
+
   const updateAdvanced = (patch: Partial<AdvancedFiltersState>) => {
     onAdvancedFiltersChange?.({ ...filtersValue, ...patch });
   };
@@ -207,16 +218,28 @@ export function EventsListView({
             action={emptyAction}
           />
         ) : (
-          <Card className="divide-y divide-white/5">
-            {events.map((event) => (
-              <div
-                key={keyResolver ? keyResolver(event) : event.id}
-                className="py-3 first:pt-0 last:pb-0"
+          <>
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={toggleIconSource}
+                title={iconSource === 'category' ? t('events.iconSourceNode') : t('events.iconSourceCategory')}
+                className="flex items-center gap-1 text-xs text-dn-text-muted hover:text-dn-text-main transition-colors px-2 py-1 rounded-md hover:bg-dn-surface"
               >
-                {renderItem ? renderItem(event) : <EventCard event={event} from={from} />}
-              </div>
-            ))}
-          </Card>
+                <Icon name={iconSource === 'category' ? 'category' : 'account_balance_wallet'} className="text-sm" />
+                <span>{iconSource === 'category' ? t('events.iconSourceCategory') : t('events.iconSourceNode')}</span>
+              </button>
+            </div>
+            <Card className="divide-y divide-white/5">
+              {events.map((event) => (
+                <div
+                  key={keyResolver ? keyResolver(event) : event.id}
+                  className="py-3 first:pt-0 last:pb-0"
+                >
+                  {renderItem ? renderItem(event) : <EventCard event={event} from={from} iconSource={iconSource} />}
+                </div>
+              ))}
+            </Card>
+          </>
         )}
       </div>
 

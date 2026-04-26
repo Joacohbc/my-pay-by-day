@@ -4,6 +4,7 @@ import type { FinanceEvent } from '@/models';
 import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatDate, eventNetAmount } from '@/lib/format';
+import { NodeIcon } from '@/components/ui/NodeIcon';
 
 interface EventCardProps {
   readonly disableLink?: boolean;
@@ -11,6 +12,7 @@ interface EventCardProps {
   readonly to?: string;
   readonly state?: unknown;
   readonly from?: string;
+  readonly iconSource?: 'category' | 'node';
 }
 
 const typeConfig = {
@@ -34,22 +36,53 @@ const typeConfig = {
   },
 };
 
-export function EventCard({ event, disableLink, from }: EventCardProps) {
+export function EventCard({ event, disableLink, from, iconSource = 'category' }: EventCardProps) {
   const { t } = useTranslation();
   const cfg = typeConfig[event.type as keyof typeof typeConfig] || typeConfig.OTHER;
   const net = eventNetAmount(event);
   const date = event.transactionDate;
+  const lineItems = event.lineItems ?? [];
+
+  const MAX_ICONS = 3;
+  const uniqueNodes = lineItems.reduce<{ item: typeof lineItems[0]; count: number }[]>((acc, item) => {
+    const existing = acc.find(n => n.item.financeNodeId === item.financeNodeId);
+    if (existing) existing.count++;
+    else acc.push({ item, count: 1 });
+    return acc;
+  }, []);
+
+  const nodeIconGroup = (
+    <div className="flex shrink-0 items-center">
+      {uniqueNodes.slice(0, MAX_ICONS).map(({ item, count }, i) => (
+        <div key={item.financeNodeId} className={`relative shrink-0${i > 0 ? ' -ml-2' : ''}`} style={{ zIndex: MAX_ICONS - i }}>
+          <NodeIcon node={item} size={uniqueNodes.length === 1 ? 'lg' : 'md'} shape="rounded-full" className="ring-2 ring-dn-bg" />
+          {count > 1 && (
+            <span className="absolute -bottom-1 -right-1 min-w-[1rem] h-4 px-0.5 rounded-full bg-dn-surface border border-dn-border flex items-center justify-center text-[9px] font-bold text-dn-text-muted leading-none">
+              {count}
+            </span>
+          )}
+        </div>
+      ))}
+      {uniqueNodes.length > MAX_ICONS && (
+        <span className="-ml-2 w-8 h-8 rounded-full bg-dn-surface ring-2 ring-dn-bg flex items-center justify-center text-xs text-dn-text-muted font-medium shrink-0">
+          +{uniqueNodes.length - MAX_ICONS}
+        </span>
+      )}
+    </div>
+  );
 
   const content = (
     <>
       <div className="flex items-center gap-4 min-w-0 flex-1">
         {/* Icon */}
-        {event.category && !event.isDraft ? (
+        {event.isDraft ? (
+          <div className="w-12 h-12 rounded-full flex items-center justify-center bg-dn-surface-low text-dn-text-muted border border-dashed border-white/20">
+            <Icon name="draft" />
+          </div>
+        ) : iconSource === 'category' && event.category ? (
           <CategoryIcon category={event.category} size="lg" shape="rounded-full" />
         ) : (
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${event.isDraft ? 'bg-dn-surface-low text-dn-text-muted border border-dashed border-white/20' : cfg.iconBg}`}>
-            <Icon name={event.isDraft ? 'draft' : cfg.icon} />
-          </div>
+          nodeIconGroup
         )}
 
         {/* Info */}
