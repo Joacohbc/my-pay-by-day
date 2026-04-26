@@ -129,11 +129,7 @@ export function SettingsPage() {
   };
 
   const handleTimezoneChange = (tz: string) => {
-    if (tz === '') {
-      localStorage.removeItem('user-timezone');
-    } else {
-      localStorage.setItem('user-timezone', tz);
-    }
+    localStorage.setItem('user-timezone', tz === '' ? getUserTimezone() : tz);
     _setTimezone(tz);
     // Force a reload to quickly apply timezone to all cached date-fns-tz computations across the app
     window.location.reload();
