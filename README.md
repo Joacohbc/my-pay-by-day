@@ -33,12 +33,3 @@
 [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=fff)](#)
 [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?logo=github-actions&logoColor=white)](#)
 [![Maven](https://img.shields.io/badge/Maven-C71A36?logo=apachemaven&logoColor=white)](#)
-
-## 📂 Estructura del Proyecto
-
-```text
-my-pay-by-day/
-├── .github/      # Flujos de trabajo de CI/CD (GitHub Actions)
-├── docker/       # Configuraciones y archivos Docker / Docker Compose
-├── frontend/     # Aplicación web utilizando React + Vite + TypeScript
-└── mypaybyday/   # Backend construido con Quarkus + Java
