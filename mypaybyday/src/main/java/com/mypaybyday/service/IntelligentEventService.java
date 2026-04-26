@@ -227,7 +227,7 @@ public class IntelligentEventService {
 			return "No finance nodes available.";
 		}
 		return nodes.stream()
-				.map(n -> String.format("  - id=%d, name=%s, type=%s", n.id, n.name, n.type))
+				.map(n -> String.format("  - id=%d, name=%s, type=%s, description=%s", n.id, n.name, n.type, n.description != null && !n.description.isBlank() ? n.description : ""))
 				.collect(Collectors.joining("\n"));
 	}
 
