@@ -4,6 +4,7 @@ import type { FinanceEvent } from '@/models';
 import type { DateField } from '@/services/events.service';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
+import { useNodes } from '@/hooks/useNodes';
 import { EventCard } from '@/components/events/EventCard';
 import { EventSearchbarFilter } from '@/components/events/EventSearchbarFilter';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -97,6 +98,12 @@ export function EventsListView({
 }: EventsListViewProps) {
   const { t } = useTranslation();
 
+
+  const { data: nodesResponse } = useNodes(0, 200);
+  const nodes = Array.isArray(nodesResponse)
+    ? nodesResponse
+    : nodesResponse?.content || [];
+
   const { data: categoriesResponse } = useCategories();
   const categories = Array.isArray(categoriesResponse)
     ? categoriesResponse
@@ -151,8 +158,11 @@ export function EventsListView({
           filters={filtersValue}
           categories={categories}
           tags={tags}
-          nodes={[]}
-          onToggleFilters={() => setShowFilters((prev) => !prev)}
+          nodes={nodes}
+          onToggleFilters={() => {
+            setShowFilters((prev) => !prev)
+            resetFilters();
+          }}
           onResetFilters={resetFilters}
           onToggleCategory={toggleCategory}
           onToggleTag={toggleTag}

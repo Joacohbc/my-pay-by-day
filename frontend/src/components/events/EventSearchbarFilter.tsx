@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { CategorySelector } from '@/components/ui/CategorySelector';
+import { TagSelector } from '@/components/ui/TagSelector';
 import type { EventModalFiltersState } from '@/hooks/useEventModalFilters';
 import type { DateField } from '@/services/events.service';
 import type { Category, Tag } from '@/models';
@@ -59,8 +61,6 @@ export function EventSearchbarFilter({
   const { t } = useTranslation();
   const [isFilterPanelCollapsed, setIsFilterPanelCollapsed] = useState(false);
 
-  const activeCategories = categories.filter((category) => !category.archived);
-  const activeTags = tags.filter((tag) => !tag.archived);
   const hasActiveDateRange = filters.startDate !== '' || filters.endDate !== '';
   const hasActiveNode = filters.nodeId !== undefined;
 
@@ -152,60 +152,33 @@ export function EventSearchbarFilter({
                 />
               </div>
 
-              {activeCategories.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2">
-                    {t('common.category')}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {activeCategories.map((category) => (
-                      <button
-                        key={category.id}
-                        type="button"
-                        onClick={() => {
-                          onToggleCategory(category.id);
-                          onPageReset?.();
-                        }}
-                        className={[
-                          'px-3 py-1.5 rounded-pill text-xs font-medium border transition-all cursor-pointer',
-                          filters.categoryIds.includes(category.id)
-                            ? 'bg-dn-primary/20 border-dn-primary/30 text-dn-primary'
-                            : 'bg-dn-surface-low border-white/5 text-dn-text-muted hover:border-white/10',
-                        ].join(' ')}
-                      >
-                        {category.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {categories.length > 0 && (
+                <CategorySelector
+                  multiSelect
+                  categories={categories}
+                  value={filters.categoryIds.map(String)}
+                  onChange={(newIds) => {
+                    const prev = filters.categoryIds.map(String);
+                    [...newIds.filter(id => !prev.includes(id)), ...prev.filter(id => !newIds.includes(id))]
+                      .forEach(id => onToggleCategory(Number(id)));
+                    onPageReset?.();
+                  }}
+                  showAdd={false}
+                />
               )}
 
-              {activeTags.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2">
-                    {t('common.tag')}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {activeTags.map((tag) => (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => {
-                          onToggleTag(tag.id);
-                          onPageReset?.();
-                        }}
-                        className={[
-                          'px-3 py-1.5 rounded-pill text-xs font-medium border transition-all cursor-pointer',
-                          filters.tagIds.includes(tag.id)
-                            ? 'bg-dn-primary/20 border-dn-primary/30 text-dn-primary'
-                            : 'bg-dn-surface-low border-white/5 text-dn-text-muted hover:border-white/10',
-                        ].join(' ')}
-                      >
-                        #{tag.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {tags.length > 0 && (
+                <TagSelector
+                  tags={tags}
+                  value={filters.tagIds.map(String)}
+                  onChange={(newIds) => {
+                    const prev = filters.tagIds.map(String);
+                    [...newIds.filter(id => !prev.includes(id)), ...prev.filter(id => !newIds.includes(id))]
+                      .forEach(id => onToggleTag(Number(id)));
+                    onPageReset?.();
+                  }}
+                  showAdd={false}
+                />
               )}
 
               {nodes.length > 0 && (
@@ -223,6 +196,11 @@ export function EventSearchbarFilter({
                   placeholder={t('events.filterNodePlaceholder')}
                 />
               )}
+
+              <div className="flex justify-center items-center" 
+                onClick={() => setIsFilterPanelCollapsed((value) => !value)}>
+                <Icon name="keyboard_arrow_up" className="text-xl" />
+              </div>
             </>
           )}
         </div>
