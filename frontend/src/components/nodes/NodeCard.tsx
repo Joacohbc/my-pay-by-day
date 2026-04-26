@@ -73,7 +73,7 @@ export function NodeCard({ node, balance, onClick, actions, hideTypeBadge }: Nod
       </div>
 
       {node.description && (
-        <p className="text-xs text-dn-text-muted mt-2 p-2 text-pretty">{node.description}</p>
+        <p className="text-xs text-dn-text-muted mt-2 pb-2 pr-2 pl-2 text-pretty">{node.description}</p>
       )}
     </div>
   );

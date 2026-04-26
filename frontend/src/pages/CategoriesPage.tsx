@@ -7,15 +7,13 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
-import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import type { Category } from '@/models';
 import { CategoryForm } from '@/components/categories/CategoryForm';
+import { CategoryCard } from '@/components/categories/CategoryCard';
 import { Routes } from '@/lib/routes';
 import { useDuplicates } from '@/hooks/useDuplicates';
-import { SimpleEntityDuplicatesSection } from '@/components/duplicates/SimpleEntityDuplicatesSection';
 
 type ConfirmActionType = 'archive' | 'unarchive' | 'delete';
 
@@ -138,66 +136,19 @@ export function CategoriesPage() {
       ) : (
         <div className="px-5 space-y-3">
           {filtered.map((cat) => (
-            <Card key={cat.id} className={`${cat.archived ? 'opacity-60' : ''}`}>
-            <div className="flex items-center gap-4">
-              <CategoryIcon category={cat} size="lg" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-base font-medium text-dn-text-main">{cat.name}</p>
-                  {cat.archived && (
-                    <span className="text-xs bg-dn-surface-low text-dn-text-muted px-1.5 py-0.5 rounded">
-                      {t('common.archived')}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                {!cat.archived && (
-                  <button
-                    onClick={() => openEdit(cat)}
-                    className="p-2 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors"
-                  >
-                    <Icon name="edit" className="text-base" />
-                  </button>
-                )}
-                {cat.archived ? (
-                  <button
-                    onClick={() => setConfirmAction({ category: cat, type: 'unarchive' })}
-                    disabled={isPending}
-                    className="p-2 rounded-full text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors disabled:opacity-50"
-                  >
-                    <Icon name="unarchive" className="text-base" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setConfirmAction({ category: cat, type: 'archive' })}
-                    disabled={isPending}
-                    className="p-2 rounded-full text-dn-text-muted hover:text-dn-text-main hover:bg-dn-surface-low transition-colors disabled:opacity-50"
-                  >
-                    <Icon name="archive" className="text-base" />
-                  </button>
-                )}
-                <button
-                  onClick={() => setConfirmAction({ category: cat, type: 'delete' })}
-                  disabled={isPending}
-                  className="p-2 rounded-full text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors disabled:opacity-50"
-                >
-                  <Icon name="delete" className="text-base" />
-                </button>
-              </div>
-            </div>
-            {cat.description && (
-              <p className="text-xs text-dn-text-muted mt-2 p-2 text-pretty">{cat.description}</p>
-            )}
-            <SimpleEntityDuplicatesSection
-              records={(allDuplicates ?? []).filter(r => r.entityId1 === cat.id || r.entityId2 === cat.id)}
-              currentId={cat.id}
+            <CategoryCard
+              key={cat.id}
+              category={cat}
+              duplicates={(allDuplicates ?? []).filter(r => r.entityId1 === cat.id || r.entityId2 === cat.id)}
+              isPending={isPending}
+              onEdit={openEdit}
+              onArchive={(category) => setConfirmAction({ category, type: 'archive' })}
+              onUnarchive={(category) => setConfirmAction({ category, type: 'unarchive' })}
+              onDelete={(category) => setConfirmAction({ category, type: 'delete' })}
             />
-            </Card>
           ))}
         </div>
       )}
-
 
       <Modal
         open={showModal}
