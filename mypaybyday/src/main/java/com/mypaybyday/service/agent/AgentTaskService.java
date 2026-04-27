@@ -22,6 +22,7 @@ import com.mypaybyday.repository.AgentTaskStepRepository;
 import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.entity.AgentTaskAttachmentEntity;
 import com.mypaybyday.enums.AgentAttachmentKind;
+import com.mypaybyday.service.FileService;
 
 @ApplicationScoped
 public class AgentTaskService {
@@ -30,16 +31,19 @@ public class AgentTaskService {
     private final AgentTaskStepRepository stepRepository;
     private final AgentTaskAttachmentRepository attachmentRepository;
     private final AgentTaskActionRepository actionRepository;
+    private final FileService fileService;
 
     public AgentTaskService(
             AgentTaskRepository taskRepository,
             AgentTaskStepRepository stepRepository,
             AgentTaskAttachmentRepository attachmentRepository,
-            AgentTaskActionRepository actionRepository) {
+            AgentTaskActionRepository actionRepository,
+            FileService fileService) {
         this.taskRepository = taskRepository;
         this.stepRepository = stepRepository;
         this.attachmentRepository = attachmentRepository;
         this.actionRepository = actionRepository;
+        this.fileService = fileService;
     }
 
     @Transactional
@@ -55,35 +59,7 @@ public class AgentTaskService {
         
         if (dto.getFileIds() != null && !dto.getFileIds().isEmpty()) {
             for (Long fileId : dto.getFileIds()) {
-                FileEntity file = FileEntity.findById(fileId);
-                if (file != null) {
-                    AgentTaskAttachmentEntity attachment = new AgentTaskAttachmentEntity();
-                    attachment.task = task;
-                    attachment.file = file;
-                    attachment.originalName = file.fileName;
-                    attachment.mimeType = file.mimeType;
-                    attachment.sizeBytes = file.size;
-                    
-                    if (file.mimeType != null) {
-                        if (file.mimeType.startsWith("image/")) {
-                            attachment.kind = AgentAttachmentKind.IMAGE;
-                        } else if (file.mimeType.equals("application/pdf")) {
-                            attachment.kind = AgentAttachmentKind.PDF;
-                        } else if (file.mimeType.equals("text/csv")) {
-                            attachment.kind = AgentAttachmentKind.CSV;
-                        } else if (file.mimeType.equals("application/json")) {
-                            attachment.kind = AgentAttachmentKind.JSON;
-                        } else if (file.mimeType.startsWith("text/")) {
-                            attachment.kind = AgentAttachmentKind.TEXT;
-                        } else {
-                            attachment.kind = AgentAttachmentKind.OTHER;
-                        }
-                    } else {
-                        attachment.kind = AgentAttachmentKind.OTHER;
-                    }
-                    
-                    attachmentRepository.persist(attachment);
-                }
+                attachFile(task, fileId);
             }
         }
         
@@ -148,6 +124,28 @@ public class AgentTaskService {
         action.resolvedAt = java.time.LocalDateTime.now();
         actionRepository.persist(action);
         return AgentTaskActionDto.from(action);
+    }
+
+    private void attachFile(AgentTaskEntity task, Long fileId) {
+        FileEntity file = fileService.getFileContent(fileId);
+        AgentTaskAttachmentEntity attachment = new AgentTaskAttachmentEntity();
+        attachment.task = task;
+        attachment.file = file;
+        attachment.originalName = file.fileName;
+        attachment.mimeType = file.mimeType;
+        attachment.sizeBytes = file.size;
+        attachment.kind = resolveAttachmentKind(file.mimeType);
+        attachmentRepository.persist(attachment);
+    }
+
+    private AgentAttachmentKind resolveAttachmentKind(String mimeType) {
+        if (mimeType == null) return AgentAttachmentKind.OTHER;
+        if (mimeType.startsWith("image/")) return AgentAttachmentKind.IMAGE;
+        if (mimeType.equals("application/pdf")) return AgentAttachmentKind.PDF;
+        if (mimeType.equals("text/csv")) return AgentAttachmentKind.CSV;
+        if (mimeType.equals("application/json")) return AgentAttachmentKind.JSON;
+        if (mimeType.startsWith("text/")) return AgentAttachmentKind.TEXT;
+        return AgentAttachmentKind.OTHER;
     }
 
     private AgentTaskEntity requireTask(String id) throws BusinessException {
