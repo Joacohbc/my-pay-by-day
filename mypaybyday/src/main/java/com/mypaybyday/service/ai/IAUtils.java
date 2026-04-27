@@ -56,9 +56,6 @@ public class IAUtils {
 	private final FinanceAiTools financeAiTools;
 
 	private ChatAgent chatAgent;
-	private String SYSTEM_PROMPT_FOR_IMAGES;
-	private String SYSTEM_PROMPT_FOR_CHAT;
-	private String SYSTEM_PROMPT_FOR_EVENT_DESCRIPTION;
 
 	@Inject
 	public IAUtils(
@@ -76,25 +73,12 @@ public class IAUtils {
 
 	@PostConstruct
 	void init() {
-		SYSTEM_PROMPT_FOR_IMAGES = loadPrompt("prompts/system-prompt-images.txt");
-		SYSTEM_PROMPT_FOR_CHAT = loadPrompt("prompts/system-prompt-chat.txt");
-		SYSTEM_PROMPT_FOR_EVENT_DESCRIPTION = loadPrompt("prompts/system-prompt-event-description.txt");
-
 		Map<ToolSpecification, ToolExecutor> toolMap = buildToolMap(financeAiTools, FinanceAiTools.class);
 		this.chatAgent = AiServices.builder(ChatAgent.class)
 				.chatModel(primaryModel)
 				.tools(toolMap)
 				.chatMemoryProvider(chatMemoryOnRAM.get())
 				.build();
-	}
-
-	private static String loadPrompt(String resourcePath) {
-		try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourcePath)) {
-			if (is == null) throw new IllegalStateException("Prompt resource not found: " + resourcePath);
-			return new String(is.readAllBytes(), StandardCharsets.UTF_8);
-		} catch (IOException e) {
-			throw new IllegalStateException("Failed to load prompt resource: " + resourcePath, e);
-		}
 	}
 
 	private static Map<ToolSpecification, ToolExecutor> buildToolMap(Object toolInstance, Class<?> toolClass) {
@@ -116,11 +100,15 @@ public class IAUtils {
 	}
 
 	public String describeImages(List<Image> images) {
-		return viewImages(buildSystemPrompt(SYSTEM_PROMPT_FOR_IMAGES), images);
+		String now = LocalDateTime.now().toString();
+		String lang = languageContext.getLang();
+		return viewImages(PromptCollection.getSystemImages(now, lang), images);
 	}
 
 	public String processImages(String chatId, List<Image> images, String text) {
-		String desc = viewImages(buildSystemPrompt(SYSTEM_PROMPT_FOR_IMAGES), images);
+		String now = LocalDateTime.now().toString();
+		String lang = languageContext.getLang();
+		String desc = viewImages(PromptCollection.getSystemImages(now, lang), images);
 		log.infof("Description: %s", desc);
 		String message = (text != null && !text.isBlank() ? "USER TEXT: " + text + "\n\n" : "") +
 						"IMAGE DESCRIPTIONS:\n-----------------------\n" + desc + "\n-----------------------\n";
@@ -128,7 +116,9 @@ public class IAUtils {
 	}
 
 	public String processText(String chatId, String text) {
-		String prompt = buildSystemPrompt(SYSTEM_PROMPT_FOR_CHAT);
+		String now = LocalDateTime.now().toString();
+		String lang = languageContext.getLang();
+		String prompt = PromptCollection.getSystemChat(now, lang);
 		return chatAgent.chat(chatId, prompt, text);
 	}
 
@@ -150,7 +140,7 @@ public class IAUtils {
 	}
 
 	public String generateEventDescription(String originalText, String instructions, String lang) {
-		String systemPrompt = SYSTEM_PROMPT_FOR_EVENT_DESCRIPTION.formatted(lang);
+		String systemPrompt = PromptCollection.getSystemEventDescription(lang);
 
 		if (instructions != null && !instructions.trim().isEmpty()) {
 			systemPrompt += "\nADDITIONAL USER INSTRUCTIONS:\n" + instructions + "\n";
@@ -160,12 +150,6 @@ public class IAUtils {
 		var userMessage = UserMessage.from(originalText);
 		ChatResponse response = primaryModel.chat(List.of(systemMessage, userMessage));
 		return response.aiMessage().text();
-	}
-
-	private String buildSystemPrompt(String prompt) {
-		String now = LocalDateTime.now().toString();
-		String lang = languageContext.getLang();
-		return prompt.formatted(now, lang);
 	}
 
 	interface ChatAgent {

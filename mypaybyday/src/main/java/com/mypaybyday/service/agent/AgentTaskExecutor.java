@@ -22,11 +22,13 @@ import jakarta.inject.Inject;
 import com.mypaybyday.enums.AgentAttachmentKind;
 import com.mypaybyday.enums.AgentTaskExecutionMode;
 import com.mypaybyday.enums.AgentTaskStepType;
+import com.mypaybyday.service.ai.PromptCollection;
 import com.mypaybyday.service.agent.AgentTaskPersistHelper.AttachmentFile;
 import com.mypaybyday.service.ai.IAUtils;
 import com.mypaybyday.service.ai.AgentToolKind;
 import com.mypaybyday.service.ai.DbChatMemoryStore;
 import com.mypaybyday.service.ai.FinanceAiTools;
+import com.mypaybyday.service.ai.PromptKey;
 
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -52,6 +54,9 @@ public class AgentTaskExecutor {
     private final FinanceAiTools financeAiTools;
     private final AgentTaskPersistHelper persistHelper;
     private final IAUtils agentFinanceEventCreator;
+
+    // TODO: Review this implementation for scalability and robustness. 
+    // Consider using task queue for better performance and reliability in production environments.
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     private final Map<String, Future<?>> runningTasks = new ConcurrentHashMap<>();
 
@@ -210,21 +215,7 @@ public class AgentTaskExecutor {
             case DRAFT_ONLY -> "You can only READ data. Write operations are NOT available in this mode.";
             case READ_ONLY -> "You can only READ data. Write operations are NOT available in this mode.";
         };
-        return """
-You are a background financial analysis agent for MyPayByDay, a personal finance application.
-You have been given a task to complete autonomously. Work methodically through the task using the available tools.
-
-Current date and time: %s
-Execution mode: %s
-%s
-
-INSTRUCTIONS:
-1. Use reportProgress() regularly to narrate what you are doing.
-2. Always call the relevant data tools before drawing conclusions.
-3. Never fabricate financial data — only use what the tools return.
-4. Present your final answer in clear, structured markdown.
-5. Be thorough: check multiple data sources before concluding.
-""".formatted(now, ctx.executionMode(), modeNote);
+        return PromptCollection.getSystemAgent(now, ctx.executionMode().name(), modeNote);
     }
 
     interface AgentRunner {
