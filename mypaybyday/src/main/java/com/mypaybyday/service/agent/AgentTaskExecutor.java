@@ -1,0 +1,251 @@
+package com.mypaybyday.service.agent;
+
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+import jakarta.annotation.PreDestroy;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.control.ActivateRequestContext;
+import jakarta.inject.Named;
+import jakarta.inject.Inject;
+
+import com.mypaybyday.ai.AgentToolKind;
+import com.mypaybyday.ai.DbChatMemoryStore;
+import com.mypaybyday.ai.FinanceAiTools;
+import com.mypaybyday.enums.AgentAttachmentKind;
+import com.mypaybyday.enums.AgentTaskExecutionMode;
+import com.mypaybyday.enums.AgentTaskStepType;
+import com.mypaybyday.service.agent.AgentTaskPersistHelper.AttachmentFile;
+import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.agent.tool.ToolSpecifications;
+import dev.langchain4j.data.image.Image;
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.TextContent;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.MemoryId;
+import dev.langchain4j.service.V;
+import dev.langchain4j.service.tool.DefaultToolExecutor;
+import dev.langchain4j.service.tool.ToolExecutor;
+import org.jboss.logging.Logger;
+
+@ApplicationScoped
+public class AgentTaskExecutor {
+
+    private static final Logger log = Logger.getLogger(AgentTaskExecutor.class);
+    private static final int MAX_CHAT_MESSAGES = 50;
+
+    private final ChatModel agentChatModel;
+    private final ChatModel visionChatModel;
+    private final DbChatMemoryStore dbChatMemoryStore;
+    private final FinanceAiTools financeAiTools;
+    private final AgentTaskPersistHelper persistHelper;
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
+    private final Map<String, Future<?>> runningTasks = new ConcurrentHashMap<>();
+
+    @Inject
+    AgentTaskExecutor self;
+
+    public AgentTaskExecutor(
+            @Named("agentChatModel") ChatModel agentChatModel,
+            @Named("visionChatModel") ChatModel visionChatModel,
+            DbChatMemoryStore dbChatMemoryStore,
+            FinanceAiTools financeAiTools,
+            AgentTaskPersistHelper persistHelper) {
+        this.agentChatModel = agentChatModel;
+        this.visionChatModel = visionChatModel;
+        this.dbChatMemoryStore = dbChatMemoryStore;
+        this.financeAiTools = financeAiTools;
+        this.persistHelper = persistHelper;
+    }
+
+    public void submit(String taskId) {
+        Future<?> future = executorService.submit(() -> self.runTaskWithRequestContext(taskId));
+        runningTasks.put(taskId, future);
+    }
+
+    @ActivateRequestContext
+    public void runTaskWithRequestContext(String taskId) {
+        runTask(taskId);
+    }
+
+    public void forceCancel(String taskId) {
+        Future<?> future = runningTasks.remove(taskId);
+        if (future != null) {
+            future.cancel(true);
+        }
+        persistHelper.markCancelled(taskId);
+    }
+
+    @PreDestroy
+    void shutdown() {
+        executorService.shutdownNow();
+    }
+
+    private void runTask(String taskId) {
+        var task = persistHelper.markRunning(taskId);
+        if (task == null) {
+            log.warnf("Task not found or already in terminal state: %s", taskId);
+            runningTasks.remove(taskId);
+            return;
+        }
+
+        try {
+            List<AttachmentFile> attachments = persistHelper.loadAttachmentFiles(taskId);
+            String enrichedInstruction = buildEnrichedInstruction(task.getUserInstruction(), attachments);
+            AgentExecutionContext ctx = new AgentExecutionContext(task.getId(), enrichedInstruction, task.getExecutionMode());
+            runAgentLoop(ctx);
+        } catch (CancellationException | InterruptedException e) {
+            Thread.currentThread().interrupt();
+            persistHelper.markCancelled(taskId);
+        } catch (Exception e) {
+            log.errorf(e, "Agent task %s failed", taskId);
+            persistHelper.markFailed(taskId, e.getMessage());
+        } finally {
+            runningTasks.remove(taskId);
+        }
+    }
+
+    private String buildEnrichedInstruction(String userInstruction, List<AttachmentFile> attachments) {
+        if (attachments.isEmpty()) return userInstruction;
+        StringBuilder sb = new StringBuilder(userInstruction);
+        for (AttachmentFile att : attachments) {
+            sb.append("\n\n");
+            if (att.kind() == AgentAttachmentKind.IMAGE) {
+                log.infof("Agent task: describing image attachment '%s' via vision model", att.fileName());
+                String description = describeImageAttachment(att);
+                sb.append("[ATTACHED IMAGE: ").append(att.fileName()).append("]\n").append(description);
+            } else if (att.kind() == AgentAttachmentKind.TEXT
+                    || att.kind() == AgentAttachmentKind.CSV
+                    || att.kind() == AgentAttachmentKind.JSON) {
+                String content = new String(att.data(), StandardCharsets.UTF_8);
+                sb.append("[ATTACHED FILE: ").append(att.fileName()).append("]\n```\n")
+                  .append(content).append("\n```");
+            } else {
+                sb.append("[ATTACHED FILE: ").append(att.fileName())
+                  .append(" (").append(att.mimeType()).append(") — binary content not readable as text]");
+            }
+        }
+        return sb.toString();
+    }
+
+    private String describeImageAttachment(AttachmentFile att) {
+        try {
+            String base64 = Base64.getEncoder().encodeToString(att.data());
+            Image img = Image.builder().base64Data(base64).mimeType(att.mimeType()).build();
+            var sysMsg = SystemMessage.from(
+                    "Analyze this financial document image. Extract ALL visible text, amounts, dates, merchant names, line items, totals, and any transaction details. Be comprehensive and precise.");
+            List<Content> contents = new ArrayList<>();
+            contents.add(TextContent.from("Please analyze this image in detail."));
+            contents.add(ImageContent.from(img));
+            var userMsg = UserMessage.from(contents);
+            ChatResponse response = visionChatModel.chat(List.of(sysMsg, userMsg));
+            return response.aiMessage().text();
+        } catch (Exception e) {
+            log.warnf("Failed to describe image attachment '%s': %s", att.fileName(), e.getMessage());
+            return "[Image could not be analyzed: " + e.getMessage() + "]";
+        }
+    }
+
+    private void runAgentLoop(AgentExecutionContext ctx) throws InterruptedException {
+        Map<ToolSpecification, ToolExecutor> toolMap = buildToolMap(ctx.executionMode());
+
+        AgentRunner agent = AiServices.builder(AgentRunner.class)
+                .chatModel(agentChatModel)
+                .tools(toolMap)
+                .chatMemoryProvider(memoryId -> MessageWindowChatMemory.builder()
+                        .chatMemoryStore(dbChatMemoryStore)
+                        .maxMessages(MAX_CHAT_MESSAGES)
+                        .id(memoryId)
+                        .build())
+                .build();
+
+        if (Thread.interrupted()) throw new InterruptedException();
+        if (persistHelper.isCancelRequested(ctx.taskId())) {
+            throw new CancellationException("Cancel requested before agent start");
+        }
+
+        long startMs = System.currentTimeMillis();
+        String response = agent.execute(ctx.taskId(), buildSystemPrompt(ctx), ctx.userInstruction());
+        long durationMs = System.currentTimeMillis() - startMs;
+
+        persistHelper.persistStep(ctx.taskId(),
+                AgentTaskStepType.MESSAGE, null, null, null,
+                response, 0, 0, durationMs);
+
+        persistHelper.markCompleted(ctx.taskId(), response);
+    }
+
+    private Map<ToolSpecification, ToolExecutor> buildToolMap(AgentTaskExecutionMode mode) {
+        Map<ToolSpecification, ToolExecutor> map = new LinkedHashMap<>();
+        for (Method method : FinanceAiTools.class.getDeclaredMethods()) {
+            if (!method.isAnnotationPresent(Tool.class)) continue;
+
+            AgentToolKind kindAnnotation = method.getAnnotation(AgentToolKind.class);
+            AgentToolKind.Kind kind = kindAnnotation != null ? kindAnnotation.value() : AgentToolKind.Kind.READ;
+
+            boolean included = switch (mode) {
+                case AUTONOMOUS -> true;
+                case DRAFT_ONLY -> kind == AgentToolKind.Kind.READ || kind == AgentToolKind.Kind.META;
+                case READ_ONLY -> kind == AgentToolKind.Kind.READ || kind == AgentToolKind.Kind.META;
+            };
+
+            if (included) {
+                ToolSpecification spec = ToolSpecifications.toolSpecificationFrom(method);
+                map.put(spec, new DefaultToolExecutor(financeAiTools, method));
+            }
+        }
+        return map;
+    }
+
+    private String buildSystemPrompt(AgentExecutionContext ctx) {
+        String now = LocalDateTime.now().toString();
+        String modeNote = switch (ctx.executionMode()) {
+            case AUTONOMOUS -> "You can read AND write data (create events, update categories, archive nodes, trigger subscriptions).";
+            case DRAFT_ONLY -> "You can only READ data. Write operations are NOT available in this mode.";
+            case READ_ONLY -> "You can only READ data. Write operations are NOT available in this mode.";
+        };
+        return """
+You are a background financial analysis agent for MyPayByDay, a personal finance application.
+You have been given a task to complete autonomously. Work methodically through the task using the available tools.
+
+Current date and time: %s
+Execution mode: %s
+%s
+
+INSTRUCTIONS:
+1. Use reportProgress() regularly to narrate what you are doing.
+2. Always call the relevant data tools before drawing conclusions.
+3. Never fabricate financial data — only use what the tools return.
+4. Present your final answer in clear, structured markdown.
+5. Be thorough: check multiple data sources before concluding.
+""".formatted(now, ctx.executionMode(), modeNote);
+    }
+
+    interface AgentRunner {
+        @dev.langchain4j.service.SystemMessage("{systemPrompt}")
+        String execute(
+                @MemoryId String chatId,
+                @V("systemPrompt") String systemPrompt,
+                @dev.langchain4j.service.UserMessage String userInstruction);
+    }
+
+    private record AgentExecutionContext(String taskId, String userInstruction, AgentTaskExecutionMode executionMode) {}
+}
