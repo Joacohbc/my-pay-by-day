@@ -15,9 +15,10 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-import com.mypaybyday.ai.AgentFinanceEventCreator;
-import com.mypaybyday.ai.ChatMemoryOnRAM;
 import com.mypaybyday.dto.ChatResponseDto;
+import com.mypaybyday.service.ai.IAUtils;
+import com.mypaybyday.service.ai.ChatMemoryOnRAM;
+
 import dev.langchain4j.data.image.Image;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -42,11 +43,11 @@ public class ChatResource {
 
 	private static final Logger log = Logger.getLogger(ChatResource.class);
 
-	private final AgentFinanceEventCreator agentFinanceEventCreator;
+	private final IAUtils agentFinanceEventCreator;
 	private final ChatMemoryOnRAM chatMemoryBean;
 
 	public ChatResource(
-			AgentFinanceEventCreator agentFinanceEventCreator,
+			IAUtils agentFinanceEventCreator,
 			ChatMemoryOnRAM chatMemoryBean) {
 		this.agentFinanceEventCreator = agentFinanceEventCreator;
 		this.chatMemoryBean = chatMemoryBean;

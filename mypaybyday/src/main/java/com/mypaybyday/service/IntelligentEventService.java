@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
-import com.mypaybyday.ai.AgentFinanceEventCreator;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.FinanceEventExtractionDto;
 import com.mypaybyday.dto.IntelligentEventResponseDto;
@@ -31,6 +30,8 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.TagRepository;
+import com.mypaybyday.service.ai.IAUtils;
+
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
@@ -38,7 +39,7 @@ public class IntelligentEventService {
 
 	private static final Logger log = Logger.getLogger(IntelligentEventService.class);
 
-	private final AgentFinanceEventCreator agentFinanceEventCreator;
+	private final IAUtils agentFinanceEventCreator;
 	private final DraftService draftService;
 	private final LanguageContext languageContext;
 	private final FinanceNodeRepository financeNodeRepository;
@@ -46,7 +47,7 @@ public class IntelligentEventService {
 	private final TagRepository tagRepository;
 	private final Messages messages;
 
-	public IntelligentEventService(AgentFinanceEventCreator agentFinanceEventCreator,
+	public IntelligentEventService(IAUtils agentFinanceEventCreator,
 			DraftService draftService, LanguageContext languageContext,
 			FinanceNodeRepository financeNodeRepository, CategoryRepository categoryRepository,
 			TagRepository tagRepository, Messages messages) {

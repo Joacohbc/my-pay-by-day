@@ -19,14 +19,15 @@ import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Named;
 import jakarta.inject.Inject;
 
-import com.mypaybyday.ai.AgentFinanceEventCreator;
-import com.mypaybyday.ai.AgentToolKind;
-import com.mypaybyday.ai.DbChatMemoryStore;
-import com.mypaybyday.ai.FinanceAiTools;
 import com.mypaybyday.enums.AgentAttachmentKind;
 import com.mypaybyday.enums.AgentTaskExecutionMode;
 import com.mypaybyday.enums.AgentTaskStepType;
 import com.mypaybyday.service.agent.AgentTaskPersistHelper.AttachmentFile;
+import com.mypaybyday.service.ai.IAUtils;
+import com.mypaybyday.service.ai.AgentToolKind;
+import com.mypaybyday.service.ai.DbChatMemoryStore;
+import com.mypaybyday.service.ai.FinanceAiTools;
+
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
@@ -50,7 +51,7 @@ public class AgentTaskExecutor {
     private final DbChatMemoryStore dbChatMemoryStore;
     private final FinanceAiTools financeAiTools;
     private final AgentTaskPersistHelper persistHelper;
-    private final AgentFinanceEventCreator agentFinanceEventCreator;
+    private final IAUtils agentFinanceEventCreator;
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     private final Map<String, Future<?>> runningTasks = new ConcurrentHashMap<>();
 
@@ -62,7 +63,7 @@ public class AgentTaskExecutor {
             DbChatMemoryStore dbChatMemoryStore,
             FinanceAiTools financeAiTools,
             AgentTaskPersistHelper persistHelper,
-            AgentFinanceEventCreator agentFinanceEventCreator) {
+            IAUtils agentFinanceEventCreator) {
         this.agentChatModel = agentChatModel;
         this.dbChatMemoryStore = dbChatMemoryStore;
         this.financeAiTools = financeAiTools;

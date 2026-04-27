@@ -1,4 +1,4 @@
-package com.mypaybyday.ai;
+package com.mypaybyday.service.ai;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

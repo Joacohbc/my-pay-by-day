@@ -1,4 +1,4 @@
-package com.mypaybyday.ai;
+package com.mypaybyday.service.ai;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

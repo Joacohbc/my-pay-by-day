@@ -1,4 +1,4 @@
-package com.mypaybyday.ai;
+package com.mypaybyday.service.ai;
 
 import java.util.ArrayList;
 import java.util.List;
