@@ -36,4 +36,8 @@ public class PromptCollection {
     public static String getSystemImages(String now, String userLanguage) {
         return PromptKey.SYSTEM_IMAGES.getContent().formatted(now, userLanguage);
     }
+
+    public static String getSystemAudio() {
+        return PromptKey.SYSTEM_AUDIO.getContent();
+    }
 }

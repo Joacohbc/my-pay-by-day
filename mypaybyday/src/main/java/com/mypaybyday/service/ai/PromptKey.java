@@ -10,7 +10,8 @@ public enum PromptKey {
 	SYSTEM_CHAT("prompts/system-prompt-chat.txt"),
 	SYSTEM_EVENT_DESCRIPTION("prompts/system-prompt-event-description.txt"),
 	SYSTEM_EXTRACTION("prompts/system-prompt-extraction.txt"),
-	SYSTEM_IMAGES("prompts/system-prompt-images.txt");
+	SYSTEM_IMAGES("prompts/system-prompt-images.txt"),
+	SYSTEM_AUDIO("prompts/system-prompt-audio.txt");
 
 	private final String path;
 	private final String content;
