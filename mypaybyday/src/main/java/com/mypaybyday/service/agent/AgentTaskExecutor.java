@@ -3,7 +3,6 @@ package com.mypaybyday.service.agent;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,6 +19,7 @@ import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Named;
 import jakarta.inject.Inject;
 
+import com.mypaybyday.ai.AgentFinanceEventCreator;
 import com.mypaybyday.ai.AgentToolKind;
 import com.mypaybyday.ai.DbChatMemoryStore;
 import com.mypaybyday.ai.FinanceAiTools;
@@ -31,14 +31,8 @@ import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
 import dev.langchain4j.data.image.Image;
-import dev.langchain4j.data.message.Content;
-import dev.langchain4j.data.message.ImageContent;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.TextContent;
-import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.V;
@@ -53,10 +47,10 @@ public class AgentTaskExecutor {
     private static final int MAX_CHAT_MESSAGES = 50;
 
     private final ChatModel agentChatModel;
-    private final ChatModel visionChatModel;
     private final DbChatMemoryStore dbChatMemoryStore;
     private final FinanceAiTools financeAiTools;
     private final AgentTaskPersistHelper persistHelper;
+    private final AgentFinanceEventCreator agentFinanceEventCreator;
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     private final Map<String, Future<?>> runningTasks = new ConcurrentHashMap<>();
 
@@ -65,15 +59,15 @@ public class AgentTaskExecutor {
 
     public AgentTaskExecutor(
             @Named("agentChatModel") ChatModel agentChatModel,
-            @Named("visionChatModel") ChatModel visionChatModel,
             DbChatMemoryStore dbChatMemoryStore,
             FinanceAiTools financeAiTools,
-            AgentTaskPersistHelper persistHelper) {
+            AgentTaskPersistHelper persistHelper,
+            AgentFinanceEventCreator agentFinanceEventCreator) {
         this.agentChatModel = agentChatModel;
-        this.visionChatModel = visionChatModel;
         this.dbChatMemoryStore = dbChatMemoryStore;
         this.financeAiTools = financeAiTools;
         this.persistHelper = persistHelper;
+        this.agentFinanceEventCreator = agentFinanceEventCreator;
     }
 
     public void submit(String taskId) {
@@ -149,15 +143,8 @@ public class AgentTaskExecutor {
     private String describeImageAttachment(AttachmentFile att) {
         try {
             String base64 = Base64.getEncoder().encodeToString(att.data());
-            Image img = Image.builder().base64Data(base64).mimeType(att.mimeType()).build();
-            var sysMsg = SystemMessage.from(
-                    "Analyze this financial document image. Extract ALL visible text, amounts, dates, merchant names, line items, totals, and any transaction details. Be comprehensive and precise.");
-            List<Content> contents = new ArrayList<>();
-            contents.add(TextContent.from("Please analyze this image in detail."));
-            contents.add(ImageContent.from(img));
-            var userMsg = UserMessage.from(contents);
-            ChatResponse response = visionChatModel.chat(List.of(sysMsg, userMsg));
-            return response.aiMessage().text();
+            Image img = agentFinanceEventCreator.buildImage(base64, att.mimeType());
+            return agentFinanceEventCreator.describeImages(List.of(img));
         } catch (Exception e) {
             log.warnf("Failed to describe image attachment '%s': %s", att.fileName(), e.getMessage());
             return "[Image could not be analyzed: " + e.getMessage() + "]";

@@ -89,6 +89,8 @@ public class AgentFinanceEventCreator {
 		return map;
 	}
 
+	// TODO: Move this prompts to external resource files for better maintainability and localization support.
+
 	final String SYSTEM_PROMPT_FOR_IMAGES = """
 Analyze the provided image and determine its type (receipt, invoice, ticket, etc.).
 Extract the maximum amount of information possible to allow for the creation of one or more finance events.
@@ -167,6 +169,10 @@ GOLDEN RULES:
 			.build();
 	}
 
+	public String describeImages(List<Image> images) {
+		return viewImages(buildSystemPrompt(SYSTEM_PROMPT_FOR_IMAGES), images);
+	}
+
 	public String processImages(String chatId, List<Image> images, String text) {
 		String desc = viewImages(buildSystemPrompt(SYSTEM_PROMPT_FOR_IMAGES), images);
 		log.infof("Description: %s", desc);
@@ -197,7 +203,7 @@ GOLDEN RULES:
 		return chatAgent.extractEvent(systemPrompt, text);
 	}
 
-	public String generateDescription(String originalText, String instructions, String lang) {
+	public String generateEventDescription(String originalText, String instructions, String lang) {
 		String systemPrompt = """
 You are a personal finance assistant. Generate a short, human-readable description (1-2 sentences) for a financial transaction, written in %s.
 Summarize what happened, who was involved, and any relevant context extracted from the user's input.

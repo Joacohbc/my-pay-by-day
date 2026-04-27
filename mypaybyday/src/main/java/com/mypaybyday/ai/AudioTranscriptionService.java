@@ -52,6 +52,7 @@ public class AudioTranscriptionService {
 		log.infof("Transcribing audio [model=%s, mimeType=%s, bytes=%d]", audioModelName, resolvedMimeType, audioBytes.length);
 
 		try {
+			// TODO: Create a specific DTO for the request body and use ObjectMapper to serialize it, instead of building a raw Map.
 			Map<String, Object> body = Map.of(
 					"model", audioModelName,
 					"messages", List.of(
