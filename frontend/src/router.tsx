@@ -20,6 +20,8 @@ import { FilesPage } from '@/pages/FilesPage';
 import { AiSettingsPage } from '@/pages/AiSettingsPage';
 import { DuplicateSettingsPage } from '@/pages/DuplicateSettingsPage';
 import { EventDuplicatesPage } from '@/pages/EventDuplicatesPage';
+import { AgentTasksPage } from '@/pages/AgentTasksPage';
+import { AgentTaskDetailPage } from '@/pages/AgentTaskDetailPage';
 import { Routes } from '@/lib/routes';
 
 export const router = createBrowserRouter([
@@ -57,6 +59,10 @@ export const router = createBrowserRouter([
       { path: 'settings/files', element: <FilesPage /> },
       { path: 'settings/ai', element: <AiSettingsPage /> },
       { path: 'settings/duplicates', element: <DuplicateSettingsPage /> },
+
+      // Agent Tasks
+      { path: 'agent-tasks', element: <AgentTasksPage /> },
+      { path: 'agent-tasks/:id', element: <AgentTaskDetailPage /> },
 
       // Fallback
       { path: '*', element: <Navigate to={Routes.DASHBOARD} replace /> },

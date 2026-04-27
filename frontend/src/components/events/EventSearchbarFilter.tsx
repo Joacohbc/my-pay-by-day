@@ -67,8 +67,8 @@ export function EventSearchbarFilter({
   return (
     <>
       {showFilters && (
-        <div className="space-y-4 rounded-3xl p-4 border border-white/5">
-          <div className="flex items-center justify-between gap-2 px-1 cursor-pointer"
+        <div className="space-y-4 rounded-3xl p-4 border border-white/5 cursor-pointer">
+          <div className="flex items-center justify-between gap-2 px-1"
             onClick={() => setIsFilterPanelCollapsed((value) => !value)}>
             <button
               type="button"
@@ -197,7 +197,7 @@ export function EventSearchbarFilter({
                 />
               )}
 
-              <div className="flex justify-center items-center" 
+              <div className="flex justify-center items-center cursor-pointer" 
                 onClick={() => setIsFilterPanelCollapsed((value) => !value)}>
                 <Icon name="keyboard_arrow_up" className="text-xl" />
               </div>

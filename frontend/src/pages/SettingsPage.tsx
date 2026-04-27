@@ -272,6 +272,12 @@ export function SettingsPage() {
             subtitle={t('settings.aiDesc')}
           />
           <SettingRow
+            to={Routes.AGENT_TASKS}
+            icon="smart_toy"
+            title={t('agentTasks.title')}
+            subtitle={t('agentTasks.subtitle')}
+          />
+          <SettingRow
             to={Routes.SETTINGS_DUPLICATES}
             icon="find_replace"
             title={t('duplicates.settings.title')}

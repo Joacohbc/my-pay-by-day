@@ -1,0 +1,30 @@
+import type { AgentTask, AgentTaskSubmitDto } from '@/models/agent-tasks';
+import { api } from '@/services/api';
+
+export const agentTasksService = {
+  submit: (dto: AgentTaskSubmitDto) =>
+    api.post<AgentTask>('/agent-tasks', dto),
+
+  getAll: (status?: string) => {
+    const path = status ? `/agent-tasks?status=${status}` : '/agent-tasks';
+    return api.get<AgentTask[]>(path);
+  },
+
+  getById: (id: string) =>
+    api.get<AgentTask>(`/agent-tasks/${id}`),
+
+  cancel: (id: string) =>
+    api.post<AgentTask>(`/agent-tasks/${id}/cancel`, {}),
+
+  resume: (id: string) =>
+    api.post<AgentTask>(`/agent-tasks/${id}/resume`, {}),
+
+  delete: (id: string) =>
+    api.delete(`/agent-tasks/${id}`),
+
+  approveAction: (taskId: string, actionId: number) =>
+    api.post<void>(`/agent-tasks/${taskId}/actions/${actionId}/approve`, {}),
+
+  rejectAction: (taskId: string, actionId: number) =>
+    api.post<void>(`/agent-tasks/${taskId}/actions/${actionId}/reject`, {}),
+};

@@ -41,6 +41,7 @@ const es = {
     category: 'Categoría',
     tag: 'Etiqueta',
     confirmDeleteNamed: '¿Eliminar "{{name}}"?',
+    deleteConfirm: '¿Eliminar este elemento permanentemente?',
     nameRequired: 'El nombre es requerido',
     loading: 'Cargando…',
     prevPage: 'Anterior',
@@ -648,6 +649,29 @@ const es = {
     descriptionTooLong: 'La descripción debe tener como máximo 5100 caracteres',
     descriptionInvalidChars: 'La descripción contiene caracteres no válidos',
     modifierValueRequired: 'El valor del modificador es requerido cuando se selecciona un tipo de modificador',
+  },
+
+  // ─── Agent Tasks ─────────────────────────────────────────────────────────
+  agentTasks: {
+    title: 'Tareas del Agente',
+    subtitle: 'Administrar tareas en segundo plano',
+    emptyList: 'No hay tareas encontradas',
+    newTask: 'Nueva Tarea',
+    status: 'Estado',
+    instruction: 'Instrucción',
+    result: 'Resultado',
+    inputTokens: 'Tokens Entrada',
+    outputTokens: 'Tokens Salida',
+    toolsUsed: 'Herramientas Usadas',
+    cancel: 'Cancelar Tarea',
+    start: 'Iniciar',
+    delete: 'Eliminar Tarea',
+    resume: 'Reanudar',
+    progress: 'Progreso',
+    actionRequired: 'Acción Requerida',
+    approve: 'Aprobar',
+    reject: 'Rechazar',
+    executionMode: 'Modo',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

@@ -42,6 +42,7 @@ const en = {
     category: 'Category',
     tag: 'Tag',
     confirmDeleteNamed: 'Delete "{{name}}"?',
+    deleteConfirm: 'Permanently delete this item?',
     nameRequired: 'Name is required',
     loading: 'Loading…',
     prevPage: 'Previous',
@@ -649,6 +650,29 @@ const en = {
     descriptionTooLong: 'Description must be at most 5100 characters',
     descriptionInvalidChars: 'Description contains invalid characters',
     modifierValueRequired: 'Modifier value is required when a modifier type is selected',
+  },
+
+  // ─── Agent Tasks ─────────────────────────────────────────────────────────
+  agentTasks: {
+    title: 'Agent Tasks',
+    subtitle: 'Manage background LLM tasks',
+    emptyList: 'No agent tasks found',
+    newTask: 'New Task',
+    status: 'Status',
+    instruction: 'Instruction',
+    result: 'Result',
+    inputTokens: 'Input Tokens',
+    outputTokens: 'Output Tokens',
+    toolsUsed: 'Tools Used',
+    cancel: 'Cancel Task',
+    start: 'Start Task',
+    delete: 'Delete Task',
+    resume: 'Resume',
+    progress: 'Progress',
+    actionRequired: 'Action Required',
+    approve: 'Approve',
+    reject: 'Reject',
+    executionMode: 'Mode',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────
