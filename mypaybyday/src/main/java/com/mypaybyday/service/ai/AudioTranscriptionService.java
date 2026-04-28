@@ -20,11 +20,7 @@ import org.jboss.logging.Logger;
 public class AudioTranscriptionService {
 
 	private static final Logger log = Logger.getLogger(AudioTranscriptionService.class);
-
-	private static final String TRANSCRIPTION_PROMPT =
-			"Transcribe this audio exactly as spoken. " +
-			"Return only the transcription text — no explanations, no formatting, no extra words.";
-
+	
 	@ConfigProperty(name = "ai.audio.base-url")
 	String baseUrl;
 

@@ -28,7 +28,6 @@ import com.mypaybyday.service.ai.IAUtils;
 import com.mypaybyday.service.ai.AgentToolKind;
 import com.mypaybyday.service.ai.DbChatMemoryStore;
 import com.mypaybyday.service.ai.FinanceAiTools;
-import com.mypaybyday.service.ai.PromptKey;
 
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolSpecification;

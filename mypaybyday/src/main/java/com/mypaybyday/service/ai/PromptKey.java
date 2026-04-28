@@ -4,8 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+// TODO: Change the naming of these keys to be more consistent and clear about their purpose
 public enum PromptKey {
-	EXTRACTION_TEMPLATE("prompts/event-extraction-template.txt"),
+    EXTRACTION_TEMPLATE("prompts/event-extraction-template.txt"),
 	SYSTEM_AGENT("prompts/system-prompt-agent.txt"),
 	SYSTEM_CHAT("prompts/system-prompt-chat.txt"),
 	SYSTEM_EVENT_DESCRIPTION("prompts/system-prompt-event-description.txt"),
