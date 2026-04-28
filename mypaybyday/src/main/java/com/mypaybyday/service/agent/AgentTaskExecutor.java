@@ -131,6 +131,10 @@ public class AgentTaskExecutor {
                 log.infof("Agent task: describing image attachment '%s' via vision model", att.fileName());
                 String description = describeImageAttachment(att);
                 sb.append("[ATTACHED IMAGE: ").append(att.fileName()).append("]\n").append(description);
+            } else if (att.kind() == AgentAttachmentKind.PDF) {
+                log.infof("Agent task: describing PDF attachment '%s' via vision model", att.fileName());
+                String description = describePdfAttachment(att);
+                sb.append("[ATTACHED PDF: ").append(att.fileName()).append("]\n").append(description);
             } else if (att.kind() == AgentAttachmentKind.TEXT
                     || att.kind() == AgentAttachmentKind.CSV
                     || att.kind() == AgentAttachmentKind.JSON) {
@@ -153,6 +157,16 @@ public class AgentTaskExecutor {
         } catch (Exception e) {
             log.warnf("Failed to describe image attachment '%s': %s", att.fileName(), e.getMessage());
             return "[Image could not be analyzed: " + e.getMessage() + "]";
+        }
+    }
+
+    private String describePdfAttachment(AttachmentFile att) {
+        try {
+            String base64 = Base64.getEncoder().encodeToString(att.data());
+            return agentFinanceEventCreator.describePdf(base64, att.mimeType());
+        } catch (Exception e) {
+            log.warnf("Failed to describe PDF attachment '%s': %s", att.fileName(), e.getMessage());
+            return "[PDF could not be analyzed: " + e.getMessage() + "]";
         }
     }
 

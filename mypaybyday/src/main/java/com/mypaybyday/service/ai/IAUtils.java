@@ -20,6 +20,7 @@ import dev.langchain4j.data.image.Image;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
@@ -100,6 +101,18 @@ public class IAUtils {
 		String now = LocalDateTime.now().toString();
 		String lang = languageContext.getLang();
 		return viewImages(PromptCollection.getSystemImages(now, lang), images);
+	}
+
+	public String describePdf(String base64Data, String mimeType) {
+		String now = LocalDateTime.now().toString();
+		String lang = languageContext.getLang();
+		var systemMessage = SystemMessage.from(PromptCollection.getSystemImages(now, lang));
+		var userMessage = UserMessage.from(
+			TextContent.from("Please analyze this PDF document."),
+			PdfFileContent.from(base64Data, mimeType)
+		);
+		ChatResponse response = visionModel.chat(List.of(systemMessage, userMessage));
+		return response.aiMessage().text();
 	}
 
 	public String processImages(String chatId, List<Image> images, String text) {
