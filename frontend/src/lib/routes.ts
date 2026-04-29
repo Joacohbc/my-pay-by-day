@@ -12,7 +12,7 @@ export const Routes = {
 
   CHAT: '/chat',
 
-  AGENT_TASKS: '/agent-tasks',
+  AGENT_TASKS: '/chat?tab=tasks',
   AGENT_TASK_DETAIL: (id: string) => `/agent-tasks/${id}`,
 
   PERIODS: '/periods',

@@ -701,6 +701,12 @@ const en = {
     activity: 'Activity',
     error: 'Error',
     noSteps: 'No steps yet.',
+    quickProcess: {
+      title: 'Quick Process',
+      subtitle: 'Upload files and let the agent do the rest',
+      button: 'Process Files',
+      instruction: 'Analyze these files (receipts, invoices, screenshots) and extract all financial movements to create the corresponding events in the system. Make sure to categorize them correctly by searching for existing categories.',
+    },
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────
