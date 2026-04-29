@@ -61,7 +61,6 @@ export const router = createBrowserRouter([
       { path: 'settings/duplicates', element: <DuplicateSettingsPage /> },
 
       // Agent Tasks
-      { path: 'agent-tasks', element: <AgentTasksPage /> },
       { path: 'agent-tasks/:id', element: <AgentTaskDetailPage /> },
 
       // Fallback
