@@ -6,12 +6,9 @@ import java.util.List;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mypaybyday.entity.ChatMessageEntity;
 import com.mypaybyday.enums.ChatMessageRole;
 import com.mypaybyday.repository.ChatMessageRepository;
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -26,11 +23,9 @@ public class DbChatMemoryStore implements ChatMemoryStore {
     private static final Logger log = Logger.getLogger(DbChatMemoryStore.class);
 
     private final ChatMessageRepository chatMessageRepository;
-    private final ObjectMapper objectMapper;
 
-    public DbChatMemoryStore(ChatMessageRepository chatMessageRepository, ObjectMapper objectMapper) {
+    public DbChatMemoryStore(ChatMessageRepository chatMessageRepository) {
         this.chatMessageRepository = chatMessageRepository;
-        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -73,27 +68,13 @@ public class DbChatMemoryStore implements ChatMemoryStore {
             return UserMessage.from(entity.content);
         }
         if (entity.role == ChatMessageRole.AI) {
-            return deserializeAiMessage(entity);
+            return AiMessage.from(entity.content == null ? "" : entity.content);
         }
         if (entity.role == ChatMessageRole.TOOL) {
             return ToolExecutionResultMessage.from(entity.toolCallId, entity.toolName, entity.content);
         }
         log.warnf("Unknown role %s for chatId=%s, skipping message", entity.role, entity.chatId);
         return null;
-    }
-
-    private AiMessage deserializeAiMessage(ChatMessageEntity entity) {
-        if ("tool_calls".equals(entity.toolName)) {
-            try {
-                List<ToolExecutionRequest> requests = objectMapper.readValue(
-                        entity.content,
-                        objectMapper.getTypeFactory().constructCollectionType(List.class, ToolExecutionRequest.class));
-                return AiMessage.from(requests);
-            } catch (JsonProcessingException e) {
-                log.warnf("Failed to deserialize tool requests for chatId=%s, falling back to text", entity.chatId);
-            }
-        }
-        return AiMessage.from(entity.content != null ? entity.content : "");
     }
 
     private ChatMessageEntity toEntity(String chatId, ChatMessage message, int sequence) {
@@ -109,17 +90,7 @@ public class DbChatMemoryStore implements ChatMemoryStore {
             entity.content = um.singleText();
         } else if (message instanceof AiMessage am) {
             entity.role = ChatMessageRole.AI;
-            if (am.hasToolExecutionRequests()) {
-                try {
-                    entity.content = objectMapper.writeValueAsString(am.toolExecutionRequests());
-                    entity.toolName = "tool_calls";
-                } catch (JsonProcessingException e) {
-                    log.warnf("Failed to serialize tool requests for chatId=%s", chatId);
-                    entity.content = "";
-                }
-            } else {
-                entity.content = am.text();
-            }
+            entity.content = am.text();
         } else if (message instanceof ToolExecutionResultMessage trm) {
             entity.role = ChatMessageRole.TOOL;
             entity.content = trm.text();
