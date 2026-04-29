@@ -41,8 +41,9 @@ export function FileCard({ file, onDelete, deleting, hideActions }: FileCardProp
               </span>
               {file.isOrphan && (
                 <span title={t('files.orphanHint')}>
-                  <Badge variant="expense" size="sm" className="px-1 py-0 h-4">
+                  <Badge variant="expense" size="sm" className="px-2 py-0 h-5 flex items-center gap-1">
                     <Icon name="link_off" className="text-[10px]" />
+                    <span className="text-[9px] uppercase font-bold tracking-tight">{t('files.orphan')}</span>
                   </Badge>
                 </span>
               )}
@@ -79,7 +80,7 @@ export function FileCard({ file, onDelete, deleting, hideActions }: FileCardProp
         )}
       </div>
 
-      {file.events && file.events.length > 0 && (
+      {file.events && file.events.length > 0 ? (
         <div className="flex flex-wrap gap-1.5 pt-2 mt-2 border-t border-white/5">
           {file.events.map((ev) => (
             <Link
@@ -95,6 +96,13 @@ export function FileCard({ file, onDelete, deleting, hideActions }: FileCardProp
               <span className="truncate max-w-[120px]">{ev.name || ev.id}</span>
             </Link>
           ))}
+        </div>
+      ) : (
+        <div className="pt-2 mt-2 border-t border-white/5">
+          <span className="text-[10px] text-dn-text-muted italic flex items-center gap-1">
+            <Icon name="link_off" className="text-xs opacity-50" />
+            {t('files.noAssociatedEvents')}
+          </span>
         </div>
       )}
     </div>
