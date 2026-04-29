@@ -23,6 +23,8 @@ import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.entity.AgentTaskAttachmentEntity;
 import com.mypaybyday.enums.AgentAttachmentKind;
 import com.mypaybyday.i18n.LanguageContext;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.service.FileService;
 
 @ApplicationScoped
@@ -34,6 +36,7 @@ public class AgentTaskService {
     private final AgentTaskActionRepository actionRepository;
     private final FileService fileService;
     private final LanguageContext languageContext;
+    private final Messages messages;
 
     public AgentTaskService(
             AgentTaskRepository taskRepository,
@@ -41,19 +44,21 @@ public class AgentTaskService {
             AgentTaskAttachmentRepository attachmentRepository,
             AgentTaskActionRepository actionRepository,
             FileService fileService,
-            LanguageContext languageContext) {
+            LanguageContext languageContext,
+            Messages messages) {
         this.taskRepository = taskRepository;
         this.stepRepository = stepRepository;
         this.attachmentRepository = attachmentRepository;
         this.actionRepository = actionRepository;
         this.fileService = fileService;
         this.languageContext = languageContext;
+        this.messages = messages;
     }
 
     @Transactional
     public AgentTaskDto submit(AgentTaskSubmitDto dto) throws BusinessException {
         if (dto.getInstruction() == null || dto.getInstruction().isBlank()) {
-            throw new BusinessException("Instruction is required.");
+            throw new BusinessException(messages.get(MsgKey.AGENT_TASK_INSTRUCTION_REQUIRED));
         }
         AgentTaskEntity task = new AgentTaskEntity();
         task.userInstruction = dto.getInstruction();
@@ -97,7 +102,7 @@ public class AgentTaskService {
         if (task.status == AgentTaskStatus.COMPLETED
                 || task.status == AgentTaskStatus.FAILED
                 || task.status == AgentTaskStatus.CANCELLED) {
-            throw new BusinessException("Task is already in a terminal state: " + task.status);
+            throw new BusinessException(messages.get(MsgKey.AGENT_TASK_TERMINAL_STATE, task.status));
         }
         task.cancelRequested = true;
         taskRepository.persist(task);
@@ -110,7 +115,7 @@ public class AgentTaskService {
         if (task.status == AgentTaskStatus.COMPLETED
                 || task.status == AgentTaskStatus.FAILED
                 || task.status == AgentTaskStatus.CANCELLED) {
-            throw new BusinessException("Task is already in a terminal state: " + task.status);
+            throw new BusinessException(messages.get(MsgKey.AGENT_TASK_TERMINAL_STATE, task.status));
         }
         task.status = AgentTaskStatus.PAUSED;
         taskRepository.persist(task);
@@ -169,7 +174,7 @@ public class AgentTaskService {
     private AgentTaskEntity requireTask(String id) throws BusinessException {
         AgentTaskEntity task = taskRepository.findById(id);
         if (task == null) {
-            throw new BusinessException("Agent task not found: " + id);
+            throw new BusinessException(messages.get(MsgKey.AGENT_TASK_NOT_FOUND, id));
         }
         return task;
     }
@@ -178,10 +183,10 @@ public class AgentTaskService {
         requireTask(taskId);
         AgentTaskActionEntity action = actionRepository.findById(actionId);
         if (action == null || !taskId.equals(action.task.getId())) {
-            throw new BusinessException("Action not found: " + actionId);
+            throw new BusinessException(messages.get(MsgKey.AGENT_TASK_ACTION_NOT_FOUND, actionId));
         }
         if (action.status != AgentTaskActionStatus.PENDING_APPROVAL) {
-            throw new BusinessException("Action is not pending approval: " + action.status);
+            throw new BusinessException(messages.get(MsgKey.AGENT_TASK_ACTION_NOT_PENDING, action.status));
         }
         return action;
     }

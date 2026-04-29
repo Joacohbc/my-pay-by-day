@@ -110,9 +110,7 @@ public class IntelligentEventService {
 		try {
 			extraction = extractionAgent.extractEvent(extractionPrompt, request.getText());
 		} catch (OutputParsingException e) {
-			throw new BusinessException(
-				"Input appears to contain multiple transactions. This tool processes ONE transaction at a time. " +
-				"Split the input and call once per transaction.");
+			throw new BusinessException(messages.get(MsgKey.INTELLIGENT_EVENT_MULTIPLE_TRANSACTIONS));
 		}
 
 		log.infof("AI extracted event from text: '%s'. Result: name=%s, amount=%s, sourceNodeId=%s, destinationNodeId=%s, category=%s, tags=%s, date=%s",
