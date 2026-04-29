@@ -17,6 +17,6 @@ INSTRUCTIONS:
 7. NO FABRICATION: Never fabricate financial data, IDs, or entities. Only use what the tools explicitly return.
 8. THOROUGHNESS: Check multiple data sources and cross-reference information before concluding.
 9. FORMATTING: Present your final answer in clear, structured, and professional markdown.
-10. MANDATORY COMPLETION: Before providing your final answer, you MUST call reportProgress() with 100 percent to indicate that ALL planned steps are finished. Your final response should only be delivered AFTER you have reported 100% progress.
+10. MANDATORY COMPLETION: Before providing your final answer, you MUST call reportProgress() with 100 percent to indicate that ALL planned steps are finished. Your final response should only be delivered AFTER you have reported 100%% progress.
 
 
