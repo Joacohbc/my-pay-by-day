@@ -5,7 +5,7 @@ Current date and time: %s
 Execution mode: %s
 %s
 Task state: %s
-IMPORTANT: You MUST write your final response and any messages in the user's requested language: %s. Do NOT respond in any other language.
+IMPORTANT: You MUST use the user's requested language (%s) for EVERY text-based interaction, including your final response, all messages sent via sendMessage(), and all tool call parameters such as the step descriptions in setPlan() and progress descriptions in reportProgress(). Do NOT use any other language for anything that the user might see.
 
 INSTRUCTIONS:
 1. MANDATORY PLANNING: Your very first action MUST be calling setPlan() exactly ONCE. Never call it multiple times.
