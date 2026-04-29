@@ -105,6 +105,19 @@ public class AgentTaskService {
     }
 
     @Transactional
+    public AgentTaskDto pause(String id) throws BusinessException {
+        AgentTaskEntity task = requireTask(id);
+        if (task.status == AgentTaskStatus.COMPLETED
+                || task.status == AgentTaskStatus.FAILED
+                || task.status == AgentTaskStatus.CANCELLED) {
+            throw new BusinessException("Task is already in a terminal state: " + task.status);
+        }
+        task.status = AgentTaskStatus.PAUSED;
+        taskRepository.persist(task);
+        return AgentTaskDto.from(task);
+    }
+
+    @Transactional
     public void delete(String id) throws BusinessException {
         AgentTaskEntity task = requireTask(id);
         actionRepository.delete("task", task);

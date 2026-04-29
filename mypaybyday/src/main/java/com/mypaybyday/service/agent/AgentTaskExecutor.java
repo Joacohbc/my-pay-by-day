@@ -93,6 +93,14 @@ public class AgentTaskExecutor {
         persistHelper.markCancelled(taskId);
     }
 
+    public void forcePause(String taskId) {
+        persistHelper.markPaused(taskId);
+        Future<?> future = runningTasks.remove(taskId);
+        if (future != null) {
+            future.cancel(true);
+        }
+    }
+
     @PreDestroy
     void shutdown() {
         executorService.shutdownNow();
@@ -107,13 +115,16 @@ public class AgentTaskExecutor {
         }
 
         try {
+            boolean isResumed = persistHelper.hasPreviousSteps(taskId);
             List<AttachmentFile> attachments = persistHelper.loadAttachmentFiles(taskId);
             String enrichedInstruction = buildEnrichedInstruction(task.getUserInstruction(), attachments);
-            AgentExecutionContext ctx = new AgentExecutionContext(task.getId(), enrichedInstruction, task.getExecutionMode(), task.getLang());
+            AgentExecutionContext ctx = new AgentExecutionContext(task.getId(), enrichedInstruction, task.getExecutionMode(), task.getLang(), isResumed);
             runAgentLoop(ctx);
         } catch (CancellationException | InterruptedException e) {
             Thread.currentThread().interrupt();
-            persistHelper.markCancelled(taskId);
+            if (!persistHelper.isPaused(taskId)) {
+                persistHelper.markCancelled(taskId);
+            }
         } catch (Exception e) {
             log.errorf(e, "Agent task %s failed", taskId);
             persistHelper.markFailed(taskId, e.getMessage());
@@ -235,7 +246,7 @@ public class AgentTaskExecutor {
             case DRAFT_ONLY -> "You can only READ data. Write operations are NOT available in this mode.";
             case READ_ONLY -> "You can only READ data. Write operations are NOT available in this mode.";
         };
-        return PromptCollection.getSystemAgent(now, ctx.executionMode().name(), modeNote, ctx.lang());
+        return PromptCollection.getSystemAgent(now, ctx.executionMode().name(), modeNote, ctx.lang(), ctx.isResumed());
     }
 
     interface AgentRunner {
@@ -246,5 +257,5 @@ public class AgentTaskExecutor {
                 @dev.langchain4j.service.UserMessage String userInstruction);
     }
 
-    private record AgentExecutionContext(String taskId, String userInstruction, AgentTaskExecutionMode executionMode, String lang) {}
+    private record AgentExecutionContext(String taskId, String userInstruction, AgentTaskExecutionMode executionMode, String lang, boolean isResumed) {}
 }

@@ -90,6 +90,22 @@ public class AgentTaskResource {
     }
 
     @POST
+    @Path("/{id}/pause")
+    @Operation(summary = "Pause a running task")
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "Task paused"),
+            @APIResponse(responseCode = "400", description = "Task already in terminal state"),
+            @APIResponse(responseCode = "404", description = "Task not found")
+    })
+    public Response pause(
+            @Parameter(description = "Task ID", required = true) @PathParam("id") String id)
+            throws BusinessException {
+        AgentTaskDto task = agentTaskService.pause(id);
+        agentTaskExecutor.forcePause(id);
+        return Response.ok(task).build();
+    }
+
+    @POST
     @Path("/{id}/resume")
     @Operation(summary = "Resume an interrupted task")
     @APIResponses({

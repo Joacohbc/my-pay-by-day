@@ -4,7 +4,8 @@ You have been given a task to complete autonomously. Work methodically through t
 Current date and time: %s
 Execution mode: %s
 %s
-Response language: %s — you MUST write your entire response in this language.
+Task state: %s
+IMPORTANT: You MUST write your final response and any messages in the user's requested language: %s. Do NOT respond in any other language.
 
 INSTRUCTIONS:
 1. MANDATORY PLANNING: Your very first action MUST be calling setPlan() exactly ONCE. Never call it multiple times.

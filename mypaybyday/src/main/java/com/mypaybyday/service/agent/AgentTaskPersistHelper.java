@@ -76,11 +76,33 @@ public class AgentTaskPersistHelper {
     public void markCancelled(String taskId) {
         AgentTaskEntity task = taskRepository.findById(taskId);
         if (task == null) return;
-        if (task.status == AgentTaskStatus.COMPLETED || task.status == AgentTaskStatus.FAILED) return;
+        if (task.status == AgentTaskStatus.COMPLETED || task.status == AgentTaskStatus.FAILED || task.status == AgentTaskStatus.CANCELLED) return;
         task.status = AgentTaskStatus.CANCELLED;
         task.finishedAt = LocalDateTime.now();
         taskRepository.persist(task);
         fireUpdate(task, null, List.of());
+    }
+
+    @Transactional
+    public void markPaused(String taskId) {
+        AgentTaskEntity task = taskRepository.findById(taskId);
+        if (task == null) return;
+        if (task.status == AgentTaskStatus.COMPLETED || task.status == AgentTaskStatus.FAILED || task.status == AgentTaskStatus.CANCELLED) return;
+        task.status = AgentTaskStatus.PAUSED;
+        taskRepository.persist(task);
+        fireUpdate(task, null, List.of());
+    }
+
+    @Transactional
+    public boolean isPaused(String taskId) {
+        AgentTaskEntity task = taskRepository.findById(taskId);
+        return task != null && task.status == AgentTaskStatus.PAUSED;
+    }
+
+    @Transactional
+    public boolean hasPreviousSteps(String taskId) {
+        AgentTaskEntity task = taskRepository.findById(taskId);
+        return task != null && stepRepository.count("task", task) > 0;
     }
 
     @Transactional
