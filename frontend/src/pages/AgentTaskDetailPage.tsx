@@ -64,7 +64,7 @@ export function AgentTaskDetailPage() {
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
-  if (!task) return <ErrorState message="Task not found" />;
+  if (!task) return <ErrorState message={t('agentTasks.taskNotFound')} />;
 
   const isRunning = task.status === 'RUNNING' || task.status === 'RETRYING';
   const isPaused = task.status === 'PAUSED';
@@ -168,16 +168,21 @@ export function AgentTaskDetailPage() {
         {/* Live progress bar */}
         {isRunning && (
           <div className="flex items-center gap-3 p-3 bg-dn-primary/10 rounded-xl border border-dn-primary/30">
-            <Icon name="sync" className="animate-spin text-dn-primary text-xl shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-end mb-1">
-                <span className="text-xs font-medium text-dn-primary truncate">
-                  {task.currentStep || <span className="animate-pulse">Initializing...</span>}
+            <Icon name="sync" className="animate-spin text-dn-primary text-lg shrink-0" />
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-semibold text-dn-primary truncate leading-none">
+                  {task.currentStep || <span className="animate-pulse">{t('agentTasks.initializing')}</span>}
                 </span>
-                <span className="text-xs font-bold text-dn-primary ml-2 shrink-0">{displayProgress}%</span>
+                <span className="text-[10px] font-bold text-dn-primary/80 ml-2 shrink-0 leading-none">
+                  {displayProgress}%
+                </span>
               </div>
-              <div className="h-1.5 w-full bg-dn-surface rounded-full overflow-hidden">
-                <div className="h-full bg-dn-primary transition-all duration-500" style={{ width: `${displayProgress}%` }} />
+              <div className="h-1.5 w-full bg-dn-primary/20 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-dn-primary transition-all duration-500 ease-out"
+                  style={{ width: `${displayProgress}%` }}
+                />
               </div>
             </div>
           </div>
@@ -187,22 +192,22 @@ export function AgentTaskDetailPage() {
         <Card className="p-4 space-y-3 bg-dn-surface-low/50">
           <div className="flex items-center justify-between">
             <span className={`text-xs px-2 py-1 rounded-full font-bold ${STATUS_COLORS[task.status] ?? 'text-dn-text-muted bg-dn-surface-low'}`}>
-              {task.status}
+              {t(`agentTasks.statuses.${task.status}`)}
             </span>
             <span className="text-xs font-mono text-dn-text-muted">ID: {task.id.slice(0, 8)}…</span>
           </div>
 
           <div>
             <h3 className="text-sm font-semibold text-dn-text-main mb-1">{t('agentTasks.instruction')}</h3>
-            <p className="text-sm text-dn-text-muted whitespace-pre-wrap font-mono p-2 bg-dn-surface rounded-md border border-dn-border/50">
-              {task.userInstruction || <span className="italic opacity-50">Sin instrucción explícita</span>}
+            <p className="text-sm text-dn-text-muted whitespace-pre-wrap font-mono">
+              {task.userInstruction || <span className="italic opacity-50">{t('agentTasks.noInstruction')}</span>}
             </p>
           </div>
 
           {/* Attachments */}
           {task.attachments && task.attachments.length > 0 && (
-            <div className="mt-4 border-t border-dn-border pt-3">
-              <h4 className="text-sm font-semibold text-dn-text-main mb-2">Adjuntos</h4>
+            <div className="mt-4">
+              <h4 className="text-sm font-semibold text-dn-text-main mb-2">{t('agentTasks.attachments')}</h4>
               <div className="flex flex-col gap-2">
                 {task.attachments.map((att) => (
                   <FileCard key={att.id} file={{ ...att, size: att.sizeBytes || 0 }} />
@@ -238,7 +243,7 @@ export function AgentTaskDetailPage() {
           <Card className="p-4 space-y-3">
             <div className="flex items-center gap-2">
               <Icon name="checklist" className="text-dn-primary text-lg" />
-              <h3 className="text-sm font-semibold text-dn-text-main">Plan</h3>
+              <h3 className="text-sm font-semibold text-dn-text-main">{t('agentTasks.plan')}</h3>
               <span className="ml-auto text-xs text-dn-text-muted">
                 {Math.min(completedPlanCount, plannedSteps.length)}/{plannedSteps.length}
               </span>
@@ -262,7 +267,7 @@ export function AgentTaskDetailPage() {
           <Card className="p-4 space-y-3">
             <div className="flex items-center gap-2">
               <Icon name="history" className="text-dn-primary text-lg" />
-              <h3 className="text-sm font-semibold text-dn-text-main">Activity</h3>
+              <h3 className="text-sm font-semibold text-dn-text-main">{t('agentTasks.activity')}</h3>
             </div>
             <div className="space-y-0">
               {progressSteps.map((step, i) => (
@@ -278,7 +283,7 @@ export function AgentTaskDetailPage() {
             <div className="flex items-start gap-2">
               <Icon name="error" className="text-dn-error mt-0.5 shrink-0" />
               <div>
-                <p className="text-xs font-semibold text-dn-error mb-1">Error</p>
+                <p className="text-xs font-semibold text-dn-error mb-1">{t('agentTasks.error')}</p>
                 <p className="text-xs text-dn-text-main whitespace-pre-wrap font-mono">
                   {step.description || step.content}
                 </p>
@@ -305,7 +310,7 @@ export function AgentTaskDetailPage() {
         {/* Empty state */}
         {steps.length === 0 && !isRunning && (
           <div className="text-center p-8 text-sm text-dn-text-muted border border-dashed border-dn-border rounded-xl">
-            No steps yet.
+            {t('agentTasks.noSteps')}
           </div>
         )}
       </div>

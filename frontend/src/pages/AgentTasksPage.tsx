@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import type { UseFormGetValues, UseFormSetValue } from 'react-hook-form';
 import { useAgentTasks, useSubmitAgentTask } from '@/hooks/useAgentTasks';
-import { useUploadFile } from '@/hooks/useFiles';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -11,9 +11,15 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { FileUploader } from '@/components/ui/FileUploader';
+import { Textarea } from '@/components/ui/Textarea';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { Badge } from '@/components/ui/Badge';
+import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
+import { useAiFormController } from '@/hooks/useAiFormController';
 import { Routes } from '@/lib/routes';
 import { truncate } from '@/lib/format';
-import type { Base64FileUploadRequestDto, FileDto } from '@/models';
+import type { FileDto } from '@/models';
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: 'text-dn-text-muted bg-dn-surface-low',
@@ -26,18 +32,40 @@ const STATUS_COLORS: Record<string, string> = {
   INTERRUPTED: 'text-dn-error bg-dn-error/10',
 };
 
+interface AgentTaskFormValues {
+  instruction: string;
+}
+
 export function AgentTasksPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: tasks, isLoading, error } = useAgentTasks();
   const submitTask = useSubmitAgentTask();
-  const uploadFile = useUploadFile();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showModal, setShowModal] = useState(false);
   const [instruction, setInstruction] = useState('');
   const [executionMode, setExecutionMode] = useState<'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY'>('AUTONOMOUS');
   const [attachedFiles, setAttachedFiles] = useState<FileDto[]>([]);
+  
+  const aiController = useAiFormController<AgentTaskFormValues>({
+    fields: showModal ? [
+      {
+        key: 'instruction',
+        name: 'instruction',
+        label: t('agentTasks.instruction'),
+        semantic: 'description',
+        allowVoice: true,
+      },
+    ] : [],
+    getValues: ((name?: string) => {
+      if (name === 'instruction') return instruction;
+      return { instruction };
+    }) as UseFormGetValues<AgentTaskFormValues>,
+    setValue: ((name: string, value: string) => {
+      if (name === 'instruction') setInstruction(value);
+    }) as UseFormSetValue<AgentTaskFormValues>,
+    buildContext: () => '',
+  });
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
@@ -57,31 +85,7 @@ export function AgentTasksPage() {
     setAttachedFiles([]);
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files?.length) return;
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const result = reader.result as string;
-        const base64Content = result.split(',')[1];
-        const dto: Base64FileUploadRequestDto = {
-          fileName: file.name,
-          mimeType: file.type || 'application/octet-stream',
-          base64Content,
-        };
-        const uploaded = await uploadFile.mutateAsync(dto);
-        setAttachedFiles((prev) => [...prev, uploaded]);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeFile = (id: number) => {
-    setAttachedFiles((prev) => prev.filter((f) => f.id !== id));
-  };
 
   return (
     <div className="space-y-4">
@@ -126,12 +130,15 @@ export function AgentTasksPage() {
                       {task.userInstruction ? truncate(task.userInstruction, 50) : t('agentTasks.title')}
                     </p>
                     <div className="flex gap-2 items-center mt-1">
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[task.status] ?? 'text-dn-text-muted bg-dn-surface-low'}`}
+                      <Badge
+                        size="sm"
+                        className={STATUS_COLORS[task.status]}
                       >
-                        {task.status}
+                        {t(`agentTasks.statuses.${task.status}`)}
+                      </Badge>
+                      <span className="text-[10px] text-dn-text-muted">
+                        {t(`agentTasks.modes.${task.executionMode}`)}
                       </span>
-                      <span className="text-[10px] text-dn-text-muted">{task.executionMode}</span>
                     </div>
                   </div>
                 </div>
@@ -139,7 +146,7 @@ export function AgentTasksPage() {
               
               {task.currentStep && task.status === 'RUNNING' && (
                 <div className="mt-2 text-xs text-dn-text-muted bg-dn-surface-low p-2 rounded-md">
-                  {task.progress}% - {task.currentStep}
+                  {task.progress}% - {task.currentStep || t('agentTasks.initializing')}
                 </div>
               )}
             </Card>
@@ -152,67 +159,34 @@ export function AgentTasksPage() {
         onClose={() => setShowModal(false)}
         title={t('agentTasks.newTask')}
       >
-        <form onSubmit={handleStart} className="space-y-4 pt-2">
-          <div className="space-y-1 mt-4">
-            <label className="text-xs font-medium text-dn-text-muted">
-              {t('agentTasks.instruction')}
-            </label>
-            <textarea
-              className="w-full bg-dn-surface px-3 py-2 text-sm rounded-lg border border-dn-border focus:border-dn-primary focus:ring-1 focus:ring-dn-primary/50 text-dn-text-main resize-none"
-              rows={4}
-              value={instruction}
-              onChange={(e) => setInstruction(e.target.value)}
-              autoFocus
-              required
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-dn-text-muted">
-              {t('agentTasks.executionMode')}
-            </label>
-            <select
-              className="w-full bg-dn-surface px-3 py-2 text-sm rounded-lg border border-dn-border text-dn-text-main"
-              value={executionMode}
-              onChange={(e) => setExecutionMode(e.target.value as 'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY')}
-            >
-              <option value="AUTONOMOUS">Autonomous</option>
-              <option value="DRAFT_ONLY">Draft Only</option>
-              <option value="READ_ONLY">Read Only</option>
-            </select>
-          </div>
+        <form onSubmit={handleStart} className="space-y-4 pt-4">
+          <Textarea
+            label={t('agentTasks.instruction')}
+            rows={4}
+            value={instruction}
+            onChange={(e) => setInstruction(e.target.value)}
+            onFocus={() => aiController.markFieldAsActive('instruction')}
+            autoFocus
+            required
+          />
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-dn-text-muted">
-              {t('files.title') || 'Attachments'}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {attachedFiles.map((file) => (
-                <div key={file.id} className="flex items-center gap-1.5 bg-dn-surface px-2 py-1 rounded-md text-xs border border-dn-border text-dn-text-muted">
-                  <Icon name={file.mimeType?.startsWith('image/') ? 'image' : 'description'} className="text-sm" />
-                  <span className="max-w-[120px] truncate">{file.fileName}</span>
-                  <button type="button" onClick={() => removeFile(file.id)} className="text-dn-text-muted hover:text-dn-error">
-                    <Icon name="close" className="text-sm" />
-                  </button>
-                </div>
-              ))}
-              
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadFile.isPending}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-dn-surface border border-dn-border border-dashed text-dn-text-muted hover:bg-dn-surface-low hover:text-dn-primary transition-colors"
-              >
-                {uploadFile.isPending ? <Icon name="sync" className="animate-spin text-sm" /> : <Icon name="add" className="text-sm" />}
-                {t('common.add')}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={handleFileSelect}
-              />
-            </div>
+          <SearchableSelect
+            label={t('agentTasks.executionMode')}
+            value={executionMode}
+            onChange={(val) => setExecutionMode(val as 'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY')}
+            options={[
+              { value: 'AUTONOMOUS', label: t('agentTasks.modes.AUTONOMOUS') },
+              { value: 'DRAFT_ONLY', label: t('agentTasks.modes.DRAFT_ONLY') },
+              { value: 'READ_ONLY', label: t('agentTasks.modes.READ_ONLY') },
+            ]}
+          />
+
+          <div className="mt-2">
+            <FileUploader
+              files={attachedFiles}
+              onAddFile={(file) => setAttachedFiles((prev) => [...prev, file])}
+              onRemoveFile={(id) => setAttachedFiles((prev) => prev.filter((f) => f.id !== id))}
+            />
           </div>
 
           <div className="flex gap-3 pt-2">
@@ -231,6 +205,8 @@ export function AgentTasksPage() {
           </div>
         </form>
       </Modal>
+
+      <AiFormActionsFab controller={aiController} />
     </div>
   );
 }
