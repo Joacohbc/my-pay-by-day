@@ -5,11 +5,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Named;
 
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.FinanceEventExtractionDto;
@@ -27,12 +28,15 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.LanguageContext;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
-import com.mypaybyday.repository.CategoryRepository;
-import com.mypaybyday.repository.FinanceNodeRepository;
-import com.mypaybyday.repository.TagRepository;
+import com.mypaybyday.service.ai.FinanceAiTools;
 import com.mypaybyday.service.ai.IAUtils;
 import com.mypaybyday.service.ai.PromptCollection;
 
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
@@ -43,22 +47,36 @@ public class IntelligentEventService {
 	private final IAUtils agentFinanceEventCreator;
 	private final DraftService draftService;
 	private final LanguageContext languageContext;
-	private final FinanceNodeRepository financeNodeRepository;
-	private final CategoryRepository categoryRepository;
-	private final TagRepository tagRepository;
+	private final FinanceAiTools financeAiTools;
 	private final Messages messages;
+	private final ChatModel primaryModel;
+
+	private ExtractionAgent extractionAgent;
 
 	public IntelligentEventService(IAUtils agentFinanceEventCreator,
 			DraftService draftService, LanguageContext languageContext,
-			FinanceNodeRepository financeNodeRepository, CategoryRepository categoryRepository,
-			TagRepository tagRepository, Messages messages) {
+			FinanceAiTools financeAiTools, Messages messages,
+			@Named("primaryChatModel") ChatModel primaryModel) {
 		this.agentFinanceEventCreator = agentFinanceEventCreator;
 		this.draftService = draftService;
 		this.languageContext = languageContext;
-		this.financeNodeRepository = financeNodeRepository;
-		this.categoryRepository = categoryRepository;
-		this.tagRepository = tagRepository;
+		this.financeAiTools = financeAiTools;
 		this.messages = messages;
+		this.primaryModel = primaryModel;
+	}
+
+	@PostConstruct
+	void init() {
+		this.extractionAgent = AiServices.builder(ExtractionAgent.class)
+				.chatModel(primaryModel)
+				.build();
+	}
+
+	interface ExtractionAgent {
+		@SystemMessage("{systemPrompt}")
+		FinanceEventExtractionDto extractEvent(
+				@V("systemPrompt") String systemPrompt,
+				@UserMessage String text);
 	}
 
 	public IntelligentEventResponseDto createFromText(RawTextEventRequestDto request) throws BusinessException {
@@ -66,9 +84,9 @@ public class IntelligentEventService {
 		String lang = languageContext.getLang();
 
 		// Pre-fetch context so the LLM can pick IDs without needing tool calls
-		String nodesContext = buildNodesContext();
-		String categoriesContext = buildCategoriesContext();
-		String tagsContext = buildTagsContext();
+		String nodesContext = financeAiTools.getFinanceNodes(null, false);
+		String categoriesContext = financeAiTools.getCategories();
+		String tagsContext = financeAiTools.getTags();
 
 		String languageNote = PromptCollection.getSystemExtraction(now, lang);
 
@@ -87,7 +105,7 @@ public class IntelligentEventService {
 		);
 
 		// Call the Langchain4j structured output extraction
-		FinanceEventExtractionDto extraction = agentFinanceEventCreator.extractEvent(request.getText(), extractionPrompt);
+		FinanceEventExtractionDto extraction = extractionAgent.extractEvent(extractionPrompt, request.getText());
 
 		log.infof("AI extracted event from text: '%s'. Result: name=%s, amount=%s, sourceNodeId=%s, destinationNodeId=%s, category=%s, tags=%s, date=%s",
 			request.getText(),
@@ -210,33 +228,4 @@ public class IntelligentEventService {
 		}
 	}
 
-	private String buildNodesContext() {
-		List<FinanceNodeEntity> nodes = financeNodeRepository.find("archived", false).list();
-		if (nodes.isEmpty()) {
-			return "No finance nodes available.";
-		}
-		return nodes.stream()
-				.map(n -> String.format("  - id=%d, name=%s, type=%s, description=%s", n.id, n.name, n.type, n.description != null && !n.description.isBlank() ? n.description : ""))
-				.collect(Collectors.joining("\n"));
-	}
-
-	private String buildTagsContext() {
-		List<TagEntity> tags = tagRepository.listAll();
-		if (tags.isEmpty()) {
-			return "No tags available.";
-		}
-		return tags.stream()
-				.map(t -> String.format("  - id=%d, name=%s%s", t.id, t.name, t.description != null && !t.description.isBlank() ? ", description=" + t.description : ""))
-				.collect(Collectors.joining("\n"));
-	}
-
-	private String buildCategoriesContext() {
-		List<CategoryEntity> categories = categoryRepository.listAll();
-		if (categories.isEmpty()) {
-			return "No categories available.";
-		}
-		return categories.stream()
-				.map(c -> String.format("  - id=%d, name=%s%s", c.id, c.name, c.description != null && !c.description.isBlank() ? ", description=" + c.description : ""))
-				.collect(Collectors.joining("\n"));
-	}
 }

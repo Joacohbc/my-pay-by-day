@@ -103,8 +103,9 @@ public class FinanceAiTools {
         var nodes = financeNodeService.listAll(archived, nodeType);
         if (nodes.isEmpty()) return "No finance nodes found.";
         return nodes.stream()
-                .map(n -> String.format("[id=%d, name=%s, type=%s, archived=%b]",
-                        n.id(), n.name(), n.type(), n.archived()))
+                .map(n -> String.format("[id=%d, name=%s, type=%s, archived=%b%s]",
+                        n.id(), n.name(), n.type(), n.archived(),
+                        n.description() != null && !n.description().isBlank() ? ", description=" + n.description() : ""))
                 .collect(Collectors.joining(", ", "Finance nodes: ", ""));
     }
 
@@ -143,7 +144,8 @@ public class FinanceAiTools {
         var categories = categoryService.listAll(null);
         if (categories.isEmpty()) return "No categories found.";
         return categories.stream()
-                .map(c -> String.format("[id=%d, name=%s]", c.id(), c.name()))
+                .map(c -> String.format("[id=%d, name=%s%s]", c.id(), c.name(),
+                        c.description() != null && !c.description().isBlank() ? ", description=" + c.description() : ""))
                 .collect(Collectors.joining(", ", "Categories: ", ""));
     }
 
@@ -154,7 +156,8 @@ public class FinanceAiTools {
         var tags = tagService.listAll(null);
         if (tags.isEmpty()) return "No tags found.";
         return tags.stream()
-                .map(t -> String.format("[id=%d, name=%s]", t.id(), t.name()))
+                .map(t -> String.format("[id=%d, name=%s%s]", t.id(), t.name(),
+                        t.description() != null && !t.description().isBlank() ? ", description=" + t.description() : ""))
                 .collect(Collectors.joining(", ", "Tags: ", ""));
     }
 
