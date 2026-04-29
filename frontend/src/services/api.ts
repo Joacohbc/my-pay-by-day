@@ -56,9 +56,9 @@ export const api = {
       }
     }).then((r) => handleResponse<T>(r)),
 
-  post: <T>(path: string, body: unknown): Promise<T> => {
+  post: <T>(path: string, body?: unknown): Promise<T> => {
     // Transform all local date strings to UTC before sending to the server
-    const transformedBody = transformDates(body, toServerDate);
+    const transformedBody = body !== undefined ? transformDates(body, toServerDate) : undefined;
     return fetch(`${BASE_URL}${withLang(path)}`, {
       method: 'POST',
       headers: { 
@@ -66,7 +66,7 @@ export const api = {
         Accept: 'application/json', 
         'X-Timezone': getUserTimezone() 
       },
-      body: JSON.stringify(transformedBody),
+      body: transformedBody !== undefined ? JSON.stringify(transformedBody) : undefined,
     }).then((r) => handleResponse<T>(r));
   },
 

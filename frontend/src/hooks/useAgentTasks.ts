@@ -84,8 +84,8 @@ export function useDeleteAgentTask() {
 export function useApproveAction() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ taskId, actionId }: { taskId: string; actionId: number }) =>
-      agentTasksService.approveAction(taskId, actionId),
+    mutationFn: ({ taskId, actionId, feedback }: { taskId: string; actionId: number; feedback?: string }) =>
+      agentTasksService.approveAction(taskId, actionId, feedback),
     onSuccess: (_data, { taskId }) => {
       queryClient.invalidateQueries({ queryKey: agentTaskKeys.detail(taskId) });
     },
@@ -95,8 +95,8 @@ export function useApproveAction() {
 export function useRejectAction() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ taskId, actionId }: { taskId: string; actionId: number }) =>
-      agentTasksService.rejectAction(taskId, actionId),
+    mutationFn: ({ taskId, actionId, feedback }: { taskId: string; actionId: number; feedback?: string }) =>
+      agentTasksService.rejectAction(taskId, actionId, feedback),
     onSuccess: (_data, { taskId }) => {
       queryClient.invalidateQueries({ queryKey: agentTaskKeys.detail(taskId) });
     },
@@ -139,8 +139,13 @@ export function useAgentTaskSocket(taskId: string | null) {
               currentStep: payload.currentStep ?? prev.currentStep,
               steps: (() => {
                   const existingIds = new Set(prev.steps?.map((s) => s.id) ?? []);
-                  const fresh = payload.newSteps.filter((s) => !existingIds.has(s.id));
+                  const fresh = (payload.newSteps ?? []).filter((s) => !existingIds.has(s.id));
                   return [...(prev.steps ?? []), ...fresh];
+                })(),
+              actions: (() => {
+                  const actionMap = new Map(prev.actions?.map((a) => [a.id, a]) ?? []);
+                  (payload.newActions ?? []).forEach((a) => actionMap.set(a.id, a));
+                  return Array.from(actionMap.values());
                 })(),
             };
           }

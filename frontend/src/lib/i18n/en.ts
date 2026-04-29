@@ -670,6 +670,9 @@ const en = {
     actionRequired: 'Action Required',
     approve: 'Approve',
     reject: 'Reject',
+    approvalRequired: 'Approval Required',
+    informationRequired: 'Information Required',
+    feedbackPlaceholder: 'Add additional information or instructions...',
     executionMode: 'Mode',
     modes: {
       AUTONOMOUS: 'Autonomous',

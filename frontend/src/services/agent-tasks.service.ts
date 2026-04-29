@@ -14,20 +14,20 @@ export const agentTasksService = {
     api.get<AgentTask>(`/agent-tasks/${id}`),
 
   cancel: (id: string) =>
-    api.post<AgentTask>(`/agent-tasks/${id}/cancel`, {}),
+    api.post<AgentTask>(`/agent-tasks/${id}/cancel`),
 
   pause: (id: string) =>
-    api.post<AgentTask>(`/agent-tasks/${id}/pause`, {}),
+    api.post<AgentTask>(`/agent-tasks/${id}/pause`),
 
   resume: (id: string) =>
-    api.post<AgentTask>(`/agent-tasks/${id}/resume`, {}),
+    api.post<AgentTask>(`/agent-tasks/${id}/resume`),
 
   delete: (id: string) =>
     api.delete(`/agent-tasks/${id}`),
 
-  approveAction: (taskId: string, actionId: number) =>
-    api.post<void>(`/agent-tasks/${taskId}/actions/${actionId}/approve`, {}),
+  approveAction: (taskId: string, actionId: number, feedback?: string) =>
+    api.post<void>(`/agent-tasks/${taskId}/actions/${actionId}/approve`, { feedback }),
 
-  rejectAction: (taskId: string, actionId: number) =>
-    api.post<void>(`/agent-tasks/${taskId}/actions/${actionId}/reject`, {}),
+  rejectAction: (taskId: string, actionId: number, feedback?: string) =>
+    api.post<void>(`/agent-tasks/${taskId}/actions/${actionId}/reject`, { feedback }),
 };

@@ -23,6 +23,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useState } from 'react';
 import type { AgentTaskStep } from '@/models/agent-tasks';
 import { FileCard } from '@/components/files/FileCard';
+import { Textarea } from '@/components/ui/Textarea';
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: 'text-dn-text-muted bg-dn-surface-low',
@@ -59,8 +60,11 @@ export function AgentTaskDetailPage() {
   const resumeTask = useResumeAgentTask();
   const approveAction = useApproveAction();
   const rejectAction = useRejectAction();
+  
+  const [feedbacks, setFeedbacks] = useState<Record<number, string>>({});
 
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
@@ -71,10 +75,12 @@ export function AgentTaskDetailPage() {
   const isDone = task.status === 'COMPLETED' || task.status === 'FAILED' || task.status === 'CANCELLED';
 
   const steps = task.steps ?? [];
-  const plannedSteps = steps.filter((s) => s.type === 'PLANNED_STEP');
-  const progressSteps = steps.filter((s) => s.type === 'PROGRESS');
-  const errorSteps = steps.filter((s) => s.type === 'ERROR');
   const finalStep = steps.find((s) => s.type === 'MESSAGE');
+  const isEffectivelyDone = isDone || !!finalStep;
+
+  const plannedSteps = steps.filter((s) => s.type === 'PLANNED_STEP');
+  const progressSteps = steps.filter((s) => s.type === 'PROGRESS' || s.type === 'USER');
+  const errorSteps = steps.filter((s) => s.type === 'ERROR');
   const isSuccessfullyCompleted = task.status === 'COMPLETED';
   const completedPlanCount = isSuccessfullyCompleted ? plannedSteps.length : progressSteps.length;
   
@@ -86,17 +92,55 @@ export function AgentTaskDetailPage() {
 
   const handleDelete = async () => {
     if (!id) return;
-    await deleteTask.mutateAsync(id);
-    navigate(Routes.AGENT_TASKS);
+    try {
+      await deleteTask.mutateAsync(id);
+      navigate(Routes.AGENT_TASKS);
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!id) return;
+    try {
+      await cancelTask.mutateAsync(id);
+      setConfirmCancel(false);
+    } catch (err) {
+      console.error('Cancel failed:', err);
+    }
+  };
+
+  const handlePause = async () => {
+    if (!id) return;
+    try {
+      await pauseTask.mutateAsync(id);
+    } catch (err) {
+      console.error('Pause failed:', err);
+    }
+  };
+
+  const handleResume = async () => {
+    if (!id) return;
+    try {
+      await resumeTask.mutateAsync(id);
+    } catch (err) {
+      console.error('Resume failed:', err);
+    }
   };
 
   const handleAction = async (actionId: number, approve: boolean) => {
     if (!id) return;
+    const feedback = feedbacks[actionId];
     if (approve) {
-      await approveAction.mutateAsync({ taskId: id, actionId });
+      await approveAction.mutateAsync({ taskId: id, actionId, feedback });
     } else {
-      await rejectAction.mutateAsync({ taskId: id, actionId });
+      await rejectAction.mutateAsync({ taskId: id, actionId, feedback });
     }
+    setFeedbacks((prev) => {
+      const next = { ...prev };
+      delete next[actionId];
+      return next;
+    });
   };
 
   return (
@@ -111,19 +155,29 @@ export function AgentTaskDetailPage() {
         loading={deleteTask.isPending}
       />
 
+      <ConfirmModal
+        open={confirmCancel}
+        onClose={() => setConfirmCancel(false)}
+        onConfirm={handleCancel}
+        title={t('common.cancel')}
+        message={t('common.confirm')}
+        confirmLabel={t('common.confirm')}
+        loading={cancelTask.isPending}
+      />
+
       <PageHeader
         title={task.userInstruction || t('agentTasks.title')}
         back={Routes.AGENT_TASKS}
         action={
           <div className="flex items-center gap-2">
-            {!isDone && (
+            {!isEffectivelyDone && (
               <>
                 {isPaused || task.status === 'INTERRUPTED' ? (
                   <Button
                     variant="secondary"
                     size="sm"
                     loading={resumeTask.isPending}
-                    onClick={() => resumeTask.mutate(task.id)}
+                    onClick={handleResume}
                   >
                     <Icon name="play_arrow" className="text-sm" />
                     {t('agentTasks.resume')}
@@ -133,10 +187,10 @@ export function AgentTaskDetailPage() {
                     variant="secondary"
                     size="sm"
                     loading={pauseTask.isPending}
-                    onClick={() => pauseTask.mutate(task.id)}
+                    onClick={handlePause}
                   >
                     <Icon name="pause" className="text-sm" />
-                    {t('common.pause', 'Pause')}
+                    {t('common.pause')}
                   </Button>
                 )}
                 <Button
@@ -144,20 +198,23 @@ export function AgentTaskDetailPage() {
                   size="sm"
                   className="text-dn-error border-dn-error"
                   loading={cancelTask.isPending}
-                  onClick={() => cancelTask.mutate(task.id)}
+                  onClick={() => setConfirmCancel(true)}
                 >
                   <Icon name="close" className="text-sm" />
+                  {t('common.cancel')}
                 </Button>
               </>
             )}
-            {isDone && (
+            {isEffectivelyDone && (
               <Button
                 variant="secondary"
                 size="sm"
                 className="text-dn-error border-dn-error"
                 onClick={() => setConfirmDelete(true)}
+                loading={deleteTask.isPending}
               >
-                <Icon name="delete" className="text-sm" />
+                <Icon name="close" className="text-sm" />
+                {t('common.cancel')}
               </Button>
             )}
           </div>
@@ -179,7 +236,7 @@ export function AgentTaskDetailPage() {
                 </span>
               </div>
               <div className="h-1.5 w-full bg-dn-primary/20 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-dn-primary transition-all duration-500 ease-out"
                   style={{ width: `${displayProgress}%` }}
                 />
@@ -191,8 +248,8 @@ export function AgentTaskDetailPage() {
         {/* Status card */}
         <Card className="p-4 space-y-3 bg-dn-surface-low/50">
           <div className="flex items-center justify-between">
-            <span className={`text-xs px-2 py-1 rounded-full font-bold ${STATUS_COLORS[task.status] ?? 'text-dn-text-muted bg-dn-surface-low'}`}>
-              {t(`agentTasks.statuses.${task.status}`)}
+            <span className={`text-[10px] uppercase px-2 py-0.5 rounded-full font-bold tracking-wider ${STATUS_COLORS[task.status] ?? 'text-dn-text-muted bg-dn-surface-low'}`}>
+              {t(`agentTasks.statuses.${task.status}`, task.status)}
             </span>
             <span className="text-xs font-mono text-dn-text-muted">ID: {task.id.slice(0, 8)}…</span>
           </div>
@@ -219,20 +276,47 @@ export function AgentTaskDetailPage() {
 
         {/* Pending actions */}
         {task.actions?.filter((a) => a.status === 'PENDING_APPROVAL').map((action) => (
-          <Card key={action.id} className="p-4 border border-dn-warning/50 bg-dn-warning/10">
+          <Card key={action.id} className="p-4 border border-dn-warning/50 bg-dn-warning/10 space-y-4">
             <div className="flex items-start gap-3">
-              <Icon name="warning" className="text-dn-warning mt-0.5" />
+              <Icon name="priority_high" className="text-dn-warning mt-0.5" />
               <div className="flex-1">
-                <h4 className="text-sm font-semibold text-dn-warning mb-1">{t('agentTasks.actionRequired')}</h4>
-                <p className="text-xs text-dn-text-main/80 mb-3">{action.description || action.toolArgs || 'Action description not available'}</p>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => handleAction(action.id, true)} loading={approveAction.isPending}>
-                    {t('agentTasks.approve')}
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => handleAction(action.id, false)} loading={rejectAction.isPending}>
-                    {t('agentTasks.reject')}
-                  </Button>
+                <h4 className="text-sm font-semibold text-dn-warning mb-1">
+                  {action.actionType === 'APPROVAL' ? t('agentTasks.approvalRequired') : t('agentTasks.informationRequired')}
+                </h4>
+                <div className="text-sm text-dn-text-main/90 whitespace-pre-wrap leading-relaxed">
+                  {action.payload || 'Action details not available'}
                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Textarea
+                placeholder={t('agentTasks.feedbackPlaceholder', 'Add additional information or instructions...')}
+                value={feedbacks[action.id] || ''}
+                onChange={(e) => setFeedbacks(prev => ({ ...prev, [action.id]: e.target.value }))}
+                className="bg-dn-surface/50 border-dn-warning/30 focus:border-dn-warning/60 min-h-[80px] text-sm"
+              />
+              
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  onClick={() => handleAction(action.id, true)} 
+                  loading={approveAction.isPending}
+                  className="bg-dn-warning text-dn-surface hover:bg-dn-warning/90 border-none"
+                >
+                  <Icon name="check" className="text-xs mr-1" />
+                  {t('agentTasks.approve', 'Approve & Continue')}
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="secondary" 
+                  onClick={() => handleAction(action.id, false)} 
+                  loading={rejectAction.isPending}
+                  className="border-dn-warning/30 text-dn-warning hover:bg-dn-warning/10"
+                >
+                  <Icon name="close" className="text-xs mr-1" />
+                  {t('agentTasks.reject', 'Reject')}
+                </Button>
               </div>
             </div>
           </Card>
@@ -319,14 +403,18 @@ export function AgentTaskDetailPage() {
 }
 
 function ActivityRow({ step, isLast }: { step: AgentTaskStep; isLast: boolean }) {
+  const isUser = step.type === 'USER';
   return (
     <div className="flex gap-3">
       <div className="flex flex-col items-center">
-        <div className="w-2 h-2 rounded-full bg-dn-success mt-1.5 shrink-0" />
+        <div className={`w-2 h-2 rounded-full ${isUser ? 'bg-dn-primary' : 'bg-dn-success'} mt-1.5 shrink-0`} />
         {!isLast && <div className="w-px flex-1 bg-dn-border/50 my-1" />}
       </div>
       <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-3'}`}>
-        <p className="text-xs text-dn-text-main">{step.description}</p>
+        <p className={`text-xs ${isUser ? 'font-medium text-dn-primary' : 'text-dn-text-main'}`}>
+          {isUser && <span className="opacity-70 mr-1.5">[User]</span>}
+          {step.description}
+        </p>
         {step.stepCreatedAt && (
           <p className="text-[10px] text-dn-text-muted mt-0.5">{formatTime(step.stepCreatedAt)}</p>
         )}

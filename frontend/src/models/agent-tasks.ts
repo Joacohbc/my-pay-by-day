@@ -9,9 +9,11 @@ export type AgentTaskStatus =
   | 'INTERRUPTED';
 
 export type AgentTaskExecutionMode = 'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY';
+export type AgentTaskActionType = 'APPROVAL' | 'INFORMATION' | 'FEEDBACK';
 
 export type AgentTaskStepType =
   | 'MESSAGE'
+  | 'USER'
   | 'ERROR'
   | 'RETRY'
   | 'PLANNED_STEP'
@@ -20,9 +22,7 @@ export type AgentTaskStepType =
 export type AgentTaskActionStatus =
   | 'PENDING_APPROVAL'
   | 'APPROVED'
-  | 'REJECTED'
-  | 'EXECUTED'
-  | 'FAILED';
+  | 'REJECTED';
 
 export interface AgentTaskStep {
   id: number;
@@ -35,11 +35,14 @@ export interface AgentTaskStep {
 
 export interface AgentTaskAction {
   id: number;
-  description: string;
-  toolName: string;
-  toolArgs?: string;
+  taskId: string;
+  stepId?: number;
+  actionType: AgentTaskActionType;
+  payload?: string;
   status: AgentTaskActionStatus;
   createdAt: string;
+  resolvedAt?: string;
+  resultMessage?: string;
 }
 
 export interface AgentTaskAttachment {
@@ -79,4 +82,5 @@ export interface AgentTaskWsPayload {
   currentStep?: string;
   description?: string;
   newSteps: AgentTaskStep[];
+  newActions?: AgentTaskAction[];
 }

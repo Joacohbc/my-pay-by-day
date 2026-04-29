@@ -669,6 +669,9 @@ const es = {
     actionRequired: 'Acción Requerida',
     approve: 'Aprobar',
     reject: 'Rechazar',
+    approvalRequired: 'Aprobación Requerida',
+    informationRequired: 'Información Requerida',
+    feedbackPlaceholder: 'Agregá información adicional o instrucciones...',
     executionMode: 'Modo',
     modes: {
       AUTONOMOUS: 'Autónomo',

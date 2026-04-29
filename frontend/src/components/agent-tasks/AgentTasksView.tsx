@@ -200,6 +200,13 @@ export function AgentTasksView({ showNewTaskModal, onCloseModal }: AgentTasksVie
                     </div>
                   </div>
                 </div>
+
+                {task.actions?.some(a => a.status === 'PENDING_APPROVAL') && (
+                  <div className="mt-1 flex items-center gap-1.5 text-xs text-dn-warning font-medium">
+                    <Icon name="priority_high" className="text-[14px]" />
+                    {t('agentTasks.actionRequired')}
+                  </div>
+                )}
               </div>
               
               {task.currentStep && task.status === 'RUNNING' && (
