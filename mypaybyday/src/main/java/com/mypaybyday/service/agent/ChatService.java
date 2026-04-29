@@ -1,17 +1,16 @@
 package com.mypaybyday.service.agent;
 
 import java.lang.reflect.Method;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Named;
 
 import com.mypaybyday.i18n.LanguageContext;
+import com.mypaybyday.i18n.TimezoneContext;
 import com.mypaybyday.service.ai.DbChatMemoryStore;
 import com.mypaybyday.service.ai.FinanceAiTools;
 import com.mypaybyday.service.ai.IAUtils;
@@ -45,39 +44,28 @@ public class ChatService {
     private final FinanceAiTools financeAiTools;
     private final IAUtils iaUtils;
     private final LanguageContext languageContext;
-
-    private ChatRunner chatRunner;
+    private final TimezoneContext timezoneContext;
 
     public ChatService(
             @Named("primaryChatModel") ChatModel primaryChatModel,
             DbChatMemoryStore dbChatMemoryStore,
             FinanceAiTools financeAiTools,
             IAUtils iaUtils,
-            LanguageContext languageContext) {
+            LanguageContext languageContext,
+            TimezoneContext timezoneContext) {
         this.primaryChatModel = primaryChatModel;
         this.dbChatMemoryStore = dbChatMemoryStore;
         this.financeAiTools = financeAiTools;
         this.iaUtils = iaUtils;
         this.languageContext = languageContext;
-    }
-
-    @PostConstruct
-    void init() {
-        Map<ToolSpecification, ToolExecutor> toolMap = buildToolMap();
-        this.chatRunner = AiServices.builder(ChatRunner.class)
-                .chatModel(primaryChatModel)
-                .tools(toolMap)
-                .chatMemoryProvider(id -> MessageWindowChatMemory.builder()
-                        .chatMemoryStore(dbChatMemoryStore)
-                        .maxMessages(MAX_CHAT_MESSAGES)
-                        .id(id)
-                        .build())
-                .build();
+        this.timezoneContext = timezoneContext;
     }
 
     public String processText(String chatId, String text) {
-        String now = LocalDateTime.now().toString();
+        String timezone = timezoneContext.getTimezone();
+        String now = DateConversionTool.formatNow(timezone);
         String lang = languageContext.getLang();
+        ChatRunner chatRunner = buildChatRunner(timezone);
         return chatRunner.chat(chatId, PromptCollection.getSystemChat(now, lang), text);
     }
 
@@ -120,15 +108,33 @@ public class ChatService {
         }
     }
 
-    private Map<ToolSpecification, ToolExecutor> buildToolMap() {
+    private ChatRunner buildChatRunner(String timezone) {
         Map<ToolSpecification, ToolExecutor> map = new LinkedHashMap<>();
-        for (Method method : FinanceAiTools.class.getDeclaredMethods()) {
+
+        DateConversionTool dateConversionTool = new DateConversionTool(timezone != null ? timezone : "UTC");
+        for (Method method : DateConversionTool.class.getDeclaredMethods()) {
             if (method.isAnnotationPresent(Tool.class)) {
-                ToolSpecification spec = ToolSpecifications.toolSpecificationFrom(method);
-                map.put(spec, new DefaultToolExecutor(financeAiTools, method));
+                map.put(ToolSpecifications.toolSpecificationFrom(method),
+                        new DefaultToolExecutor(dateConversionTool, method));
             }
         }
-        return map;
+
+        for (Method method : FinanceAiTools.class.getDeclaredMethods()) {
+            if (method.isAnnotationPresent(Tool.class)) {
+                map.put(ToolSpecifications.toolSpecificationFrom(method),
+                        new DefaultToolExecutor(financeAiTools, method));
+            }
+        }
+
+        return AiServices.builder(ChatRunner.class)
+                .chatModel(primaryChatModel)
+                .tools(map)
+                .chatMemoryProvider(id -> MessageWindowChatMemory.builder()
+                        .chatMemoryStore(dbChatMemoryStore)
+                        .maxMessages(MAX_CHAT_MESSAGES)
+                        .id(id)
+                        .build())
+                .build();
     }
 
     interface ChatRunner {
