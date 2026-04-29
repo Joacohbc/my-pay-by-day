@@ -21,6 +21,7 @@ import jakarta.inject.Inject;
 import com.mypaybyday.enums.AgentAttachmentKind;
 import com.mypaybyday.enums.AgentTaskExecutionMode;
 import com.mypaybyday.enums.AgentTaskStepType;
+import com.mypaybyday.i18n.LanguageContext;
 import com.mypaybyday.i18n.TimezoneContext;
 import com.mypaybyday.service.ai.PromptCollection;
 import com.mypaybyday.service.agent.AgentTaskPersistHelper.AttachmentFile;
@@ -54,7 +55,8 @@ public class AgentTaskExecutor {
     private final AgentTaskPersistHelper persistHelper;
     private final IAUtils agentFinanceEventCreator;
     private final DateConversionTool dateConversionTool;
-    private final com.mypaybyday.i18n.TimezoneContext timezoneContext;
+    private final LanguageContext languageContext;
+    private final TimezoneContext timezoneContext;
 
     // TODO: Review this implementation for scalability and robustness.
     // Consider using task queue for better performance and reliability in production environments.
@@ -71,6 +73,7 @@ public class AgentTaskExecutor {
             AgentTaskPersistHelper persistHelper,
             IAUtils agentFinanceEventCreator,
             DateConversionTool dateConversionTool,
+            LanguageContext languageContext,
             TimezoneContext timezoneContext) {
         this.agentChatModel = agentChatModel;
         this.dbChatMemoryStore = dbChatMemoryStore;
@@ -78,6 +81,7 @@ public class AgentTaskExecutor {
         this.persistHelper = persistHelper;
         this.agentFinanceEventCreator = agentFinanceEventCreator;
         this.dateConversionTool = dateConversionTool;
+        this.languageContext = languageContext;
         this.timezoneContext = timezoneContext;
     }
 
@@ -121,7 +125,8 @@ public class AgentTaskExecutor {
         }
 
         try {
-            timezoneContext.setTimezone(task.getTimezone() != null ? task.getTimezone() : "UTC");
+            timezoneContext.setTimezone(task.getTimezone() != null ? task.getTimezone() : timezoneContext.getDefaultTimezone());
+            languageContext.setLang(task.getLang() != null ? task.getLang() : languageContext.getDefaultLanguage());
             List<AttachmentFile> attachments = persistHelper.loadAttachmentFiles(taskId);
             String enrichedInstruction = buildEnrichedInstruction(task.getUserInstruction(), attachments);
             

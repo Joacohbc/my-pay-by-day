@@ -7,6 +7,10 @@ public class LanguageContext {
 
 	private String lang = "en";
 
+	public String getDefaultLanguage() {
+		return "en";
+	}
+
 	public String getLang() {
 		return lang;
 	}

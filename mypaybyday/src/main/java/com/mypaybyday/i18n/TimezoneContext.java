@@ -9,6 +9,10 @@ public class TimezoneContext {
 	@ConfigProperty(name = "mypaybyday.timezone")
 	String timezone;
 
+	public String getDefaultTimezone() {
+		return timezone;
+	}
+
 	public String getTimezone() {
 		return timezone;
 	}
