@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
 import { useFiles, useUploadFile } from '@/hooks/useFiles';
-import { filesService } from '@/services/files.service';
+import { FileCard } from '@/components/files/FileCard';
 import type { FileDto } from '@/models';
 import { getFileIcon } from '@/lib/fileUtils';
 
@@ -126,36 +126,11 @@ export function FileUploader({ files, onAddFile, onRemoveFile }: FileUploaderPro
 
       <div className="space-y-3">
         {files.map((file) => (
-          <div key={file.id} className="flex items-center justify-between p-3 bg-dn-surface-low rounded-input border border-white/5">
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-10 h-10 shrink-0 bg-dn-surface rounded-md flex items-center justify-center text-dn-text-muted">
-                <Icon name={getFileIcon(file.mimeType)} />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm font-medium truncate">{file.fileName}</span>
-                <span className="text-xs text-dn-text-muted uppercase tracking-wider mt-0.5">
-                  {(file.size / 1024).toFixed(1)} KB • {file.mimeType.split('/')[1] || file.mimeType}
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-2 shrink-0">
-              <a
-                href={filesService.getContentUrl(file.id)}
-                target="_blank"
-                rel="noreferrer"
-                className="p-2 text-dn-text-muted hover:text-dn-primary transition-colors"
-              >
-                <Icon name="visibility" className="text-[1.2rem]" />
-              </a>
-              <button
-                type="button"
-                onClick={() => onRemoveFile(file.id)}
-                className="p-2 text-dn-text-muted hover:text-dn-error transition-colors"
-              >
-                <Icon name="close" className="text-[1.2rem]" />
-              </button>
-            </div>
-          </div>
+          <FileCard
+            key={file.id}
+            file={file}
+            onDelete={() => onRemoveFile(file.id)}
+          />
         ))}
 
         <div className="grid grid-cols-2 gap-2">
