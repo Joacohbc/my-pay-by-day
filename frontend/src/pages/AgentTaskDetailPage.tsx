@@ -116,40 +116,39 @@ export function AgentTaskDetailPage() {
         back={Routes.AGENT_TASKS}
         action={
           <div className="flex items-center gap-2">
-            {!isDone && !isPaused && (
+            {!isDone && (
               <>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  loading={pauseTask.isPending}
-                  disabled={task.status === 'CANCELLED'}
-                  onClick={() => pauseTask.mutate(task.id)}
-                >
-                  <Icon name="pause" className="text-sm" />
-                  {t('common.pause', 'Pause')}
-                </Button>
+                {isPaused || task.status === 'INTERRUPTED' ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={resumeTask.isPending}
+                    onClick={() => resumeTask.mutate(task.id)}
+                  >
+                    <Icon name="play_arrow" className="text-sm" />
+                    {t('agentTasks.resume')}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={pauseTask.isPending}
+                    onClick={() => pauseTask.mutate(task.id)}
+                  >
+                    <Icon name="pause" className="text-sm" />
+                    {t('common.pause', 'Pause')}
+                  </Button>
+                )}
                 <Button
                   variant="secondary"
                   size="sm"
                   className="text-dn-error border-dn-error"
                   loading={cancelTask.isPending}
-                  disabled={task.status === 'CANCELLED'}
                   onClick={() => cancelTask.mutate(task.id)}
                 >
                   <Icon name="close" className="text-sm" />
                 </Button>
               </>
-            )}
-            {isPaused && (
-              <Button
-                variant="secondary"
-                size="sm"
-                loading={resumeTask.isPending}
-                onClick={() => resumeTask.mutate(task.id)}
-              >
-                <Icon name="play_arrow" className="text-sm" />
-                {t('agentTasks.resume')}
-              </Button>
             )}
             {isDone && (
               <Button

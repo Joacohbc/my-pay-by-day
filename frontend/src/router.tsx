@@ -20,7 +20,6 @@ import { FilesPage } from '@/pages/FilesPage';
 import { AiSettingsPage } from '@/pages/AiSettingsPage';
 import { DuplicateSettingsPage } from '@/pages/DuplicateSettingsPage';
 import { EventDuplicatesPage } from '@/pages/EventDuplicatesPage';
-import { AgentTasksPage } from '@/pages/AgentTasksPage';
 import { AgentTaskDetailPage } from '@/pages/AgentTaskDetailPage';
 import { Routes } from '@/lib/routes';
 
