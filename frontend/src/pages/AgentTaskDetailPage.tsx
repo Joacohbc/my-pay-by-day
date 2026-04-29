@@ -256,9 +256,11 @@ export function AgentTaskDetailPage() {
 
           <div>
             <h3 className="text-sm font-semibold text-dn-text-main mb-1">{t('agentTasks.instruction')}</h3>
-            <p className="text-sm text-dn-text-muted whitespace-pre-wrap font-mono">
-              {task.userInstruction || <span className="italic opacity-50">{t('agentTasks.noInstruction')}</span>}
-            </p>
+            <div className="text-sm text-dn-text-muted font-mono prose prose-sm prose-invert max-w-none prose-p:my-0">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {task.userInstruction || t('agentTasks.noInstruction')}
+              </ReactMarkdown>
+            </div>
           </div>
 
           {/* Attachments */}
@@ -283,8 +285,10 @@ export function AgentTaskDetailPage() {
                 <h4 className="text-sm font-semibold text-dn-warning mb-1">
                   {action.actionType === 'APPROVAL' ? t('agentTasks.approvalRequired') : t('agentTasks.informationRequired')}
                 </h4>
-                <div className="text-sm text-dn-text-main/90 whitespace-pre-wrap leading-relaxed">
-                  {action.payload || 'Action details not available'}
+                <div className="text-sm text-dn-text-main/90 leading-relaxed prose prose-sm prose-invert max-w-none prose-p:my-0">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {action.payload || 'Action details not available'}
+                  </ReactMarkdown>
                 </div>
               </div>
             </div>
@@ -368,9 +372,11 @@ export function AgentTaskDetailPage() {
               <Icon name="error" className="text-dn-error mt-0.5 shrink-0" />
               <div>
                 <p className="text-xs font-semibold text-dn-error mb-1">{t('agentTasks.error')}</p>
-                <p className="text-xs text-dn-text-main whitespace-pre-wrap font-mono">
-                  {step.description || step.content}
-                </p>
+                <div className="text-xs text-dn-text-main font-mono prose prose-sm prose-invert max-w-none prose-p:my-0">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {step.description || step.content || ''}
+                  </ReactMarkdown>
+                </div>
               </div>
             </div>
           </Card>
@@ -411,10 +417,11 @@ function ActivityRow({ step, isLast }: { step: AgentTaskStep; isLast: boolean })
         {!isLast && <div className="w-px flex-1 bg-dn-border/50 my-1" />}
       </div>
       <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-3'}`}>
-        <p className={`text-xs ${isUser ? 'font-medium text-dn-primary' : 'text-dn-text-main'}`}>
-          {isUser && <span className="opacity-70 mr-1.5">[User]</span>}
-          {step.description}
-        </p>
+        <div className={`text-xs ${isUser ? 'font-medium text-dn-primary' : 'text-dn-text-main'} prose prose-sm prose-invert max-w-none prose-p:my-0 prose-p:leading-tight`}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {(isUser ? `**[User]** ` : '') + (step.description || '')}
+          </ReactMarkdown>
+        </div>
         {step.stepCreatedAt && (
           <p className="text-[10px] text-dn-text-muted mt-0.5">{formatTime(step.stepCreatedAt)}</p>
         )}
