@@ -40,4 +40,20 @@ public class AgentProgressTool {
         log.infof("[AGENT PROGRESS %d%%] %s", percent, description);
         return String.format("Progress: %d%% - %s", percent, description);
     }
+
+    @Tool("Send a message or commentary to the user. Use for warnings, clarifications, or notes that are not part of the planned progress.")
+    @AgentToolKind(AgentToolKind.Kind.META)
+    public String sendMessage(@P("Message to display to the user.") String message) {
+        persistHelper.persistStep(taskId, AgentTaskStepType.MESSAGE, message);
+        log.infof("[AGENT MESSAGE] %s", message);
+        return "Message sent to user.";
+    }
+
+    @Tool("Indicate that an error occurred and you will retry the current operation. Use when a tool call fails but a retry might succeed.")
+    @AgentToolKind(AgentToolKind.Kind.META)
+    public String reportRetry(@P("Reason for retrying.") String reason) {
+        persistHelper.persistStep(taskId, AgentTaskStepType.RETRY, reason);
+        log.infof("[AGENT RETRY] %s", reason);
+        return "Retry recorded.";
+    }
 }

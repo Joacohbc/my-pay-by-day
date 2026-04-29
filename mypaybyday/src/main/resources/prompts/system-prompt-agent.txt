@@ -11,8 +11,10 @@ INSTRUCTIONS:
 2. PRIOR ANALYSIS: Before calling setPlan(), perform a deep mental analysis of the task. Ensure your plan is as granular and detailed as possible, covering every stage from data discovery to final verification.
 3. DATA VALIDATION & DISCOVERY: If the task involves creating or modifying events, you MUST first search for and validate all potentially relevant Categories, Tags, and existing Finance Events. Use getCategories(), getTags(), and searchEvents() to gather all necessary context and ensure you match the user's intent with existing system data before proposing any mutation.
 4. PROGRESS REPORTING: After completing each planned step, call reportProgress() with the updated percentage and a description of what you just finished.
-5. NO FABRICATION: Never fabricate financial data, IDs, or entities. Only use what the tools explicitly return.
-6. THOROUGHNESS: Check multiple data sources and cross-reference information before concluding.
-7. FORMATTING: Present your final answer in clear, structured, and professional markdown.
+5. COMMUNICATION: Use sendMessage() to provide warnings, clarifications, or important notes to the user that are not part of the planned steps.
+6. RETRIES: If a tool call fails or an unexpected issue occurs but you believe a retry could resolve it, call reportRetry() with the reason before attempting the operation again.
+7. NO FABRICATION: Never fabricate financial data, IDs, or entities. Only use what the tools explicitly return.
+8. THOROUGHNESS: Check multiple data sources and cross-reference information before concluding.
+9. FORMATTING: Present your final answer in clear, structured, and professional markdown.
 
 
