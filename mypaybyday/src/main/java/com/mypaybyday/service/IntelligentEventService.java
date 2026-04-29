@@ -2,12 +2,15 @@ package com.mypaybyday.service;
 
 import com.mypaybyday.i18n.TimezoneContext;
 
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -36,12 +39,18 @@ import com.mypaybyday.service.ai.FinanceAiTools;
 import com.mypaybyday.service.ai.IAUtils;
 import com.mypaybyday.service.ai.PromptCollection;
 
+import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.agent.tool.ToolSpecifications;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.output.OutputParsingException;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
+import dev.langchain4j.service.tool.DefaultToolExecutor;
+import dev.langchain4j.service.tool.ToolExecutor;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
@@ -55,16 +64,16 @@ public class IntelligentEventService {
 	private final TimezoneContext timezoneContext;
 	private final FinanceAiTools financeAiTools;
 	private final Messages messages;
-	private final ChatModel primaryModel;
+	private final ChatModel agentModel;
 	private final DateConversionTool dateConversionTool;
 
-	private ExtractionAgent extractionAgent;
+	private ExtractionAgent financeExtractionAgent;
 
 	public IntelligentEventService(IAUtils agentFinanceEventCreator,
 			DraftService draftService, LanguageContext languageContext,
 			TimezoneContext timezoneContext,
 			FinanceAiTools financeAiTools, Messages messages,
-			@Named("primaryChatModel") ChatModel primaryModel,
+			@Named("agentChatModel") ChatModel agentModel,
 			DateConversionTool dateConversionTool) {
 		this.agentFinanceEventCreator = agentFinanceEventCreator;
 		this.draftService = draftService;
@@ -72,15 +81,35 @@ public class IntelligentEventService {
 		this.timezoneContext = timezoneContext;
 		this.financeAiTools = financeAiTools;
 		this.messages = messages;
-		this.primaryModel = primaryModel;
+		this.agentModel = agentModel;
 		this.dateConversionTool = dateConversionTool;
 	}
 
 	@PostConstruct
 	void init() {
-		this.extractionAgent = AiServices.builder(ExtractionAgent.class)
-				.chatModel(primaryModel)
-				.tools(dateConversionTool)
+		Map<ToolSpecification, ToolExecutor> toolMap = new LinkedHashMap<>();
+
+		// Add all tools from DateConversionTool
+		for (Method method : DateConversionTool.class.getDeclaredMethods()) {
+			if (method.isAnnotationPresent(Tool.class)) {
+				toolMap.put(ToolSpecifications.toolSpecificationFrom(method),
+						new DefaultToolExecutor(dateConversionTool, method));
+			}
+		}
+
+		// Add ONLY specific tools from FinanceAiTools as requested (Tag, Finance Node, Category)
+		Set<String> allowedFinanceTools = Set.of("getFinanceNodes", "getCategories", "getTags");
+		for (Method method : FinanceAiTools.class.getDeclaredMethods()) {
+			if (method.isAnnotationPresent(Tool.class) && allowedFinanceTools.contains(method.getName())) {
+				toolMap.put(ToolSpecifications.toolSpecificationFrom(method),
+						new DefaultToolExecutor(financeAiTools, method));
+			}
+		}
+
+		this.financeExtractionAgent = AiServices.builder(ExtractionAgent.class)
+				.chatModel(agentModel)
+				.tools(toolMap)
+				.chatMemory(MessageWindowChatMemory.withMaxMessages(10))
 				.build();
 	}
 
@@ -96,31 +125,18 @@ public class IntelligentEventService {
 		String now = DateConversionTool.formatNow(timezoneContext.getTimezone());
 		String langName = languageContext.getLanguageName();
 
-		// Pre-fetch context so the LLM can pick IDs without needing tool calls
-		String nodesContext = financeAiTools.getFinanceNodes(null, false);
-		String categoriesContext = financeAiTools.getCategories();
-		String tagsContext = financeAiTools.getTags();
+		String systemPrompt = PromptCollection.getSystemExtraction(now, langName);
 
-		String languageNote = PromptCollection.getSystemExtraction(now, langName);
-
-		String instructions = "";
 		if (request.getInstructions() != null && !request.getInstructions().trim().isEmpty()) {
-			instructions = "ADDITIONAL USER INSTRUCTIONS (HIGHEST PRIORITY — these override the default rules below):\n" +
-					request.getInstructions() + "\n";
+			systemPrompt += "\n\nADDITIONAL USER INSTRUCTIONS (HIGHEST PRIORITY):\n" + request.getInstructions();
 		}
 
-		String extractionPrompt = PromptCollection.getEventExtractionTemplate(
-				languageNote,
-				nodesContext,
-				categoriesContext,
-				tagsContext,
-				instructions
-		);
 
-		// Call the Langchain4j structured output extraction
+
+		// Call the Langchain4j structured output extraction (now as an Agent with tools)
 		FinanceEventExtractionDto extraction;
 		try {
-			extraction = extractionAgent.extractEvent(extractionPrompt, request.getText());
+			extraction = financeExtractionAgent.extractEvent(systemPrompt, request.getText());
 		} catch (OutputParsingException e) {
 			throw new BusinessException(messages.get(MsgKey.INTELLIGENT_EVENT_MULTIPLE_TRANSACTIONS));
 		}
