@@ -83,7 +83,7 @@ export function AiFormActionsFab({ controller }: AiFormActionsFabProps) {
       : t('ai.actions.voiceInput');
 
   return (
-    <div className="fixed bottom-24 left-5 z-50" ref={menuRef}>
+    <div className="fixed bottom-24 left-5 z-60" ref={menuRef}>
       {isOpen && (
         <div className="absolute bottom-14 left-0 w-64 rounded-card bg-dn-surface border border-white/10 shadow-xl overflow-hidden">
           <div className="px-3 py-2 border-b border-white/10">

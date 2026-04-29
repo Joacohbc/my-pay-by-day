@@ -97,6 +97,10 @@ const es = {
     playAudio: 'Reproducir mensaje de audio',
     pauseAudio: 'Pausar mensaje de audio',
     audioTimeline: '{{current}} / {{total}}',
+    tabs: {
+      chat: 'Chat',
+      tasks: 'Tareas',
+    },
   },
 
   // ─── Greetings ───────────────────────────────────────────────────────────

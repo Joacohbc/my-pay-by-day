@@ -98,6 +98,10 @@ const en = {
     playAudio: 'Play audio message',
     pauseAudio: 'Pause audio message',
     audioTimeline: '{{current}} / {{total}}',
+    tabs: {
+      chat: 'Chat',
+      tasks: 'Tasks',
+    },
   },
 
   // ─── Greetings ───────────────────────────────────────────────────────────
