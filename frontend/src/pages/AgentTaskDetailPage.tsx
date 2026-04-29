@@ -75,13 +75,14 @@ export function AgentTaskDetailPage() {
   const progressSteps = steps.filter((s) => s.type === 'PROGRESS');
   const errorSteps = steps.filter((s) => s.type === 'ERROR');
   const finalStep = steps.find((s) => s.type === 'MESSAGE');
-  const completedPlanCount = progressSteps.length;
+  const isSuccessfullyCompleted = task.status === 'COMPLETED';
+  const completedPlanCount = isSuccessfullyCompleted ? plannedSteps.length : progressSteps.length;
   
   const calculatedProgress = plannedSteps.length > 0 
     ? Math.round((Math.min(completedPlanCount, plannedSteps.length) / plannedSteps.length) * 100)
     : Math.min(95, Math.max(task.progress, steps.length * 5)); // Update progress based on any step if no plan
 
-  const displayProgress = isDone ? 100 : Math.max(task.progress, calculatedProgress);
+  const displayProgress = isSuccessfullyCompleted ? 100 : Math.max(task.progress, calculatedProgress);
 
   const handleDelete = async () => {
     if (!id) return;
