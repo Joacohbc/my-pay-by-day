@@ -11,6 +11,7 @@
 * **Recurring agreements** through Subscriptions backed by Templates, which auto-generate Events on each billing cycle.
 * **AI integration** (LangChain4j + OpenRouter) for chat-based event creation, receipt/invoice image parsing, and voice transcription.
 * **Internationalisation** in English and Spanish across both frontend and backend.
+* **Timezone Detection**: The system automatically detects the user's timezone via the `X-Timezone` header (managed by `TimezoneFilter` in the backend) to ensure AI agents and date processing align with the user's local time.
 
 ### Stack at a glance
 
@@ -183,7 +184,7 @@ const totalWithTax = applyTax(discountedPrice, region);
 * Apply **extraction**: if a nested block is complex, extract it into its own function with a descriptive name. Each function must have a single responsibility.
 * Flat code is easier to read, test, and refactor than nested code.
 
-```
+```js
 // BAD — deep nesting
 function process(data) {
   if (data) {
@@ -404,8 +405,10 @@ The frontend acts as the translator between the user's local context and the ser
 * **Server Timezone:** The frontend queries `/api/config` on load to determine the server's timezone (always `UTC`) and persists it in memory (`useConfigStore`).
 * **User Timezone:** The user selects their preferred timezone in Settings, which is stored in `localStorage` under `user-timezone` (defaulting to the browser's timezone).
 * **Payload Interceptors (`api.ts`):**
+    * **Timezone Header:** Every request sent via `api.ts` includes an `X-Timezone` header containing the user's current timezone (retrieved via `getUserTimezone()`).
     * **Outbound (to Backend):** The `api.ts` service automatically intercepts all payloads. Any string matching a local date-time format (e.g., `"YYYY-MM-DDTHH:mm:ss"`) is converted from the user's localized timezone to the server's timezone (`UTC`) before being sent.
     * **Inbound (from Backend):** Responses are intercepted, and any `UTC` date-time string received from the server is automatically converted back to the user's localized timezone before being handed to the application state.
+* **AI Agent Grounding:** The backend `TimezoneFilter` extracts the `X-Timezone` header into a `TimezoneContext`. AI agents (both background tasks and intelligent extraction) use this context to ground their "current time" reference, ensuring that relative dates (like "yesterday" or "last Friday") are interpreted correctly according to the user's local clock.
 * **UI Components:** All UI components that display or accept dates must rely on the interceptor's transformations. Components should read/write dates as if they were in the user's local time (because `api.ts` handles the translation transparently). For display formatting, always use the functions provided in `@/lib/format` (which internally use `getUserTimezone()`).
 
 ---

@@ -56,6 +56,8 @@ public class AgentTaskEntity extends PanacheEntityBase {
 
     public String lang = "en";
 
+    public String timezone = "UTC";
+
     public boolean cancelRequested = false;
 
     @PrePersist

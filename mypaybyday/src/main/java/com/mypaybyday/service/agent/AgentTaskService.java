@@ -23,6 +23,7 @@ import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.entity.AgentTaskAttachmentEntity;
 import com.mypaybyday.enums.AgentAttachmentKind;
 import com.mypaybyday.i18n.LanguageContext;
+import com.mypaybyday.i18n.TimezoneContext;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.service.FileService;
@@ -36,6 +37,7 @@ public class AgentTaskService {
     private final AgentTaskActionRepository actionRepository;
     private final FileService fileService;
     private final LanguageContext languageContext;
+    private final TimezoneContext timezoneContext;
     private final Messages messages;
 
     public AgentTaskService(
@@ -45,6 +47,7 @@ public class AgentTaskService {
             AgentTaskActionRepository actionRepository,
             FileService fileService,
             LanguageContext languageContext,
+            TimezoneContext timezoneContext,
             Messages messages) {
         this.taskRepository = taskRepository;
         this.stepRepository = stepRepository;
@@ -52,6 +55,7 @@ public class AgentTaskService {
         this.actionRepository = actionRepository;
         this.fileService = fileService;
         this.languageContext = languageContext;
+        this.timezoneContext = timezoneContext;
         this.messages = messages;
     }
 
@@ -64,6 +68,7 @@ public class AgentTaskService {
         task.userInstruction = dto.getInstruction();
         task.executionMode = dto.getExecutionMode();
         task.lang = languageContext.getLang();
+        task.timezone = timezoneContext.getTimezone();
         task.status = AgentTaskStatus.PENDING;
         taskRepository.persist(task);
         

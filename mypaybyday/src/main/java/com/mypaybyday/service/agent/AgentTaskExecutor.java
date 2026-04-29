@@ -2,7 +2,6 @@ package com.mypaybyday.service.agent;
 
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,7 +53,7 @@ public class AgentTaskExecutor {
     private final AgentTaskPersistHelper persistHelper;
     private final IAUtils agentFinanceEventCreator;
 
-    // TODO: Review this implementation for scalability and robustness. 
+    // TODO: Review this implementation for scalability and robustness.
     // Consider using task queue for better performance and reliability in production environments.
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     private final Map<String, Future<?>> runningTasks = new ConcurrentHashMap<>();
@@ -118,7 +117,7 @@ public class AgentTaskExecutor {
             boolean isResumed = persistHelper.hasPreviousSteps(taskId);
             List<AttachmentFile> attachments = persistHelper.loadAttachmentFiles(taskId);
             String enrichedInstruction = buildEnrichedInstruction(task.getUserInstruction(), attachments);
-            AgentExecutionContext ctx = new AgentExecutionContext(task.getId(), enrichedInstruction, task.getExecutionMode(), task.getLang(), isResumed);
+            AgentExecutionContext ctx = new AgentExecutionContext(task.getId(), enrichedInstruction, task.getExecutionMode(), task.getLang(), task.getTimezone(), isResumed);
             runAgentLoop(ctx);
         } catch (CancellationException | InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -220,6 +219,14 @@ public class AgentTaskExecutor {
             }
         }
 
+        DateConversionTool dateConversionTool = new DateConversionTool(ctx.timezone() != null ? ctx.timezone() : "UTC");
+        for (Method method : DateConversionTool.class.getDeclaredMethods()) {
+            if (method.isAnnotationPresent(Tool.class)) {
+                map.put(ToolSpecifications.toolSpecificationFrom(method),
+                        new DefaultToolExecutor(dateConversionTool, method));
+            }
+        }
+
         for (Method method : FinanceAiTools.class.getDeclaredMethods()) {
             if (!method.isAnnotationPresent(Tool.class)) continue;
 
@@ -240,17 +247,20 @@ public class AgentTaskExecutor {
     }
 
     private String buildSystemPrompt(AgentExecutionContext ctx) {
-        String now = LocalDateTime.now().toString();
+        String now = DateConversionTool.formatNow(ctx.timezone());
+        
         String modeNote = switch (ctx.executionMode()) {
             case AUTONOMOUS -> "You can read AND write data (create events, update categories, archive nodes, trigger subscriptions).";
             case DRAFT_ONLY -> "You can only READ data. Write operations are NOT available in this mode.";
             case READ_ONLY -> "You can only READ data. Write operations are NOT available in this mode.";
         };
+        
         String languageName = switch (ctx.lang().toLowerCase()) {
             case "es" -> "Spanish";
             case "en" -> "English";
             default -> ctx.lang();
         };
+
         return PromptCollection.getSystemAgent(now, ctx.executionMode().name(), modeNote, languageName, ctx.isResumed());
     }
 
@@ -262,5 +272,5 @@ public class AgentTaskExecutor {
                 @dev.langchain4j.service.UserMessage String userInstruction);
     }
 
-    private record AgentExecutionContext(String taskId, String userInstruction, AgentTaskExecutionMode executionMode, String lang, boolean isResumed) {}
+    private record AgentExecutionContext(String taskId, String userInstruction, AgentTaskExecutionMode executionMode, String lang, String timezone, boolean isResumed) {}
 }

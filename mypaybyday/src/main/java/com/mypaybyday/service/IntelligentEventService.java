@@ -1,8 +1,11 @@
 package com.mypaybyday.service;
 
+import com.mypaybyday.i18n.TimezoneContext;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.Set;
@@ -28,6 +31,7 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.LanguageContext;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
+import com.mypaybyday.service.agent.DateConversionTool;
 import com.mypaybyday.service.ai.FinanceAiTools;
 import com.mypaybyday.service.ai.IAUtils;
 import com.mypaybyday.service.ai.PromptCollection;
@@ -48,6 +52,7 @@ public class IntelligentEventService {
 	private final IAUtils agentFinanceEventCreator;
 	private final DraftService draftService;
 	private final LanguageContext languageContext;
+	private final TimezoneContext timezoneContext;
 	private final FinanceAiTools financeAiTools;
 	private final Messages messages;
 	private final ChatModel primaryModel;
@@ -56,11 +61,13 @@ public class IntelligentEventService {
 
 	public IntelligentEventService(IAUtils agentFinanceEventCreator,
 			DraftService draftService, LanguageContext languageContext,
+			TimezoneContext timezoneContext,
 			FinanceAiTools financeAiTools, Messages messages,
 			@Named("primaryChatModel") ChatModel primaryModel) {
 		this.agentFinanceEventCreator = agentFinanceEventCreator;
 		this.draftService = draftService;
 		this.languageContext = languageContext;
+		this.timezoneContext = timezoneContext;
 		this.financeAiTools = financeAiTools;
 		this.messages = messages;
 		this.primaryModel = primaryModel;
@@ -81,7 +88,8 @@ public class IntelligentEventService {
 	}
 
 	public IntelligentEventResponseDto createFromText(RawTextEventRequestDto request) throws BusinessException {
-		String now = LocalDateTime.now().toString();
+		ZoneId zoneId = ZoneId.of(timezoneContext.getTimezone());
+		String now = DateConversionTool.formatNow(timezoneContext.getTimezone());
 		String lang = languageContext.getLang();
 
 		// Pre-fetch context so the LLM can pick IDs without needing tool calls
@@ -160,7 +168,7 @@ public class IntelligentEventService {
 		FinanceTransactionEntity transaction = new FinanceTransactionEntity();
 
 		// Parse the extracted date
-		LocalDateTime transactionDate = LocalDateTime.now();
+		LocalDateTime transactionDate = LocalDateTime.now(zoneId);
 		if (extraction.getTransactionDate() != null) {
 			try {
 				String dateStr = extraction.getTransactionDate();
@@ -184,7 +192,7 @@ public class IntelligentEventService {
 
 		// Always create Source Line Item
 		FinanceLineItemEntity sourceItem = new FinanceLineItemEntity();
-		if (amountOk) {
+		if (amountOk && amount != null) {
 			sourceItem.setAmount(amount.negate());
 		}
 

@@ -1,5 +1,5 @@
 import i18n from '@/lib/i18n';
-import { fromServerDate, toServerDate, transformDates } from '@/lib/utils/dateUtils';
+import { fromServerDate, getUserTimezone, toServerDate, transformDates } from '@/lib/utils/dateUtils';
 
 // In production (Docker) VITE_API_BASE_URL is injected at container startup
 // via /env.js into window.__env__. In dev, Vite exposes it through import.meta.env.
@@ -50,7 +50,10 @@ async function handleResponse<T>(res: Response): Promise<T> {
 export const api = {
   get: <T>(path: string): Promise<T> =>
     fetch(`${BASE_URL}${withLang(path)}`, {
-      headers: { Accept: 'application/json', 'X-Timezone': 'UTC' }
+      headers: { 
+        Accept: 'application/json', 
+        'X-Timezone': getUserTimezone() 
+      }
     }).then((r) => handleResponse<T>(r)),
 
   post: <T>(path: string, body: unknown): Promise<T> => {
@@ -58,7 +61,11 @@ export const api = {
     const transformedBody = transformDates(body, toServerDate);
     return fetch(`${BASE_URL}${withLang(path)}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Timezone': 'UTC' },
+      headers: { 
+        'Content-Type': 'application/json', 
+        Accept: 'application/json', 
+        'X-Timezone': getUserTimezone() 
+      },
       body: JSON.stringify(transformedBody),
     }).then((r) => handleResponse<T>(r));
   },
@@ -68,7 +75,11 @@ export const api = {
     const transformedBody = transformDates(body, toServerDate);
     return fetch(`${BASE_URL}${withLang(path)}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Timezone': 'UTC' },
+      headers: { 
+        'Content-Type': 'application/json', 
+        Accept: 'application/json', 
+        'X-Timezone': getUserTimezone() 
+      },
       body: JSON.stringify(transformedBody),
     }).then((r) => handleResponse<T>(r));
   },
@@ -78,7 +89,11 @@ export const api = {
     const transformedBody = transformDates(body, toServerDate);
     return fetch(`${BASE_URL}${withLang(path)}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Timezone': 'UTC' },
+      headers: { 
+        'Content-Type': 'application/json', 
+        Accept: 'application/json', 
+        'X-Timezone': getUserTimezone() 
+      },
       body: JSON.stringify(transformedBody),
     }).then((r) => handleResponse<T>(r));
   },
@@ -86,7 +101,10 @@ export const api = {
   delete: <T = void>(path: string, body?: unknown): Promise<T> =>
     fetch(`${BASE_URL}${withLang(path)}`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', 'X-Timezone': 'UTC' },
+      headers: { 
+        'Content-Type': 'application/json', 
+        'X-Timezone': getUserTimezone() 
+      },
       body: body ? JSON.stringify(body) : undefined,
     }).then((r) => handleResponse<T>(r)),
 };
