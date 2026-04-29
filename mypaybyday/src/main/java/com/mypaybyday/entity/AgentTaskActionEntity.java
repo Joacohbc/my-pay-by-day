@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import com.mypaybyday.enums.AgentTaskActionStatus;
+import com.mypaybyday.enums.AgentTaskActionType;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -28,7 +29,8 @@ public class AgentTaskActionEntity extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     public AgentTaskStepEntity step;
 
-    public String actionType;
+    @Enumerated(EnumType.STRING)
+    public AgentTaskActionType actionType;
 
     @Column(columnDefinition = "TEXT")
     public String payload;

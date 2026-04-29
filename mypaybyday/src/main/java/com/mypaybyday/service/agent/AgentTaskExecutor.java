@@ -52,6 +52,8 @@ public class AgentTaskExecutor {
     private final FinanceAiTools financeAiTools;
     private final AgentTaskPersistHelper persistHelper;
     private final IAUtils agentFinanceEventCreator;
+    private final DateConversionTool dateConversionTool;
+    private final com.mypaybyday.i18n.TimezoneContext timezoneContext;
 
     // TODO: Review this implementation for scalability and robustness.
     // Consider using task queue for better performance and reliability in production environments.
@@ -66,12 +68,16 @@ public class AgentTaskExecutor {
             DbChatMemoryStore dbChatMemoryStore,
             FinanceAiTools financeAiTools,
             AgentTaskPersistHelper persistHelper,
-            IAUtils agentFinanceEventCreator) {
+            IAUtils agentFinanceEventCreator,
+            DateConversionTool dateConversionTool,
+            com.mypaybyday.i18n.TimezoneContext timezoneContext) {
         this.agentChatModel = agentChatModel;
         this.dbChatMemoryStore = dbChatMemoryStore;
         this.financeAiTools = financeAiTools;
         this.persistHelper = persistHelper;
         this.agentFinanceEventCreator = agentFinanceEventCreator;
+        this.dateConversionTool = dateConversionTool;
+        this.timezoneContext = timezoneContext;
     }
 
     public void submit(String taskId) {
@@ -114,21 +120,53 @@ public class AgentTaskExecutor {
         }
 
         try {
-            boolean isResumed = persistHelper.hasPreviousSteps(taskId);
+            timezoneContext.setTimezone(task.getTimezone() != null ? task.getTimezone() : "UTC");
             List<AttachmentFile> attachments = persistHelper.loadAttachmentFiles(taskId);
             String enrichedInstruction = buildEnrichedInstruction(task.getUserInstruction(), attachments);
-            AgentExecutionContext ctx = new AgentExecutionContext(task.getId(), enrichedInstruction, task.getExecutionMode(), task.getLang(), task.getTimezone(), isResumed);
+            
+            boolean isResumed = persistHelper.hasPreviousSteps(taskId);
+            String userFeedback = isResumed ? persistHelper.getLastUserFeedback(taskId) : null;
+            String effectiveInstruction = userFeedback != null ? userFeedback : enrichedInstruction;
+            
+            AgentExecutionContext ctx = new AgentExecutionContext(
+                task.getId(),
+                effectiveInstruction,
+                task.getExecutionMode(),
+                task.getLang(),
+                task.getTimezone(),
+                isResumed
+            );
+
             runAgentLoop(ctx);
         } catch (CancellationException | InterruptedException e) {
-            Thread.currentThread().interrupt();
-            if (!persistHelper.isPaused(taskId)) {
-                persistHelper.markCancelled(taskId);
-            }
+            handleInterrupt(taskId);
         } catch (Exception e) {
-            log.errorf(e, "Agent task %s failed", taskId);
-            persistHelper.markFailed(taskId, e.getMessage());
+            if (isInterrupt(e)) {
+                handleInterrupt(taskId);
+            } else {
+                log.errorf(e, "Agent task %s failed", taskId);
+                persistHelper.markFailed(taskId, e.getMessage());
+            }
         } finally {
             runningTasks.remove(taskId);
+        }
+    }
+
+    private boolean isInterrupt(Throwable e) {
+        Throwable cause = e;
+        while (cause != null) {
+            if (cause instanceof InterruptedException || cause instanceof CancellationException) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
+    }
+
+    private void handleInterrupt(String taskId) {
+        Thread.currentThread().interrupt();
+        if (!persistHelper.isPaused(taskId)) {
+            persistHelper.markCancelled(taskId);
         }
     }
 
@@ -202,10 +240,11 @@ public class AgentTaskExecutor {
         String response = agent.execute(ctx.taskId(), buildSystemPrompt(ctx), ctx.userInstruction());
         long durationMs = System.currentTimeMillis() - startMs;
 
-        persistHelper.persistStep(ctx.taskId(),
-                AgentTaskStepType.MESSAGE, null, response, durationMs);
+        persistHelper.persistStep(ctx.taskId(), AgentTaskStepType.MESSAGE, null, response, durationMs);
 
-        persistHelper.markCompleted(ctx.taskId());
+        if (!persistHelper.isPaused(ctx.taskId())) {
+            persistHelper.markCompleted(ctx.taskId());
+        }
     }
 
     private Map<ToolSpecification, ToolExecutor> buildToolMap(AgentExecutionContext ctx) {
@@ -219,7 +258,14 @@ public class AgentTaskExecutor {
             }
         }
 
-        DateConversionTool dateConversionTool = new DateConversionTool(ctx.timezone() != null ? ctx.timezone() : "UTC");
+        AgentUserRequestTool userRequestTool = new AgentUserRequestTool(ctx.taskId(), persistHelper, self);
+        for (Method method : AgentUserRequestTool.class.getDeclaredMethods()) {
+            if (method.isAnnotationPresent(Tool.class)) {
+                map.put(ToolSpecifications.toolSpecificationFrom(method),
+                        new DefaultToolExecutor(userRequestTool, method));
+            }
+        }
+
         for (Method method : DateConversionTool.class.getDeclaredMethods()) {
             if (method.isAnnotationPresent(Tool.class)) {
                 map.put(ToolSpecifications.toolSpecificationFrom(method),

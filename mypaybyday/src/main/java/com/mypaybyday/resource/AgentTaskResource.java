@@ -11,6 +11,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import com.mypaybyday.dto.AgentTaskActionResolveDto;
 import com.mypaybyday.dto.AgentTaskDto;
 import com.mypaybyday.dto.AgentTaskSubmitDto;
 import com.mypaybyday.enums.AgentTaskStatus;
@@ -136,29 +137,35 @@ public class AgentTaskResource {
 
     @POST
     @Path("/{id}/actions/{actionId}/approve")
-    @Operation(summary = "Approve a pending DRAFT_ONLY action")
+    @Operation(summary = "Approve a pending agent action and optionally provide feedback to resume the agent")
     @APIResponses({
-            @APIResponse(responseCode = "200", description = "Action approved"),
+            @APIResponse(responseCode = "202", description = "Action approved, agent will resume if task was paused"),
             @APIResponse(responseCode = "400", description = "Action not pending"),
             @APIResponse(responseCode = "404", description = "Task or action not found")
     })
     public Response approveAction(
             @PathParam("id") String taskId,
-            @PathParam("actionId") Long actionId) throws BusinessException {
-        return Response.ok(agentTaskService.approveAction(taskId, actionId)).build();
+            @PathParam("actionId") Long actionId,
+            AgentTaskActionResolveDto dto) throws BusinessException {
+        agentTaskService.approveAction(taskId, actionId, dto);
+        agentTaskExecutor.submit(taskId);
+        return Response.accepted().build();
     }
 
     @POST
     @Path("/{id}/actions/{actionId}/reject")
-    @Operation(summary = "Reject a pending DRAFT_ONLY action")
+    @Operation(summary = "Reject a pending agent action and optionally provide feedback to resume the agent")
     @APIResponses({
-            @APIResponse(responseCode = "200", description = "Action rejected"),
+            @APIResponse(responseCode = "202", description = "Action rejected, agent will resume if task was paused"),
             @APIResponse(responseCode = "400", description = "Action not pending"),
             @APIResponse(responseCode = "404", description = "Task or action not found")
     })
     public Response rejectAction(
             @PathParam("id") String taskId,
-            @PathParam("actionId") Long actionId) throws BusinessException {
-        return Response.ok(agentTaskService.rejectAction(taskId, actionId)).build();
+            @PathParam("actionId") Long actionId,
+            AgentTaskActionResolveDto dto) throws BusinessException {
+        agentTaskService.rejectAction(taskId, actionId, dto);
+        agentTaskExecutor.submit(taskId);
+        return Response.accepted().build();
     }
 }

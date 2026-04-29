@@ -122,6 +122,8 @@ public enum MsgKey {
 	AGENT_TASK_NOT_FOUND("error.agent_task.not_found"),
 	AGENT_TASK_ACTION_NOT_FOUND("error.agent_task.action_not_found"),
 	AGENT_TASK_ACTION_NOT_PENDING("error.agent_task.action_not_pending"),
+	AGENT_TASK_ACTION_APPROVED("agent_task.action.approved"),
+	AGENT_TASK_ACTION_REJECTED("agent_task.action.rejected"),
 
 	// ── Intelligent Event ────────────────────────────────
 	INTELLIGENT_EVENT_MULTIPLE_TRANSACTIONS("error.intelligent_event.multiple_transactions");

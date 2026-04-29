@@ -45,6 +45,7 @@ public class ChatService {
     private final IAUtils iaUtils;
     private final LanguageContext languageContext;
     private final TimezoneContext timezoneContext;
+    private final DateConversionTool dateConversionTool;
 
     public ChatService(
             @Named("primaryChatModel") ChatModel primaryChatModel,
@@ -52,13 +53,15 @@ public class ChatService {
             FinanceAiTools financeAiTools,
             IAUtils iaUtils,
             LanguageContext languageContext,
-            TimezoneContext timezoneContext) {
+            TimezoneContext timezoneContext,
+            DateConversionTool dateConversionTool) {
         this.primaryChatModel = primaryChatModel;
         this.dbChatMemoryStore = dbChatMemoryStore;
         this.financeAiTools = financeAiTools;
         this.iaUtils = iaUtils;
         this.languageContext = languageContext;
         this.timezoneContext = timezoneContext;
+        this.dateConversionTool = dateConversionTool;
     }
 
     public String processText(String chatId, String text) {
@@ -111,7 +114,6 @@ public class ChatService {
     private ChatRunner buildChatRunner(String timezone) {
         Map<ToolSpecification, ToolExecutor> map = new LinkedHashMap<>();
 
-        DateConversionTool dateConversionTool = new DateConversionTool(timezone != null ? timezone : "UTC");
         for (Method method : DateConversionTool.class.getDeclaredMethods()) {
             if (method.isAnnotationPresent(Tool.class)) {
                 map.put(ToolSpecifications.toolSpecificationFrom(method),

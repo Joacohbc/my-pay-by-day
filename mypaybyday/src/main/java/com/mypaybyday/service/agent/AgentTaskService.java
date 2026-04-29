@@ -6,9 +6,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.AgentTaskActionDto;
+import com.mypaybyday.dto.AgentTaskActionResolveDto;
 import com.mypaybyday.dto.AgentTaskAttachmentDto;
 import com.mypaybyday.dto.AgentTaskDto;
 import com.mypaybyday.dto.AgentTaskStepDto;
+import com.mypaybyday.enums.AgentTaskStepType;
 import com.mypaybyday.dto.AgentTaskSubmitDto;
 import com.mypaybyday.entity.AgentTaskActionEntity;
 import com.mypaybyday.entity.AgentTaskEntity;
@@ -35,6 +37,7 @@ public class AgentTaskService {
     private final AgentTaskStepRepository stepRepository;
     private final AgentTaskAttachmentRepository attachmentRepository;
     private final AgentTaskActionRepository actionRepository;
+    private final AgentTaskPersistHelper persistHelper;
     private final FileService fileService;
     private final LanguageContext languageContext;
     private final TimezoneContext timezoneContext;
@@ -45,6 +48,7 @@ public class AgentTaskService {
             AgentTaskStepRepository stepRepository,
             AgentTaskAttachmentRepository attachmentRepository,
             AgentTaskActionRepository actionRepository,
+            AgentTaskPersistHelper persistHelper,
             FileService fileService,
             LanguageContext languageContext,
             TimezoneContext timezoneContext,
@@ -53,6 +57,7 @@ public class AgentTaskService {
         this.stepRepository = stepRepository;
         this.attachmentRepository = attachmentRepository;
         this.actionRepository = actionRepository;
+        this.persistHelper = persistHelper;
         this.fileService = fileService;
         this.languageContext = languageContext;
         this.timezoneContext = timezoneContext;
@@ -137,20 +142,32 @@ public class AgentTaskService {
     }
 
     @Transactional
-    public AgentTaskActionDto approveAction(String taskId, Long actionId) throws BusinessException {
+    public AgentTaskActionDto approveAction(String taskId, Long actionId, AgentTaskActionResolveDto dto) throws BusinessException {
         AgentTaskActionEntity action = requireAction(taskId, actionId);
         action.status = AgentTaskActionStatus.APPROVED;
         action.resolvedAt = java.time.LocalDateTime.now();
+        if (dto != null && dto.feedback() != null && !dto.feedback().isBlank()) {
+            action.resultMessage = dto.feedback();
+        }
         actionRepository.persist(action);
+        String feedback = action.resultMessage != null ? action.resultMessage : messages.get(MsgKey.AGENT_TASK_ACTION_APPROVED);
+        persistHelper.persistStep(taskId, AgentTaskStepType.USER, feedback);
+        persistHelper.fireTaskUpdated(taskId);
         return AgentTaskActionDto.from(action);
     }
 
     @Transactional
-    public AgentTaskActionDto rejectAction(String taskId, Long actionId) throws BusinessException {
+    public AgentTaskActionDto rejectAction(String taskId, Long actionId, AgentTaskActionResolveDto dto) throws BusinessException {
         AgentTaskActionEntity action = requireAction(taskId, actionId);
         action.status = AgentTaskActionStatus.REJECTED;
         action.resolvedAt = java.time.LocalDateTime.now();
+        if (dto != null && dto.feedback() != null && !dto.feedback().isBlank()) {
+            action.resultMessage = dto.feedback();
+        }
         actionRepository.persist(action);
+        String feedback = action.resultMessage != null ? action.resultMessage : messages.get(MsgKey.AGENT_TASK_ACTION_REJECTED);
+        persistHelper.persistStep(taskId, AgentTaskStepType.USER, feedback);
+        persistHelper.fireTaskUpdated(taskId);
         return AgentTaskActionDto.from(action);
     }
 

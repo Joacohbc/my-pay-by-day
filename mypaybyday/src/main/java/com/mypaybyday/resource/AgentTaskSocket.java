@@ -9,6 +9,7 @@ import jakarta.enterprise.event.Observes;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mypaybyday.dto.AgentTaskActionDto;
 import com.mypaybyday.dto.AgentTaskStepDto;
 import com.mypaybyday.service.agent.AgentTaskUpdatedEvent;
 import io.quarkus.websockets.next.OnClose;
@@ -62,7 +63,8 @@ public class AgentTaskSocket {
                     event.getStatus().name(),
                     event.getProgress(),
                     event.getCurrentStep(),
-                    event.getNewSteps()
+                    event.getNewSteps(),
+                    event.getNewActions()
             );
             return objectMapper.writeValueAsString(dto);
         } catch (JsonProcessingException e) {
@@ -76,6 +78,7 @@ public class AgentTaskSocket {
             String status,
             int progress,
             String currentStep,
-            List<AgentTaskStepDto> newSteps
+            List<AgentTaskStepDto> newSteps,
+            List<AgentTaskActionDto> newActions
     ) {}
 }

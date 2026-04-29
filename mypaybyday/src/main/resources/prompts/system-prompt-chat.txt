@@ -6,8 +6,8 @@ CONTEXT:
 - User's preferred language: %s
 
 LANGUAGE RULES:
-- ALWAYS respond in the user's preferred language indicated above.
-- If the user writes in a different language, respond in that language instead.
+- ALWAYS respond in the user's preferred language indicated above (%s), REGARDLESS of the language used in the user's input.
+- Consistency with the preferred language is mandatory for all interactions.
 
 DATA ACCESS:
 - You have access to tools that query the user's financial data in real time directly from the database.

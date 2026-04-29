@@ -371,13 +371,16 @@ public class FinanceAiTools {
     // WRITE tools — domain mutations
     // =========================================================================
 
-    @Tool("Creates a draft finance event from a raw text description of ONE single transaction. " +
-            "IMPORTANT: call this once per transaction — never pass multiple transactions in one call. " +
-            "For bulk imports, loop and call once per line/entry.")
+    @Tool("Extracts and persists a single financial transaction as a DRAFT in the system. " +
+            "It uses advanced AI to parse natural language text into structured accounting entities (Events, Transactions, and LineItems). " +
+            "CRITICAL: You MUST gather ALL required details from the user (Amount, Date/Time, Source Node/Account, Destination Node, Category, and Tags) before calling this tool. " +
+            "Never create a draft with 'null' or missing core data if it can be requested from the user first. " +
+            "This tool processes exactly ONE transaction. If the user describes multiple movements, call this tool sequentially for each one. " +
+            "Returns a structured summary of the created DRAFT or an error message.")
     @AgentToolKind(AgentToolKind.Kind.WRITE)
     public String createDraftFromText(
-            @P("Exact details of ONE transaction. NEVER pass multiple transactions at once.") String description,
-            @P("Optional user directives (account, category, split rules). Pass null if none.") String instructions) {
+            @P("The detailed natural language text describing the transaction. Include amount, currency, actors, and temporal context.") String description,
+            @P("Optional directives to force specific IDs or logic. Use this to pass confirmed Node IDs, Category IDs, or Tag IDs. Format: 'Use sourceNodeId=X, categoryId=Y'. Pass null if no specific overrides are needed.") String instructions) {
         try {
             RawTextEventRequestDto request = new RawTextEventRequestDto();
             request.setText(description);

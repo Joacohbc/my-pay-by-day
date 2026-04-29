@@ -11,15 +11,25 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 
 import com.mypaybyday.service.ai.AgentToolKind;
 
+import com.mypaybyday.i18n.TimezoneContext;
+import jakarta.enterprise.context.Dependent;
+import jakarta.inject.Inject;
+
+@Dependent
 @RegisterForReflection
 public class DateConversionTool {
 
     private final ZoneId serverZone;
-    private final ZoneId clientZone;
+    private final TimezoneContext timezoneContext;
 
-    public DateConversionTool(String clientTimezone) {
+    @Inject
+    public DateConversionTool(TimezoneContext timezoneContext) {
         this.serverZone = ZoneId.systemDefault();
-        this.clientZone = ZoneId.of(clientTimezone);
+        this.timezoneContext = timezoneContext;
+    }
+
+    private ZoneId getClientZone() {
+        return ZoneId.of(timezoneContext.getTimezone());
     }
 
     public static String formatNow(String timezoneId) {
@@ -37,9 +47,9 @@ public class DateConversionTool {
             @P("Date/time string in ISO-8601 format as retrieved from the database") String isoDateTime) {
         LocalDateTime ldt = LocalDateTime.parse(isoDateTime);
         ZonedDateTime serverZdt = ldt.atZone(serverZone);
-        ZonedDateTime clientZdt = serverZdt.withZoneSameInstant(clientZone);
+        ZonedDateTime clientZdt = serverZdt.withZoneSameInstant(getClientZone());
         return clientZdt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                + " (" + clientZone.getId() + ")";
+                + " (" + getClientZone().getId() + ")";
     }
 
     @Tool("Convert a date/time from the user's local timezone to the server's timezone. " +
@@ -50,7 +60,7 @@ public class DateConversionTool {
     public String convertToServerTimezone(
             @P("Date/time string in ISO-8601 format in the user's local timezone") String isoDateTime) {
         LocalDateTime ldt = LocalDateTime.parse(isoDateTime);
-        ZonedDateTime clientZdt = ldt.atZone(clientZone);
+        ZonedDateTime clientZdt = ldt.atZone(getClientZone());
         ZonedDateTime serverZdt = clientZdt.withZoneSameInstant(serverZone);
         return serverZdt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }

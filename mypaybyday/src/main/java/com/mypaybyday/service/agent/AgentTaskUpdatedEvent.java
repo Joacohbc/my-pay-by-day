@@ -1,5 +1,6 @@
 package com.mypaybyday.service.agent;
 
+import com.mypaybyday.dto.AgentTaskActionDto;
 import com.mypaybyday.dto.AgentTaskStepDto;
 import com.mypaybyday.enums.AgentTaskStatus;
 
@@ -13,6 +14,7 @@ public class AgentTaskUpdatedEvent {
     private final String currentStep;
     private final String description;
     private final List<AgentTaskStepDto> newSteps;
+    private final List<AgentTaskActionDto> newActions;
 
     public AgentTaskUpdatedEvent(
             String taskId,
@@ -20,13 +22,15 @@ public class AgentTaskUpdatedEvent {
             int progress,
             String currentStep,
             String description,
-            List<AgentTaskStepDto> newSteps) {
+            List<AgentTaskStepDto> newSteps,
+            List<AgentTaskActionDto> newActions) {
         this.taskId = taskId;
         this.status = status;
         this.progress = progress;
         this.currentStep = currentStep;
         this.description = description;
         this.newSteps = newSteps;
+        this.newActions = newActions;
     }
 
     public String getTaskId() { return taskId; }
@@ -35,4 +39,5 @@ public class AgentTaskUpdatedEvent {
     public String getCurrentStep() { return currentStep; }
     public String getDescription() { return description; }
     public List<AgentTaskStepDto> getNewSteps() { return newSteps; }
+    public List<AgentTaskActionDto> getNewActions() { return newActions; }
 }

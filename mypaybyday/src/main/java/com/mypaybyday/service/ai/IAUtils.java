@@ -45,13 +45,13 @@ public class IAUtils {
 
     public String describeImages(List<Image> images) {
         String now = LocalDateTime.now().toString();
-        String lang = languageContext.getLang();
+        String lang = languageContext.getLanguageName();
         return viewImages(PromptCollection.getSystemImages(now, lang), images);
     }
 
     public String describePdf(String base64Data, String mimeType) {
         String now = LocalDateTime.now().toString();
-        String lang = languageContext.getLang();
+        String lang = languageContext.getLanguageName();
         var systemMessage = SystemMessage.from(PromptCollection.getSystemImages(now, lang));
         var userMessage = UserMessage.from(
             TextContent.from("Please analyze this PDF document."),
@@ -61,11 +61,15 @@ public class IAUtils {
         return response.aiMessage().text();
     }
 
-    public String generateEventDescription(String originalText, String instructions, String lang) {
+    public String generateEventDescription(String originalText, String instructions, String lang, String context) {
         String systemPrompt = PromptCollection.getSystemEventDescription(lang);
 
         if (instructions != null && !instructions.trim().isEmpty()) {
             systemPrompt += "\nADDITIONAL USER INSTRUCTIONS:\n" + instructions + "\n";
+        }
+
+        if (context != null && !context.trim().isEmpty()) {
+            systemPrompt += "\nEXTRACTED DATA CONTEXT (use this to provide specific details):\n" + context + "\n";
         }
 
         var systemMessage = SystemMessage.from(systemPrompt);

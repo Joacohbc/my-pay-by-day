@@ -4,12 +4,13 @@ import java.time.LocalDateTime;
 
 import com.mypaybyday.entity.AgentTaskActionEntity;
 import com.mypaybyday.enums.AgentTaskActionStatus;
+import com.mypaybyday.enums.AgentTaskActionType;
 
 public record AgentTaskActionDto(
         Long id,
         String taskId,
         Long stepId,
-        String actionType,
+        AgentTaskActionType actionType,
         String payload,
         AgentTaskActionStatus status,
         LocalDateTime createdAt,

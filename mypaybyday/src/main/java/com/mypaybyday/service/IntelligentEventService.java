@@ -56,6 +56,7 @@ public class IntelligentEventService {
 	private final FinanceAiTools financeAiTools;
 	private final Messages messages;
 	private final ChatModel primaryModel;
+	private final DateConversionTool dateConversionTool;
 
 	private ExtractionAgent extractionAgent;
 
@@ -63,7 +64,8 @@ public class IntelligentEventService {
 			DraftService draftService, LanguageContext languageContext,
 			TimezoneContext timezoneContext,
 			FinanceAiTools financeAiTools, Messages messages,
-			@Named("primaryChatModel") ChatModel primaryModel) {
+			@Named("primaryChatModel") ChatModel primaryModel,
+			DateConversionTool dateConversionTool) {
 		this.agentFinanceEventCreator = agentFinanceEventCreator;
 		this.draftService = draftService;
 		this.languageContext = languageContext;
@@ -71,12 +73,14 @@ public class IntelligentEventService {
 		this.financeAiTools = financeAiTools;
 		this.messages = messages;
 		this.primaryModel = primaryModel;
+		this.dateConversionTool = dateConversionTool;
 	}
 
 	@PostConstruct
 	void init() {
 		this.extractionAgent = AiServices.builder(ExtractionAgent.class)
 				.chatModel(primaryModel)
+				.tools(dateConversionTool)
 				.build();
 	}
 
@@ -90,14 +94,14 @@ public class IntelligentEventService {
 	public IntelligentEventResponseDto createFromText(RawTextEventRequestDto request) throws BusinessException {
 		ZoneId zoneId = ZoneId.of(timezoneContext.getTimezone());
 		String now = DateConversionTool.formatNow(timezoneContext.getTimezone());
-		String lang = languageContext.getLang();
+		String langName = languageContext.getLanguageName();
 
 		// Pre-fetch context so the LLM can pick IDs without needing tool calls
 		String nodesContext = financeAiTools.getFinanceNodes(null, false);
 		String categoriesContext = financeAiTools.getCategories();
 		String tagsContext = financeAiTools.getTags();
 
-		String languageNote = PromptCollection.getSystemExtraction(now, lang);
+		String languageNote = PromptCollection.getSystemExtraction(now, langName);
 
 		String instructions = "";
 		if (request.getInstructions() != null && !request.getInstructions().trim().isEmpty()) {
@@ -132,7 +136,18 @@ public class IntelligentEventService {
 			extraction.getTransactionDate()
 		);
 
-		String description = agentFinanceEventCreator.generateEventDescription(request.getText(), request.getInstructions(), languageContext.getLang());
+		String extractionContext = String.format(
+			"Result: name=%s, amount=%s, sourceNodeId=%s, destinationNodeId=%s, category=%s, tags=%s, date=%s",
+			extraction.getName(),
+			extraction.getAmount(),
+			extraction.getSourceNodeId(),
+			extraction.getDestinationNodeId(),
+			extraction.getCategory() != null ? extraction.getCategory().getName() : "null",
+			extraction.getTags(),
+			extraction.getTransactionDate()
+		);
+
+		String description = agentFinanceEventCreator.generateEventDescription(request.getText(), request.getInstructions(), langName, extractionContext);
 		log.infof("AI generated description: %s", description);
 
 		// Map the extracted DTO to the entities
@@ -183,7 +198,10 @@ public class IntelligentEventService {
 				log.warnf("Failed to parse extracted transaction date: %s", extraction.getTransactionDate());
 			}
 		}
-		transaction.transactionDate = transactionDate;
+		// Convert from user's local timezone to server's timezone (UTC)
+		java.time.ZonedDateTime userZdt = transactionDate.atZone(zoneId);
+		java.time.ZonedDateTime serverZdt = userZdt.withZoneSameInstant(java.time.ZoneId.of("UTC"));
+		transaction.transactionDate = serverZdt.toLocalDateTime();
 		event.transaction = transaction;
 
 		Set<FinanceLineItemEntity> lineItems = new HashSet<>();

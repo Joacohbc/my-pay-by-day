@@ -14,4 +14,12 @@ public class LanguageContext {
 	public void setLang(String lang) {
 		this.lang = lang;
 	}
+
+	public String getLanguageName() {
+		return switch (lang.toLowerCase()) {
+			case "es" -> "Spanish";
+			case "en" -> "English";
+			default -> lang;
+		};
+	}
 }

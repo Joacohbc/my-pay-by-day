@@ -1,19 +1,25 @@
 package com.mypaybyday.service.agent;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.transaction.Transactional;
 
+import com.mypaybyday.dto.AgentTaskActionDto;
 import com.mypaybyday.dto.AgentTaskStepDto;
+import com.mypaybyday.entity.AgentTaskActionEntity;
 import com.mypaybyday.entity.AgentTaskAttachmentEntity;
 import com.mypaybyday.entity.AgentTaskEntity;
 import com.mypaybyday.entity.AgentTaskStepEntity;
 import com.mypaybyday.enums.AgentAttachmentKind;
+import com.mypaybyday.enums.AgentTaskActionStatus;
+import com.mypaybyday.enums.AgentTaskActionType;
 import com.mypaybyday.enums.AgentTaskStatus;
 import com.mypaybyday.enums.AgentTaskStepType;
+import com.mypaybyday.repository.AgentTaskActionRepository;
 import com.mypaybyday.repository.AgentTaskAttachmentRepository;
 import com.mypaybyday.repository.AgentTaskRepository;
 import com.mypaybyday.repository.AgentTaskStepRepository;
@@ -26,16 +32,19 @@ public class AgentTaskPersistHelper {
     private final AgentTaskRepository taskRepository;
     private final AgentTaskStepRepository stepRepository;
     private final AgentTaskAttachmentRepository attachmentRepository;
+    private final AgentTaskActionRepository actionRepository;
     private final Event<AgentTaskUpdatedEvent> taskUpdatedBus;
 
     public AgentTaskPersistHelper(
             AgentTaskRepository taskRepository,
             AgentTaskStepRepository stepRepository,
             AgentTaskAttachmentRepository attachmentRepository,
+            AgentTaskActionRepository actionRepository,
             Event<AgentTaskUpdatedEvent> taskUpdatedBus) {
         this.taskRepository = taskRepository;
         this.stepRepository = stepRepository;
         this.attachmentRepository = attachmentRepository;
+        this.actionRepository = actionRepository;
         this.taskUpdatedBus = taskUpdatedBus;
     }
 
@@ -43,10 +52,15 @@ public class AgentTaskPersistHelper {
     public AgentTaskEntity markRunning(String taskId) {
         AgentTaskEntity task = taskRepository.findById(taskId);
         if (task == null) return null;
+        if (task.status != AgentTaskStatus.PENDING
+                && task.status != AgentTaskStatus.PAUSED
+                && task.status != AgentTaskStatus.INTERRUPTED) {
+            return null;
+        }
         task.status = AgentTaskStatus.RUNNING;
         task.startedAt = LocalDateTime.now();
         taskRepository.persist(task);
-        fireUpdate(task, null, List.of());
+        fireUpdate(task, null, List.of(), List.of());
         return task;
     }
 
@@ -58,7 +72,7 @@ public class AgentTaskPersistHelper {
         task.finishedAt = LocalDateTime.now();
         task.progress = 100;
         taskRepository.persist(task);
-        fireUpdate(task, null, List.of());
+        fireUpdate(task, null, List.of(), List.of());
     }
 
     @Transactional
@@ -69,7 +83,7 @@ public class AgentTaskPersistHelper {
         task.status = AgentTaskStatus.FAILED;
         task.finishedAt = LocalDateTime.now();
         taskRepository.persist(task);
-        fireUpdate(task, null, List.of());
+        fireUpdate(task, null, List.of(), List.of());
     }
 
     @Transactional
@@ -80,17 +94,20 @@ public class AgentTaskPersistHelper {
         task.status = AgentTaskStatus.CANCELLED;
         task.finishedAt = LocalDateTime.now();
         taskRepository.persist(task);
-        fireUpdate(task, null, List.of());
+        fireUpdate(task, null, List.of(), List.of());
     }
 
     @Transactional
     public void markPaused(String taskId) {
         AgentTaskEntity task = taskRepository.findById(taskId);
         if (task == null) return;
-        if (task.status == AgentTaskStatus.COMPLETED || task.status == AgentTaskStatus.FAILED || task.status == AgentTaskStatus.CANCELLED) return;
+        if (task.status == AgentTaskStatus.PAUSED
+                || task.status == AgentTaskStatus.COMPLETED
+                || task.status == AgentTaskStatus.FAILED
+                || task.status == AgentTaskStatus.CANCELLED) return;
         task.status = AgentTaskStatus.PAUSED;
         taskRepository.persist(task);
-        fireUpdate(task, null, List.of());
+        fireUpdate(task, null, List.of(), List.of());
     }
 
     @Transactional
@@ -136,7 +153,7 @@ public class AgentTaskPersistHelper {
 
         taskRepository.persist(task);
 
-        fireUpdate(task, null, List.of(AgentTaskStepDto.from(step)));
+        fireUpdate(task, null, List.of(AgentTaskStepDto.from(step)), List.of());
         return step;
     }
 
@@ -152,7 +169,7 @@ public class AgentTaskPersistHelper {
         task.progress = progress;
         task.currentStep = currentStep;
         taskRepository.persist(task);
-        fireUpdate(task, null, List.of());
+        fireUpdate(task, null, List.of(), List.of());
     }
 
     @Transactional
@@ -162,7 +179,7 @@ public class AgentTaskPersistHelper {
         task.progress = progress;
         task.currentStep = description;
         taskRepository.persist(task);
-        fireUpdate(task, description, List.of());
+        fireUpdate(task, description, List.of(), List.of());
     }
 
     /** Loads attachment files for a task within a transaction (needed for lazy FileEntity.data). */
@@ -183,6 +200,38 @@ public class AgentTaskPersistHelper {
         return task != null && task.cancelRequested;
     }
 
+    @Transactional
+    public void createUserRequest(String taskId, AgentTaskActionType actionType, String description, String payload) {
+        AgentTaskEntity task = taskRepository.findById(taskId);
+        if (task == null) return;
+
+        AgentTaskActionEntity action = new AgentTaskActionEntity();
+        action.task = task;
+        action.actionType = actionType;
+        action.payload = (payload != null && !payload.isBlank())
+                ? description + "\n" + payload
+                : description;
+        action.status = AgentTaskActionStatus.PENDING_APPROVAL;
+        action.actionCreatedAt = LocalDateTime.now();
+        actionRepository.persist(action);
+
+        task.status = AgentTaskStatus.PAUSED;
+        taskRepository.persist(task);
+        fireUpdate(task, null, List.of(), List.of(AgentTaskActionDto.from(action)));
+    }
+
+    @Transactional
+    public String getLastUserFeedback(String taskId) {
+        AgentTaskEntity task = taskRepository.findById(taskId);
+        if (task == null) return null;
+        return actionRepository.findByTask(task).stream()
+                .filter(a -> (a.status == AgentTaskActionStatus.APPROVED || a.status == AgentTaskActionStatus.REJECTED)
+                        && a.resultMessage != null && !a.resultMessage.isBlank())
+                .max(Comparator.comparing(a -> a.resolvedAt))
+                .map(a -> a.resultMessage)
+                .orElse(null);
+    }
+
     private void persistErrorStep(AgentTaskEntity task, String errorMessage) {
         AgentTaskStepEntity step = new AgentTaskStepEntity();
         step.task = task;
@@ -193,14 +242,24 @@ public class AgentTaskPersistHelper {
         stepRepository.persist(step);
     }
 
-    private void fireUpdate(AgentTaskEntity task, String description, List<AgentTaskStepDto> newSteps) {
+    @Transactional
+    public void fireTaskUpdated(String taskId) {
+        AgentTaskEntity task = taskRepository.findById(taskId);
+        if (task == null) return;
+        List<AgentTaskStepDto> steps = stepRepository.findByTaskOrderBySequence(task).stream().map(AgentTaskStepDto::from).toList();
+        List<AgentTaskActionDto> actions = actionRepository.findByTask(task).stream().map(AgentTaskActionDto::from).toList();
+        fireUpdate(task, null, steps, actions);
+    }
+
+    private void fireUpdate(AgentTaskEntity task, String description, List<AgentTaskStepDto> newSteps, List<AgentTaskActionDto> newActions) {
         taskUpdatedBus.fire(new AgentTaskUpdatedEvent(
                 task.getId(),
                 task.getStatus(),
                 task.getProgress(),
                 task.getCurrentStep(),
                 description,
-                newSteps
+                newSteps,
+                newActions
         ));
     }
 }
