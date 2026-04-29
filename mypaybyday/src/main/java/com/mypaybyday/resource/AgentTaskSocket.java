@@ -62,9 +62,7 @@ public class AgentTaskSocket {
                     event.getStatus().name(),
                     event.getProgress(),
                     event.getCurrentStep(),
-                    event.getNewSteps(),
-                    event.getTotalInputTokens(),
-                    event.getTotalOutputTokens()
+                    event.getNewSteps()
             );
             return objectMapper.writeValueAsString(dto);
         } catch (JsonProcessingException e) {
@@ -78,8 +76,6 @@ public class AgentTaskSocket {
             String status,
             int progress,
             String currentStep,
-            List<AgentTaskStepDto> newSteps,
-            long totalInputTokens,
-            long totalOutputTokens
+            List<AgentTaskStepDto> newSteps
     ) {}
 }

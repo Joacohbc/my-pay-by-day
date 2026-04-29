@@ -371,11 +371,12 @@ public class FinanceAiTools {
     // WRITE tools — domain mutations
     // =========================================================================
 
-    @Tool("Creates a finance event from a raw text description. Use when the user wants to log a new transaction. " +
-            "Parameters: description (actual transaction details), instructions (optional user directives).")
+    @Tool("Creates a draft finance event from a raw text description of ONE single transaction. " +
+            "IMPORTANT: call this once per transaction — never pass multiple transactions in one call. " +
+            "For bulk imports, loop and call once per line/entry.")
     @AgentToolKind(AgentToolKind.Kind.WRITE)
-    public String createEventFromText(
-            @P("Exact transaction details. NEVER use placeholders.") String description,
+    public String createDraftFromText(
+            @P("Exact details of ONE transaction. NEVER pass multiple transactions at once.") String description,
             @P("Optional user directives (account, category, split rules). Pass null if none.") String instructions) {
         try {
             RawTextEventRequestDto request = new RawTextEventRequestDto();
@@ -488,20 +489,6 @@ public class FinanceAiTools {
         } catch (BusinessException e) {
             return "ERROR: " + e.getMessage();
         }
-    }
-
-    // =========================================================================
-    // META tools — self-control
-    // =========================================================================
-
-    @Tool("Reports the agent's current progress. Call this regularly to inform the user of what you are doing. " +
-            "percent is 0-100, stepDescription is a short human-readable narrative.")
-    @AgentToolKind(AgentToolKind.Kind.META)
-    public String reportProgress(
-            @P("Progress percentage (0-100).") int percent,
-            @P("Short description of the current step.") String stepDescription) {
-        log.infof("[AGENT PROGRESS %d%%] %s", percent, stepDescription);
-        return String.format("Progress reported: %d%% - %s", percent, stepDescription);
     }
 
     // =========================================================================

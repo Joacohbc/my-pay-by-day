@@ -1,6 +1,5 @@
 package com.mypaybyday.dto;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,13 +19,7 @@ public record AgentTaskDto(
         LocalDateTime finishedAt,
         int progress,
         String currentStep,
-        String finalResponse,
-        long totalInputTokens,
-        long totalOutputTokens,
-        int totalToolCalls,
-        int totalLlmCalls,
-        BigDecimal estimatedCostUsd,
-        String lastError,
+        String lang,
         boolean cancelRequested,
         List<AgentTaskStepDto> steps,
         List<AgentTaskAttachmentDto> attachments,
@@ -53,13 +46,7 @@ public record AgentTaskDto(
                 entity.getFinishedAt(),
                 entity.getProgress(),
                 entity.getCurrentStep(),
-                entity.getFinalResponse(),
-                entity.getTotalInputTokens(),
-                entity.getTotalOutputTokens(),
-                entity.getTotalToolCalls(),
-                entity.getTotalLlmCalls(),
-                entity.getEstimatedCostUsd(),
-                entity.getLastError(),
+                entity.getLang(),
                 entity.isCancelRequested(),
                 steps,
                 attachments,

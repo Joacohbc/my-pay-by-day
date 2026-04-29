@@ -46,31 +46,30 @@ public class AgentTaskPersistHelper {
         task.status = AgentTaskStatus.RUNNING;
         task.startedAt = LocalDateTime.now();
         taskRepository.persist(task);
-        fireUpdate(task, List.of());
+        fireUpdate(task, null, List.of());
         return task;
     }
 
     @Transactional
-    public void markCompleted(String taskId, String finalResponse) {
+    public void markCompleted(String taskId) {
         AgentTaskEntity task = taskRepository.findById(taskId);
         if (task == null) return;
         task.status = AgentTaskStatus.COMPLETED;
         task.finishedAt = LocalDateTime.now();
-        task.finalResponse = finalResponse;
         task.progress = 100;
         taskRepository.persist(task);
-        fireUpdate(task, List.of());
+        fireUpdate(task, null, List.of());
     }
 
     @Transactional
     public void markFailed(String taskId, String errorMessage) {
         AgentTaskEntity task = taskRepository.findById(taskId);
         if (task == null) return;
+        persistErrorStep(task, errorMessage);
         task.status = AgentTaskStatus.FAILED;
         task.finishedAt = LocalDateTime.now();
-        task.lastError = errorMessage;
         taskRepository.persist(task);
-        fireUpdate(task, List.of());
+        fireUpdate(task, null, List.of());
     }
 
     @Transactional
@@ -81,15 +80,15 @@ public class AgentTaskPersistHelper {
         task.status = AgentTaskStatus.CANCELLED;
         task.finishedAt = LocalDateTime.now();
         taskRepository.persist(task);
-        fireUpdate(task, List.of());
+        fireUpdate(task, null, List.of());
     }
 
     @Transactional
     public void markInterrupted(String taskId) {
         AgentTaskEntity task = taskRepository.findById(taskId);
         if (task == null) return;
+        persistErrorStep(task, "Task was interrupted by server restart.");
         task.status = AgentTaskStatus.INTERRUPTED;
-        task.lastError = "Task was interrupted by server restart.";
         taskRepository.persist(task);
     }
 
@@ -97,9 +96,7 @@ public class AgentTaskPersistHelper {
     public AgentTaskStepEntity persistStep(
             String taskId,
             AgentTaskStepType type,
-            String toolName,
-            String toolArgs,
-            String toolResult,
+            String description,
             String content,
             int tokensIn,
             int tokensOut,
@@ -110,11 +107,7 @@ public class AgentTaskPersistHelper {
         AgentTaskStepEntity step = new AgentTaskStepEntity();
         step.task = task;
         step.type = type;
-        step.toolName = toolName;
-        step.toolArgs = toolArgs;
-        step.toolResult = toolResult != null && toolResult.length() > 4000
-                ? toolResult.substring(0, 4000) + "...[truncated]"
-                : toolResult;
+        step.description = description;
         step.content = content;
         step.tokensIn = tokensIn;
         step.tokensOut = tokensOut;
@@ -123,13 +116,15 @@ public class AgentTaskPersistHelper {
         step.sequence = (int) stepRepository.count("task", task);
         stepRepository.persist(step);
 
-        task.totalToolCalls += (type == AgentTaskStepType.TOOL_CALL ? 1 : 0);
-        task.totalInputTokens += tokensIn;
-        task.totalOutputTokens += tokensOut;
         taskRepository.persist(task);
 
-        fireUpdate(task, List.of(AgentTaskStepDto.from(step)));
+        fireUpdate(task, null, List.of(AgentTaskStepDto.from(step)));
         return step;
+    }
+
+    @Transactional
+    public AgentTaskStepEntity persistStep(String taskId, AgentTaskStepType type, String description) {
+        return persistStep(taskId, type, description, null, 0, 0, 0);
     }
 
     @Transactional
@@ -139,7 +134,17 @@ public class AgentTaskPersistHelper {
         task.progress = progress;
         task.currentStep = currentStep;
         taskRepository.persist(task);
-        fireUpdate(task, List.of());
+        fireUpdate(task, null, List.of());
+    }
+
+    @Transactional
+    public void fireProgressUpdate(String taskId, int progress, String description) {
+        AgentTaskEntity task = taskRepository.findById(taskId);
+        if (task == null) return;
+        task.progress = progress;
+        task.currentStep = description;
+        taskRepository.persist(task);
+        fireUpdate(task, description, List.of());
     }
 
     /** Loads attachment files for a task within a transaction (needed for lazy FileEntity.data). */
@@ -160,15 +165,24 @@ public class AgentTaskPersistHelper {
         return task != null && task.cancelRequested;
     }
 
-    private void fireUpdate(AgentTaskEntity task, List<AgentTaskStepDto> newSteps) {
+    private void persistErrorStep(AgentTaskEntity task, String errorMessage) {
+        AgentTaskStepEntity step = new AgentTaskStepEntity();
+        step.task = task;
+        step.type = AgentTaskStepType.ERROR;
+        step.description = errorMessage;
+        step.stepCreatedAt = LocalDateTime.now();
+        step.sequence = (int) stepRepository.count("task", task);
+        stepRepository.persist(step);
+    }
+
+    private void fireUpdate(AgentTaskEntity task, String description, List<AgentTaskStepDto> newSteps) {
         taskUpdatedBus.fire(new AgentTaskUpdatedEvent(
                 task.getId(),
                 task.getStatus(),
                 task.getProgress(),
                 task.getCurrentStep(),
-                newSteps,
-                task.getTotalInputTokens(),
-                task.getTotalOutputTokens()
+                description,
+                newSteps
         ));
     }
 }

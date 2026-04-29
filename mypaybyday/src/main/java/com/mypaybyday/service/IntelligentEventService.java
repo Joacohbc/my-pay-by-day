@@ -34,6 +34,7 @@ import com.mypaybyday.service.ai.PromptCollection;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.output.OutputParsingException;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
@@ -105,7 +106,14 @@ public class IntelligentEventService {
 		);
 
 		// Call the Langchain4j structured output extraction
-		FinanceEventExtractionDto extraction = extractionAgent.extractEvent(extractionPrompt, request.getText());
+		FinanceEventExtractionDto extraction;
+		try {
+			extraction = extractionAgent.extractEvent(extractionPrompt, request.getText());
+		} catch (OutputParsingException e) {
+			throw new BusinessException(
+				"Input appears to contain multiple transactions. This tool processes ONE transaction at a time. " +
+				"Split the input and call once per transaction.");
+		}
 
 		log.infof("AI extracted event from text: '%s'. Result: name=%s, amount=%s, sourceNodeId=%s, destinationNodeId=%s, category=%s, tags=%s, date=%s",
 			request.getText(),

@@ -30,13 +30,8 @@ public class AgentTaskStepEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     public AgentTaskStepType type;
 
-    public String toolName;
-
     @Column(columnDefinition = "TEXT")
-    public String toolArgs;
-
-    @Column(columnDefinition = "TEXT")
-    public String toolResult;
+    public String description;
 
     @Column(columnDefinition = "TEXT")
     public String content;

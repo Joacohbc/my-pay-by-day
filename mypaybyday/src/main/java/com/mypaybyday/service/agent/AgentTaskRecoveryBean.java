@@ -33,7 +33,6 @@ public class AgentTaskRecoveryBean {
         log.warnf("Found %d stuck task(s) from previous run — marking as INTERRUPTED", stuckTasks.size());
         for (AgentTaskEntity task : stuckTasks) {
             task.status = AgentTaskStatus.INTERRUPTED;
-            task.lastError = "Task was interrupted by server restart. Use POST /api/agent-tasks/{id}/resume to restart.";
             taskRepository.persist(task);
             log.warnf("Task %s marked as INTERRUPTED", task.getId());
         }

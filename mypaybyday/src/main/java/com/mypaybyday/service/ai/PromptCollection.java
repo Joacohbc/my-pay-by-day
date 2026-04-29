@@ -17,8 +17,8 @@ public class PromptCollection {
         );
     }
 
-    public static String getSystemAgent(String now, String executionMode, String modeNote) {
-        return PromptKey.SYSTEM_AGENT.getContent().formatted(now, executionMode, modeNote);
+    public static String getSystemAgent(String now, String executionMode, String modeNote, String lang) {
+        return PromptKey.SYSTEM_AGENT.getContent().formatted(now, executionMode, modeNote, lang);
     }
 
     public static String getSystemChat(String now, String userLanguage) {

@@ -1,6 +1,5 @@
 package com.mypaybyday.entity;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 
@@ -55,22 +54,7 @@ public class AgentTaskEntity extends PanacheEntityBase {
 
     public String currentStep;
 
-    @Column(columnDefinition = "TEXT")
-    public String finalResponse;
-
-    public long totalInputTokens = 0;
-
-    public long totalOutputTokens = 0;
-
-    public int totalToolCalls = 0;
-
-    public int totalLlmCalls = 0;
-
-    @Column(precision = 18, scale = 8)
-    public BigDecimal estimatedCostUsd;
-
-    @Column(columnDefinition = "TEXT")
-    public String lastError;
+    public String lang = "en";
 
     public boolean cancelRequested = false;
 

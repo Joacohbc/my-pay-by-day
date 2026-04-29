@@ -22,6 +22,7 @@ import com.mypaybyday.repository.AgentTaskStepRepository;
 import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.entity.AgentTaskAttachmentEntity;
 import com.mypaybyday.enums.AgentAttachmentKind;
+import com.mypaybyday.i18n.LanguageContext;
 import com.mypaybyday.service.FileService;
 
 @ApplicationScoped
@@ -32,18 +33,21 @@ public class AgentTaskService {
     private final AgentTaskAttachmentRepository attachmentRepository;
     private final AgentTaskActionRepository actionRepository;
     private final FileService fileService;
+    private final LanguageContext languageContext;
 
     public AgentTaskService(
             AgentTaskRepository taskRepository,
             AgentTaskStepRepository stepRepository,
             AgentTaskAttachmentRepository attachmentRepository,
             AgentTaskActionRepository actionRepository,
-            FileService fileService) {
+            FileService fileService,
+            LanguageContext languageContext) {
         this.taskRepository = taskRepository;
         this.stepRepository = stepRepository;
         this.attachmentRepository = attachmentRepository;
         this.actionRepository = actionRepository;
         this.fileService = fileService;
+        this.languageContext = languageContext;
     }
 
     @Transactional
@@ -54,6 +58,7 @@ public class AgentTaskService {
         AgentTaskEntity task = new AgentTaskEntity();
         task.userInstruction = dto.getInstruction();
         task.executionMode = dto.getExecutionMode();
+        task.lang = languageContext.getLang();
         task.status = AgentTaskStatus.PENDING;
         taskRepository.persist(task);
         

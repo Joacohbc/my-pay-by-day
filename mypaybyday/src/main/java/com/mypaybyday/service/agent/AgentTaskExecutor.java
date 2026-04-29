@@ -109,7 +109,7 @@ public class AgentTaskExecutor {
         try {
             List<AttachmentFile> attachments = persistHelper.loadAttachmentFiles(taskId);
             String enrichedInstruction = buildEnrichedInstruction(task.getUserInstruction(), attachments);
-            AgentExecutionContext ctx = new AgentExecutionContext(task.getId(), enrichedInstruction, task.getExecutionMode());
+            AgentExecutionContext ctx = new AgentExecutionContext(task.getId(), enrichedInstruction, task.getExecutionMode(), task.getLang());
             runAgentLoop(ctx);
         } catch (CancellationException | InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -171,7 +171,7 @@ public class AgentTaskExecutor {
     }
 
     private void runAgentLoop(AgentExecutionContext ctx) throws InterruptedException {
-        Map<ToolSpecification, ToolExecutor> toolMap = buildToolMap(ctx.executionMode());
+        Map<ToolSpecification, ToolExecutor> toolMap = buildToolMap(ctx);
 
         AgentRunner agent = AiServices.builder(AgentRunner.class)
                 .chatModel(agentChatModel)
@@ -193,24 +193,31 @@ public class AgentTaskExecutor {
         long durationMs = System.currentTimeMillis() - startMs;
 
         persistHelper.persistStep(ctx.taskId(),
-                AgentTaskStepType.MESSAGE, null, null, null,
-                response, 0, 0, durationMs);
+                AgentTaskStepType.MESSAGE, null, response, 0, 0, durationMs);
 
-        persistHelper.markCompleted(ctx.taskId(), response);
+        persistHelper.markCompleted(ctx.taskId());
     }
 
-    private Map<ToolSpecification, ToolExecutor> buildToolMap(AgentTaskExecutionMode mode) {
+    private Map<ToolSpecification, ToolExecutor> buildToolMap(AgentExecutionContext ctx) {
         Map<ToolSpecification, ToolExecutor> map = new LinkedHashMap<>();
+
+        AgentProgressTool progressTool = new AgentProgressTool(ctx.taskId(), persistHelper);
+        for (Method method : AgentProgressTool.class.getDeclaredMethods()) {
+            if (method.isAnnotationPresent(Tool.class)) {
+                map.put(ToolSpecifications.toolSpecificationFrom(method),
+                        new DefaultToolExecutor(progressTool, method));
+            }
+        }
+
         for (Method method : FinanceAiTools.class.getDeclaredMethods()) {
             if (!method.isAnnotationPresent(Tool.class)) continue;
 
             AgentToolKind kindAnnotation = method.getAnnotation(AgentToolKind.class);
             AgentToolKind.Kind kind = kindAnnotation != null ? kindAnnotation.value() : AgentToolKind.Kind.READ;
 
-            boolean included = switch (mode) {
-                case AUTONOMOUS -> true;
-                case DRAFT_ONLY -> kind == AgentToolKind.Kind.READ || kind == AgentToolKind.Kind.META;
-                case READ_ONLY -> kind == AgentToolKind.Kind.READ || kind == AgentToolKind.Kind.META;
+            boolean included = switch (ctx.executionMode()) {
+                case AUTONOMOUS -> kind == AgentToolKind.Kind.READ || kind == AgentToolKind.Kind.WRITE;
+                case DRAFT_ONLY, READ_ONLY -> kind == AgentToolKind.Kind.READ;
             };
 
             if (included) {
@@ -228,7 +235,7 @@ public class AgentTaskExecutor {
             case DRAFT_ONLY -> "You can only READ data. Write operations are NOT available in this mode.";
             case READ_ONLY -> "You can only READ data. Write operations are NOT available in this mode.";
         };
-        return PromptCollection.getSystemAgent(now, ctx.executionMode().name(), modeNote);
+        return PromptCollection.getSystemAgent(now, ctx.executionMode().name(), modeNote, ctx.lang());
     }
 
     interface AgentRunner {
@@ -239,5 +246,5 @@ public class AgentTaskExecutor {
                 @dev.langchain4j.service.UserMessage String userInstruction);
     }
 
-    private record AgentExecutionContext(String taskId, String userInstruction, AgentTaskExecutionMode executionMode) {}
+    private record AgentExecutionContext(String taskId, String userInstruction, AgentTaskExecutionMode executionMode, String lang) {}
 }

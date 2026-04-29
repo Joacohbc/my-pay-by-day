@@ -7,5 +7,7 @@ public enum AgentTaskStepType {
     MESSAGE,
     ERROR,
     ATTACHMENT_PARSED,
-    RETRY
+    RETRY,
+    PLANNED_STEP,
+    PROGRESS
 }
