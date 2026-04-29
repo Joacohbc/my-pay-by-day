@@ -123,7 +123,7 @@ export function AgentTasksPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-dn-text-main line-clamp-1">
-                      {task.instruction ? truncate(task.instruction, 50) : t('agentTasks.title')}
+                      {task.userInstruction ? truncate(task.userInstruction, 50) : t('agentTasks.title')}
                     </p>
                     <div className="flex gap-2 items-center mt-1">
                       <span

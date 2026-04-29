@@ -10,6 +10,7 @@ const en = {
     error: 'An error occurred',
     close: 'Close',
     cancel: 'Cancel',
+    pause: 'Pause',
     confirm: 'Confirm',
     holdToConfirm: 'Keep holding to confirm...',
     edit: 'Edit',

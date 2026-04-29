@@ -11,13 +11,11 @@ export type AgentTaskStatus =
 export type AgentTaskExecutionMode = 'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY';
 
 export type AgentTaskStepType =
-  | 'THOUGHT'
-  | 'TOOL_CALL'
-  | 'TOOL_RESULT'
   | 'MESSAGE'
   | 'ERROR'
-  | 'ATTACHMENT_PARSED'
-  | 'RETRY';
+  | 'RETRY'
+  | 'PLANNED_STEP'
+  | 'PROGRESS';
 
 export type AgentTaskActionStatus =
   | 'PENDING_APPROVAL'
@@ -30,8 +28,8 @@ export interface AgentTaskStep {
   id: number;
   sequence: number;
   type: AgentTaskStepType;
-  content: string;
-  toolName?: string;
+  description?: string;
+  content?: string;
   stepCreatedAt: string;
 }
 
@@ -48,20 +46,19 @@ export interface AgentTaskAttachment {
   id: number;
   fileName: string;
   mimeType: string;
+  sizeBytes?: number;
   parsed: boolean;
   createdAt: string;
 }
 
 export interface AgentTask {
   id: string;
-  instruction: string;
+  userInstruction: string;
   executionMode: AgentTaskExecutionMode;
   status: AgentTaskStatus;
   progress: number;
   currentStep?: string;
-  totalInputTokens: number;
-  totalOutputTokens: number;
-  lastError?: string;
+  lang?: string;
   createdAt: string;
   updatedAt: string;
   steps?: AgentTaskStep[];
@@ -80,7 +77,6 @@ export interface AgentTaskWsPayload {
   status: AgentTaskStatus;
   progress: number;
   currentStep?: string;
+  description?: string;
   newSteps: AgentTaskStep[];
-  totalInputTokens: number;
-  totalOutputTokens: number;
 }

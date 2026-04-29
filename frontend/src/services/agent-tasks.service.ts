@@ -16,6 +16,9 @@ export const agentTasksService = {
   cancel: (id: string) =>
     api.post<AgentTask>(`/agent-tasks/${id}/cancel`, {}),
 
+  pause: (id: string) =>
+    api.post<AgentTask>(`/agent-tasks/${id}/pause`, {}),
+
   resume: (id: string) =>
     api.post<AgentTask>(`/agent-tasks/${id}/resume`, {}),
 

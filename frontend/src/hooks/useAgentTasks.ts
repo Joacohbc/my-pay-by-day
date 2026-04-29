@@ -49,6 +49,17 @@ export function useCancelAgentTask() {
   });
 }
 
+export function usePauseAgentTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => agentTasksService.pause(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: agentTaskKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: agentTaskKeys.detail(id) });
+    },
+  });
+}
+
 export function useResumeAgentTask() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -126,9 +137,11 @@ export function useAgentTaskSocket(taskId: string | null) {
               status: payload.status,
               progress: payload.progress,
               currentStep: payload.currentStep ?? prev.currentStep,
-              totalInputTokens: payload.totalInputTokens,
-              totalOutputTokens: payload.totalOutputTokens,
-              steps: [...(prev.steps ?? []), ...payload.newSteps],
+              steps: (() => {
+                  const existingIds = new Set(prev.steps?.map((s) => s.id) ?? []);
+                  const fresh = payload.newSteps.filter((s) => !existingIds.has(s.id));
+                  return [...(prev.steps ?? []), ...fresh];
+                })(),
             };
           }
         );
