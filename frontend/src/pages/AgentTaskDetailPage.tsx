@@ -77,8 +77,6 @@ export function AgentTaskDetailPage() {
 
   const steps = task.steps ?? [];
   const finalStep = steps.find((s) => s.type === 'MESSAGE');
-  const isEffectivelyDone = isDone || !!finalStep;
-
   const plannedSteps = steps.filter((s) => s.type === 'PLANNED_STEP');
   const progressSteps = steps.filter((s) => s.type === 'PROGRESS' || s.type === 'USER');
   const errorSteps = steps.filter((s) => s.type === 'ERROR');
@@ -171,30 +169,33 @@ export function AgentTaskDetailPage() {
         back={Routes.AGENT_TASKS}
         action={
           <div className="flex items-center gap-2">
-            {!isEffectivelyDone && (
+            {/* Final state: delete only */}
+            {isDone && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="text-dn-error border-dn-error"
+                onClick={() => setConfirmDelete(true)}
+                loading={deleteTask.isPending}
+              >
+                <Icon name="delete" className="text-sm" />
+                {t('common.delete')}
+              </Button>
+            )}
+
+            {/* Paused / Interrupted: resume + cancel */}
+            {(isPaused || task.status === 'INTERRUPTED') && (
               <>
-                {isPaused || task.status === 'INTERRUPTED' ? (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    loading={resumeTask.isPending}
-                    onClick={handleResume}
-                    disabled={hasPendingActions}
-                  >
-                    <Icon name="play_arrow" className="text-sm" />
-                    {t('agentTasks.resume')}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    loading={pauseTask.isPending}
-                    onClick={handlePause}
-                  >
-                    <Icon name="pause" className="text-sm" />
-                    {t('common.pause')}
-                  </Button>
-                )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={resumeTask.isPending}
+                  onClick={handleResume}
+                  disabled={hasPendingActions}
+                >
+                  <Icon name="play_arrow" className="text-sm" />
+                  {t('agentTasks.resume')}
+                </Button>
                 <Button
                   variant="secondary"
                   size="sm"
@@ -207,13 +208,40 @@ export function AgentTaskDetailPage() {
                 </Button>
               </>
             )}
-            {isEffectivelyDone && (
+
+            {/* Running / Retrying: pause + cancel */}
+            {isRunning && (
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={pauseTask.isPending}
+                  onClick={handlePause}
+                >
+                  <Icon name="pause" className="text-sm" />
+                  {t('common.pause')}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="text-dn-error border-dn-error"
+                  loading={cancelTask.isPending}
+                  onClick={() => setConfirmCancel(true)}
+                >
+                  <Icon name="close" className="text-sm" />
+                  {t('common.cancel')}
+                </Button>
+              </>
+            )}
+
+            {/* Pending: cancel only */}
+            {task.status === 'PENDING' && (
               <Button
                 variant="secondary"
                 size="sm"
                 className="text-dn-error border-dn-error"
-                onClick={() => setConfirmDelete(true)}
-                loading={deleteTask.isPending}
+                loading={cancelTask.isPending}
+                onClick={() => setConfirmCancel(true)}
               >
                 <Icon name="close" className="text-sm" />
                 {t('common.cancel')}
