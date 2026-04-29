@@ -21,6 +21,7 @@ import jakarta.inject.Inject;
 import com.mypaybyday.enums.AgentAttachmentKind;
 import com.mypaybyday.enums.AgentTaskExecutionMode;
 import com.mypaybyday.enums.AgentTaskStepType;
+import com.mypaybyday.i18n.TimezoneContext;
 import com.mypaybyday.service.ai.PromptCollection;
 import com.mypaybyday.service.agent.AgentTaskPersistHelper.AttachmentFile;
 import com.mypaybyday.service.ai.IAUtils;
@@ -70,7 +71,7 @@ public class AgentTaskExecutor {
             AgentTaskPersistHelper persistHelper,
             IAUtils agentFinanceEventCreator,
             DateConversionTool dateConversionTool,
-            com.mypaybyday.i18n.TimezoneContext timezoneContext) {
+            TimezoneContext timezoneContext) {
         this.agentChatModel = agentChatModel;
         this.dbChatMemoryStore = dbChatMemoryStore;
         this.financeAiTools = financeAiTools;

@@ -116,7 +116,7 @@ public class AgentTaskResource {
     public Response resume(
             @Parameter(description = "Task ID", required = true) @PathParam("id") String id)
             throws BusinessException {
-        AgentTaskDto task = agentTaskService.findById(id);
+        AgentTaskDto task = agentTaskService.resume(id);
         agentTaskExecutor.submit(id);
         return Response.accepted(task).build();
     }

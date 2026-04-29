@@ -73,6 +73,7 @@ export function AgentTaskDetailPage() {
   const isRunning = task.status === 'RUNNING' || task.status === 'RETRYING';
   const isPaused = task.status === 'PAUSED';
   const isDone = task.status === 'COMPLETED' || task.status === 'FAILED' || task.status === 'CANCELLED';
+  const hasPendingActions = task.actions?.some((a) => a.status === 'PENDING_APPROVAL');
 
   const steps = task.steps ?? [];
   const finalStep = steps.find((s) => s.type === 'MESSAGE');
@@ -178,6 +179,7 @@ export function AgentTaskDetailPage() {
                     size="sm"
                     loading={resumeTask.isPending}
                     onClick={handleResume}
+                    disabled={hasPendingActions}
                   >
                     <Icon name="play_arrow" className="text-sm" />
                     {t('agentTasks.resume')}

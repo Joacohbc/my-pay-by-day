@@ -1,5 +1,6 @@
 package com.mypaybyday.service.agent;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -133,6 +134,23 @@ public class AgentTaskService {
     }
 
     @Transactional
+    public AgentTaskDto resume(String id) throws BusinessException {
+        AgentTaskEntity task = requireTask(id);
+        if (task.status == AgentTaskStatus.COMPLETED
+                || task.status == AgentTaskStatus.FAILED
+                || task.status == AgentTaskStatus.CANCELLED) {
+            throw new BusinessException(messages.get(MsgKey.AGENT_TASK_TERMINAL_STATE, task.status));
+        }
+        List<AgentTaskActionEntity> pendingActions = actionRepository.findPendingByTask(task);
+        if (!pendingActions.isEmpty()) {
+            throw new BusinessException(messages.get(MsgKey.AGENT_TASK_PENDING_ACTIONS));
+        }
+        task.status = AgentTaskStatus.PENDING;
+        taskRepository.persist(task);
+        return AgentTaskDto.from(task);
+    }
+
+    @Transactional
     public void delete(String id) throws BusinessException {
         AgentTaskEntity task = requireTask(id);
         actionRepository.delete("task", task);
@@ -145,7 +163,7 @@ public class AgentTaskService {
     public AgentTaskActionDto approveAction(String taskId, Long actionId, AgentTaskActionResolveDto dto) throws BusinessException {
         AgentTaskActionEntity action = requireAction(taskId, actionId);
         action.status = AgentTaskActionStatus.APPROVED;
-        action.resolvedAt = java.time.LocalDateTime.now();
+        action.resolvedAt = LocalDateTime.now();
         if (dto != null && dto.feedback() != null && !dto.feedback().isBlank()) {
             action.resultMessage = dto.feedback();
         }
@@ -160,7 +178,7 @@ public class AgentTaskService {
     public AgentTaskActionDto rejectAction(String taskId, Long actionId, AgentTaskActionResolveDto dto) throws BusinessException {
         AgentTaskActionEntity action = requireAction(taskId, actionId);
         action.status = AgentTaskActionStatus.REJECTED;
-        action.resolvedAt = java.time.LocalDateTime.now();
+        action.resolvedAt = LocalDateTime.now();
         if (dto != null && dto.feedback() != null && !dto.feedback().isBlank()) {
             action.resultMessage = dto.feedback();
         }
