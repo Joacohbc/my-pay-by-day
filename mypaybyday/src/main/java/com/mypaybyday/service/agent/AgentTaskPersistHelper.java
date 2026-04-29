@@ -120,8 +120,6 @@ public class AgentTaskPersistHelper {
             AgentTaskStepType type,
             String description,
             String content,
-            int tokensIn,
-            int tokensOut,
             long durationMs) {
         AgentTaskEntity task = taskRepository.findById(taskId);
         if (task == null) return null;
@@ -131,8 +129,6 @@ public class AgentTaskPersistHelper {
         step.type = type;
         step.description = description;
         step.content = content;
-        step.tokensIn = tokensIn;
-        step.tokensOut = tokensOut;
         step.durationMs = durationMs;
         step.stepCreatedAt = LocalDateTime.now();
         step.sequence = (int) stepRepository.count("task", task);
@@ -146,7 +142,7 @@ public class AgentTaskPersistHelper {
 
     @Transactional
     public AgentTaskStepEntity persistStep(String taskId, AgentTaskStepType type, String description) {
-        return persistStep(taskId, type, description, null, 0, 0, 0);
+        return persistStep(taskId, type, description, null, 0);
     }
 
     @Transactional

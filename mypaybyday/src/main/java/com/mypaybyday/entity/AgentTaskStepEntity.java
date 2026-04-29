@@ -36,10 +36,6 @@ public class AgentTaskStepEntity extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     public String content;
 
-    public int tokensIn;
-
-    public int tokensOut;
-
     public LocalDateTime stepCreatedAt;
 
     public long durationMs;

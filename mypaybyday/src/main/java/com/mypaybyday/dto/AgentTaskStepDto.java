@@ -12,8 +12,6 @@ public record AgentTaskStepDto(
         AgentTaskStepType type,
         String description,
         String content,
-        int tokensIn,
-        int tokensOut,
         LocalDateTime createdAt,
         long durationMs
 ) {
@@ -26,8 +24,6 @@ public record AgentTaskStepDto(
                 entity.type,
                 entity.description,
                 entity.content,
-                entity.tokensIn,
-                entity.tokensOut,
                 entity.stepCreatedAt,
                 entity.durationMs
         );

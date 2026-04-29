@@ -204,7 +204,7 @@ public class AgentTaskExecutor {
         long durationMs = System.currentTimeMillis() - startMs;
 
         persistHelper.persistStep(ctx.taskId(),
-                AgentTaskStepType.MESSAGE, null, response, 0, 0, durationMs);
+                AgentTaskStepType.MESSAGE, null, response, durationMs);
 
         persistHelper.markCompleted(ctx.taskId());
     }
