@@ -243,6 +243,13 @@ public class AgentTaskPersistHelper {
     }
 
     @Transactional
+    public int countStepsByType(String taskId, AgentTaskStepType type) {
+        AgentTaskEntity task = taskRepository.findById(taskId);
+        if (task == null) return 0;
+        return (int) stepRepository.count("task = ?1 AND type = ?2", task, type);
+    }
+
+    @Transactional
     public void fireTaskUpdated(String taskId) {
         AgentTaskEntity task = taskRepository.findById(taskId);
         if (task == null) return;

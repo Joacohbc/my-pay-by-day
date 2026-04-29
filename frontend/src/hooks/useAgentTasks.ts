@@ -125,13 +125,25 @@ export function useAgentTaskSocket(taskId: string | null) {
 
     ws.onmessage = (ev) => {
       try {
-        const payload: AgentTaskWsPayload = JSON.parse(ev.data);
+        const raw = JSON.parse(ev.data);
+
+        // On connect ack, invalidate to get full fresh state from HTTP
+        if (raw.type === 'connected') {
+          queryClient.invalidateQueries({ queryKey: agentTaskKeys.detail(taskId) });
+          return;
+        }
+
+        const payload: AgentTaskWsPayload = raw;
         if (payload.taskId !== taskId) return;
 
         queryClient.setQueryData<AgentTask>(
           agentTaskKeys.detail(taskId),
           (prev) => {
-            if (!prev) return prev;
+            if (!prev) {
+              // HTTP not loaded yet — invalidate so it re-fetches with latest state
+              queryClient.invalidateQueries({ queryKey: agentTaskKeys.detail(taskId) });
+              return prev;
+            }
             return {
               ...prev,
               status: payload.status,

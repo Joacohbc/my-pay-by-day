@@ -244,6 +244,13 @@ public class AgentTaskExecutor {
         persistHelper.persistStep(ctx.taskId(), AgentTaskStepType.MESSAGE, null, response, durationMs);
 
         if (!persistHelper.isPaused(ctx.taskId())) {
+            int planned = persistHelper.countStepsByType(ctx.taskId(), AgentTaskStepType.PLANNED_STEP);
+            int reported = persistHelper.countStepsByType(ctx.taskId(), AgentTaskStepType.PROGRESS);
+            if (planned > 0 && reported < planned) {
+                log.warnf("Agent task %s completed without reporting all planned steps (%d/%d reported)", ctx.taskId(), reported, planned);
+                persistHelper.persistStep(ctx.taskId(), AgentTaskStepType.ERROR,
+                        String.format("Agent completed without reporting all planned steps (%d/%d)", reported, planned));
+            }
             persistHelper.markCompleted(ctx.taskId());
         }
     }
