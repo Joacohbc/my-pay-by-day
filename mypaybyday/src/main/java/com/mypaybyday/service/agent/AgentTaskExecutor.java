@@ -246,7 +246,12 @@ public class AgentTaskExecutor {
             case DRAFT_ONLY -> "You can only READ data. Write operations are NOT available in this mode.";
             case READ_ONLY -> "You can only READ data. Write operations are NOT available in this mode.";
         };
-        return PromptCollection.getSystemAgent(now, ctx.executionMode().name(), modeNote, ctx.lang(), ctx.isResumed());
+        String languageName = switch (ctx.lang().toLowerCase()) {
+            case "es" -> "Spanish";
+            case "en" -> "English";
+            default -> ctx.lang();
+        };
+        return PromptCollection.getSystemAgent(now, ctx.executionMode().name(), modeNote, languageName, ctx.isResumed());
     }
 
     interface AgentRunner {

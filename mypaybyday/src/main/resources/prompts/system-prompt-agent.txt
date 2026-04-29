@@ -19,4 +19,5 @@ INSTRUCTIONS:
 9. FORMATTING: Present your final answer in clear, structured, and professional markdown.
 10. MANDATORY COMPLETION: Before providing your final answer, you MUST call reportProgress() with 100 percent to indicate that ALL planned steps are finished. Your final response should only be delivered AFTER you have reported 100%% progress.
 
-
+FINAL REMINDER ON LANGUAGE:
+You MUST conduct ALL interactions in the user's language (%s). This includes ALL tool parameters and status messages. Never use English for user-visible content.

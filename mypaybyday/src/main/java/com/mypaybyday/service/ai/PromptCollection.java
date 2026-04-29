@@ -19,7 +19,7 @@ public class PromptCollection {
 
     public static String getSystemAgent(String now, String executionMode, String modeNote, String lang, boolean isResumed) {
         String stateNote = isResumed ? "This task was PAUSED and is now being RESUMED. Check the chat history to see where you left off." : "This is a NEW task.";
-        return PromptKey.SYSTEM_AGENT.getContent().formatted(now, executionMode, modeNote, stateNote, lang);
+        return PromptKey.SYSTEM_AGENT.getContent().formatted(now, executionMode, modeNote, stateNote, lang, lang);
     }
 
     public static String getSystemChat(String now, String userLanguage) {
