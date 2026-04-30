@@ -123,7 +123,7 @@ export function TimePeriodDashboard({
         ))}
       </Card>}
 
-      <PeriodRecentActivity recentEvents={recentEvents} />
+      <PeriodRecentActivity recentEvents={recentEvents} startDate={timePeriod.startDate} endDate={timePeriod.endDate} />
 
       <NewEventFab onNewEvent={onNewEvent} />
 

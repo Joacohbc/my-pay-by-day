@@ -8,16 +8,21 @@ import type { FinanceEvent } from '@/models';
 
 interface PeriodRecentActivityProps {
   recentEvents: FinanceEvent[];
+  startDate: string;
+  endDate: string;
 }
 
-export function PeriodRecentActivity({ recentEvents }: PeriodRecentActivityProps) {
+export function PeriodRecentActivity({ recentEvents, startDate, endDate }: PeriodRecentActivityProps) {
   const { t } = useTranslation();
 
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-medium text-dn-text-muted uppercase tracking-wider">{t('periods.activity')}</h2>
-        <Link to={Routes.EVENTS} className="text-xs text-dn-primary flex items-center gap-0.5">
+        <Link
+          to={`${Routes.EVENTS}?from=${startDate}&to=${endDate}`}
+          className="text-xs text-dn-primary flex items-center gap-0.5"
+        >
           {t('periods.viewAll')}
           <Icon name="chevron_right" className="text-sm" />
         </Link>

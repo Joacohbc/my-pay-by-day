@@ -51,7 +51,11 @@ export function DynamicTimePeriodDashboard({
         eventCount={events.length}
       />
 
-      <PeriodRecentActivity recentEvents={recentEvents} />
+      <PeriodRecentActivity
+        recentEvents={recentEvents}
+        startDate={startDate}
+        endDate={endDate}
+      />
 
       <NewEventFab onNewEvent={onNewEvent} />
 
