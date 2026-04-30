@@ -123,6 +123,20 @@ public class AgentTaskPersistHelper {
     }
 
     @Transactional
+    public List<AgentTaskStepEntity> getTaskSteps(String taskId) {
+        AgentTaskEntity task = taskRepository.findById(taskId);
+        if (task == null) return List.of();
+        return stepRepository.findByTaskOrderBySequence(task);
+    }
+
+    @Transactional
+    public List<AgentTaskActionEntity> getTaskActions(String taskId) {
+        AgentTaskEntity task = taskRepository.findById(taskId);
+        if (task == null) return List.of();
+        return actionRepository.findByTask(task);
+    }
+
+    @Transactional
     public void markInterrupted(String taskId) {
         AgentTaskEntity task = taskRepository.findById(taskId);
         if (task == null) return;

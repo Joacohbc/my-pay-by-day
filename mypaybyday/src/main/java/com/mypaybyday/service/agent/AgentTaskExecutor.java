@@ -47,7 +47,7 @@ import org.jboss.logging.Logger;
 public class AgentTaskExecutor {
 
     private static final Logger log = Logger.getLogger(AgentTaskExecutor.class);
-    private static final int MAX_CHAT_MESSAGES = 50;
+    private static final int MAX_CHAT_MESSAGES = 500;
 
     private final ChatModel agentChatModel;
     private final DbChatMemoryStore dbChatMemoryStore;
@@ -134,11 +134,28 @@ public class AgentTaskExecutor {
             List<AttachmentFile> attachments = persistHelper.loadAttachmentFiles(taskId);
             String enrichedInstruction = buildEnrichedInstruction(task.getUserInstruction(), attachments);
             
-            // Check if task is resumed
-            boolean isResumed = persistHelper.hasPreviousSteps(taskId);
-            String userFeedback = isResumed ? persistHelper.getLastUserFeedback(taskId) : null;
-            String effectiveInstruction = userFeedback != null ? userFeedback : enrichedInstruction;
+            // Check if task is resumed (has agent-generated steps)
+            boolean isResumed = persistHelper.countStepsByType(taskId, AgentTaskStepType.PROGRESS) > 0 
+                             || persistHelper.countStepsByType(taskId, AgentTaskStepType.MESSAGE) > 0;
+            String effectiveInstruction;
+            if (isResumed) {
+                String userFeedback = persistHelper.getLastUserFeedback(taskId);
+                if (userFeedback != null && !userFeedback.isBlank()) {
+                    effectiveInstruction = String.format(
+                        "[RESUME_CONTEXT: The user has reactivated the chat to continue with the task. Please continue following the previous thread and history.]\n\nUser Message: %s",
+                        userFeedback
+                    );
+                } else {
+                    effectiveInstruction = "[RESUME_CONTEXT: The user has reactivated the chat. Please analyze the history and resume the task automatically.]";
+                }
+            } else {
+                effectiveInstruction = enrichedInstruction;
+            }
+
+            log.info("Effective instruction: " + effectiveInstruction);
             
+            persistHelper.fireProgressUpdate(taskId, 5, isResumed ? "Resuming conversation..." : "Analyzing task...");
+
             AgentExecutionContext ctx = new AgentExecutionContext(
                 task.getId(),
                 effectiveInstruction,

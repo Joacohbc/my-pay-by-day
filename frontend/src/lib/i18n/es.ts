@@ -692,6 +692,7 @@ const es = {
       INTERRUPTED: 'Interrumpida',
     },
     initializing: 'Inicializando...',
+    generatingResponse: 'Generando respuesta...',
     taskNotFound: 'Tarea no encontrada',
     noInstruction: 'Sin instrucción explícita',
     attachments: 'Adjuntos',

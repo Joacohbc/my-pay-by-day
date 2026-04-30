@@ -1,5 +1,8 @@
 package com.mypaybyday.service.agent;
 
+import java.util.List;
+import com.mypaybyday.entity.AgentTaskActionEntity;
+import com.mypaybyday.entity.AgentTaskStepEntity;
 import com.mypaybyday.enums.AgentTaskStepType;
 import com.mypaybyday.service.ai.AgentToolKind;
 import dev.langchain4j.agent.tool.P;
@@ -47,6 +50,34 @@ public class AgentProgressTool {
         persistHelper.persistStep(taskId, AgentTaskStepType.MESSAGE, message);
         log.infof("[AGENT MESSAGE] %s", message);
         return "Message sent to user.";
+    }
+
+    @Tool("Get the full history and context of this task. Use this when resuming a task to see all previous steps, user messages, and progress made so far.")
+    @AgentToolKind(AgentToolKind.Kind.META)
+    public String getTaskHistory() {
+        List<AgentTaskStepEntity> steps = persistHelper.getTaskSteps(taskId);
+        List<AgentTaskActionEntity> actions = persistHelper.getTaskActions(taskId);
+        
+        if (steps.isEmpty() && actions.isEmpty()) return "No history found for this task.";
+        
+        StringBuilder sb = new StringBuilder("Task History:\n");
+        sb.append("\n[STEPS]\n");
+        for (AgentTaskStepEntity step : steps) {
+            String type = step.type.name();
+            String desc = step.description != null ? step.description : "";
+            String content = step.content != null ? step.content : "";
+            sb.append(String.format("- [%s] %s %s\n", type, desc, content).trim()).append("\n");
+        }
+        
+        if (!actions.isEmpty()) {
+            sb.append("\n[ACTIONS / USER REQUESTS]\n");
+            for (AgentTaskActionEntity action : actions) {
+                sb.append(String.format("- [%s] Type: %s, Status: %s, Description/Payload: %s, Result: %s\n",
+                    action.actionCreatedAt, action.actionType, action.status, action.payload, action.resultMessage));
+            }
+        }
+        
+        return sb.toString();
     }
 
     @Tool("Indicate that an error occurred and you will retry the current operation. Use when a tool call fails but a retry might succeed.")

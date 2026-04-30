@@ -83,7 +83,7 @@ export function AgentTaskDetailPage() {
   const hasPendingActions = task.actions?.some((a) => a.status === 'PENDING_APPROVAL');
 
   const steps = task.steps ?? [];
-  const finalStep = steps.find((s) => s.type === 'MESSAGE');
+  const finalStep = [...steps].reverse().find((s) => s.type === 'MESSAGE');
   const plannedSteps = steps.filter((s) => s.type === 'PLANNED_STEP');
   const progressSteps = steps.filter((s) => s.type === 'PROGRESS' || s.type === 'USER');
   const errorSteps = steps.filter((s) => s.type === 'ERROR');
@@ -475,18 +475,27 @@ export function AgentTaskDetailPage() {
           </Card>
         ))}
 
-        {/* Final response */}
-        {finalStep?.content && (
-          <Card className="p-4 border-t-4 border-t-dn-success bg-dn-surface space-y-2">
+        {/* Final response or Thinking state */}
+        {(finalStep?.content || isRunning) && (
+          <Card className={`p-4 border-t-4 bg-dn-surface space-y-2 ${isRunning ? 'border-t-dn-primary animate-pulse' : 'border-t-dn-success'}`}>
             <div className="flex items-center gap-2 mb-1">
-              <Icon name="task_alt" className="text-dn-success text-lg" />
-              <h3 className="text-sm font-semibold text-dn-success">{t('agentTasks.result')}</h3>
+              <Icon name={isRunning ? 'sync' : 'task_alt'} className={`text-lg ${isRunning ? 'text-dn-primary animate-spin' : 'text-dn-success'}`} />
+              <h3 className={`text-sm font-semibold ${isRunning ? 'text-dn-primary' : 'text-dn-success'}`}>
+                {isRunning ? t('agentTasks.generatingResponse', 'Thinking...') : t('agentTasks.result')}
+              </h3>
             </div>
-            <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed prose-table:my-0">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {finalStep.content}
-              </ReactMarkdown>
-            </div>
+            {isRunning ? (
+              <div className="space-y-2">
+                <div className="h-2 bg-dn-border/50 rounded w-3/4" />
+                <div className="h-2 bg-dn-border/50 rounded w-1/2" />
+              </div>
+            ) : (
+              <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed prose-table:my-0">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {finalStep?.content || ''}
+                </ReactMarkdown>
+              </div>
+            )}
           </Card>
         )}
 

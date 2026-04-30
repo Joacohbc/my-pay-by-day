@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.TransactionPhase;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,13 +46,16 @@ public class AgentTaskSocket {
         log.infof("WebSocket closed: %s", connection.id());
     }
 
-    public void onTaskUpdated(@Observes AgentTaskUpdatedEvent event) {
+    public void onTaskUpdated(@Observes(during = TransactionPhase.AFTER_SUCCESS) AgentTaskUpdatedEvent event) {
         String payload = serializeEvent(event);
         if (payload == null) return;
         connections.values().forEach(conn -> {
             String taskId = conn.pathParam("taskId");
             if (event.getTaskId().equals(taskId)) {
-                conn.sendTextAndAwait(payload);
+                conn.sendText(payload).subscribe().with(
+                        unused -> {},
+                        err -> log.warnf("Failed to send WebSocket message for task %s: %s", event.getTaskId(), err.getMessage())
+                );
             }
         });
     }

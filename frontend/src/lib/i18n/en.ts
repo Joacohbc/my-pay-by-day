@@ -693,6 +693,7 @@ const en = {
       INTERRUPTED: 'Interrupted',
     },
     initializing: 'Initializing...',
+    generatingResponse: 'Generating response...',
     taskNotFound: 'Task not found',
     noInstruction: 'No explicit instruction',
     attachments: 'Attachments',
