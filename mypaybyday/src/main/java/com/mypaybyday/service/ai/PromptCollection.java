@@ -41,4 +41,12 @@ public class PromptCollection {
     public static String getSystemAudio() {
         return PromptKey.SYSTEM_AUDIO.getContent();
     }
+
+    public static String getResumeWithFeedback(String userFeedback) {
+        return PromptKey.RESUME_CONTEXT_WITH_FEEDBACK.getContent().formatted(userFeedback);
+    }
+
+    public static String getResumeAutomatic() {
+        return PromptKey.RESUME_CONTEXT_AUTOMATIC.getContent();
+    }
 }

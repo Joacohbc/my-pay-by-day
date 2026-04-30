@@ -1,0 +1,3 @@
+[RESUME_CONTEXT: The user has reactivated the chat to continue with the task. Please continue following the previous thread and history.]
+
+User Message: %s

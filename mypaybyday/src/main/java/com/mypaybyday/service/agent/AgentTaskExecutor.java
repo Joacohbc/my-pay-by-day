@@ -22,6 +22,8 @@ import com.mypaybyday.enums.AgentAttachmentKind;
 import com.mypaybyday.enums.AgentTaskExecutionMode;
 import com.mypaybyday.enums.AgentTaskStepType;
 import com.mypaybyday.i18n.LanguageContext;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.i18n.TimezoneContext;
 import com.mypaybyday.service.ai.PromptCollection;
 import com.mypaybyday.service.agent.AgentTaskPersistHelper.AttachmentFile;
@@ -47,7 +49,7 @@ import org.jboss.logging.Logger;
 public class AgentTaskExecutor {
 
     private static final Logger log = Logger.getLogger(AgentTaskExecutor.class);
-    private static final int MAX_CHAT_MESSAGES = 500;
+    private static final int MAX_CHAT_MESSAGES = 50;
 
     private final ChatModel agentChatModel;
     private final DbChatMemoryStore dbChatMemoryStore;
@@ -57,6 +59,7 @@ public class AgentTaskExecutor {
     private final DateConversionTool dateConversionTool;
     private final LanguageContext languageContext;
     private final TimezoneContext timezoneContext;
+    private final Messages messages;
 
     // TODO: Review this implementation for scalability and robustness.
     // Consider using task queue for better performance and reliability in production environments.
@@ -74,7 +77,8 @@ public class AgentTaskExecutor {
             IAUtils agentFinanceEventCreator,
             DateConversionTool dateConversionTool,
             LanguageContext languageContext,
-            TimezoneContext timezoneContext) {
+            TimezoneContext timezoneContext,
+            Messages messages) {
         this.agentChatModel = agentChatModel;
         this.dbChatMemoryStore = dbChatMemoryStore;
         this.financeAiTools = financeAiTools;
@@ -83,6 +87,7 @@ public class AgentTaskExecutor {
         this.dateConversionTool = dateConversionTool;
         this.languageContext = languageContext;
         this.timezoneContext = timezoneContext;
+        this.messages = messages;
     }
 
     public void submit(String taskId) {
@@ -141,20 +146,17 @@ public class AgentTaskExecutor {
             if (isResumed) {
                 String userFeedback = persistHelper.getLastUserFeedback(taskId);
                 if (userFeedback != null && !userFeedback.isBlank()) {
-                    effectiveInstruction = String.format(
-                        "[RESUME_CONTEXT: The user has reactivated the chat to continue with the task. Please continue following the previous thread and history.]\n\nUser Message: %s",
-                        userFeedback
-                    );
+                    effectiveInstruction = PromptCollection.getResumeWithFeedback(userFeedback);
                 } else {
-                    effectiveInstruction = "[RESUME_CONTEXT: The user has reactivated the chat. Please analyze the history and resume the task automatically.]";
+                    effectiveInstruction = PromptCollection.getResumeAutomatic();
                 }
             } else {
                 effectiveInstruction = enrichedInstruction;
             }
-
-            log.info("Effective instruction: " + effectiveInstruction);
             
-            persistHelper.fireProgressUpdate(taskId, 5, isResumed ? "Resuming conversation..." : "Analyzing task...");
+            persistHelper.fireProgressUpdate(taskId, 5, isResumed
+                ? messages.get(MsgKey.AGENT_TASK_PROGRESS_RESUMING)
+                : messages.get(MsgKey.AGENT_TASK_PROGRESS_ANALYZING));
 
             AgentExecutionContext ctx = new AgentExecutionContext(
                 task.getId(),

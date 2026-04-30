@@ -12,7 +12,9 @@ public enum PromptKey {
 	SYSTEM_EVENT_DESCRIPTION("prompts/system-prompt-event-description.txt"),
 	SYSTEM_EXTRACTION("prompts/system-prompt-extraction.txt"),
 	SYSTEM_IMAGES("prompts/system-prompt-images.txt"),
-	SYSTEM_AUDIO("prompts/system-prompt-audio.txt");
+	SYSTEM_AUDIO("prompts/system-prompt-audio.txt"),
+	RESUME_CONTEXT_WITH_FEEDBACK("prompts/resume-context-with-feedback.txt"),
+	RESUME_CONTEXT_AUTOMATIC("prompts/resume-context-automatic.txt");
 
 	private final String path;
 	private final String content;
