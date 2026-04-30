@@ -365,7 +365,7 @@ public class AgentTaskExecutor {
             AgentToolKind.Kind kind = kindAnnotation != null ? kindAnnotation.value() : AgentToolKind.Kind.READ;
 
             boolean included = switch (ctx.executionMode()) {
-                case AUTONOMOUS -> kind == AgentToolKind.Kind.READ || kind == AgentToolKind.Kind.WRITE;
+                case AUTONOMOUS -> kind == AgentToolKind.Kind.READ || kind == AgentToolKind.Kind.WRITE || kind == AgentToolKind.Kind.DRAFT_CONFIRM;
                 case DRAFT_ONLY, READ_ONLY -> kind == AgentToolKind.Kind.READ;
                 case DRAFT_CONFIRMATION -> kind == AgentToolKind.Kind.READ || kind == AgentToolKind.Kind.DRAFT_CONFIRM;
             };
