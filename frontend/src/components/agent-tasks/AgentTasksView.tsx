@@ -49,7 +49,7 @@ export function AgentTasksView({ showNewTaskModal, onCloseModal }: AgentTasksVie
   const uploadFile = useUploadFile();
 
   const [instruction, setInstruction] = useState('');
-  const [executionMode, setExecutionMode] = useState<'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY'>('AUTONOMOUS');
+  const [executionMode, setExecutionMode] = useState<'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY' | 'DRAFT_CONFIRMATION'>('AUTONOMOUS');
   const [attachedFiles, setAttachedFiles] = useState<FileDto[]>([]);
   const [isQuickProcessing, setIsQuickProcessing] = useState(false);
   const quickFileInputRef = useRef<HTMLInputElement>(null);
@@ -243,6 +243,7 @@ export function AgentTasksView({ showNewTaskModal, onCloseModal }: AgentTasksVie
               { value: 'AUTONOMOUS', label: t('agentTasks.modes.AUTONOMOUS') },
               { value: 'DRAFT_ONLY', label: t('agentTasks.modes.DRAFT_ONLY') },
               { value: 'READ_ONLY', label: t('agentTasks.modes.READ_ONLY') },
+              { value: 'DRAFT_CONFIRMATION', label: t('agentTasks.modes.DRAFT_CONFIRMATION') },
             ]}
           />
 

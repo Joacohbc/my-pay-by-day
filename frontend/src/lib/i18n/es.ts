@@ -693,6 +693,8 @@ const es = {
     },
     initializing: 'Inicializando...',
     generatingResponse: 'Generando respuesta...',
+    showHistory: 'Ocultar historial de respuestas',
+    showPrevious: 'Ver respuestas anteriores ({{count}})',
     taskNotFound: 'Tarea no encontrada',
     noInstruction: 'Sin instrucción explícita',
     attachments: 'Adjuntos',

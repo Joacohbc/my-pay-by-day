@@ -13,6 +13,7 @@ import {
   useApproveAction,
   useRejectAction,
   useSendAgentMessage,
+  useUpdateAgentTaskMode,
 } from '@/hooks/useAgentTasks';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -66,12 +67,14 @@ export function AgentTaskDetailPage() {
   const approveAction = useApproveAction();
   const rejectAction = useRejectAction();
   const sendMessage = useSendAgentMessage();
+  const updateMode = useUpdateAgentTaskMode();
 
   const [feedbacks, setFeedbacks] = useState<Record<number, string>>({});
   const [reply, setReply] = useState('');
   const [draftFiles, setDraftFiles] = useState<FileDto[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
@@ -83,7 +86,9 @@ export function AgentTaskDetailPage() {
   const hasPendingActions = task.actions?.some((a) => a.status === 'PENDING_APPROVAL');
 
   const steps = task.steps ?? [];
-  const finalStep = [...steps].reverse().find((s) => s.type === 'MESSAGE');
+  const messageSteps = steps.filter((s) => s.type === 'MESSAGE');
+  const latestMessage = messageSteps[messageSteps.length - 1];
+  const previousMessages = messageSteps.slice(0, -1);
   const plannedSteps = steps.filter((s) => s.type === 'PLANNED_STEP');
   const progressSteps = steps.filter((s) => s.type === 'PROGRESS' || s.type === 'USER');
   const errorSteps = steps.filter((s) => s.type === 'ERROR');
@@ -347,6 +352,32 @@ export function AgentTaskDetailPage() {
             <span className="text-xs font-mono text-dn-text-muted">ID: {task.id.slice(0, 8)}…</span>
           </div>
 
+          <div className="flex items-center gap-1.5 pt-1 border-t border-dn-border/20">
+            <span className="text-[10px] font-bold uppercase text-dn-text-muted tracking-wider">{t('agentTasks.executionMode')}:</span>
+            {!isRunning ? (
+              <div className="flex items-center gap-1 group cursor-pointer">
+                <select
+                  value={task.executionMode}
+                  onChange={(e) => updateMode.mutate({ id: task.id, mode: e.target.value })}
+                  disabled={updateMode.isPending}
+                  className="text-xs font-bold text-dn-primary bg-dn-primary/5 border border-dn-primary/20 rounded px-1.5 py-0.5 cursor-pointer focus:ring-1 focus:ring-dn-primary focus:outline-none hover:bg-dn-primary/10 transition-colors"
+                >
+                  {['AUTONOMOUS', 'DRAFT_ONLY', 'READ_ONLY', 'DRAFT_CONFIRMATION'].map((m) => (
+                    <option key={m} value={m} className="bg-dn-surface text-dn-text-main">
+                      {t(`agentTasks.modes.${m}`)}
+                    </option>
+                  ))}
+                </select>
+                <Icon name="edit" className="text-[10px] text-dn-primary opacity-50 group-hover:opacity-100 transition-opacity" />
+              </div>
+            ) : (
+              <span className="text-xs font-bold text-dn-primary">
+                {t(`agentTasks.modes.${task.executionMode}`)}
+              </span>
+            )}
+            {updateMode.isPending && <Icon name="sync" className="animate-spin text-[10px] text-dn-primary" />}
+          </div>
+
           <div>
             <h3 className="text-sm font-semibold text-dn-text-main mb-1">{t('agentTasks.instruction')}</h3>
             <div className="text-sm text-dn-text-muted font-mono prose prose-sm prose-invert max-w-none prose-p:my-0">
@@ -475,8 +506,39 @@ export function AgentTaskDetailPage() {
           </Card>
         ))}
 
+        {/* Previous Results (History) */}
+        {previousMessages.length > 0 && (
+          <div className="space-y-2">
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="flex items-center gap-2 text-xs font-medium text-dn-text-muted hover:text-dn-text-secondary transition-colors"
+            >
+              <Icon name={showHistory ? 'expand_less' : 'expand_more'} />
+              <span>{showHistory ? t('agentTasks.showHistory') : t('agentTasks.showPrevious', { count: previousMessages.length })}</span>
+            </button>
+            
+            {showHistory && (
+              <div className="space-y-3 opacity-80 pl-2 border-l-2 border-dn-border/30">
+                {previousMessages.map((msg, idx) => (
+                  <Card key={msg.id} className="p-3 bg-dn-surface-low/50">
+                    <div className="flex items-center gap-2 mb-2 opacity-60">
+                      <Icon name="history" className="text-xs" />
+                      <span className="text-[10px] uppercase font-bold tracking-wider">Respuesta #{idx + 1}</span>
+                    </div>
+                    <div className="prose prose-xs prose-invert max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Final response or Thinking state */}
-        {(finalStep?.content || isRunning) && (
+        {(latestMessage?.content || isRunning) && (
           <Card className={`p-4 border-t-4 bg-dn-surface space-y-2 ${isRunning ? 'border-t-dn-primary animate-pulse' : 'border-t-dn-success'}`}>
             <div className="flex items-center gap-2 mb-1">
               <Icon name={isRunning ? 'sync' : 'task_alt'} className={`text-lg ${isRunning ? 'text-dn-primary animate-spin' : 'text-dn-success'}`} />
@@ -492,7 +554,7 @@ export function AgentTaskDetailPage() {
             ) : (
               <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed prose-table:my-0">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {finalStep?.content || ''}
+                  {latestMessage?.content || ''}
                 </ReactMarkdown>
               </div>
             )}

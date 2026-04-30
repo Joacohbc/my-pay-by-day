@@ -694,6 +694,8 @@ const en = {
     },
     initializing: 'Initializing...',
     generatingResponse: 'Generating response...',
+    showHistory: 'Hide response history',
+    showPrevious: 'View previous responses ({{count}})',
     taskNotFound: 'Task not found',
     noInstruction: 'No explicit instruction',
     attachments: 'Attachments',

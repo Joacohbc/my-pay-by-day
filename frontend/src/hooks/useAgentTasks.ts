@@ -81,6 +81,18 @@ export function useDeleteAgentTask() {
   });
 }
 
+export function useUpdateAgentTaskMode() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, mode }: { id: string; mode: string }) =>
+      agentTasksService.updateMode(id, mode),
+    onSuccess: (_data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: agentTaskKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: agentTaskKeys.detail(id) });
+    },
+  });
+}
+
 export function useSendAgentMessage() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -135,6 +135,20 @@ public class AgentTaskResource {
         agentTaskService.delete(id);
         return Response.noContent().build();
     }
+    
+    @jakarta.ws.rs.PATCH
+    @Path("/{id}/mode")
+    @Operation(summary = "Update task execution mode")
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "Mode updated"),
+            @APIResponse(responseCode = "400", description = "Task is busy"),
+            @APIResponse(responseCode = "404", description = "Task not found")
+    })
+    public Response updateMode(
+            @Parameter(description = "Task ID", required = true) @PathParam("id") String id,
+            com.mypaybyday.enums.AgentTaskExecutionMode mode) throws BusinessException {
+        return Response.ok(agentTaskService.updateExecutionMode(id, mode)).build();
+    }
 
     @POST
     @Path("/{id}/message")

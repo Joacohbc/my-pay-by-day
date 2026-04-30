@@ -181,6 +181,18 @@ public class AgentTaskService {
     }
 
     @Transactional
+    public AgentTaskDto updateExecutionMode(String id, com.mypaybyday.enums.AgentTaskExecutionMode mode) throws BusinessException {
+        AgentTaskEntity task = requireTask(id);
+        if (task.status == AgentTaskStatus.RUNNING || task.status == AgentTaskStatus.RETRYING) {
+            throw new BusinessException(messages.get(MsgKey.AGENT_TASK_TERMINAL_STATE, task.status));
+        }
+        task.executionMode = mode;
+        taskRepository.persist(task);
+        persistHelper.fireTaskUpdated(id);
+        return AgentTaskDto.from(task);
+    }
+
+    @Transactional
     public void delete(String id) throws BusinessException {
         AgentTaskEntity task = requireTask(id);
         actionRepository.delete("task", task);
