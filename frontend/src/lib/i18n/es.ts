@@ -672,11 +672,14 @@ const es = {
     approvalRequired: 'Aprobación Requerida',
     informationRequired: 'Información Requerida',
     feedbackPlaceholder: 'Agregá información adicional o instrucciones...',
+    replyPlaceholder: 'Enviá un mensaje de seguimiento al agente...',
+    send: 'Enviar',
     executionMode: 'Modo',
     modes: {
       AUTONOMOUS: 'Autónomo',
       DRAFT_ONLY: 'Solo Borradores',
       READ_ONLY: 'Solo Lectura',
+      DRAFT_CONFIRMATION: 'Confirmar Borradores',
     },
     statuses: {
       PENDING: 'Pendiente',

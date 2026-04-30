@@ -8,7 +8,7 @@ export type AgentTaskStatus =
   | 'CANCELLED'
   | 'INTERRUPTED';
 
-export type AgentTaskExecutionMode = 'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY';
+export type AgentTaskExecutionMode = 'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY' | 'DRAFT_CONFIRMATION';
 export type AgentTaskActionType = 'APPROVAL' | 'INFORMATION' | 'FEEDBACK';
 
 export type AgentTaskStepType =

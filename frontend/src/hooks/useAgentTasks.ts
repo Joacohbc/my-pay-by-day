@@ -81,6 +81,18 @@ export function useDeleteAgentTask() {
   });
 }
 
+export function useSendAgentMessage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, message, fileIds }: { id: string; message: string; fileIds?: number[] }) =>
+      agentTasksService.sendMessage(id, message, fileIds),
+    onSuccess: (_data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: agentTaskKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: agentTaskKeys.detail(id) });
+    },
+  });
+}
+
 export function useApproveAction() {
   const queryClient = useQueryClient();
   return useMutation({

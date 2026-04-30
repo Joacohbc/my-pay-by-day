@@ -25,6 +25,9 @@ export const agentTasksService = {
   delete: (id: string) =>
     api.delete(`/agent-tasks/${id}`),
 
+  sendMessage: (id: string, message: string, fileIds?: number[]) =>
+    api.post<AgentTask>(`/agent-tasks/${id}/message`, { message, fileIds }),
+
   approveAction: (taskId: string, actionId: number, feedback?: string) =>
     api.post<void>(`/agent-tasks/${taskId}/actions/${actionId}/approve`, { feedback }),
 

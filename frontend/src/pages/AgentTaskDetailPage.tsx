@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useState } from 'react';
 import {
   useAgentTask,
   useAgentTaskSocket,
@@ -11,6 +12,7 @@ import {
   useResumeAgentTask,
   useApproveAction,
   useRejectAction,
+  useSendAgentMessage,
 } from '@/hooks/useAgentTasks';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -20,10 +22,13 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Routes } from '@/lib/routes';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import { useState } from 'react';
 import type { AgentTaskStep } from '@/models/agent-tasks';
+import type { FileDto } from '@/models';
 import { FileCard } from '@/components/files/FileCard';
 import { Textarea } from '@/components/ui/Textarea';
+import { ChatInput } from '@/components/chat/ChatInput';
+import { filesService } from '@/services/files.service';
+import { audioService } from '@/services/audio.service';
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: 'text-dn-text-muted bg-dn-surface-low',
@@ -60,9 +65,11 @@ export function AgentTaskDetailPage() {
   const resumeTask = useResumeAgentTask();
   const approveAction = useApproveAction();
   const rejectAction = useRejectAction();
-  
-  const [feedbacks, setFeedbacks] = useState<Record<number, string>>({});
+  const sendMessage = useSendAgentMessage();
 
+  const [feedbacks, setFeedbacks] = useState<Record<number, string>>({});
+  const [reply, setReply] = useState('');
+  const [draftFiles, setDraftFiles] = useState<FileDto[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
 
@@ -124,6 +131,62 @@ export function AgentTaskDetailPage() {
       await resumeTask.mutateAsync(id);
     } catch (err) {
       console.error('Resume failed:', err);
+    }
+  };
+
+  const toBase64 = (file: File): Promise<string> =>
+    new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload = () => res((reader.result as string).split(',')[1]);
+      reader.onerror = rej;
+      reader.readAsDataURL(file);
+    });
+
+  const handleAddFile = (file: FileDto) => {
+    setDraftFiles((prev) => [...prev, file]);
+  };
+
+  const handleRemoveFile = (id: number) => {
+    setDraftFiles((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const handleAudioRecorded = async (audioBlob: Blob) => {
+    try {
+      const transcriptionResponse = await audioService.transcribeRecordedAudio(audioBlob);
+      const transcriptionText = transcriptionResponse.transcription.trim();
+      if (transcriptionText) {
+        // Upload audio as a file too
+        const base64Content = await toBase64(new File([audioBlob], 'recording.webm', { type: audioBlob.type }));
+        const uploaded = await filesService.uploadBase64({ 
+          fileName: `recording_${new Date().getTime()}.webm`, 
+          mimeType: audioBlob.type, 
+          base64Content 
+        });
+        await handleSendReply(transcriptionText, [uploaded.id]);
+      }
+    } catch (err) {
+      console.error('Audio transcription/send failed:', err);
+    }
+  };
+
+  const handleSendReply = async (explicitMessage?: string, explicitFileIds?: number[]) => {
+    const finalMessage = explicitMessage ?? reply.trim();
+    const hasFiles = draftFiles.length > 0 || (explicitFileIds && explicitFileIds.length > 0);
+    
+    if (!id || (!finalMessage && !hasFiles)) return;
+    
+    try {
+      let fileIds: number[] = explicitFileIds ?? [];
+      
+      if (draftFiles.length > 0) {
+        fileIds = [...fileIds, ...draftFiles.map((f) => f.id)];
+      }
+      
+      await sendMessage.mutateAsync({ id, message: finalMessage, fileIds: fileIds.length > 0 ? fileIds : undefined });
+      if (!explicitMessage) setReply('');
+      setDraftFiles([]);
+    } catch (err) {
+      console.error('Send message failed:', err);
     }
   };
 
@@ -325,7 +388,7 @@ export function AgentTaskDetailPage() {
 
             <div className="space-y-3">
               <Textarea
-                placeholder={t('agentTasks.feedbackPlaceholder', 'Add additional information or instructions...')}
+                placeholder={t('agentTasks.feedbackPlaceholder')}
                 value={feedbacks[action.id] || ''}
                 onChange={(e) => setFeedbacks(prev => ({ ...prev, [action.id]: e.target.value }))}
                 className="bg-dn-surface/50 border-dn-warning/30 focus:border-dn-warning/60 min-h-[80px] text-sm"
@@ -432,6 +495,20 @@ export function AgentTaskDetailPage() {
           <div className="text-center p-8 text-sm text-dn-text-muted border border-dashed border-dn-border rounded-xl">
             {t('agentTasks.noSteps')}
           </div>
+        )}
+
+        {/* Reply / continue — reuses ChatInput, hidden only when cancelled */}
+        {task.status !== 'CANCELLED' && (
+          <ChatInput
+            inputContent={reply}
+            setInputContent={setReply}
+            onSend={() => handleSendReply()}
+            onAddFile={handleAddFile}
+            onRemoveFile={handleRemoveFile}
+            onAudioRecorded={handleAudioRecorded}
+            isPending={isRunning || sendMessage.isPending}
+            draftFiles={draftFiles}
+          />
         )}
       </div>
     </div>

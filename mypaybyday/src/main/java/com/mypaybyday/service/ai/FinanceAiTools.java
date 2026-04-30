@@ -495,6 +495,70 @@ public class FinanceAiTools {
     }
 
     // =========================================================================
+    // DRAFT_CONFIRM tools — confirm or reject draft finance events
+    // =========================================================================
+
+    @Tool("Returns full details of a specific draft finance event by its draft ID. " +
+            "Use this to inspect the pending data before deciding whether to confirm or reject it.")
+    @AgentToolKind(AgentToolKind.Kind.DRAFT_CONFIRM)
+    @Transactional
+    public String getDraftDetails(@P("Draft ID to inspect.") Long draftId) {
+        try {
+            var drafts = draftService.listFinanceEventDrafts();
+            var draft = drafts.stream()
+                    .filter(d -> draftId.equals(d.draftId()))
+                    .findFirst()
+                    .orElse(null);
+            if (draft == null) return "ERROR: Draft not found with id=" + draftId;
+            return String.format(
+                    "DRAFT[id=%d, name=%s, type=%s, amount=%s, date=%s, category=%s, nodes=%s]",
+                    draft.draftId(), draft.name(), draft.type(),
+                    formatAmount(draft.amount()), formatDate(draft.transactionDate()),
+                    draft.category() != null ? draft.category().name() : "none",
+                    draft.lineItems() != null
+                            ? draft.lineItems().stream()
+                                    .map(li -> li.financeNodeName() + ":" + formatAmount(li.amount()))
+                                    .collect(Collectors.joining(", "))
+                            : "none");
+        } catch (Exception e) {
+            return "ERROR: " + e.getMessage();
+        }
+    }
+
+    @Tool("Confirms a draft finance event and converts it into a real finance event. " +
+            "The draft must have a complete name, amount, transaction date, and at least one line item with a finance node. " +
+            "Reports success with the created event ID, or an error describing what is missing.")
+    @AgentToolKind(AgentToolKind.Kind.DRAFT_CONFIRM)
+    @Transactional
+    public String confirmDraft(@P("Draft ID to confirm and publish as a real finance event.") Long draftId) {
+        try {
+            FinanceEventDto created = draftService.confirmDraft(draftId);
+            return String.format("DRAFT_CONFIRMED: eventId=%d, name='%s', amount=%s",
+                    created.id(), created.name(), formatAmount(created.amount()));
+        } catch (Exception e) {
+            log.errorf(e, "Failed to confirm draft id=%d", draftId);
+            return "ERROR: " + e.getMessage();
+        }
+    }
+
+    @Tool("Rejects and deletes a draft finance event. Use when the draft is incorrect, duplicate, or not needed.")
+    @AgentToolKind(AgentToolKind.Kind.DRAFT_CONFIRM)
+    @Transactional
+    public String rejectDraft(
+            @P("Draft ID to reject and delete.") Long draftId,
+            @P("Brief reason for rejection, shown in the activity log.") String reason) {
+        try {
+            var drafts = draftService.listFinanceEventDrafts();
+            boolean exists = drafts.stream().anyMatch(d -> draftId.equals(d.draftId()));
+            if (!exists) return "ERROR: Draft not found with id=" + draftId;
+            draftService.delete(draftId);
+            return String.format("DRAFT_REJECTED: id=%d, reason='%s'", draftId, reason);
+        } catch (Exception e) {
+            return "ERROR: " + e.getMessage();
+        }
+    }
+
+    // =========================================================================
     // Private helpers
     // =========================================================================
 

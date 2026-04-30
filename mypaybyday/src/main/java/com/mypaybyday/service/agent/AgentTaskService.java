@@ -10,6 +10,7 @@ import com.mypaybyday.dto.AgentTaskActionDto;
 import com.mypaybyday.dto.AgentTaskActionResolveDto;
 import com.mypaybyday.dto.AgentTaskAttachmentDto;
 import com.mypaybyday.dto.AgentTaskDto;
+import com.mypaybyday.dto.AgentTaskMessageDto;
 import com.mypaybyday.dto.AgentTaskStepDto;
 import com.mypaybyday.enums.AgentTaskStepType;
 import com.mypaybyday.dto.AgentTaskSubmitDto;
@@ -147,6 +148,35 @@ public class AgentTaskService {
         }
         task.status = AgentTaskStatus.PENDING;
         taskRepository.persist(task);
+        return AgentTaskDto.from(task);
+    }
+
+    @Transactional
+    public AgentTaskDto sendMessage(String id, AgentTaskMessageDto dto) throws BusinessException {
+        if (dto == null || dto.message() == null || dto.message().isBlank()) {
+            throw new BusinessException(messages.get(MsgKey.AGENT_TASK_INSTRUCTION_REQUIRED));
+        }
+        AgentTaskEntity task = requireTask(id);
+        if (task.status == AgentTaskStatus.CANCELLED) {
+            throw new BusinessException(messages.get(MsgKey.AGENT_TASK_TERMINAL_STATE, task.status));
+        }
+        
+        if (task.status == AgentTaskStatus.RUNNING || task.status == AgentTaskStatus.RETRYING) {
+            throw new BusinessException(messages.get(MsgKey.AGENT_TASK_TERMINAL_STATE, task.status));
+        }
+        
+        persistHelper.persistStep(id, AgentTaskStepType.USER, dto.message());
+
+        if (dto.fileIds() != null) {
+            for (Long fileId : dto.fileIds()) {
+                attachFile(task, fileId);
+            }
+        }
+        
+        task.status = AgentTaskStatus.PENDING;
+        task.cancelRequested = false;
+        taskRepository.persist(task);
+        persistHelper.fireTaskUpdated(id);
         return AgentTaskDto.from(task);
     }
 

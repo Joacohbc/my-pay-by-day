@@ -224,12 +224,38 @@ public class AgentTaskPersistHelper {
     public String getLastUserFeedback(String taskId) {
         AgentTaskEntity task = taskRepository.findById(taskId);
         if (task == null) return null;
-        return actionRepository.findByTask(task).stream()
+
+        // Latest resolved action feedback
+        LocalDateTime actionTime = null;
+        String actionFeedback = null;
+
+        var bestAction = actionRepository.findByTask(task).stream()
                 .filter(a -> (a.status == AgentTaskActionStatus.APPROVED || a.status == AgentTaskActionStatus.REJECTED)
                         && a.resultMessage != null && !a.resultMessage.isBlank())
                 .max(Comparator.comparing(a -> a.resolvedAt))
-                .map(a -> a.resultMessage)
                 .orElse(null);
+        if (bestAction != null) {
+            actionTime = bestAction.resolvedAt;
+            actionFeedback = bestAction.resultMessage;
+        }
+
+        // Latest direct USER step (from sendMessage)
+        LocalDateTime stepTime = null;
+        String stepFeedback = null;
+        var bestStep = stepRepository.findByTaskOrderBySequence(task).stream()
+                .filter(s -> s.type == AgentTaskStepType.USER
+                        && s.description != null && !s.description.isBlank())
+                .max(Comparator.comparing(s -> s.stepCreatedAt))
+                .orElse(null);
+        if (bestStep != null) {
+            stepTime = bestStep.stepCreatedAt;
+            stepFeedback = bestStep.description;
+        }
+
+        if (stepFeedback != null && (actionTime == null || (stepTime != null && stepTime.isAfter(actionTime)))) {
+            return stepFeedback;
+        }
+        return actionFeedback;
     }
 
     private void persistErrorStep(AgentTaskEntity task, String errorMessage) {

@@ -23,7 +23,7 @@ public class PromptCollection {
     }
 
     public static String getSystemChat(String now, String userLanguage) {
-        return PromptKey.SYSTEM_CHAT.getContent().formatted(now, userLanguage);
+        return PromptKey.SYSTEM_CHAT.getContent().formatted(now, userLanguage, userLanguage);
     }
 
     public static String getSystemEventDescription(String userLanguage) {

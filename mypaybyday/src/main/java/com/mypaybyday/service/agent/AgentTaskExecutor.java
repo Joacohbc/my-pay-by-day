@@ -125,11 +125,16 @@ public class AgentTaskExecutor {
         }
 
         try {
+
+            // Set User Context
             timezoneContext.setTimezone(task.getTimezone() != null ? task.getTimezone() : timezoneContext.getDefaultTimezone());
             languageContext.setLang(task.getLang() != null ? task.getLang() : languageContext.getDefaultLanguage());
+
+            // Load attachments and user instruction
             List<AttachmentFile> attachments = persistHelper.loadAttachmentFiles(taskId);
             String enrichedInstruction = buildEnrichedInstruction(task.getUserInstruction(), attachments);
             
+            // Check if task is resumed
             boolean isResumed = persistHelper.hasPreviousSteps(taskId);
             String userFeedback = isResumed ? persistHelper.getLastUserFeedback(taskId) : null;
             String effectiveInstruction = userFeedback != null ? userFeedback : enrichedInstruction;
@@ -288,6 +293,7 @@ public class AgentTaskExecutor {
             boolean included = switch (ctx.executionMode()) {
                 case AUTONOMOUS -> kind == AgentToolKind.Kind.READ || kind == AgentToolKind.Kind.WRITE;
                 case DRAFT_ONLY, READ_ONLY -> kind == AgentToolKind.Kind.READ;
+                case DRAFT_CONFIRMATION -> kind == AgentToolKind.Kind.READ || kind == AgentToolKind.Kind.DRAFT_CONFIRM;
             };
 
             if (included) {
@@ -305,6 +311,9 @@ public class AgentTaskExecutor {
             case AUTONOMOUS -> "You can read AND write data (create events, update categories, archive nodes, trigger subscriptions).";
             case DRAFT_ONLY -> "You can only READ data. Write operations are NOT available in this mode.";
             case READ_ONLY -> "You can only READ data. Write operations are NOT available in this mode.";
+            case DRAFT_CONFIRMATION -> "You are in DRAFT CONFIRMATION mode. You can READ data and use getDraftDetails, confirmDraft, rejectDraft tools. " +
+                    "Review each draft carefully: inspect it with getDraftDetails, then confirm or reject it. " +
+                    "If confirmDraft returns an ERROR, report it clearly and move on to the next draft.";
         };
         
         String languageName = switch (ctx.lang().toLowerCase()) {

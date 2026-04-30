@@ -14,6 +14,7 @@ public @interface AgentToolKind {
     enum Kind {
         READ,
         WRITE,
-        META
+        META,
+        DRAFT_CONFIRM
     }
 }

@@ -673,11 +673,14 @@ const en = {
     approvalRequired: 'Approval Required',
     informationRequired: 'Information Required',
     feedbackPlaceholder: 'Add additional information or instructions...',
+    replyPlaceholder: 'Send a follow-up message to the agent...',
+    send: 'Send',
     executionMode: 'Mode',
     modes: {
       AUTONOMOUS: 'Autonomous',
       DRAFT_ONLY: 'Draft Only',
       READ_ONLY: 'Read Only',
+      DRAFT_CONFIRMATION: 'Confirm Drafts',
     },
     statuses: {
       PENDING: 'Pending',

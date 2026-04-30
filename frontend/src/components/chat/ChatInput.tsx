@@ -1,18 +1,21 @@
-import { useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { Textarea } from '@/components/ui/Textarea';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 import { useAlert } from '@/contexts/AlertContext';
+import { FileUploader } from '@/components/ui/FileUploader';
+import type { FileDto } from '@/models';
 
 interface ChatInputProps {
   inputContent: string;
   setInputContent: (val: string) => void;
   onSend: () => void;
-  onAudioRecorded: (audioBlob: Blob) => Promise<void>;
-  onImageSelect: (files: File[]) => void;
+  onAudioRecorded?: (audioBlob: Blob) => Promise<void>;
   isPending?: boolean;
-  hasDraftImages?: boolean;
+  draftFiles?: FileDto[];
+  onAddFile?: (file: FileDto) => void;
+  onRemoveFile?: (fileId: number) => void;
 }
 
 export function ChatInput({
@@ -20,13 +23,14 @@ export function ChatInput({
   setInputContent,
   onSend,
   onAudioRecorded,
-  onImageSelect,
   isPending,
-  hasDraftImages,
+  draftFiles = [],
+  onAddFile,
+  onRemoveFile,
 }: ChatInputProps) {
   const { t } = useTranslation();
   const { error: showError } = useAlert();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showUploader, setShowUploader] = useState(false);
 
   const handleVoiceError = useCallback((errorKey: string) => {
     if (errorKey === 'voice_not_supported') {
@@ -46,21 +50,11 @@ export function ChatInput({
     recordingState,
     isRecordingSupported,
     toggleRecording,
-  } = useVoiceRecorder(onAudioRecorded, handleVoiceError);
+  } = useVoiceRecorder(onAudioRecorded ?? (() => Promise.resolve()), handleVoiceError);
 
   const isRecording = recordingState === 'recording';
   const isPreparingAudio = recordingState === 'preparing';
   const isBusy = isPending || isPreparingAudio;
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
-      if (files.length > 0) {
-        onImageSelect(files);
-      }
-      e.target.value = '';
-    }
-  };
 
   const micTitle = isRecording
     ? t('chat.stopRecording')
@@ -74,7 +68,7 @@ export function ChatInput({
       ? 'text-dn-primary/40'
       : 'text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10';
 
-  const canSend = (inputContent.trim() || hasDraftImages) && !isBusy && !isRecording;
+  const canSend = (inputContent.trim() || draftFiles.length > 0) && !isBusy && !isRecording;
 
   return (
     <div className="px-3 pb-3 pt-2 mt-auto">
@@ -83,15 +77,6 @@ export function ChatInput({
           {t('chat.transcribing')}
         </p>
       )}
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={handleFileChange}
-      />
 
       <form
         onSubmit={(e) => {
@@ -116,26 +101,41 @@ export function ChatInput({
           disabled={isBusy || isRecording}
         />
 
+        {/* File Uploader */}
+        {(showUploader || draftFiles.length > 0) && onAddFile && onRemoveFile && (
+          <div className="px-3 pb-3 border-t border-dn-border/10 pt-3">
+            <FileUploader
+              files={draftFiles}
+              onAddFile={onAddFile}
+              onRemoveFile={onRemoveFile}
+            />
+          </div>
+        )}
+
         {/* Action bar */}
         <div className="flex items-center justify-between px-2 pb-2 gap-2">
           {/* Left: media actions */}
           <div className="flex items-center gap-0.5">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isBusy || isRecording}
-              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${
-                isBusy || isRecording
-                  ? 'text-dn-text-main/20'
-                  : 'text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10'
-              }`}
-              aria-label={t('chat.uploadImage')}
-              title={t('chat.uploadImage')}
-            >
-              <Icon name="add_photo_alternate" className="text-[20px]" />
-            </button>
+            {onAddFile && (
+              <button
+                type="button"
+                onClick={() => setShowUploader(!showUploader)}
+                disabled={isBusy || isRecording}
+                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${
+                  showUploader
+                    ? 'text-dn-primary bg-dn-primary/10'
+                    : isBusy || isRecording
+                      ? 'text-dn-text-main/20'
+                      : 'text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10'
+                }`}
+                aria-label={t('chat.attachFile', 'Attach file')}
+                title={t('chat.attachFile', 'Attach file')}
+              >
+                <Icon name="attach_file" className="text-[20px]" />
+              </button>
+            )}
 
-            {isRecordingSupported && (
+            {onAudioRecorded && isRecordingSupported && (
               <button
                 type="button"
                 onClick={toggleRecording}

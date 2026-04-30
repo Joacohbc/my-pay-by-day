@@ -13,6 +13,7 @@ import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.AgentTaskActionResolveDto;
 import com.mypaybyday.dto.AgentTaskDto;
+import com.mypaybyday.dto.AgentTaskMessageDto;
 import com.mypaybyday.dto.AgentTaskSubmitDto;
 import com.mypaybyday.enums.AgentTaskStatus;
 import com.mypaybyday.exception.BusinessException;
@@ -133,6 +134,22 @@ public class AgentTaskResource {
             throws BusinessException {
         agentTaskService.delete(id);
         return Response.noContent().build();
+    }
+
+    @POST
+    @Path("/{id}/message")
+    @Operation(summary = "Send a follow-up message to the agent and resume execution")
+    @APIResponses({
+            @APIResponse(responseCode = "202", description = "Message stored, agent will resume"),
+            @APIResponse(responseCode = "400", description = "Task is running or cancelled"),
+            @APIResponse(responseCode = "404", description = "Task not found")
+    })
+    public Response sendMessage(
+            @Parameter(description = "Task ID", required = true) @PathParam("id") String id,
+            AgentTaskMessageDto dto) throws BusinessException {
+        AgentTaskDto task = agentTaskService.sendMessage(id, dto);
+        agentTaskExecutor.submit(id);
+        return Response.accepted(task).build();
     }
 
     @POST
