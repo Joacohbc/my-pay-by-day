@@ -709,6 +709,7 @@ const en = {
       button: 'Process Files',
       instruction: 'Analyze these files (receipts, invoices, screenshots) and extract all financial movements to create the corresponding events in the system. Make sure to categorize them correctly by searching for existing categories.',
     },
+    placeholderInstruction: 'What do you want the agent to do?',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

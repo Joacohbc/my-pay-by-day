@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import type { UseFormGetValues, UseFormSetValue } from 'react-hook-form';
 import { useAgentTasks, useSubmitAgentTask } from '@/hooks/useAgentTasks';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -11,11 +10,10 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
 import { FileUploader } from '@/components/ui/FileUploader';
-import { Textarea } from '@/components/ui/Textarea';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Badge } from '@/components/ui/Badge';
-import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
-import { useAiFormController } from '@/hooks/useAiFormController';
+import { ChatInput } from '@/components/chat/ChatInput';
+import { audioService } from '@/services/audio.service';
 import { Routes } from '@/lib/routes';
 import { truncate } from '@/lib/format';
 import type { FileDto } from '@/models';
@@ -30,10 +28,6 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: 'text-dn-text-muted bg-dn-surface-low',
   INTERRUPTED: 'text-dn-error bg-dn-error/10',
 };
-
-interface AgentTaskFormValues {
-  instruction: string;
-}
 
 interface AgentTasksViewProps {
   showNewTaskModal: boolean;
@@ -51,34 +45,9 @@ export function AgentTasksView({ showNewTaskModal, onCloseModal }: AgentTasksVie
   const [attachedFiles, setAttachedFiles] = useState<FileDto[]>([]);
   const [quickFiles, setQuickFiles] = useState<FileDto[]>([]);
   const [isQuickProcessing, setIsQuickProcessing] = useState(false);
-  const aiController = useAiFormController<AgentTaskFormValues>({
-    fields: showNewTaskModal ? [
-      {
-        key: 'instruction',
-        name: 'instruction',
-        label: t('agentTasks.instruction'),
-        semantic: 'description',
-        allowVoice: true,
-      },
-    ] : [],
-    getValues: ((name?: string) => {
-      if (name === 'instruction') return instruction;
-      return { instruction };
-    }) as UseFormGetValues<AgentTaskFormValues>,
-    setValue: ((name: string, value: string) => {
-      if (name === 'instruction') setInstruction(value);
-    }) as UseFormSetValue<AgentTaskFormValues>,
-    buildContext: () => '',
-  });
 
-  if (isLoading) return <FullPageSpinner />;
-  if (error) return <ErrorState message={String(error)} />;
-
-  const allTasks = tasks ?? [];
-
-  const handleStart = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!instruction.trim()) return;
+  const handleStart = useCallback(async () => {
+    if (!instruction.trim() && attachedFiles.length === 0) return;
     await submitTask.mutateAsync({
       instruction,
       executionMode,
@@ -87,7 +56,17 @@ export function AgentTasksView({ showNewTaskModal, onCloseModal }: AgentTasksVie
     onCloseModal();
     setInstruction('');
     setAttachedFiles([]);
-  };
+  }, [instruction, attachedFiles, executionMode, submitTask, onCloseModal]);
+
+  const handleAudioRecorded = useCallback(async (blob: Blob) => {
+    const response = await audioService.transcribeRecordedAudio(blob);
+    setInstruction((prev) => (prev ? prev + ' ' + response.transcription : response.transcription));
+  }, []);
+
+  if (isLoading) return <FullPageSpinner />;
+  if (error) return <ErrorState message={String(error)} />;
+
+  const allTasks = tasks ?? [];
 
   const handleQuickProcess = async () => {
     if (quickFiles.length === 0) return;
@@ -206,21 +185,11 @@ export function AgentTasksView({ showNewTaskModal, onCloseModal }: AgentTasksVie
         onClose={onCloseModal}
         title={t('agentTasks.newTask')}
       >
-        <form onSubmit={handleStart} className="space-y-4 pt-4">
-          <Textarea
-            label={t('agentTasks.instruction')}
-            rows={4}
-            value={instruction}
-            onChange={(e) => setInstruction(e.target.value)}
-            onFocus={() => aiController.markFieldAsActive('instruction')}
-            autoFocus
-            required
-          />
-
+        <div className="space-y-6 pt-4 px-1">
           <SearchableSelect
             label={t('agentTasks.executionMode')}
             value={executionMode}
-            onChange={(val) => setExecutionMode(val as 'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY')}
+            onChange={(val) => setExecutionMode(val as 'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY' | 'DRAFT_CONFIRMATION')}
             options={[
               { value: 'AUTONOMOUS', label: t('agentTasks.modes.AUTONOMOUS') },
               { value: 'DRAFT_ONLY', label: t('agentTasks.modes.DRAFT_ONLY') },
@@ -229,32 +198,21 @@ export function AgentTasksView({ showNewTaskModal, onCloseModal }: AgentTasksVie
             ]}
           />
 
-          <div className="mt-2">
-            <FileUploader
-              files={attachedFiles}
+          <div className="pt-2">
+            <ChatInput
+              inputContent={instruction}
+              setInputContent={setInstruction}
+              onSend={handleStart}
+              draftFiles={attachedFiles}
               onAddFile={(file) => setAttachedFiles((prev) => [...prev, file])}
               onRemoveFile={(id) => setAttachedFiles((prev) => prev.filter((f) => f.id !== id))}
+              isPending={submitTask.isPending}
+              onAudioRecorded={handleAudioRecorded}
+              placeholder={t('agentTasks.placeholderInstruction')}
             />
           </div>
-
-          <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              variant="secondary"
-              className="flex-1"
-              onClick={onCloseModal}
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" className="flex-1" disabled={submitTask.isPending || !instruction.trim()}>
-              {submitTask.isPending ? <Icon name="sync" className="animate-spin" /> : null}
-              {t('agentTasks.start')}
-            </Button>
-          </div>
-        </form>
+        </div>
       </Modal>
-
-      <AiFormActionsFab controller={aiController} />
     </div>
   );
 }

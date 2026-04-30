@@ -708,6 +708,7 @@ const es = {
       button: 'Procesar Archivos',
       instruction: 'Analiza estos archivos (recibos, facturas, capturas de pantalla) y extrae todos los movimientos financieros para crear los eventos correspondientes en el sistema. Asegúrate de categorizarlos correctamente buscando categorías existentes.',
     },
+    placeholderInstruction: '¿Qué quieres que haga el agente?',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

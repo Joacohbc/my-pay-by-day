@@ -15,11 +15,14 @@ export interface ChatMessage {
 type ChatMessageDraft = Omit<ChatMessage, 'id' | 'timestamp'>;
 type ChatMessageUpdate = Partial<ChatMessageDraft>;
 
+import { chatService } from '@/services/chat.service';
+import type { FileDto } from '@/models';
+
 interface ChatStoreState {
   chatId: string;
   messages: ChatMessage[];
   isClearing: boolean;
-  draftImages: File[];
+  draftFiles: FileDto[];
 
   addMessage: (msg: ChatMessageDraft) => string;
   updateMessage: (messageId: string, patch: ChatMessageUpdate) => void;
@@ -27,10 +30,8 @@ interface ChatStoreState {
   newChat: () => void;
   clearBackendMemory: () => Promise<void>;
   trimBackendMemory: (textToMatch: string) => Promise<void>;
-  setDraftImages: (images: File[]) => void;
+  setDraftFiles: (files: FileDto[]) => void;
 }
-
-import { chatService } from '@/services/chat.service';
 
 export const useChatStore = create<ChatStoreState>()(
   persist(
@@ -38,7 +39,7 @@ export const useChatStore = create<ChatStoreState>()(
       chatId: crypto.randomUUID(),
       messages: [],
       isClearing: false,
-      draftImages: [],
+      draftFiles: [],
 
       addMessage: (msg) => {
         const nextMessageId = crypto.randomUUID();
@@ -72,6 +73,7 @@ export const useChatStore = create<ChatStoreState>()(
         set({
           chatId: crypto.randomUUID(),
           messages: [],
+          draftFiles: [],
         }),
 
       clearBackendMemory: async () => {
@@ -101,7 +103,7 @@ export const useChatStore = create<ChatStoreState>()(
         }
       },
 
-      setDraftImages: (images: File[]) => set({ draftImages: images }),
+      setDraftFiles: (files: FileDto[]) => set({ draftFiles: files }),
     }),
     {
       name: 'mpbd-chat',

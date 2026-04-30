@@ -3,8 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { chatService } from '@/services/chat.service';
 import { audioService } from '@/services/audio.service';
+import { filesService } from '@/services/files.service';
 import { useChatStore, type ChatMessage } from '@/store/chatStore';
 import type { ChatSendParams } from '@/models/chat';
+import type { FileDto } from '@/models';
 
 function convertBlobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -21,8 +23,8 @@ export function useChatUI() {
     chatId,
     messages,
     isClearing,
-    draftImages,
-    setDraftImages,
+    draftFiles,
+    setDraftFiles,
     addMessage,
     updateMessage,
     newChat,
@@ -38,8 +40,8 @@ export function useChatUI() {
     onSuccess: (data) => {
       addMessage({ role: 'assistant', content: data.response });
     },
-    onError: () => {
-      addMessage({ role: 'assistant', content: t('chat.error') });
+    onError: (err: Error) => {
+      addMessage({ role: 'assistant', content: err.message || t('chat.error') });
     },
   });
 
@@ -54,50 +56,29 @@ export function useChatUI() {
   }, [messages, isPending, scrollToBottom]);
 
   const imagePreviewUrls = useMemo(() => {
-    return draftImages.map(f => URL.createObjectURL(f));
-  }, [draftImages]);
-
-  useEffect(() => {
-    return () => {
-      imagePreviewUrls.forEach(u => URL.revokeObjectURL(u));
-    };
-  }, [imagePreviewUrls]);
+    return draftFiles.map(f => filesService.getContentUrl(f.id));
+  }, [draftFiles]);
 
   const handleSend = useCallback(async () => {
     const userText = input.trim();
-    if (!userText && draftImages.length === 0) return;
+    if (!userText && draftFiles.length === 0) return;
 
-    const currentImages = [...draftImages];
+    const currentFiles = [...draftFiles];
     setInput('');
-    setDraftImages([]);
-
-    let base64Urls: string[] | undefined;
-    if (currentImages.length > 0) {
-      base64Urls = await Promise.all(
-        currentImages.map(
-          (file) =>
-            new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(file);
-            })
-        )
-      );
-    }
+    setDraftFiles([]);
 
     addMessage({
       role: 'user',
       content: userText || t('chat.imageUploaded'),
-      imageUrls: base64Urls,
+      imageUrls: currentFiles.map(f => filesService.getContentUrl(f.id)),
     });
 
     sendMutation.mutate({
       chatId,
       message: userText,
-      images: currentImages.length > 0 ? currentImages : undefined
+      fileIds: currentFiles.map(f => f.id)
     });
-  }, [input, draftImages, addMessage, t, setDraftImages, sendMutation, chatId]);
+  }, [input, draftFiles, addMessage, t, setDraftFiles, sendMutation, chatId]);
 
   const handleAudioRecorded = useCallback(async (audioBlob: Blob) => {
     const recordedAudioUrl = await convertBlobToDataUrl(audioBlob);
@@ -136,9 +117,9 @@ export function useChatUI() {
   }, [addMessage, chatId, sendMutation, updateMessage]);
 
   const handleNewChat = useCallback(() => {
-    setDraftImages([]);
+    setDraftFiles([]);
     newChat();
-  }, [newChat, setDraftImages]);
+  }, [newChat, setDraftFiles]);
 
   const handleClearMemory = useCallback(async () => {
     if (window.confirm(t('chat.confirmClearMemory'))) {
@@ -151,12 +132,12 @@ export function useChatUI() {
     await trimBackendMemory(msg.content);
   }, [trimBackendMemory]);
 
-  const handleImageSelect = (files: File[]) => {
-    setDraftImages([...draftImages, ...files]);
+  const handleAddFile = (file: FileDto) => {
+    setDraftFiles([...draftFiles, file]);
   };
 
-  const handleRemoveImage = (index: number) => {
-    setDraftImages(draftImages.filter((_, i) => i !== index));
+  const handleRemoveFile = (fileId: number) => {
+    setDraftFiles(draftFiles.filter((f) => f.id !== fileId));
   };
 
   return {
@@ -165,7 +146,7 @@ export function useChatUI() {
     setInput,
     isPending,
     isClearing,
-    draftImages,
+    draftFiles,
     imagePreviewUrls,
     messagesEndRef,
     handleSend,
@@ -173,8 +154,8 @@ export function useChatUI() {
     handleClearMemory,
     handleEditMessage,
     handleAudioRecorded,
-    handleImageSelect,
-    handleRemoveImage,
+    handleAddFile,
+    handleRemoveFile,
     t,
   };
 }

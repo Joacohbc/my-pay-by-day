@@ -16,6 +16,7 @@ interface ChatInputProps {
   draftFiles?: FileDto[];
   onAddFile?: (file: FileDto) => void;
   onRemoveFile?: (fileId: number) => void;
+  placeholder?: string;
 }
 
 export function ChatInput({
@@ -27,6 +28,7 @@ export function ChatInput({
   draftFiles = [],
   onAddFile,
   onRemoveFile,
+  placeholder,
 }: ChatInputProps) {
   const { t } = useTranslation();
   const { error: showError } = useAlert();
@@ -89,7 +91,7 @@ export function ChatInput({
         <Textarea
           containerClassName="w-full"
           className="px-4! py-3! text-sm bg-transparent! border-none! ring-0! focus:ring-0! rounded-none! min-h-13! max-h-45! overflow-y-auto resize-none"
-          placeholder={t('chat.placeholderAgent')}
+          placeholder={placeholder || t('chat.placeholderAgent')}
           value={inputContent}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputContent(e.target.value)}
           onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {

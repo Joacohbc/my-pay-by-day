@@ -20,7 +20,7 @@ export function ChatPage() {
     setInput,
     isPending,
     isClearing,
-    draftImages,
+    draftFiles,
     imagePreviewUrls,
     messagesEndRef,
     handleSend,
@@ -28,8 +28,8 @@ export function ChatPage() {
     handleClearMemory,
     handleEditMessage,
     handleAudioRecorded,
-    handleImageSelect,
-    handleRemoveImage,
+    handleAddFile,
+    handleRemoveFile,
     t,
   } = useChatUI();
 
@@ -121,7 +121,7 @@ export function ChatPage() {
                       <div className="w-1 h-1 bg-dn-primary rounded-full animate-bounce" />
                     </div>
                   </div>
-                  {draftImages.length > 0 && (
+                  {draftFiles.length > 0 && (
                     <span className="text-[10px] text-dn-primary/40 uppercase tracking-[0.2em] font-black px-1">
                       {t('chat.processingImage')}
                     </span>
@@ -134,9 +134,9 @@ export function ChatPage() {
 
           {/* Image Preview Bar */}
           <ChatImagePreview
-            images={draftImages}
+            images={draftFiles}
             previewUrls={imagePreviewUrls}
-            onRemove={handleRemoveImage}
+            onRemove={(idx) => handleRemoveFile(draftFiles[idx].id)}
           />
 
           {/* Input Area */}
@@ -145,9 +145,10 @@ export function ChatPage() {
             setInputContent={setInput}
             onSend={handleSend}
             onAudioRecorded={handleAudioRecorded}
-            onImageSelect={handleImageSelect}
+            draftFiles={draftFiles}
+            onAddFile={handleAddFile}
+            onRemoveFile={handleRemoveFile}
             isPending={isPending}
-            hasDraftImages={draftImages.length > 0}
           />
         </>
       ) : (
