@@ -415,14 +415,14 @@ The frontend acts as the translator between the user's local context and the ser
 
 ### Internationalisation (i18n)
 
-Error messages returned to the client are localised based on a `?lang=` query parameter sent by the frontend on every request.
+Error messages returned to the client are localised based on the `X-Language` header sent by the frontend on every request (with a fallback to the `?lang=` query parameter for compatibility).
 
 #### How it works
 
 | Class | Role |
 |---|---|
 | `LanguageContext` (`@RequestScoped`) | Holds the resolved language for the current request (`en` by default). |
-| `LangFilter` (`@Provider`, `ContainerRequestFilter`) | Reads `?lang=` from the URL and writes it into `LanguageContext`. Supported values: `en`, `es`. Any other value falls back to `en`. |
+| `LangFilter` (`@Provider`, `ContainerRequestFilter`) | Reads the `X-Language` header (or `?lang=` as fallback) and writes it into `LanguageContext`. Supported values: `en`, `es`. Any other value falls back to `en`. |
 | `Messages` (`@ApplicationScoped`) | Resolves a `MsgKey` to a localised string using `ResourceBundle` backed by `i18n/messages_<lang>.properties`. Supports `MessageFormat` placeholders (`{0}`, `{1}`, …). |
 | `MsgKey` (enum) | Type-safe enumeration of every message key. Use `MsgKey` constants instead of raw strings so typos are caught at compile time. |
 
@@ -436,7 +436,7 @@ Resource bundle files live at `src/main/resources/i18n/`:
 * **No hardcoded error strings in services:** Every `BusinessException` message **must** be produced via `messages.get(MsgKey.SOME_KEY)` or `messages.get(MsgKey.SOME_KEY, arg0, …)`. Plain string literals are forbidden.
 * **`MsgKey` is the only key contract:** Never call `Messages` with a raw `String`. Always use a `MsgKey` constant.
 * **`MsgKey` covers all keys:** Every property key that exists in the `.properties` files must have a matching constant in `MsgKey`. A key without a constant is unreachable.
-* **Frontend sends the language:** The frontend `api.ts` automatically appends `?lang=<i18n.language>` to every API call, so backend messages always arrive in the user's active language.
+* **Frontend sends the language:** The frontend `api.ts` automatically sends the `X-Language` header with the current language (`i18n.language`), so backend messages always arrive in the user's active language.
 
 #### Adding a new message
 
