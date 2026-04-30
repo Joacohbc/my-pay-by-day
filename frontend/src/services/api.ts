@@ -33,7 +33,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
     let message = `HTTP ${res.status}`;
     try {
       const body = await res.json();
-      message = body.response ?? body.message ?? body.error ?? message;
+      message = body.response ?? body.message ?? body.error ?? body.transcription ?? message;
     } catch {
       // ignore
     }
@@ -109,5 +109,16 @@ export const api = {
         'X-Language': getLang(),
       },
       body: body ? JSON.stringify(body) : undefined,
+    }).then((r) => handleResponse<T>(r)),
+
+  postForm: <T>(path: string, body: FormData): Promise<T> =>
+    fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'X-Timezone': getUserTimezone(),
+        'X-Language': getLang(),
+      },
+      body,
     }).then((r) => handleResponse<T>(r)),
 };

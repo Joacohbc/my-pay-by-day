@@ -1,4 +1,4 @@
-import { BASE_URL } from '@/services/api';
+import { api } from '@/services/api';
 import { convertAudioBlobToWav } from '@/lib/audioWav';
 import { Howl, Howler } from 'howler';
 
@@ -41,41 +41,7 @@ export const audioService = {
     const formData = new FormData();
     formData.append('audio', audioBlob, 'recording.wav');
 
-    const res = await fetch(`${BASE_URL}/ai/audio/transcribe`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        Accept: 'application/json',
-      },
-    });
-
-    if (!res.ok) {
-      let errorMessage = `HTTP ${res.status}`;
-      const rawErrorBody = await res.text();
-
-      if (rawErrorBody) {
-        try {
-          const parsedErrorBody = JSON.parse(rawErrorBody) as {
-            transcription?: string;
-            message?: string;
-            error?: string;
-          };
-
-          errorMessage = parsedErrorBody.transcription
-            ?? parsedErrorBody.message
-            ?? parsedErrorBody.error
-            ?? errorMessage;
-        } catch (jsonParseError) {
-          const parsedBody = rawErrorBody.trim();
-          const parseErrorHasMessage = jsonParseError instanceof Error && jsonParseError.message.length > 0;
-          errorMessage = parsedBody.length > 0 ? parsedBody : (parseErrorHasMessage ? jsonParseError.message : errorMessage);
-        }
-      }
-
-      throw new Error(errorMessage);
-    }
-
-    return res.json();
+    return api.postForm<AudioTranscriptionResponse>('/ai/audio/transcribe', formData);
   },
 
   transcribeRecordedAudio: async (recordedAudioBlob: Blob): Promise<AudioTranscriptionResponse> => {

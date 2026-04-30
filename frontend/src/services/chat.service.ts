@@ -1,5 +1,4 @@
-import i18n from '@/lib/i18n';
-import { BASE_URL } from '@/services/api';
+import { api } from '@/services/api';
 import type { ChatSendParams, ChatResponse } from '@/models/chat';
 
 export const chatService = {
@@ -15,49 +14,20 @@ export const chatService = {
       images.forEach(img => formData.append('images', img));
     }
 
-    const lang = i18n.language ?? 'en';
-
-    const res = await fetch(`${BASE_URL}/ai/chat?lang=${lang}`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        Accept: 'application/json',
-      },
-    });
-
-    if (!res.ok) {
-      let errorMessage = `HTTP ${res.status}`;
-      try {
-        const body = await res.json();
-        errorMessage = body.response ?? body.message ?? body.error ?? errorMessage;
-      } catch {
-        // ignore
-      }
-      throw new Error(errorMessage);
-    }
-
-    return res.json();
+    return api.postForm<ChatResponse>('/ai/chat', formData);
   },
 
   /**
    * Clears the AI's memory for a specific chatId on the backend.
    */
   clearMemory: async (chatId: string): Promise<void> => {
-    await fetch(`${BASE_URL}/ai/chat/${chatId}`, {
-      method: 'DELETE',
-    });
+    await api.delete(`/ai/chat/${chatId}`);
   },
 
   /**
    * Trims the AI's memory up to the last user message containing the text.
    */
   trimMemory: async (chatId: string, textToMatch: string): Promise<void> => {
-    await fetch(`${BASE_URL}/ai/chat/${chatId}/trim`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ textToMatch }),
-    });
+    await api.post(`/ai/chat/${chatId}/trim`, { textToMatch });
   },
 };
