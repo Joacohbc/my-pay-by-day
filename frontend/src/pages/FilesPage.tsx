@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Routes } from '@/lib/routes';
 import { useTranslation } from 'react-i18next';
 import { useFiles, useDeleteFile } from '@/hooks/useFiles';
@@ -9,123 +8,10 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
-import { Badge } from '@/components/ui/Badge';
-import { Card } from '@/components/ui/Card';
-import { filesService } from '@/services/files.service';
-import type { FileWithEventDto } from '@/models';
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function getFileIcon(mimeType: string): string {
-  if (mimeType.startsWith('image/')) return 'image';
-  if (mimeType.startsWith('video/')) return 'videocam';
-  if (mimeType === 'application/pdf') return 'picture_as_pdf';
-  if (mimeType.startsWith('audio/')) return 'audio_file';
-  return 'description';
-}
+import { FileCard } from '@/components/files/FileCard';
 
 type SortDir = 'asc' | 'desc';
 type FilterMode = 'all' | 'orphan' | 'linked';
-
-interface FileCardProps {
-  file: FileWithEventDto;
-  onDelete: (id: number) => void;
-  deleting: boolean;
-}
-
-function FileCard({ file, onDelete, deleting }: FileCardProps) {
-  const { t } = useTranslation();
-  const eventTypeColors: Record<string, string> = {
-    INBOUND: 'income',
-    OUTBOUND: 'expense',
-    OTHER: 'neutral',
-  } as const;
-
-  return (
-    <Card padding={false} className="overflow-hidden">
-      <div className="flex items-start gap-3 p-4">
-        {/* Icon */}
-        <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-surface-low text-dn-text-muted shrink-0">
-          <Icon name={getFileIcon(file.mimeType)} />
-        </div>
-
-        {/* Main content */}
-        <div className="flex-1 min-w-0 space-y-1.5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-dn-text-main truncate max-w-[200px]">
-              {file.fileName}
-            </span>
-            {file.isOrphan && (
-              <span title={t('files.orphanHint')}>
-                <Badge variant="expense" size="sm">
-                  <Icon name="link_off" className="text-[10px] mr-0.5" />
-                  {t('files.orphan')}
-                </Badge>
-              </span>
-            )}
-          </div>
-
-          <p className="text-xs text-dn-text-muted">
-            {formatSize(file.size)}
-            <span className="mx-1.5 opacity-40">·</span>
-            <span className="opacity-60">{file.mimeType}</span>
-          </p>
-
-          {/* Associated events */}
-          {file.events && file.events.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5 pt-0.5">
-              {file.events.map((ev) => (
-                <Link
-                  key={ev.id}
-                  to={`/events/${ev.id}`}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-dn-surface-low hover:bg-dn-surface text-xs text-dn-text-muted hover:text-dn-text-main transition-colors border border-white/5"
-                >
-                  <Badge
-                    variant={eventTypeColors[ev.type] as 'income' | 'expense' | 'neutral'}
-                    size="sm"
-                    className="w-1.5 h-1.5 p-0 rounded-full"
-                  >{''}</Badge>
-                  <span className="truncate max-w-[120px]">{ev.name}</span>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            !file.isOrphan && (
-              <p className="text-xs text-dn-text-muted/50">{t('files.noAssociatedEvents')}</p>
-            )
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-1 shrink-0">
-          <a
-            href={filesService.getContentUrl(file.id)}
-            target="_blank"
-            rel="noreferrer"
-            className="p-1.5 rounded-lg text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
-            title={t('common.view')}
-          >
-            <Icon name="open_in_new" className="text-base" />
-          </a>
-          {file.isOrphan && (
-            <button
-              onClick={() => onDelete(file.id)}
-              disabled={deleting}
-              className="p-1.5 rounded-lg text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors disabled:opacity-50"
-              title={t('common.delete')}
-            >
-              <Icon name="delete" className="text-base" />
-            </button>
-          )}
-        </div>
-      </div>
-    </Card>
-  );
-}
 
 export function FilesPage() {
   const { t } = useTranslation();

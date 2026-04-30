@@ -1,0 +1,31 @@
+%s
+
+AVAILABLE FINANCE NODES (pick sourceNodeId and destinationNodeId from these):
+%s
+
+AVAILABLE CATEGORIES (pick category from these):
+%s
+
+AVAILABLE TAGS (pick zero or more tags from these):
+%s
+
+TASK:
+Extract the transaction details from the user's text using the context provided above.
+
+%s
+
+DEFAULT RULES FOR FIELDS (apply these unless overridden by ADDITIONAL USER INSTRUCTIONS above):
+- name: Must be a descriptive and meaningful title. Include the business/service name and context (e.g., 'Dinner at Burger King', 'Monthly Salary from TechCorp').
+- amount: Total absolute amount of the transaction. Always positive, no currency symbols.
+- sourceNodeId: The ID of the node where money comes FROM. Pick from the AVAILABLE FINANCE NODES list above.
+- destinationNodeId: The ID of the node where money goes TO. Pick from the AVAILABLE FINANCE NODES list above.
+- category: The most appropriate category from the AVAILABLE CATEGORIES list above, including its id, name and description. Null if unclear.
+- tags: List of tags from the AVAILABLE TAGS list above that best describe this event, each with id, name and description. Empty list if none apply.
+- transactionDate: The date in YYYY-MM-DD or YYYY-MM-DDTHH:mm:SS format (include time if explicitly mentioned). Extract from text if present, otherwise leave null.
+
+CRITICAL OUTPUT RULES:
+- Return ONLY valid JSON matching the expected schema.
+- Do NOT include conversational text, greetings, explanations, or any markdown formatting (no ```json).
+- If the text lacks meaningful transaction data, return a JSON with null fields rather than an error message.
+
+Now process the user request.

@@ -1,4 +1,4 @@
-package com.mypaybyday.ai;
+package com.mypaybyday.service.ai;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -20,11 +20,7 @@ import org.jboss.logging.Logger;
 public class AudioTranscriptionService {
 
 	private static final Logger log = Logger.getLogger(AudioTranscriptionService.class);
-
-	private static final String TRANSCRIPTION_PROMPT =
-			"Transcribe this audio exactly as spoken. " +
-			"Return only the transcription text — no explanations, no formatting, no extra words.";
-
+	
 	@ConfigProperty(name = "ai.audio.base-url")
 	String baseUrl;
 
@@ -52,23 +48,27 @@ public class AudioTranscriptionService {
 		log.infof("Transcribing audio [model=%s, mimeType=%s, bytes=%d]", audioModelName, resolvedMimeType, audioBytes.length);
 
 		try {
+		
 			Map<String, Object> body = Map.of(
-					"model", audioModelName,
-					"messages", List.of(
+				"model", audioModelName,
+				"messages", List.of(
+					Map.of(
+						"role", "user",
+						"content", List.of(
 							Map.of(
-									"role", "user",
-									"content", List.of(
-											Map.of("type", "text", "text", TRANSCRIPTION_PROMPT),
-											Map.of(
-													"type", "input_audio",
-													"input_audio", Map.of(
-															"data", base64Data,
-															"format", audioFormat
-													)
-											)
-									)
+								"type", "text", 
+								"text", PromptCollection.getSystemAudio()
+							),
+							Map.of(
+								"type", "input_audio",
+								"input_audio", Map.of(
+									"data", base64Data,
+									"format", audioFormat
+								)
 							)
+						)
 					)
+				)
 			);
 
 			String requestJson = objectMapper.writeValueAsString(body);

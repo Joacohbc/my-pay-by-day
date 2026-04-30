@@ -10,7 +10,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-import com.mypaybyday.ai.AudioTranscriptionService;
+import com.mypaybyday.service.ai.AudioTranscriptionService;
 import com.mypaybyday.dto.AudioTranscriptionDto;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;

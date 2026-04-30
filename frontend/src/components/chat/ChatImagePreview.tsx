@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
+import type { FileDto } from '@/models';
 
 interface ChatImagePreviewProps {
-  images: File[];
+  images: FileDto[];
   previewUrls: string[];
   onRemove: (index: number) => void;
 }
@@ -23,7 +24,7 @@ export function ChatImagePreview({ images, previewUrls, onRemove }: ChatImagePre
               className="h-12 w-12 rounded object-cover"
             />
             <div className="min-w-0 max-w-[120px]">
-              <p className="text-[10px] text-dn-text-main/70 truncate">{file.name}</p>
+              <p className="text-[10px] text-dn-text-main/70 truncate">{file.fileName}</p>
               <p className="text-[10px] text-dn-text-main/40">
                 {(file.size / 1024).toFixed(0)} KB
               </p>

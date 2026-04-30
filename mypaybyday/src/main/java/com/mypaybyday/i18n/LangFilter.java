@@ -7,7 +7,7 @@ import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.ext.Provider;
 
 /**
- * JAX-RS filter that reads the {@code ?lang=} query parameter from every request
+ * JAX-RS filter that reads the {@code X-Language} header (or {@code ?lang=} query param as fallback)
  * and stores the resolved language in {@link LanguageContext}.
  * <p>
  * Supported values: {@code en} (default), {@code es}.
@@ -26,7 +26,10 @@ public class LangFilter implements ContainerRequestFilter {
 
 	@Override
 	public void filter(ContainerRequestContext requestContext) {
-		String lang = requestContext.getUriInfo().getQueryParameters().getFirst("lang");
+		String lang = requestContext.getHeaderString("X-Language");
+		if (lang == null || lang.isBlank()) {
+			lang = requestContext.getUriInfo().getQueryParameters().getFirst("lang");
+		}
 		if (lang != null && SUPPORTED.contains(lang.toLowerCase())) {
 			languageContext.setLang(lang.toLowerCase());
 		}

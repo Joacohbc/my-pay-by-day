@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
 import { useFiles, useUploadFile } from '@/hooks/useFiles';
-import { filesService } from '@/services/files.service';
+import { FileCard } from '@/components/files/FileCard';
 import type { FileDto } from '@/models';
 import { getFileIcon } from '@/lib/fileUtils';
 
@@ -91,26 +91,30 @@ export function FileUploader({ files, onAddFile, onRemoveFile }: FileUploaderPro
   const [selectorOpen, setSelectorOpen] = useState(false);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (!selectedFile) return;
+    const selectedFiles = Array.from(event.target.files || []);
+    if (selectedFiles.length === 0) return;
 
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64Content = reader.result as string;
+    for (const file of selectedFiles) {
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onloadend = () => resolve(reader.result as string);
+      });
+      reader.readAsDataURL(file);
+      
       try {
+        const base64Content = await base64Promise;
         const uploadedFile = await uploadFile({
-          fileName: selectedFile.name,
-          mimeType: selectedFile.type,
+          fileName: file.name,
+          mimeType: file.type,
           base64Content,
         });
         onAddFile(uploadedFile);
       } catch (error) {
         console.error('File upload failed:', error);
-      } finally {
-        if (fileInputRef.current) fileInputRef.current.value = '';
       }
-    };
-    reader.readAsDataURL(selectedFile);
+    }
+    
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -126,36 +130,11 @@ export function FileUploader({ files, onAddFile, onRemoveFile }: FileUploaderPro
 
       <div className="space-y-3">
         {files.map((file) => (
-          <div key={file.id} className="flex items-center justify-between p-3 bg-dn-surface-low rounded-input border border-white/5">
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-10 h-10 shrink-0 bg-dn-surface rounded-md flex items-center justify-center text-dn-text-muted">
-                <Icon name={getFileIcon(file.mimeType)} />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm font-medium truncate">{file.fileName}</span>
-                <span className="text-xs text-dn-text-muted uppercase tracking-wider mt-0.5">
-                  {(file.size / 1024).toFixed(1)} KB • {file.mimeType.split('/')[1] || file.mimeType}
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-2 shrink-0">
-              <a
-                href={filesService.getContentUrl(file.id)}
-                target="_blank"
-                rel="noreferrer"
-                className="p-2 text-dn-text-muted hover:text-dn-primary transition-colors"
-              >
-                <Icon name="visibility" className="text-[1.2rem]" />
-              </a>
-              <button
-                type="button"
-                onClick={() => onRemoveFile(file.id)}
-                className="p-2 text-dn-text-muted hover:text-dn-error transition-colors"
-              >
-                <Icon name="close" className="text-[1.2rem]" />
-              </button>
-            </div>
-          </div>
+          <FileCard
+            key={file.id}
+            file={file}
+            onDelete={() => onRemoveFile(file.id)}
+          />
         ))}
 
         <div className="grid grid-cols-2 gap-2">
@@ -183,7 +162,8 @@ export function FileUploader({ files, onAddFile, onRemoveFile }: FileUploaderPro
           ref={fileInputRef}
           onChange={handleFileChange}
           className="hidden"
-          accept="image/*,video/*,.pdf"
+          multiple
+          accept="image/*,video/*,.pdf,.csv,.json,text/*"
         />
       </div>
     </div>

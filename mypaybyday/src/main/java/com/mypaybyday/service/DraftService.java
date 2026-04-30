@@ -1,8 +1,11 @@
 package com.mypaybyday.service;
 
 import java.lang.reflect.Field;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -11,12 +14,20 @@ import jakarta.transaction.Transactional;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.DraftEntity;
+import com.mypaybyday.entity.FinanceEventEntity;
+import com.mypaybyday.entity.FinanceLineItemEntity;
+import com.mypaybyday.entity.FinanceNodeEntity;
+import com.mypaybyday.entity.FinanceTransactionEntity;
+import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.enums.EntityType;
+import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EntityDraftRepository;
+import com.mypaybyday.service.event.EventCreateService;
 
 @ApplicationScoped
 public class DraftService {
@@ -24,12 +35,15 @@ public class DraftService {
 	private final EntityDraftRepository draftRepository;
 	private final Messages messages;
 	private final ObjectMapper objectMapper;
+	private final EventCreateService eventCreateService;
 
 	@Inject
-	public DraftService(EntityDraftRepository draftRepository, Messages messages, ObjectMapper objectMapper) {
+	public DraftService(EntityDraftRepository draftRepository, Messages messages, ObjectMapper objectMapper,
+			EventCreateService eventCreateService) {
 		this.draftRepository = draftRepository;
 		this.messages = messages;
 		this.objectMapper = objectMapper;
+		this.eventCreateService = eventCreateService;
 	}
 
 	public List<DraftEntity> listAll() {
@@ -103,6 +117,66 @@ public class DraftService {
 		if (entity != null) {
 			draftRepository.delete(entity);
 		}
+	}
+
+	@Transactional
+	public FinanceEventDto confirmDraft(Long draftId) throws BusinessException {
+		List<FinanceEventDto> drafts = listFinanceEventDrafts();
+		FinanceEventDto dto = drafts.stream()
+				.filter(d -> draftId.equals(d.draftId()))
+				.findFirst()
+				.orElse(null);
+		if (dto == null) throw new BusinessException(messages.get(MsgKey.DRAFT_NOT_FOUND, draftId));
+		if (dto.name() == null || dto.name().isBlank())
+			throw new BusinessException("Draft is missing a name");
+		if (dto.transactionDate() == null)
+			throw new BusinessException("Draft is missing a transaction date");
+		if (dto.lineItems() == null || dto.lineItems().isEmpty())
+			throw new BusinessException("Draft has no line items");
+
+		FinanceEventEntity event = new FinanceEventEntity();
+		event.name = dto.name();
+		event.description = dto.description();
+		event.type = dto.type() != null ? dto.type() : EventType.OUTBOUND;
+
+		if (dto.category() != null && dto.category().id() != null) {
+			CategoryEntity cat = new CategoryEntity();
+			cat.id = dto.category().id();
+			event.category = cat;
+		}
+
+		if (dto.tags() != null) {
+			event.tags = dto.tags().stream()
+					.filter(t -> t.id() != null)
+					.map(t -> {
+						TagEntity tag = new TagEntity();
+						tag.id = t.id();
+						return tag;
+					})
+					.collect(Collectors.toSet());
+		}
+
+		FinanceTransactionEntity tx = new FinanceTransactionEntity();
+		tx.transactionDate = dto.transactionDate();
+
+		Set<FinanceLineItemEntity> lineItems = new HashSet<>();
+		for (var li : dto.lineItems()) {
+			FinanceLineItemEntity item = new FinanceLineItemEntity();
+			item.setAmount(li.amount());
+			if (li.financeNodeId() != null) {
+				FinanceNodeEntity node = new FinanceNodeEntity();
+				node.id = li.financeNodeId();
+				item.financeNode = node;
+			}
+			item.transaction = tx;
+			lineItems.add(item);
+		}
+		tx.lineItems = lineItems;
+		event.transaction = tx;
+
+		FinanceEventDto created = eventCreateService.create(event);
+		delete(draftId);
+		return created;
 	}
 
 	@Transactional

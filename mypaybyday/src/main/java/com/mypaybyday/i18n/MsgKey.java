@@ -114,7 +114,22 @@ public enum MsgKey {
 	SELECTION_HISTORY_ENTITY_ID_REQUIRED("error.selection_history.entity_id_required"),
 
 	// ── Duplicate Settings ───────────────────────────────
-	DUPLICATE_SETTINGS_WEIGHTS_SUM_INVALID("error.duplicate_settings.weights_sum_invalid");
+	DUPLICATE_SETTINGS_WEIGHTS_SUM_INVALID("error.duplicate_settings.weights_sum_invalid"),
+	
+	// ── Agent Task ───────────────────────────────────────
+	AGENT_TASK_INSTRUCTION_REQUIRED("error.agent_task.instruction_required"),
+	AGENT_TASK_TERMINAL_STATE("error.agent_task.terminal_state"),
+	AGENT_TASK_NOT_FOUND("error.agent_task.not_found"),
+	AGENT_TASK_ACTION_NOT_FOUND("error.agent_task.action_not_found"),
+	AGENT_TASK_ACTION_NOT_PENDING("error.agent_task.action_not_pending"),
+	AGENT_TASK_ACTION_APPROVED("agent_task.action.approved"),
+	AGENT_TASK_ACTION_REJECTED("agent_task.action.rejected"),
+	AGENT_TASK_PENDING_ACTIONS("error.agent_task.pending_actions"),
+	AGENT_TASK_PROGRESS_RESUMING("agent_task.progress.resuming"),
+	AGENT_TASK_PROGRESS_ANALYZING("agent_task.progress.analyzing"),
+
+	// ── Intelligent Event ────────────────────────────────
+	INTELLIGENT_EVENT_MULTIPLE_TRANSACTIONS("error.intelligent_event.multiple_transactions");
 
 
 	/** The property key used to look up this message in the resource bundle. */

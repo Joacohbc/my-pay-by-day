@@ -1,4 +1,4 @@
-package com.mypaybyday.ai;
+package com.mypaybyday.service.ai;
 
 import java.time.Duration;
 
@@ -42,6 +42,32 @@ public class AiConfig {
 
 	@ConfigProperty(name = "ai.vision.timeout", defaultValue = "120")
 	long visionTimeout;
+
+	@ConfigProperty(name = "ai.agent.base-url", defaultValue = "https://openrouter.ai/api/v1")
+	String agentBaseUrl;
+
+	@ConfigProperty(name = "ai.agent.api-key", defaultValue = "changeme")
+	String agentApiKey;
+
+	@ConfigProperty(name = "ai.agent.model-name", defaultValue = "openai/gpt-oss-120b")
+	String agentModelName;
+
+	@ConfigProperty(name = "ai.agent.timeout", defaultValue = "600")
+	long agentTimeout;
+
+	@Produces
+	@ApplicationScoped
+	@Named("agentChatModel")
+	public ChatModel agentChatModel() {
+		return OpenAiChatModel.builder()
+				.baseUrl(agentBaseUrl)
+				.apiKey(agentApiKey)
+				.modelName(agentModelName)
+				.timeout(Duration.ofSeconds(agentTimeout))
+				.logRequests(false)
+				.logResponses(false)
+				.build();
+	}
 
 	@Produces
 	@ApplicationScoped
