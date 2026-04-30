@@ -130,6 +130,11 @@ public class AgentTaskPersistHelper {
     }
 
     @Transactional
+    public AgentTaskEntity getTask(String taskId) {
+        return taskRepository.findById(taskId);
+    }
+
+    @Transactional
     public List<AgentTaskActionEntity> getTaskActions(String taskId) {
         AgentTaskEntity task = taskRepository.findById(taskId);
         if (task == null) return List.of();

@@ -2,8 +2,11 @@ package com.mypaybyday.service.agent;
 
 import java.util.List;
 import com.mypaybyday.entity.AgentTaskActionEntity;
+import com.mypaybyday.entity.AgentTaskEntity;
 import com.mypaybyday.entity.AgentTaskStepEntity;
+import com.mypaybyday.enums.AgentTaskStatus;
 import com.mypaybyday.enums.AgentTaskStepType;
+
 import com.mypaybyday.service.ai.AgentToolKind;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
@@ -55,18 +58,36 @@ public class AgentProgressTool {
     @Tool("Get the full history and context of this task. Use this when resuming a task to see all previous steps, user messages, and progress made so far.")
     @AgentToolKind(AgentToolKind.Kind.META)
     public String getTaskHistory() {
+        AgentTaskEntity task = persistHelper.getTask(taskId);
+        if (task == null) return "Task not found.";
+
         List<AgentTaskStepEntity> steps = persistHelper.getTaskSteps(taskId);
         List<AgentTaskActionEntity> actions = persistHelper.getTaskActions(taskId);
         
         if (steps.isEmpty() && actions.isEmpty()) return "No history found for this task.";
+
+        List<AgentTaskStepEntity> plannedSteps = steps.stream().filter(s -> s.type == AgentTaskStepType.PLANNED_STEP).toList();
+        List<AgentTaskStepEntity> progressSteps = steps.stream().filter(s -> s.type == AgentTaskStepType.PROGRESS || s.type == AgentTaskStepType.USER).toList();
         
+        boolean isSuccessfullyCompleted = task.status == AgentTaskStatus.COMPLETED;
+        int completedPlanCount = isSuccessfullyCompleted ? plannedSteps.size() : progressSteps.size();
+
         StringBuilder sb = new StringBuilder("Task History:\n");
+        sb.append(String.format("Status: %s, Progress: %d%%\n", task.status, task.progress));
+        
         sb.append("\n[STEPS]\n");
         for (AgentTaskStepEntity step : steps) {
             String type = step.type.name();
             String desc = step.description != null ? step.description : "";
             String content = step.content != null ? step.content : "";
-            sb.append(String.format("- [%s] %s %s\n", type, desc, content).trim()).append("\n");
+            
+            if (step.type == AgentTaskStepType.PLANNED_STEP) {
+                int idx = plannedSteps.indexOf(step);
+                String status = idx < completedPlanCount ? "COMPLETED" : "PENDING";
+                sb.append(String.format("- [%s] %s\n", status, desc));
+            } else {
+                sb.append(String.format("- [%s] %s %s\n", type, desc, content).trim()).append("\n");
+            }
         }
         
         if (!actions.isEmpty()) {
