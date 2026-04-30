@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.control.ActivateRequestContext;
@@ -36,6 +37,12 @@ import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
 import dev.langchain4j.data.image.Image;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
+
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
@@ -43,6 +50,7 @@ import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.V;
 import dev.langchain4j.service.tool.DefaultToolExecutor;
 import dev.langchain4j.service.tool.ToolExecutor;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
@@ -130,7 +138,6 @@ public class AgentTaskExecutor {
         }
 
         try {
-
             // Set User Context
             timezoneContext.setTimezone(task.getTimezone() != null ? task.getTimezone() : timezoneContext.getDefaultTimezone());
             languageContext.setLang(task.getLang() != null ? task.getLang() : languageContext.getDefaultLanguage());
@@ -251,7 +258,10 @@ public class AgentTaskExecutor {
     private void runAgentLoop(AgentExecutionContext ctx) throws InterruptedException {
         Map<ToolSpecification, ToolExecutor> toolMap = buildToolMap(ctx);
 
+        compactMemoryIfNeeded(ctx.taskId(), ctx.lang());
+
         AgentRunner agent = AiServices.builder(AgentRunner.class)
+
                 .chatModel(agentChatModel)
                 .tools(toolMap)
                 .chatMemoryProvider(memoryId -> MessageWindowChatMemory.builder()
@@ -276,6 +286,51 @@ public class AgentTaskExecutor {
             persistHelper.markCompleted(ctx.taskId());
         }
     }
+
+    private void compactMemoryIfNeeded(String taskId, String lang) {
+        List<ChatMessage> messages = dbChatMemoryStore.getMessages(taskId);
+        if (messages.isEmpty()) {
+            return;
+        }
+
+        int messageCount = messages.size();
+        long totalChars = messages.stream()
+                .map(m -> {
+                    if (m instanceof AiMessage am) return am.text();
+                    if (m instanceof UserMessage um) return um.singleText();
+                    if (m instanceof SystemMessage sm) return sm.text();
+                    if (m instanceof ToolExecutionResultMessage trm) return trm.text();
+                    return "";
+                })
+                .mapToLong(String::length)
+                .sum();
+
+        // Near message limit (90% of 50 = 45) or near context limit (rough proxy 100k chars)
+        boolean nearMessageLimit = messageCount >= MAX_CHAT_MESSAGES * 0.9;
+        boolean nearContextLimit = totalChars > 100000;
+
+        if (nearMessageLimit || nearContextLimit) {
+            log.infof("Chat memory for task %s is near limit (messages: %d, chars: %d). Compacting...",
+                    taskId, messageCount, totalChars);
+
+            String languageName = switch (lang.toLowerCase()) {
+                case "es" -> "Spanish";
+                case "en" -> "English";
+                default -> lang;
+            };
+
+            String summaryPrompt = PromptCollection.getCompactMemoryPrompt(languageName, messages);
+            ChatResponse response = agentChatModel.chat(List.of(UserMessage.from(summaryPrompt)));
+            String summary = response.aiMessage().text();
+
+            dbChatMemoryStore.deleteMessages(taskId);
+            dbChatMemoryStore.updateMessages(taskId, List.of(SystemMessage.from(
+                "SUMMARY OF PREVIOUS CONTEXT (Memory was compacted to save space):\n" + summary
+            )));
+            log.infof("Memory compacted for task %s. New message count: 1", taskId);
+        }
+    }
+
 
     private Map<ToolSpecification, ToolExecutor> buildToolMap(AgentExecutionContext ctx) {
         Map<ToolSpecification, ToolExecutor> map = new LinkedHashMap<>();
