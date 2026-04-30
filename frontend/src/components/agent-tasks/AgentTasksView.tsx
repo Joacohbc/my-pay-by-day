@@ -1,9 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { UseFormGetValues, UseFormSetValue } from 'react-hook-form';
 import { useAgentTasks, useSubmitAgentTask } from '@/hooks/useAgentTasks';
-import { useUploadFile } from '@/hooks/useFiles';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -46,14 +45,12 @@ export function AgentTasksView({ showNewTaskModal, onCloseModal }: AgentTasksVie
   const navigate = useNavigate();
   const { data: tasks, isLoading, error } = useAgentTasks();
   const submitTask = useSubmitAgentTask();
-  const uploadFile = useUploadFile();
 
   const [instruction, setInstruction] = useState('');
   const [executionMode, setExecutionMode] = useState<'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY' | 'DRAFT_CONFIRMATION'>('AUTONOMOUS');
   const [attachedFiles, setAttachedFiles] = useState<FileDto[]>([]);
+  const [quickFiles, setQuickFiles] = useState<FileDto[]>([]);
   const [isQuickProcessing, setIsQuickProcessing] = useState(false);
-  const quickFileInputRef = useRef<HTMLInputElement>(null);
-  
   const aiController = useAiFormController<AgentTaskFormValues>({
     fields: showNewTaskModal ? [
       {
@@ -92,76 +89,61 @@ export function AgentTasksView({ showNewTaskModal, onCloseModal }: AgentTasksVie
     setAttachedFiles([]);
   };
 
-  const handleQuickFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
+  const handleQuickProcess = async () => {
+    if (quickFiles.length === 0) return;
     setIsQuickProcessing(true);
     try {
-      const uploadedFiles = await Promise.all(
-        files.map(async (file) => {
-          const reader = new FileReader();
-          const base64Promise = new Promise<string>((resolve) => {
-            reader.onloadend = () => resolve(reader.result as string);
-          });
-          reader.readAsDataURL(file);
-          const base64Content = await base64Promise;
-          return uploadFile.mutateAsync({
-            fileName: file.name,
-            mimeType: file.type,
-            base64Content,
-          });
-        })
-      );
-
       await submitTask.mutateAsync({
         instruction: t('agentTasks.quickProcess.instruction'),
         executionMode: 'AUTONOMOUS',
-        fileIds: uploadedFiles.map((f) => f.id),
+        fileIds: quickFiles.map((f) => f.id),
       });
+      setQuickFiles([]);
     } catch (err) {
       console.error('Quick process failed:', err);
     } finally {
       setIsQuickProcessing(false);
-      if (quickFileInputRef.current) quickFileInputRef.current.value = '';
     }
   };
 
   return (
     <div className="flex-1 overflow-y-auto w-full py-4">
       <div className="px-5 mb-6">
-        <Card className="bg-dn-primary/5 border-dn-primary/20 p-5 flex items-center justify-between gap-4 overflow-hidden relative">
+        <Card className="bg-dn-primary/5 border-dn-primary/20 p-5 overflow-hidden relative">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-dn-primary/5 rounded-full blur-2xl" />
-          <div className="flex-1 z-10">
-            <h3 className="text-sm font-semibold text-dn-primary flex items-center gap-2">
-              <Icon name="bolt" className="text-dn-primary" />
-              {t('agentTasks.quickProcess.title')}
-            </h3>
-            <p className="text-xs text-dn-text-muted mt-1 leading-relaxed">
-              {t('agentTasks.quickProcess.subtitle')}
-            </p>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => quickFileInputRef.current?.click()}
-            disabled={isQuickProcessing}
-            className="z-10 shadow-lg shadow-dn-primary/20"
-          >
-            {isQuickProcessing ? (
-              <Icon name="sync" className="animate-spin" />
-            ) : (
-              <Icon name="upload_file" />
+          <div className="relative z-10 space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-dn-primary flex items-center gap-2">
+                <Icon name="bolt" className="text-dn-primary" />
+                {t('agentTasks.quickProcess.title')}
+              </h3>
+              <p className="text-xs text-dn-text-muted mt-1 leading-relaxed">
+                {t('agentTasks.quickProcess.subtitle')}
+              </p>
+            </div>
+
+            <FileUploader
+              files={quickFiles}
+              onAddFile={(file) => setQuickFiles((prev) => [...prev, file])}
+              onRemoveFile={(id) => setQuickFiles((prev) => prev.filter((f) => f.id !== id))}
+            />
+
+            {quickFiles.length > 0 && (
+              <Button
+                size="sm"
+                className="w-full shadow-lg shadow-dn-primary/20"
+                onClick={handleQuickProcess}
+                disabled={isQuickProcessing}
+              >
+                {isQuickProcessing ? (
+                  <Icon name="sync" className="animate-spin" />
+                ) : (
+                  <Icon name="auto_awesome" />
+                )}
+                {t('agentTasks.quickProcess.button')} ({quickFiles.length})
+              </Button>
             )}
-            {t('agentTasks.quickProcess.button')}
-          </Button>
-          <input
-            type="file"
-            ref={quickFileInputRef}
-            onChange={handleQuickFileChange}
-            className="hidden"
-            multiple
-            accept="image/*,video/*,.pdf"
-          />
+          </div>
         </Card>
       </div>
 

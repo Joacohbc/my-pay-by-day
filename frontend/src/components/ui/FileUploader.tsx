@@ -91,26 +91,30 @@ export function FileUploader({ files, onAddFile, onRemoveFile }: FileUploaderPro
   const [selectorOpen, setSelectorOpen] = useState(false);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (!selectedFile) return;
+    const selectedFiles = Array.from(event.target.files || []);
+    if (selectedFiles.length === 0) return;
 
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64Content = reader.result as string;
+    for (const file of selectedFiles) {
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onloadend = () => resolve(reader.result as string);
+      });
+      reader.readAsDataURL(file);
+      
       try {
+        const base64Content = await base64Promise;
         const uploadedFile = await uploadFile({
-          fileName: selectedFile.name,
-          mimeType: selectedFile.type,
+          fileName: file.name,
+          mimeType: file.type,
           base64Content,
         });
         onAddFile(uploadedFile);
       } catch (error) {
         console.error('File upload failed:', error);
-      } finally {
-        if (fileInputRef.current) fileInputRef.current.value = '';
       }
-    };
-    reader.readAsDataURL(selectedFile);
+    }
+    
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -158,7 +162,8 @@ export function FileUploader({ files, onAddFile, onRemoveFile }: FileUploaderPro
           ref={fileInputRef}
           onChange={handleFileChange}
           className="hidden"
-          accept="image/*,video/*,.pdf"
+          multiple
+          accept="image/*,video/*,.pdf,.csv,.json,text/*"
         />
       </div>
     </div>
