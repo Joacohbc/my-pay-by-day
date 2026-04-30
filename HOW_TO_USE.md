@@ -23,7 +23,7 @@ Abre el archivo `.env` en tu editor de texto favorito y configura **obligatoriam
 - `DB_FIELD_ENCRYPTION_KEY`: Una clave secreta de al menos 32 caracteres que se usará para encriptar datos en la base de datos. ¡No la pierdas!
 - `OPENROUTER_API_KEY`: Tu clave de API de [OpenRouter](https://openrouter.ai/) para utilizar los modelos de IA.
 
-Las demás variables (como los modelos de IA, base de datos y zona horaria) tienen valores por defecto y son opcionales, pero puedes ajustarlas según tus necesidades.
+Las demás variables (como los modelos de IA: `AI_PRIMARY_MODEL`, `AI_VISION_MODEL`, `AI_AUDIO_MODEL`, `AI_AGENT_MODEL`, así como sus respectivos timeouts, base de datos y zona horaria) tienen valores por defecto y son opcionales, pero puedes ajustarlas según tus necesidades.
 
 ### 2. Iniciar el contenedor
 
