@@ -588,7 +588,7 @@ const en = {
     importDataDesc: 'Restore data from a previously exported JSON file',
     exportSuccess: 'Export downloaded',
     importSuccess:
-      'Imported: {{tags}} tags, {{categories}} categories, {{nodes}} nodes, {{tagGroups}} tag groups, {{events}} events',
+      'Imported: {{tags}} tags, {{categories}} categories, {{nodes}} nodes, {{tagGroups}} tag groups, {{events}} events, {{files}} files, {{subscriptions}} subscriptions, {{templates}} templates, {{timePeriods}} time periods',
     importSkipped: '{{count}} event(s) skipped',
     importing: 'Importing…',
   },
