@@ -137,26 +137,26 @@ public class FinanceAiTools {
         }
     }
 
-    @Tool("Returns all budget categories. Each entry contains id and name.")
+    @Tool("Returns all budget categories. Each entry contains id, name, and archived status.")
     @AgentToolKind(AgentToolKind.Kind.READ)
     @Transactional
     public String getCategories() {
         var categories = categoryService.listAll(null);
         if (categories.isEmpty()) return "No categories found.";
         return categories.stream()
-                .map(c -> String.format("[id=%d, name=%s%s]", c.id(), c.name(),
+                .map(c -> String.format("[id=%d, name=%s, archived=%b%s]", c.id(), c.name(), c.archived(),
                         c.description() != null && !c.description().isBlank() ? ", description=" + c.description() : ""))
                 .collect(Collectors.joining(", ", "Categories: ", ""));
     }
 
-    @Tool("Returns all available tags. Each entry contains id and name.")
+    @Tool("Returns all available tags. Each entry contains id, name, and archived status.")
     @AgentToolKind(AgentToolKind.Kind.READ)
     @Transactional
     public String getTags() {
         var tags = tagService.listAll(null);
         if (tags.isEmpty()) return "No tags found.";
         return tags.stream()
-                .map(t -> String.format("[id=%d, name=%s%s]", t.id(), t.name(),
+                .map(t -> String.format("[id=%d, name=%s, archived=%b%s]", t.id(), t.name(), t.archived(),
                         t.description() != null && !t.description().isBlank() ? ", description=" + t.description() : ""))
                 .collect(Collectors.joining(", ", "Tags: ", ""));
     }
