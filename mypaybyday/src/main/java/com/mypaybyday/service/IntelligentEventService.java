@@ -34,6 +34,9 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.LanguageContext;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
+import com.mypaybyday.service.CategoryService;
+import com.mypaybyday.service.FinanceNodeService;
+import com.mypaybyday.service.TagService;
 import com.mypaybyday.service.agent.DateConversionTool;
 import com.mypaybyday.service.ai.FinanceAiTools;
 import com.mypaybyday.service.ai.IAUtils;
@@ -66,6 +69,9 @@ public class IntelligentEventService {
 	private final Messages messages;
 	private final ChatModel agentModel;
 	private final DateConversionTool dateConversionTool;
+	private final CategoryService categoryService;
+	private final TagService tagService;
+	private final FinanceNodeService financeNodeService;
 
 	private ExtractionAgent financeExtractionAgent;
 
@@ -74,7 +80,9 @@ public class IntelligentEventService {
 			TimezoneContext timezoneContext,
 			FinanceAiTools financeAiTools, Messages messages,
 			@Named("agentChatModel") ChatModel agentModel,
-			DateConversionTool dateConversionTool) {
+			DateConversionTool dateConversionTool,
+			CategoryService categoryService, TagService tagService,
+			FinanceNodeService financeNodeService) {
 		this.agentFinanceEventCreator = agentFinanceEventCreator;
 		this.draftService = draftService;
 		this.languageContext = languageContext;
@@ -83,6 +91,9 @@ public class IntelligentEventService {
 		this.messages = messages;
 		this.agentModel = agentModel;
 		this.dateConversionTool = dateConversionTool;
+		this.categoryService = categoryService;
+		this.tagService = tagService;
+		this.financeNodeService = financeNodeService;
 	}
 
 	@PostConstruct
@@ -172,8 +183,12 @@ public class IntelligentEventService {
 		event.description = description;
 		event.type = EventType.OUTBOUND;
 
-		// Map CategoryEntity
+		// Validate and Map CategoryEntity
 		if (extraction.getCategory() != null && extraction.getCategory().getId() != null) {
+			var catDto = categoryService.findById(extraction.getCategory().getId());
+			if (catDto.archived()) {
+				throw new BusinessException(messages.get(MsgKey.CATEGORY_NOT_FOUND_ARCHIVED, catDto.id()));
+			}
 			CategoryEntity category = new CategoryEntity();
 			category.id = extraction.getCategory().getId();
 			category.name = extraction.getCategory().getName();
@@ -181,8 +196,16 @@ public class IntelligentEventService {
 			event.category = category;
 		}
 
-		// Map TagEntities
+		// Validate and Map TagEntities
 		if (extraction.getTags() != null && !extraction.getTags().isEmpty()) {
+			for (var extractedTag : extraction.getTags()) {
+				if (extractedTag.getId() != null) {
+					var tagDto = tagService.findById(extractedTag.getId());
+					if (tagDto.archived()) {
+						throw new BusinessException(messages.get(MsgKey.TAG_NOT_FOUND_ARCHIVED, tagDto.id()));
+					}
+				}
+			}
 			event.tags = extraction.getTags().stream()
 					.filter(t -> t.getId() != null)
 					.map(t -> {
@@ -193,6 +216,21 @@ public class IntelligentEventService {
 						return tag;
 					})
 					.collect(Collectors.toSet());
+		}
+
+		// Validate NodeEntities
+		// financeNodeService.findById() already returns null if the node is archived or not found
+		if (extraction.getSourceNodeId() != null) {
+			var nodeDto = financeNodeService.findById(extraction.getSourceNodeId());
+			if (nodeDto == null) {
+				throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND_ARCHIVED, extraction.getSourceNodeId()));
+			}
+		}
+		if (extraction.getDestinationNodeId() != null) {
+			var nodeDto = financeNodeService.findById(extraction.getDestinationNodeId());
+			if (nodeDto == null) {
+				throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND_ARCHIVED, extraction.getDestinationNodeId()));
+			}
 		}
 
 		// Map Transaction and Line Items
