@@ -10,7 +10,11 @@ public record DataTransferDto(
         List<CategoryDto> categories,
         List<FinanceNodeDto> financeNodes,
         List<TagGroupDto> tagGroups,
-        List<FinanceEventDto> events
+        List<FinanceEventDto> events,
+        List<FileExportDto> files,
+        List<SubscriptionDto> subscriptions,
+        List<TemplateDto> templates,
+        List<TimePeriodDto> timePeriods
 ) {
     public static final String CURRENT_VERSION = "1.0";
 }

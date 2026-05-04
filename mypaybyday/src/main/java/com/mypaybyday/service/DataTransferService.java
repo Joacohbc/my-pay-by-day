@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Base64;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -15,12 +16,23 @@ import jakarta.transaction.Transactional;
 import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.dto.DataTransferDto;
 import com.mypaybyday.dto.DataTransferResult;
+import com.mypaybyday.dto.FileExportDto;
+import com.mypaybyday.dto.FileDto;
+import com.mypaybyday.dto.SubscriptionDto;
+import com.mypaybyday.dto.TemplateDto;
+import com.mypaybyday.dto.TimePeriodDto;
+import com.mypaybyday.dto.TimePeriodBudgetDto;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.FinanceLineItemDto;
 import com.mypaybyday.dto.FinanceNodeDto;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.dto.TagGroupDto;
 import com.mypaybyday.entity.CategoryEntity;
+import com.mypaybyday.entity.FileEntity;
+import com.mypaybyday.entity.SubscriptionEntity;
+import com.mypaybyday.entity.TemplateEntity;
+import com.mypaybyday.entity.TimePeriodEntity;
+import com.mypaybyday.entity.TimePeriodBudgetEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
@@ -33,6 +45,9 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.repository.FinanceNodeRepository;
+import com.mypaybyday.repository.SubscriptionRepository;
+import com.mypaybyday.repository.TemplateRepository;
+import com.mypaybyday.repository.TimePeriodRepository;
 import com.mypaybyday.repository.TagGroupRepository;
 import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TransactionRepository;
@@ -53,6 +68,9 @@ public class DataTransferService {
     private final TagGroupRepository tagGroupRepository;
     private final EventRepository eventRepository;
     private final TransactionRepository transactionRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    private final TemplateRepository templateRepository;
+    private final TimePeriodRepository timePeriodRepository;
     private final TagValidator tagValidator;
     private final CategoryValidator categoryValidator;
     private final FinanceNodeValidator financeNodeValidator;
@@ -67,6 +85,9 @@ public class DataTransferService {
             TagGroupRepository tagGroupRepository,
             EventRepository eventRepository,
             TransactionRepository transactionRepository,
+            SubscriptionRepository subscriptionRepository,
+            TemplateRepository templateRepository,
+            TimePeriodRepository timePeriodRepository,
             TagValidator tagValidator,
             CategoryValidator categoryValidator,
             FinanceNodeValidator financeNodeValidator,
@@ -79,6 +100,9 @@ public class DataTransferService {
         this.tagGroupRepository = tagGroupRepository;
         this.eventRepository = eventRepository;
         this.transactionRepository = transactionRepository;
+        this.subscriptionRepository = subscriptionRepository;
+        this.templateRepository = templateRepository;
+        this.timePeriodRepository = timePeriodRepository;
         this.tagValidator = tagValidator;
         this.categoryValidator = categoryValidator;
         this.financeNodeValidator = financeNodeValidator;
@@ -99,6 +123,11 @@ public class DataTransferService {
         List<TagGroupDto> tagGroups = tagGroupRepository.listAll().stream().map(TagGroupDto::from).toList();
         List<FinanceEventDto> events = eventRepository.listAll().stream().map(FinanceEventDto::from).toList();
 
+        List<FileExportDto> files = FileEntity.<FileEntity>listAll().stream().map(FileExportDto::from).toList();
+        List<SubscriptionDto> subscriptions = subscriptionRepository.listAll().stream().map(SubscriptionDto::from).toList();
+        List<TemplateDto> templates = templateRepository.listAll().stream().map(TemplateDto::from).toList();
+        List<TimePeriodDto> timePeriods = timePeriodRepository.listAll().stream().map(TimePeriodDto::from).toList();
+
         return new DataTransferDto(
                 DataTransferDto.CURRENT_VERSION,
                 LocalDateTime.now(ZoneOffset.UTC),
@@ -106,7 +135,11 @@ public class DataTransferService {
                 categories,
                 nodes,
                 tagGroups,
-                events);
+                events,
+                files,
+                subscriptions,
+                templates,
+                timePeriods);
     }
 
     // -------------------------------------------------------------------------
@@ -118,9 +151,13 @@ public class DataTransferService {
         Map<Long, Long> tagIdMap = importTags(dto.tags());
         Map<Long, Long> categoryIdMap = importCategories(dto.categories());
         Map<Long, Long> nodeIdMap = importNodes(dto.financeNodes());
+        Map<Long, Long> fileIdMap = importFiles(dto.files());
         int tagGroupCount = importTagGroups(dto.tagGroups(), tagIdMap);
+        int subCount = importSubscriptions(dto.subscriptions(), tagIdMap, categoryIdMap, nodeIdMap);
+        int tempCount = importTemplates(dto.templates(), tagIdMap, categoryIdMap, nodeIdMap);
+        int tpCount = importTimePeriods(dto.timePeriods(), categoryIdMap);
         List<String> skippedEvents = new ArrayList<>();
-        int eventCount = importEvents(dto.events(), tagIdMap, categoryIdMap, nodeIdMap, skippedEvents);
+        int eventCount = importEvents(dto.events(), tagIdMap, categoryIdMap, nodeIdMap, fileIdMap, skippedEvents);
 
         return new DataTransferResult(
                 tagIdMap.size(),
@@ -128,6 +165,10 @@ public class DataTransferService {
                 nodeIdMap.size(),
                 tagGroupCount,
                 eventCount,
+                fileIdMap.size(),
+                subCount,
+                tempCount,
+                tpCount,
                 skippedEvents);
     }
 
@@ -176,6 +217,8 @@ public class DataTransferService {
             FinanceNodeEntity entity = new FinanceNodeEntity();
             entity.name = dto.name();
             entity.type = dto.type();
+            entity.description = dto.description();
+            entity.icon = dto.icon();
             entity.archived = dto.archived();
             financeNodeValidator.validate(entity);
             financeNodeRepository.persist(entity);
@@ -225,13 +268,14 @@ public class DataTransferService {
             Map<Long, Long> tagIdMap,
             Map<Long, Long> categoryIdMap,
             Map<Long, Long> nodeIdMap,
+            Map<Long, Long> fileIdMap,
             List<String> skippedEvents) {
         if (dtos == null) return 0;
         int count = 0;
 
         for (FinanceEventDto dto : dtos) {
             try {
-                count += importSingleEvent(dto, tagIdMap, categoryIdMap, nodeIdMap);
+                count += importSingleEvent(dto, tagIdMap, categoryIdMap, nodeIdMap, fileIdMap);
             } catch (Exception e) {
                 Log.warnf("Skipped event '%s': %s", dto.name(), e.getMessage());
                 skippedEvents.add("Event '%s': %s".formatted(dto.name(), e.getMessage()));
@@ -244,7 +288,8 @@ public class DataTransferService {
             FinanceEventDto dto,
             Map<Long, Long> tagIdMap,
             Map<Long, Long> categoryIdMap,
-            Map<Long, Long> nodeIdMap) throws BusinessException {
+            Map<Long, Long> nodeIdMap,
+            Map<Long, Long> fileIdMap) throws BusinessException {
 
         FinanceTransactionEntity tx = new FinanceTransactionEntity();
         tx.transactionDate = dto.transactionDate();
@@ -295,8 +340,154 @@ public class DataTransferService {
         }
         event.tags = resolvedTags;
 
+        if (dto.files() != null) {
+            for (FileDto fDto : dto.files()) {
+                Long newFileId = fileIdMap.get(fDto.id());
+                if (newFileId != null) {
+                    FileEntity fEntity = FileEntity.findById(newFileId);
+                    if (fEntity != null) event.files.add(fEntity);
+                }
+            }
+        }
+
         regexValidator.validateNameAndDescription(event.name, event.description);
         eventRepository.persist(event);
         return 1;
+    }
+    private Map<Long, Long> importFiles(List<FileExportDto> dtos) {
+        Map<Long, Long> idMap = new HashMap<>();
+        if (dtos == null) return idMap;
+
+        for (FileExportDto dto : dtos) {
+            FileEntity entity = new FileEntity();
+            entity.fileName = dto.fileName();
+            entity.mimeType = dto.mimeType();
+            entity.size = dto.size();
+            if (dto.base64Content() != null && !dto.base64Content().isEmpty()) {
+                entity.data = Base64.getDecoder().decode(dto.base64Content());
+                try {
+                    java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+                    byte[] hashBytes = md.digest(entity.data);
+                    entity.hash = java.util.HexFormat.of().formatHex(hashBytes);
+                } catch (java.security.NoSuchAlgorithmException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            FileEntity.getEntityManager().persist(entity);
+            if (dto.id() != null) {
+                idMap.put(dto.id(), entity.id);
+            }
+        }
+        return idMap;
+    }
+
+    private int importSubscriptions(List<SubscriptionDto> dtos, Map<Long, Long> tagIdMap, Map<Long, Long> categoryIdMap, Map<Long, Long> nodeIdMap) {
+        if (dtos == null) return 0;
+        int count = 0;
+        for (SubscriptionDto dto : dtos) {
+            SubscriptionEntity entity = new SubscriptionEntity();
+            entity.name = dto.name();
+            entity.description = dto.description();
+            entity.eventType = dto.eventType();
+            entity.modifierValue = dto.modifierValue();
+            entity.recurrence = dto.recurrence();
+            entity.nextExecutionDate = dto.nextExecutionDate();
+            entity.status = dto.status();
+
+            if (dto.originNodeId() != null) {
+                Long newNodeId = nodeIdMap.get(dto.originNodeId());
+                if (newNodeId != null) entity.originNode = financeNodeRepository.findById(newNodeId);
+            }
+            if (dto.destinationNodeId() != null) {
+                Long newNodeId = nodeIdMap.get(dto.destinationNodeId());
+                if (newNodeId != null) entity.destinationNode = financeNodeRepository.findById(newNodeId);
+            }
+            if (dto.category() != null && dto.category().id() != null) {
+                Long newCategoryId = categoryIdMap.get(dto.category().id());
+                if (newCategoryId != null) entity.category = categoryRepository.findById(newCategoryId);
+            }
+            if (dto.tags() != null) {
+                for (TagDto tagDto : dto.tags()) {
+                    Long newTagId = tagIdMap.get(tagDto.id());
+                    if (newTagId != null) {
+                        TagEntity tag = tagRepository.findById(newTagId);
+                        if (tag != null) entity.tags.add(tag);
+                    }
+                }
+            }
+            subscriptionRepository.persist(entity);
+            count++;
+        }
+        return count;
+    }
+
+    private int importTemplates(List<TemplateDto> dtos, Map<Long, Long> tagIdMap, Map<Long, Long> categoryIdMap, Map<Long, Long> nodeIdMap) {
+        if (dtos == null) return 0;
+        int count = 0;
+        for (TemplateDto dto : dtos) {
+            TemplateEntity entity = new TemplateEntity();
+            entity.name = dto.name();
+            entity.description = dto.description();
+            entity.eventType = dto.eventType();
+            entity.modifierType = dto.modifierType();
+            entity.modifierValue = dto.modifierValue();
+
+            if (dto.originNodeId() != null) {
+                Long newNodeId = nodeIdMap.get(dto.originNodeId());
+                if (newNodeId != null) entity.originNode = financeNodeRepository.findById(newNodeId);
+            }
+            if (dto.destinationNodeId() != null) {
+                Long newNodeId = nodeIdMap.get(dto.destinationNodeId());
+                if (newNodeId != null) entity.destinationNode = financeNodeRepository.findById(newNodeId);
+            }
+            if (dto.category() != null && dto.category().id() != null) {
+                Long newCategoryId = categoryIdMap.get(dto.category().id());
+                if (newCategoryId != null) entity.category = categoryRepository.findById(newCategoryId);
+            }
+            if (dto.tags() != null) {
+                for (TagDto tagDto : dto.tags()) {
+                    Long newTagId = tagIdMap.get(tagDto.id());
+                    if (newTagId != null) {
+                        TagEntity tag = tagRepository.findById(newTagId);
+                        if (tag != null) entity.tags.add(tag);
+                    }
+                }
+            }
+            templateRepository.persist(entity);
+            count++;
+        }
+        return count;
+    }
+
+    private int importTimePeriods(List<TimePeriodDto> dtos, Map<Long, Long> categoryIdMap) {
+        if (dtos == null) return 0;
+        int count = 0;
+        for (TimePeriodDto dto : dtos) {
+            TimePeriodEntity entity = new TimePeriodEntity();
+            entity.name = dto.name();
+            entity.startDate = dto.startDate();
+            entity.endDate = dto.endDate();
+            entity.savingsPercentageGoal = dto.savingsPercentageGoal();
+            entity.budgetLimit = dto.budgetLimit();
+
+            if (dto.budgets() != null) {
+                for (TimePeriodBudgetDto budgetDto : dto.budgets()) {
+                    Long newCategoryId = budgetDto.category() != null ? categoryIdMap.get(budgetDto.category().id()) : null;
+                    if (newCategoryId != null) {
+                        CategoryEntity cat = categoryRepository.findById(newCategoryId);
+                        if (cat != null) {
+                            TimePeriodBudgetEntity budget = new TimePeriodBudgetEntity();
+                            budget.timePeriod = entity;
+                            budget.category = cat;
+                            budget.budgetedAmount = budgetDto.budgetedAmount();
+                            entity.budgets.add(budget);
+                        }
+                    }
+                }
+            }
+            timePeriodRepository.persist(entity);
+            count++;
+        }
+        return count;
     }
 }

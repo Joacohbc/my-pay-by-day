@@ -36,6 +36,7 @@ public class DuplicateSettingsResource {
 	Messages messages;
 
 	@GET
+	@Transactional
 	public Response getSettings() {
 		DuplicateDetectionSettingsEntity entity = settingsRepository.getSettings();
 		DuplicateDetectionSettingsDto dto = new DuplicateDetectionSettingsDto();

@@ -587,7 +587,7 @@ const es = {
     importDataDesc: 'Restaurá datos desde un archivo JSON exportado previamente',
     exportSuccess: 'Exportación descargada',
     importSuccess:
-      'Importado: {{tags}} etiquetas, {{categories}} categorías, {{nodes}} nodos, {{tagGroups}} grupos, {{events}} eventos',
+      'Importado: {{tags}} etiquetas, {{categories}} categorías, {{nodes}} nodos, {{tagGroups}} grupos de etiquetas, {{events}} eventos, {{files}} archivos, {{subscriptions}} suscripciones, {{templates}} plantillas, {{timePeriods}} períodos de tiempo',
     importSkipped: '{{count}} evento(s) omitido(s)',
     importing: 'Importando…',
   },

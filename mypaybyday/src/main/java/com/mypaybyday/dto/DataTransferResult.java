@@ -8,5 +8,9 @@ public record DataTransferResult(
         int importedNodes,
         int importedTagGroups,
         int importedEvents,
+        int importedFiles,
+        int importedSubscriptions,
+        int importedTemplates,
+        int importedTimePeriods,
         List<String> skippedEvents
 ) {}

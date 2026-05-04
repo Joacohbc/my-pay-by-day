@@ -114,6 +114,10 @@ export function SettingsPage() {
         nodes: result.importedNodes,
         tagGroups: result.importedTagGroups,
         events: result.importedEvents,
+        files: result.importedFiles,
+        subscriptions: result.importedSubscriptions,
+        templates: result.importedTemplates,
+        timePeriods: result.importedTimePeriods,
       });
       const skippedSuffix =
         result.skippedEvents.length > 0

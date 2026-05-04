@@ -305,6 +305,10 @@ export interface DataTransferDto {
   financeNodes: FinanceNode[];
   tagGroups: TagGroup[];
   events: FinanceEvent[];
+  files: FileExportDto[];
+  subscriptions: Subscription[];
+  templates: Template[];
+  timePeriods: TimePeriod[];
 }
 
 export interface DataTransferResult {
@@ -313,5 +317,16 @@ export interface DataTransferResult {
   importedNodes: number;
   importedTagGroups: number;
   importedEvents: number;
+  importedFiles: number;
+  importedSubscriptions: number;
+  importedTemplates: number;
+  importedTimePeriods: number;
   skippedEvents: string[];
+}
+
+export interface FileExportDto extends Identifiable {
+  fileName: string;
+  mimeType: string;
+  size: number;
+  base64Content: string;
 }
