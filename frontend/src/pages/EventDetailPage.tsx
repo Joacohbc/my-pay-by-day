@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useParams, Link } from 'react-router-dom';
-import { eventsRoute } from '@/lib/routes';
+import { eventsRoute, Routes } from '@/lib/routes';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useEvent, useDeleteEvent, useUpdateEvent } from '@/hooks/useEvents';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -47,7 +47,7 @@ const eventTypeConfig = {
 export function EventDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const { navigateBack, fromRoute } = useAppNavigation();
+  const { navigate, navigateBack, fromRoute } = useAppNavigation();
   const backRoute = fromRoute ?? eventsRoute();
 
   const { data: event, isLoading, error } = useEvent(Number(id));
@@ -98,14 +98,26 @@ export function EventDetailPage() {
         back={backRoute}
         action={
           <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              title={t('events.clone')}
+              onClick={() => {
+                const { id, transactionId, draftId, isDraft, ...cloneData } = event;
+                navigate(Routes.EVENT_NEW, { state: { draft: { ...cloneData, name: `${cloneData.name} (Copy)` } } });
+              }}
+            >
+              <Icon name="content_copy" className="text-base" />
+            </Button>
             <Link to={`/events/${event.id}/edit`} state={{ from: backRoute }}>
-              <Button variant="secondary" size="sm">
+              <Button variant="secondary" size="sm" title={t('common.edit')}>
                 <Icon name="edit" className="text-base" />
               </Button>
             </Link>
             <Button
               variant="danger"
               size="sm"
+              title={t('common.delete')}
               onClick={() => setIsConfirmOpen(true)}
             >
               <Icon name="delete" className="text-base" />
