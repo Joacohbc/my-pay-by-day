@@ -103,6 +103,7 @@ export function EventDetailPage() {
               size="sm"
               title={t('events.clone')}
               onClick={() => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { id, transactionId, draftId, isDraft, ...cloneData } = event;
                 navigate(Routes.EVENT_NEW, { state: { draft: { ...cloneData, name: `${cloneData.name} (Copy)` } } });
               }}
