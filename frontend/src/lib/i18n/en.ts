@@ -133,6 +133,7 @@ const en = {
     noEventsFoundSearch: 'Try a different search term',
     noEventsFoundCreate: 'Create your first financial event',
     newEvent: 'New Event',
+    clone: 'Clone',
     detail: 'Detail',
     deleteConfirm: 'Delete this event permanently?',
     relatedEvents: 'Related Events',

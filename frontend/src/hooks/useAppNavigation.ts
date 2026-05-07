@@ -15,7 +15,7 @@ export interface AppNavigationState {
   /**
    * Used to pre-fill the form when creating a new event from a draft
    */
-  draft?: FinanceEvent;
+  draft?: Partial<FinanceEvent>;
   
   /**
    * Used to establish a relationship when creating a new event related to an existing one

@@ -132,6 +132,7 @@ const es = {
     noEventsFoundSearch: 'Prueba con otro término de búsqueda',
     noEventsFoundCreate: 'Crea tu primer evento financiero',
     newEvent: 'Nuevo Evento',
+    clone: 'Clonar',
     detail: 'Detalle',
     deleteConfirm: '¿Eliminar este evento permanentemente?',
     relatedEvents: 'Eventos Relacionados',
