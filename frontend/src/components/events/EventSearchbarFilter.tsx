@@ -194,17 +194,17 @@ export function EventSearchbarFilter({
           </div>
 
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-dn-text-main">{t('events.approximateTime', 'Approximate Time')}</h3>
+            <h3 className="text-sm font-medium text-dn-text-main">{t('events.approximateTime')}</h3>
             <div className="grid grid-cols-2 gap-3 items-end">
               <Input
                 type="date"
-                label={t('events.baseDate', 'Base Date')}
+                label={t('events.baseDate')}
                 value={approxBaseDate}
                 onChange={(e) => setApproxBaseDate(e.target.value)}
               />
               <Input
                 type="number"
-                label={t('events.varianceDays', '+/- Days')}
+                label={t('events.varianceDays')}
                 value={String(approxVarianceDays)}
                 onChange={(e) => setApproxVarianceDays(Number(e.target.value))}
                 min="0"
@@ -216,7 +216,7 @@ export function EventSearchbarFilter({
               onClick={applyApproximateTime}
               disabled={!approxBaseDate}
             >
-              {t('events.applyApproximate', 'Apply Approximate')}
+              {t('events.applyApproximate')}
             </Button>
           </div>
 
