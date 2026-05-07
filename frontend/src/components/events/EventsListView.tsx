@@ -170,10 +170,7 @@ export function EventsListView({
           categories={categories}
           tags={tags}
           nodes={nodes}
-          onToggleFilters={() => {
-            setShowFilters((prev) => !prev)
-            resetFilters();
-          }}
+          onToggleFilters={() => setShowFilters((prev) => !prev)}
           onResetFilters={resetFilters}
           onToggleCategory={toggleCategory}
           onToggleTag={toggleTag}
