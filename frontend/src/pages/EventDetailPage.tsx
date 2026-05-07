@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams, Link } from 'react-router-dom';
 import { eventsRoute, Routes } from '@/lib/routes';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
+import type { FinanceEvent } from '@/models';
 import { useEvent, useDeleteEvent, useUpdateEvent } from '@/hooks/useEvents';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -105,7 +106,7 @@ export function EventDetailPage() {
               onClick={() => {
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { id, transactionId, draftId, isDraft, ...cloneData } = event;
-                navigate(Routes.EVENT_NEW, { state: { draft: { ...cloneData, name: `${cloneData.name} (Copy)` } } });
+                navigate(Routes.EVENT_NEW, { state: { draft: { ...cloneData, name: `${cloneData.name} (Copy)` } as Partial<FinanceEvent> } });
               }}
             >
               <Icon name="content_copy" className="text-base" />
