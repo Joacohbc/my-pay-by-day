@@ -129,7 +129,13 @@ export function EventSearchbarFilter({
             {hasAnyFilter && (
               <button
                 type="button"
-                onClick={onResetFilters}
+                onClick={() => {
+                  onResetFilters();
+                  setSelectedDynamicPeriod(undefined);
+                  setSelectedTimePeriodId('');
+                  setApproxBaseDate('');
+                  setApproxVarianceDays(3);
+                }}
                 className="text-xs text-dn-primary font-medium hover:text-dn-primary/80"
               >
                 {t('common.clearFilters')}
