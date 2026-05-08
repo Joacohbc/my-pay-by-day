@@ -12,6 +12,11 @@ import { DynamicTimePeriodSelector, type DynamicPeriodOption } from '@/component
 import type { EventModalFiltersState } from '@/hooks/useEventModalFilters';
 import type { DateField } from '@/services/events.service';
 import type { Category, FinanceNode, Tag } from '@/models';
+export interface FilterPill {
+  label: string;
+  value: string;
+  badge?: number;
+}
 import { useTimePeriods } from '@/hooks/useTimePeriods';
 import { getDynamicPeriodDates } from '@/lib/utils/dateUtils';
 
@@ -25,6 +30,7 @@ type EventSearchbarFilterProps = {
   categories: Category[];
   tags: Tag[];
   nodes: FinanceNode[];
+  pills?: PillsConfig;
   onToggleFilters: () => void;
   onResetFilters: () => void;
   onToggleCategory: (id: number) => void;
@@ -38,6 +44,45 @@ type EventSearchbarFilterProps = {
   onPageReset?: () => void;
   children?: ReactNode;
 };
+
+export type PillsConfig = {
+  items?: FilterPill[];
+  active?: string;
+  onChange?: (v: string) => void;
+  position?: 'modal' | 'inline';
+};
+
+type PillButtonsProps = {
+  pills: FilterPill[];
+  activePill?: string;
+  onPillChange?: (v: string) => void;
+};
+
+function PillButtons({ pills, activePill, onPillChange }: PillButtonsProps) {
+  return (
+    <>
+      {pills.map(({ label, value, badge }) => (
+        <button
+          key={value}
+          onClick={() => onPillChange?.(value)}
+          className={[
+            'shrink-0 px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5',
+            activePill === value
+              ? 'bg-dn-primary/20 text-dn-primary'
+              : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
+          ].join(' ')}
+        >
+          {label}
+          {typeof badge === 'number' && badge > 0 && (
+            <span className="bg-dn-error text-white text-[10px] leading-tight font-semibold px-1.5 py-0.5 rounded-full min-w-4.5 text-center inline-block">
+              {badge}
+            </span>
+          )}
+        </button>
+      ))}
+    </>
+  );
+}
 
 export function EventSearchbarFilter({
   search,
@@ -59,10 +104,23 @@ export function EventSearchbarFilter({
   onNodeIdChange,
   onMinAmountChange,
   onMaxAmountChange,
+  pills,
   onPageReset,
   children,
 }: EventSearchbarFilterProps) {
   const { t } = useTranslation();
+
+  const { items: filterPills, active: activePill, onChange: onPillChange, position: pillsPosition = 'modal' } = pills ?? {};
+
+  const defaultPills: FilterPill[] = [
+    { label: t('common.all'), value: 'ALL' },
+    { label: t('events.income'), value: 'INBOUND' },
+    { label: t('events.expenses'), value: 'OUTBOUND' },
+    { label: t('events.transfers'), value: 'OTHER' },
+  ];
+
+  const pillsToRender = filterPills ?? (onPillChange ? defaultPills : undefined);
+
   const { data: pagedTimePeriods } = useTimePeriods(0, 100);
   const timePeriods = pagedTimePeriods?.content || [];
   const [selectedDynamicPeriod, setSelectedDynamicPeriod] = useState<DynamicPeriodOption | undefined>();
@@ -145,6 +203,15 @@ export function EventSearchbarFilter({
               </button>
             )}
           </div>
+
+          {pillsPosition === 'modal' && pillsToRender && pillsToRender.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-dn-text-main">{t('events.eventType')}</h3>
+              <div className="flex gap-2 flex-wrap">
+                <PillButtons pills={pillsToRender} activePill={activePill} onPillChange={onPillChange} />
+              </div>
+            </div>
+          )}
 
           {/* Time Periods */}
           <div className="space-y-3">
@@ -376,6 +443,12 @@ export function EventSearchbarFilter({
               {t('events.amountRange')}
             </span>
           )}
+        </div>
+      )}
+
+      {pillsPosition === 'inline' && pillsToRender && pillsToRender.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <PillButtons pills={pillsToRender} activePill={activePill} onPillChange={onPillChange} />
         </div>
       )}
 

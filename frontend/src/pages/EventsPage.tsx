@@ -197,13 +197,6 @@ export function EventsPage() {
     [events]
   );
 
-  const filterPills = [
-    { label: t('common.all'), value: 'ALL' },
-    { label: t('events.income'), value: 'INBOUND' },
-    { label: t('events.expenses'), value: 'OUTBOUND' },
-    { label: t('events.transfers'), value: 'OTHER' },
-  ];
-
   if (error) {
     return (
       <div className="px-5 py-4 text-dn-error text-sm">{String(error)}</div>
@@ -258,9 +251,7 @@ export function EventsPage() {
         advancedFilters={advancedFilters}
         onAdvancedFiltersChange={setAdvancedFilters}
         onClearFilters={clearFilters}
-        filterPills={filterPills}
-        activePill={filter}
-        onPillChange={setFilter}
+        pills={{ active: filter, onChange: setFilter, position: 'inline' }}
         emptyTitle={t('events.noEventsFound')}
         emptyDescription={
           search ? t('events.noEventsFoundSearch') : t('events.noEventsFoundCreate')

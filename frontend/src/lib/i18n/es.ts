@@ -203,6 +203,7 @@ const es = {
     maxAmount: 'Monto Máximo',
     iconSourceCategory: 'Ícono de categoría',
     iconSourceNode: 'Ícono de nodo',
+    eventType: 'Tipo de Evento',
   },
 
   // ─── Event Types ─────────────────────────────────────────────────────────

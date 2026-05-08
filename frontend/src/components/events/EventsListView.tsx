@@ -7,7 +7,7 @@ import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
 import { EventCard } from '@/components/events/EventCard';
 import { Icon } from '@/components/ui/Icon';
-import { EventSearchbarFilter } from '@/components/events/EventSearchbarFilter';
+import { EventSearchbarFilter, type PillsConfig } from '@/components/events/EventSearchbarFilter';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Card } from '@/components/ui/Card';
 import { Pagination } from '@/components/ui/Pagination';
@@ -23,11 +23,6 @@ export interface AdvancedFiltersState {
   maxAmount?: number;
 }
 
-export interface FilterPill {
-  label: string;
-  value: string;
-  badge?: number;
-}
 
 export interface EventsListViewProps {
   events: FinanceEvent[];
@@ -45,9 +40,7 @@ export interface EventsListViewProps {
   onAdvancedFiltersChange?: (next: AdvancedFiltersState) => void;
   onClearFilters?: () => void;
 
-  filterPills?: FilterPill[];
-  activePill?: string;
-  onPillChange?: (value: string) => void;
+  pills?: PillsConfig;
 
   renderItem?: (event: FinanceEvent) => ReactNode;
   keyResolver?: (event: FinanceEvent) => string | number;
@@ -91,9 +84,7 @@ export function EventsListView({
   advancedFilters,
   onAdvancedFiltersChange,
   onClearFilters,
-  filterPills,
-  activePill,
-  onPillChange,
+  pills,
   renderItem,
   keyResolver,
   from,
@@ -184,33 +175,8 @@ export function EventsListView({
           onNodeIdChange={(id) => updateAdvanced({ nodeId: id })}
           onMinAmountChange={(v) => updateAdvanced({ minAmount: v })}
           onMaxAmountChange={(v) => updateAdvanced({ maxAmount: v })}
-        >
-          {filterPills && filterPills.length > 0 && (
-            <div className="mt-2">
-              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                {filterPills.map(({ label, value, badge }) => (
-                  <button
-                  key={value}
-                  onClick={() => onPillChange?.(value)}
-                  className={[
-                    'shrink-0 px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5',
-                    activePill === value
-                    ? 'bg-dn-primary/20 text-dn-primary'
-                    : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
-                  ].join(' ')}
-                  >
-                    {label}
-                    {typeof badge === 'number' && badge > 0 && (
-                      <span className="bg-dn-error text-white text-[10px] leading-tight font-semibold px-1.5 py-0.5 rounded-full min-w-4.5 text-center inline-block">
-                        {badge}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </EventSearchbarFilter>
+          pills={pills}
+        />
       </div>
 
       <div className="px-5">

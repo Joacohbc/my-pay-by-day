@@ -204,6 +204,7 @@ const en = {
     maxAmount: 'Max Amount',
     iconSourceCategory: 'Category icon',
     iconSourceNode: 'Node icon',
+    eventType: 'Event Type',
   },
 
   // ─── Event Types ─────────────────────────────────────────────────────────
