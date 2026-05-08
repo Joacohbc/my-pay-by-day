@@ -33,6 +33,8 @@ type EventSearchbarFilterProps = {
   onStartDateChange: (value: string) => void;
   onEndDateChange: (value: string) => void;
   onNodeIdChange: (nodeId: number | undefined) => void;
+  onMinAmountChange: (value: number | undefined) => void;
+  onMaxAmountChange: (value: number | undefined) => void;
   onPageReset?: () => void;
   children?: ReactNode;
 };
@@ -55,6 +57,8 @@ export function EventSearchbarFilter({
   onStartDateChange,
   onEndDateChange,
   onNodeIdChange,
+  onMinAmountChange,
+  onMaxAmountChange,
   onPageReset,
   children,
 }: EventSearchbarFilterProps) {
@@ -116,6 +120,7 @@ export function EventSearchbarFilter({
 
   const hasActiveDateRange = filters.startDate !== '' || filters.endDate !== '';
   const hasActiveNode = filters.nodeId !== undefined;
+  const hasActiveAmountRange = filters.minAmount !== undefined || filters.maxAmount !== undefined;
 
   return (
     <>
@@ -131,6 +136,8 @@ export function EventSearchbarFilter({
                   setSelectedTimePeriodId('');
                   setApproxBaseDate('');
                   setApproxVarianceDays(3);
+                  onMinAmountChange(undefined);
+                  onMaxAmountChange(undefined);
                 }}
                 className="text-xs text-dn-primary font-medium hover:text-dn-primary/80"
               >
@@ -220,6 +227,34 @@ export function EventSearchbarFilter({
             >
               {t('events.applyApproximate')}
             </Button>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-dn-text-main">{t('events.amountRange')}</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                type="number"
+                label={t('events.minAmount')}
+                value={filters.minAmount !== undefined ? String(filters.minAmount) : ''}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  onMinAmountChange(v === '' ? undefined : Number(v));
+                  onPageReset?.();
+                }}
+                min="0"
+              />
+              <Input
+                type="number"
+                label={t('events.maxAmount')}
+                value={filters.maxAmount !== undefined ? String(filters.maxAmount) : ''}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  onMaxAmountChange(v === '' ? undefined : Number(v));
+                  onPageReset?.();
+                }}
+                min="0"
+              />
+            </div>
           </div>
 
           {categories.length > 0 && (
@@ -334,6 +369,11 @@ export function EventSearchbarFilter({
           {hasActiveNode && (
             <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary">
               {t('events.filterNode')}
+            </span>
+          )}
+          {hasActiveAmountRange && (
+            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary">
+              {t('events.amountRange')}
             </span>
           )}
         </div>

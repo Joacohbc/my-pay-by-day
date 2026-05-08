@@ -58,6 +58,8 @@ export function EventMultiSelectModal({
     setStartDate,
     setEndDate,
     setNodeId,
+    setMinAmount,
+    setMaxAmount,
   } = useEventModalFilters();
 
   const { data: categoriesResponse } = useCategories();
@@ -161,6 +163,8 @@ export function EventMultiSelectModal({
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
           onNodeIdChange={setNodeId}
+          onMinAmountChange={setMinAmount}
+          onMaxAmountChange={setMaxAmount}
           onPageReset={() => setPage(0)}
         >
           <EventSelectionList

@@ -106,16 +106,27 @@ public class EventGetService {
 		query.append(" ORDER BY ").append(dateFieldExpression).append(" DESC");
 		PanacheQuery<FinanceEventEntity> panacheQuery = eventRepository.find(query.toString(), params);
 
-		if (queryRequest.search() != null && !queryRequest.search().isBlank()) {
-			String searchLower = queryRequest.search().toLowerCase();
+		boolean hasSearch = queryRequest.search() != null && !queryRequest.search().isBlank();
+		boolean hasAmountRange = queryRequest.minAmount() != null || queryRequest.maxAmount() != null;
+
+		if (hasSearch || hasAmountRange) {
+			String searchLower = hasSearch ? queryRequest.search().toLowerCase() : null;
 			List<FinanceEventEntity> matchingEvents = panacheQuery.stream()
 					.filter(event -> {
-						boolean nameMatch = event.name != null && event.name.toLowerCase().contains(searchLower);
-						boolean descriptionMatch = event.description != null && event.description.toLowerCase().contains(searchLower);
-						boolean categoryMatch = event.category != null
-								&& event.category.name != null
-								&& event.category.name.toLowerCase().contains(searchLower);
-						return nameMatch || descriptionMatch || categoryMatch;
+						if (hasSearch) {
+							boolean nameMatch = event.name != null && event.name.toLowerCase().contains(searchLower);
+							boolean descriptionMatch = event.description != null && event.description.toLowerCase().contains(searchLower);
+							boolean categoryMatch = event.category != null
+									&& event.category.name != null
+									&& event.category.name.toLowerCase().contains(searchLower);
+							if (!nameMatch && !descriptionMatch && !categoryMatch) return false;
+						}
+						if (hasAmountRange) {
+							BigDecimal total = eventTotalAmount(event);
+							if (queryRequest.minAmount() != null && total.compareTo(queryRequest.minAmount()) < 0) return false;
+							if (queryRequest.maxAmount() != null && total.compareTo(queryRequest.maxAmount()) > 0) return false;
+						}
+						return true;
 					})
 					.collect(Collectors.toList());
 
@@ -136,6 +147,14 @@ public class EventGetService {
 				.map(FinanceEventDto::from)
 				.toList();
 		return PagedResponse.of(content, queryRequest.page(), queryRequest.size(), totalElements);
+	}
+
+	private BigDecimal eventTotalAmount(FinanceEventEntity event) {
+		if (event.transaction == null || event.transaction.lineItems == null) return BigDecimal.ZERO;
+		return event.transaction.lineItems.stream()
+				.map(li -> li.amount)
+				.filter(a -> a != null && a.compareTo(BigDecimal.ZERO) > 0)
+				.reduce(BigDecimal.ZERO, BigDecimal::add);
 	}
 
 	@Transactional

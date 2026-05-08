@@ -19,7 +19,9 @@ public record EventQuery(
 	Long tagId,
 	List<Long> tagIds,
 	List<Long> categoryIds,
-	Long nodeId
+	Long nodeId,
+	java.math.BigDecimal minAmount,
+	java.math.BigDecimal maxAmount
 ) {
 
 	public enum DateField { TRANSACTION, CREATED, UPDATED }
@@ -42,6 +44,8 @@ public record EventQuery(
 		private List<Long> tagIds;
 		private List<Long> categoryIds;
 		private Long nodeId;
+		private java.math.BigDecimal minAmount;
+		private java.math.BigDecimal maxAmount;
 
 		public Builder page(int page)                        { this.page = page; return this; }
 		public Builder size(int size)                        { this.size = size; return this; }
@@ -55,9 +59,11 @@ public record EventQuery(
 		public Builder tagIds(List<Long> tagIds)             { this.tagIds = tagIds; return this; }
 		public Builder categoryIds(List<Long> categoryIds)   { this.categoryIds = categoryIds; return this; }
 		public Builder nodeId(Long nodeId)                   { this.nodeId = nodeId; return this; }
+		public Builder minAmount(java.math.BigDecimal v)     { this.minAmount = v; return this; }
+		public Builder maxAmount(java.math.BigDecimal v)     { this.maxAmount = v; return this; }
 
 		public EventQuery build() {
-			return new EventQuery(page, size, search, startDate, endDate, dateField, type, categoryId, tagId, tagIds, categoryIds, nodeId);
+			return new EventQuery(page, size, search, startDate, endDate, dateField, type, categoryId, tagId, tagIds, categoryIds, nodeId, minAmount, maxAmount);
 		}
 	}
 }

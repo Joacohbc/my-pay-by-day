@@ -8,6 +8,8 @@ export interface EventModalFiltersState {
   endDate: string;
   dateField: DateField;
   nodeId?: number;
+  minAmount?: number;
+  maxAmount?: number;
 }
 
 const DEFAULT_FILTERS: EventModalFiltersState = {
@@ -17,6 +19,8 @@ const DEFAULT_FILTERS: EventModalFiltersState = {
   endDate: '',
   dateField: 'TRANSACTION',
   nodeId: undefined,
+  minAmount: undefined,
+  maxAmount: undefined,
 };
 
 export function useEventModalFilters(initial?: Partial<EventModalFiltersState>) {
@@ -35,7 +39,9 @@ export function useEventModalFilters(initial?: Partial<EventModalFiltersState>) 
     !!filters.startDate ||
     !!filters.endDate ||
     !!filters.nodeId ||
-    filters.dateField !== 'TRANSACTION';
+    filters.dateField !== 'TRANSACTION' ||
+    filters.minAmount !== undefined ||
+    filters.maxAmount !== undefined;
 
   const toEventFilters = (): Omit<EventFilters, 'page' | 'search' | 'size' | 'type'> => ({
     tagIds: filters.tagIds.length ? filters.tagIds : undefined,
@@ -44,6 +50,8 @@ export function useEventModalFilters(initial?: Partial<EventModalFiltersState>) 
     endDate: filters.endDate || undefined,
     dateField: filters.dateField,
     nodeId: filters.nodeId,
+    minAmount: filters.minAmount,
+    maxAmount: filters.maxAmount,
   });
 
   const toggleTag = useCallback((id: number) => {
@@ -80,6 +88,14 @@ export function useEventModalFilters(initial?: Partial<EventModalFiltersState>) 
     setFilters((prev) => ({ ...prev, nodeId: id }));
   }, []);
 
+  const setMinAmount = useCallback((v: number | undefined) => {
+    setFilters((prev) => ({ ...prev, minAmount: v }));
+  }, []);
+
+  const setMaxAmount = useCallback((v: number | undefined) => {
+    setFilters((prev) => ({ ...prev, maxAmount: v }));
+  }, []);
+
   return {
     filters,
     setFilters,
@@ -92,5 +108,7 @@ export function useEventModalFilters(initial?: Partial<EventModalFiltersState>) 
     setStartDate,
     setEndDate,
     setNodeId,
+    setMinAmount,
+    setMaxAmount,
   };
 }

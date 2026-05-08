@@ -19,6 +19,8 @@ export interface AdvancedFiltersState {
   categoryIds: number[];
   tagIds: number[];
   nodeId?: number;
+  minAmount?: number;
+  maxAmount?: number;
 }
 
 export interface FilterPill {
@@ -72,7 +74,9 @@ function hasAnyAdvanced(filters: AdvancedFiltersState): boolean {
       filters.categoryIds.length ||
       filters.tagIds.length ||
       filters.nodeId ||
-      filters.dateField !== 'TRANSACTION'
+      filters.dateField !== 'TRANSACTION' ||
+      filters.minAmount !== undefined ||
+      filters.maxAmount !== undefined
   );
 }
 
@@ -178,6 +182,8 @@ export function EventsListView({
           onStartDateChange={(d) => updateAdvanced({ startDate: d })}
           onEndDateChange={(d) => updateAdvanced({ endDate: d })}
           onNodeIdChange={(id) => updateAdvanced({ nodeId: id })}
+          onMinAmountChange={(v) => updateAdvanced({ minAmount: v })}
+          onMaxAmountChange={(v) => updateAdvanced({ maxAmount: v })}
         >
           {filterPills && filterPills.length > 0 && (
             <div className="mt-2">
