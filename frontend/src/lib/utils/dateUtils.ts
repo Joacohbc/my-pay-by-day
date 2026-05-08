@@ -1,4 +1,4 @@
-// Date utilities to handle timezone conversions between user's local and server's UTC
+// Date utilities to handle timezone conversions between user's local and server timezone, as well as transforming date strings in API responses/requests.
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import type { DynamicPeriodOption } from '@/components/time-periods/DynamicTimePeriodSelector';
 import { getLocalizedNow } from '@/lib/format';
@@ -11,7 +11,7 @@ export function getUserTimezone(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   } catch {
-    return 'UTC';
+    return getServerTimezone(); // Fallback to server timezone if user's timezone can't be determined
   }
 }
 
@@ -52,7 +52,7 @@ export function fromServerDate(dateString: string): string {
 }
 
 /**
- * Converts a date string in the user's timezone to UTC for the backend.
+ * Converts a date string in the user's timezone to the server timezone for the backend.
  */
 export function toServerDate(dateString: string): string {
   if (!dateString) return dateString;
