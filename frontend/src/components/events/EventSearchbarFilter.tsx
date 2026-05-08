@@ -7,17 +7,13 @@ import { Input } from '@/components/ui/Input';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
+import { NodeSelector } from '@/components/ui/NodeSelector';
 import { DynamicTimePeriodSelector, type DynamicPeriodOption } from '@/components/time-periods/DynamicTimePeriodSelector';
 import type { EventModalFiltersState } from '@/hooks/useEventModalFilters';
 import type { DateField } from '@/services/events.service';
-import type { Category, Tag } from '@/models';
+import type { Category, FinanceNode, Tag } from '@/models';
 import { useTimePeriods } from '@/hooks/useTimePeriods';
 import { getDynamicPeriodDates } from '@/lib/utils/dateUtils';
-
-type EventNodeFilterItem = {
-  id: number;
-  name: string;
-};
 
 type EventSearchbarFilterProps = {
   search: string;
@@ -28,7 +24,7 @@ type EventSearchbarFilterProps = {
   filters: EventModalFiltersState;
   categories: Category[];
   tags: Tag[];
-  nodes: EventNodeFilterItem[];
+  nodes: FinanceNode[];
   onToggleFilters: () => void;
   onResetFilters: () => void;
   onToggleCategory: (id: number) => void;
@@ -278,18 +274,13 @@ export function EventSearchbarFilter({
                 <Icon name="keyboard_arrow_down" className="text-xl text-dn-text-muted transition-transform group-open:rotate-180" />
               </summary>
               <div className="p-4">
-                <SearchableSelect
-                  label={t('events.filterNode')}
-                  value={filters.nodeId ?? ''}
-                  options={[
-                    { value: '', label: t('events.filterNodePlaceholder') },
-                    ...nodes.map((node) => ({ value: node.id, label: node.name })),
-                  ]}
-                  onChange={(value) => {
-                    onNodeIdChange(value ? Number(value) : undefined);
+                <NodeSelector
+                  nodes={nodes}
+                  value={filters.nodeId}
+                  onChange={(id) => {
+                    onNodeIdChange(id);
                     onPageReset?.();
                   }}
-                  placeholder={t('events.filterNodePlaceholder')}
                 />
               </div>
             </details>
