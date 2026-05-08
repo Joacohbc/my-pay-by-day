@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FinanceEvent } from '@/models';
 import type { DateField } from '@/services/events.service';
@@ -7,7 +7,7 @@ import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
 import { EventCard } from '@/components/events/EventCard';
 import { Icon } from '@/components/ui/Icon';
-import { EventSearchbarFilter, type PillsConfig } from '@/components/events/EventSearchbarFilter';
+import { EventSearchbarFilter, type PillsConfig, type EventSearchbarFilterHandle } from '@/components/events/EventSearchbarFilter';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Card } from '@/components/ui/Card';
 import { Pagination } from '@/components/ui/Pagination';
@@ -141,12 +141,15 @@ export function EventsListView({
     updateAdvanced({ tagIds: next });
   };
 
+  const filterRef = useRef<EventSearchbarFilterHandle>(null);
+
   const resetFilters = () => {
     if (onClearFilters) {
       onClearFilters();
     } else {
       onAdvancedFiltersChange?.(EMPTY_FILTERS);
     }
+    filterRef.current?.reset();
   };
 
   const showPagination =
@@ -156,6 +159,7 @@ export function EventsListView({
     <>
       <div className='px-5 space-y-4'>
         <EventSearchbarFilter
+          ref={filterRef}
           search={search}
           onSearchChange={onSearchChange}
           searchPlaceholder={searchPlaceholder ?? t('events.searchPlaceholder')}
@@ -170,8 +174,7 @@ export function EventsListView({
           onToggleCategory={toggleCategory}
           onToggleTag={toggleTag}
           onDateFieldChange={(f) => updateAdvanced({ dateField: f })}
-          onStartDateChange={(d) => updateAdvanced({ startDate: d })}
-          onEndDateChange={(d) => updateAdvanced({ endDate: d })}
+          onDateRangeChange={(s, e) => updateAdvanced({ startDate: s, endDate: e })}
           onNodeIdChange={(id) => updateAdvanced({ nodeId: id })}
           onMinAmountChange={(v) => updateAdvanced({ minAmount: v })}
           onMaxAmountChange={(v) => updateAdvanced({ maxAmount: v })}

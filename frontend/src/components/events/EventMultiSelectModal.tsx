@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEvents } from '@/hooks/useEvents';
 import { useCategories } from '@/hooks/useCategories';
@@ -8,7 +8,7 @@ import { useEventModalFilters } from '@/hooks/useEventModalFilters';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { EventSelectionList } from '@/components/events/EventSelectionList';
-import { EventSearchbarFilter } from '@/components/events/EventSearchbarFilter';
+import { EventSearchbarFilter, type EventSearchbarFilterHandle } from '@/components/events/EventSearchbarFilter';
 import type { EventFilters } from '@/services/events.service';
 
 interface EventMultiSelectModalProps {
@@ -62,6 +62,8 @@ export function EventMultiSelectModal({
     setMaxAmount,
   } = useEventModalFilters();
 
+  const filterRef = useRef<EventSearchbarFilterHandle>(null);
+
   const { data: categoriesResponse } = useCategories();
   const categories = useMemo(
     () => (Array.isArray(categoriesResponse) ? categoriesResponse : categoriesResponse ?? []),
@@ -109,6 +111,7 @@ export function EventMultiSelectModal({
     setSearch('');
     setSelectedIds(new Set(initialSelectedIds));
     resetFilters();
+    filterRef.current?.reset();
     setShowFilters(false);
     onClose();
   };
@@ -118,6 +121,7 @@ export function EventMultiSelectModal({
     setSearch('');
     setSelectedIds(new Set(initialSelectedIds));
     resetFilters();
+    filterRef.current?.reset();
     setShowFilters(false);
     if (onCancel) {
       onCancel();
@@ -132,6 +136,7 @@ export function EventMultiSelectModal({
     setSearch('');
     setSelectedIds(new Set());
     resetFilters();
+    filterRef.current?.reset();
     setShowFilters(false);
   };
 
@@ -143,6 +148,7 @@ export function EventMultiSelectModal({
     <Modal open={open} onClose={handleClose} title={title}>
       <div className="space-y-4">
         <EventSearchbarFilter
+          ref={filterRef}
           search={search}
           onSearchChange={(value) => {
             setSearch(value);
@@ -160,12 +166,11 @@ export function EventMultiSelectModal({
           onToggleCategory={toggleCategory}
           onToggleTag={toggleTag}
           onDateFieldChange={setDateField}
-          onStartDateChange={setStartDate}
-          onEndDateChange={setEndDate}
+          onDateRangeChange={(s, e) => { setStartDate(s); setEndDate(e); }}
           onNodeIdChange={setNodeId}
           onMinAmountChange={setMinAmount}
           onMaxAmountChange={setMaxAmount}
-          onPageReset={() => setPage(0)}
+          onFiltersChange={() => setPage(0)}
         >
           <EventSelectionList
             events={allEvents}

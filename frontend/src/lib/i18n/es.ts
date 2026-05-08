@@ -194,6 +194,7 @@ const es = {
     dateFieldUpdated: 'Fecha de actualización',
     filterNode: 'Nodo',
     filterNodePlaceholder: 'Todos los nodos',
+    exactDates: 'Fechas Exactas',
     approximateTime: 'Tiempo Aproximado',
     baseDate: 'Fecha Base',
     varianceDays: '+/- Días',
