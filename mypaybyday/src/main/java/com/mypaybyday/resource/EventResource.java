@@ -3,7 +3,6 @@ package com.mypaybyday.resource;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.math.BigDecimal;
 import java.util.List;
 
 import com.mypaybyday.dto.EventQuery;
@@ -54,16 +53,13 @@ public class EventResource {
 	@Parameter(description = "Filter by tag ID") @QueryParam("tagId") Long tagId,
 	@Parameter(description = "Filter by multiple category IDs (OR)") @QueryParam("categoryIds") List<Long> categoryIds,
 	@Parameter(description = "Filter by multiple tag IDs (OR)") @QueryParam("tagIds") List<Long> tagIds,
-	@Parameter(description = "Filter by finance node ID") @QueryParam("nodeId") Long nodeId,
-	@Parameter(description = "Filter by minimum total amount (inclusive)") @QueryParam("minAmount") BigDecimal minAmount,
-	@Parameter(description = "Filter by maximum total amount (inclusive)") @QueryParam("maxAmount") BigDecimal maxAmount) {
+	@Parameter(description = "Filter by finance node ID") @QueryParam("nodeId") Long nodeId) {
 
 	return Response.ok(eventService.listAll(EventQuery.builder()
 		.page(page).size(size)
 		.search(search).startDate(startDate).endDate(endDate).dateField(dateField)
 		.type(type).categoryId(categoryId).tagId(tagId)
 		.categoryIds(categoryIds).tagIds(tagIds).nodeId(nodeId)
-		.minAmount(minAmount).maxAmount(maxAmount)
 		.build())).build();
     }
 

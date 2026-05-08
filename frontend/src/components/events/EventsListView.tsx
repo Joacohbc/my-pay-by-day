@@ -1,4 +1,4 @@
-import { useState, useRef, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FinanceEvent } from '@/models';
 import type { DateField } from '@/services/events.service';
@@ -7,7 +7,7 @@ import { useTags } from '@/hooks/useTags';
 import { useNodes } from '@/hooks/useNodes';
 import { EventCard } from '@/components/events/EventCard';
 import { Icon } from '@/components/ui/Icon';
-import { EventSearchbarFilter, type PillsConfig, type EventSearchbarFilterHandle } from '@/components/events/EventSearchbarFilter';
+import { EventSearchbarFilter } from '@/components/events/EventSearchbarFilter';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Card } from '@/components/ui/Card';
 import { Pagination } from '@/components/ui/Pagination';
@@ -19,10 +19,13 @@ export interface AdvancedFiltersState {
   categoryIds: number[];
   tagIds: number[];
   nodeId?: number;
-  minAmount?: number;
-  maxAmount?: number;
 }
 
+export interface FilterPill {
+  label: string;
+  value: string;
+  badge?: number;
+}
 
 export interface EventsListViewProps {
   events: FinanceEvent[];
@@ -40,7 +43,9 @@ export interface EventsListViewProps {
   onAdvancedFiltersChange?: (next: AdvancedFiltersState) => void;
   onClearFilters?: () => void;
 
-  pills?: PillsConfig;
+  filterPills?: FilterPill[];
+  activePill?: string;
+  onPillChange?: (value: string) => void;
 
   renderItem?: (event: FinanceEvent) => ReactNode;
   keyResolver?: (event: FinanceEvent) => string | number;
@@ -67,9 +72,7 @@ function hasAnyAdvanced(filters: AdvancedFiltersState): boolean {
       filters.categoryIds.length ||
       filters.tagIds.length ||
       filters.nodeId ||
-      filters.dateField !== 'TRANSACTION' ||
-      filters.minAmount !== undefined ||
-      filters.maxAmount !== undefined
+      filters.dateField !== 'TRANSACTION'
   );
 }
 
@@ -84,7 +87,9 @@ export function EventsListView({
   advancedFilters,
   onAdvancedFiltersChange,
   onClearFilters,
-  pills,
+  filterPills,
+  activePill,
+  onPillChange,
   renderItem,
   keyResolver,
   from,
@@ -141,15 +146,12 @@ export function EventsListView({
     updateAdvanced({ tagIds: next });
   };
 
-  const filterRef = useRef<EventSearchbarFilterHandle>(null);
-
   const resetFilters = () => {
     if (onClearFilters) {
       onClearFilters();
     } else {
       onAdvancedFiltersChange?.(EMPTY_FILTERS);
     }
-    filterRef.current?.reset();
   };
 
   const showPagination =
@@ -159,7 +161,6 @@ export function EventsListView({
     <>
       <div className='px-5 space-y-4'>
         <EventSearchbarFilter
-          ref={filterRef}
           search={search}
           onSearchChange={onSearchChange}
           searchPlaceholder={searchPlaceholder ?? t('events.searchPlaceholder')}
@@ -169,17 +170,44 @@ export function EventsListView({
           categories={categories}
           tags={tags}
           nodes={nodes}
-          onToggleFilters={() => setShowFilters((prev) => !prev)}
+          onToggleFilters={() => {
+            setShowFilters((prev) => !prev)
+            resetFilters();
+          }}
           onResetFilters={resetFilters}
           onToggleCategory={toggleCategory}
           onToggleTag={toggleTag}
           onDateFieldChange={(f) => updateAdvanced({ dateField: f })}
-          onDateRangeChange={(s, e) => updateAdvanced({ startDate: s, endDate: e })}
+          onStartDateChange={(d) => updateAdvanced({ startDate: d })}
+          onEndDateChange={(d) => updateAdvanced({ endDate: d })}
           onNodeIdChange={(id) => updateAdvanced({ nodeId: id })}
-          onMinAmountChange={(v) => updateAdvanced({ minAmount: v })}
-          onMaxAmountChange={(v) => updateAdvanced({ maxAmount: v })}
-          pills={pills}
-        />
+        >
+          {filterPills && filterPills.length > 0 && (
+            <div className="mt-2">
+              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                {filterPills.map(({ label, value, badge }) => (
+                  <button
+                  key={value}
+                  onClick={() => onPillChange?.(value)}
+                  className={[
+                    'shrink-0 px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5',
+                    activePill === value
+                    ? 'bg-dn-primary/20 text-dn-primary'
+                    : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
+                  ].join(' ')}
+                  >
+                    {label}
+                    {typeof badge === 'number' && badge > 0 && (
+                      <span className="bg-dn-error text-white text-[10px] leading-tight font-semibold px-1.5 py-0.5 rounded-full min-w-4.5 text-center inline-block">
+                        {badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </EventSearchbarFilter>
       </div>
 
       <div className="px-5">

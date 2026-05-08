@@ -1,6 +1,6 @@
 import i18n from '@/lib/i18n';
 import type { FinanceEvent } from '@/models';
-import { getUserTimezone, getServerTimezone } from '@/lib/utils/dateUtils';
+import { getUserTimezone } from '@/lib/utils/dateUtils';
 
 const LOCALE_MAP: Record<string, string> = {
   en: 'en-US',
@@ -95,13 +95,13 @@ export function formatDate(input: string | Date): string {
 }
 
 export function formatDateFromParts(dateOnly: string): string {
-  // Always evaluate "just a date" using server timezone internally so it doesn't drift,
+  // Always evaluate "just a date" using UTC internally so it doesn't drift,
   // as LocalDate on the server has no timezone.
   return new Intl.DateTimeFormat(locale(), {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-    timeZone: getUserTimezone(),
+    timeZone: 'UTC',
   }).format(new Date(dateOnly + 'T00:00:00Z'));
 }
 
@@ -120,31 +120,6 @@ export function formatDateTime(input: string | Date): string {
 export function formatDateInput(isoString: string): string {
   // Returns YYYY-MM-DDTHH:mm for datetime-local inputs
   return isoString.slice(0, 16);
-}
-
-export function formatDateInputDisplay(isoDate: string): string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return '';
-  return new Intl.DateTimeFormat(locale(), {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    timeZone: getServerTimezone(),
-  }).format(new Date(isoDate + 'T00:00:00Z'));
-}
-
-export function getDateInputPlaceholder(): string {
-  const parts = new Intl.DateTimeFormat(locale(), {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    timeZone: getServerTimezone(),
-  }).formatToParts(new Date('2001-11-21T00:00:00Z'));
-  return parts.map((p) => {
-    if (p.type === 'day') return 'dd';
-    if (p.type === 'month') return 'mm';
-    if (p.type === 'year') return 'yyyy';
-    return p.value;
-  }).join('');
 }
 
 /**

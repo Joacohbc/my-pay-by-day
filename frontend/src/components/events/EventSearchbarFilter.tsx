@@ -1,93 +1,47 @@
-import { useState, forwardRef, useImperativeHandle, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
-import { NodeSelector } from '@/components/ui/NodeSelector';
 import { DynamicTimePeriodSelector, type DynamicPeriodOption } from '@/components/time-periods/DynamicTimePeriodSelector';
 import type { EventModalFiltersState } from '@/hooks/useEventModalFilters';
 import type { DateField } from '@/services/events.service';
-import type { Category, FinanceNode, Tag } from '@/models';
-export interface FilterPill {
-  label: string;
-  value: string;
-  badge?: number;
-}
+import type { Category, Tag } from '@/models';
 import { useTimePeriods } from '@/hooks/useTimePeriods';
-import { useDebounceCallback } from '@/hooks/useDebounce';
 import { getDynamicPeriodDates } from '@/lib/utils/dateUtils';
+
+type EventNodeFilterItem = {
+  id: number;
+  name: string;
+};
 
 type EventSearchbarFilterProps = {
   search: string;
+  onSearchChange: (value: string) => void;
   searchPlaceholder?: string;
   showFilters: boolean;
   hasAnyFilter: boolean;
   filters: EventModalFiltersState;
   categories: Category[];
   tags: Tag[];
-  nodes: FinanceNode[];
-  pills?: PillsConfig;
-  onSearchChange: (value: string) => void;
+  nodes: EventNodeFilterItem[];
   onToggleFilters: () => void;
   onResetFilters: () => void;
   onToggleCategory: (id: number) => void;
   onToggleTag: (id: number) => void;
   onDateFieldChange: (field: DateField) => void;
-  onDateRangeChange: (start: string, end: string) => void;
+  onStartDateChange: (value: string) => void;
+  onEndDateChange: (value: string) => void;
   onNodeIdChange: (nodeId: number | undefined) => void;
-  onMinAmountChange: (value: number | undefined) => void;
-  onMaxAmountChange: (value: number | undefined) => void;
-  onFiltersChange?: () => void;
+  onPageReset?: () => void;
   children?: ReactNode;
 };
 
-export type PillsConfig = {
-  items?: FilterPill[];
-  active?: string;
-  onChange?: (v: string) => void;
-  position?: 'modal' | 'inline';
-};
-
-type PillButtonsProps = {
-  pills: FilterPill[];
-  activePill?: string;
-  onPillChange?: (v: string) => void;
-};
-
-function PillButtons({ pills, activePill, onPillChange }: PillButtonsProps) {
-  return (
-    <>
-      {pills.map(({ label, value, badge }) => (
-        <button
-          key={value}
-          onClick={() => onPillChange?.(value)}
-          className={[
-            'shrink-0 px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5',
-            activePill === value
-              ? 'bg-dn-primary/20 text-dn-primary'
-              : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
-          ].join(' ')}
-        >
-          {label}
-          {typeof badge === 'number' && badge > 0 && (
-            <span className="bg-dn-error text-white text-[10px] leading-tight font-semibold px-1.5 py-0.5 rounded-full min-w-4.5 text-center inline-block">
-              {badge}
-            </span>
-          )}
-        </button>
-      ))}
-    </>
-  );
-}
-
-export type EventSearchbarFilterHandle = { reset(): void };
-
-export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, EventSearchbarFilterProps>(function EventSearchbarFilter({
+export function EventSearchbarFilter({
   search,
   onSearchChange,
   searchPlaceholder,
@@ -102,27 +56,13 @@ export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, Event
   onToggleCategory,
   onToggleTag,
   onDateFieldChange,
-  onDateRangeChange,
+  onStartDateChange,
+  onEndDateChange,
   onNodeIdChange,
-  onMinAmountChange,
-  onMaxAmountChange,
-  pills,
-  onFiltersChange,
+  onPageReset,
   children,
-}: EventSearchbarFilterProps, ref) {
+}: EventSearchbarFilterProps) {
   const { t } = useTranslation();
-
-  const { items: filterPills, active: activePill, onChange: onPillChange, position: pillsPosition = 'modal' } = pills ?? {};
-
-  const defaultPills: FilterPill[] = [
-    { label: t('common.all'), value: 'ALL' },
-    { label: t('events.income'), value: 'INBOUND' },
-    { label: t('events.expenses'), value: 'OUTBOUND' },
-    { label: t('events.transfers'), value: 'OTHER' },
-  ];
-
-  const pillsToRender = filterPills ?? (onPillChange ? defaultPills : undefined);
-
   const { data: pagedTimePeriods } = useTimePeriods(0, 100);
   const timePeriods = pagedTimePeriods?.content || [];
   const [selectedDynamicPeriod, setSelectedDynamicPeriod] = useState<DynamicPeriodOption | undefined>();
@@ -131,110 +71,71 @@ export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, Event
   const handleDynamicPeriodChange = (option: DynamicPeriodOption) => {
     setSelectedDynamicPeriod(option);
     setSelectedTimePeriodId('');
-
     const { startDate, endDate } = getDynamicPeriodDates(option);
-    onDateRangeChange(startDate, endDate);
-    onFiltersChange?.();
+    onStartDateChange(startDate);
+    onEndDateChange(endDate);
+    onPageReset?.();
   };
 
   const handleTimePeriodChange = (val: string | number | null) => {
     const idStr = String(val || '');
     setSelectedTimePeriodId(idStr);
     setSelectedDynamicPeriod(undefined);
-    if (!idStr) {
-      onDateRangeChange('', '');
-      onFiltersChange?.();
-      return;
-    }
+    if (!idStr) return;
     const tp = timePeriods.find((t) => String(t.id) === idStr);
     if (tp) {
-      onDateRangeChange(tp.startDate, tp.endDate);
-      onFiltersChange?.();
+      onStartDateChange(tp.startDate);
+      onEndDateChange(tp.endDate);
+      onPageReset?.();
     }
   };
 
   const [approxBaseDate, setApproxBaseDate] = useState<string>('');
-  const [approxVarianceDays, setApproxVarianceDays] = useState<number>(0);
-  const [dateMode, setDateMode] = useState<'exact' | 'approx'>('exact');
+  const [approxVarianceDays, setApproxVarianceDays] = useState<number>(3);
 
-  useImperativeHandle(ref, () => ({
-    reset() {
-      setSelectedDynamicPeriod(undefined);
-      setSelectedTimePeriodId('');
-      setApproxBaseDate('');
-      setApproxVarianceDays(0);
-      setDateMode('exact');
-    },
-  }));
+  const applyApproximateTime = () => {
+    if (!approxBaseDate) return;
+    const base = new Date(approxBaseDate);
+    // Because input type date returns "YYYY-MM-DD", let's parse it correctly or just add days
+    // to avoid timezone shifts. Let's use getUTCDate and setUTCDate to be safe if parsing "YYYY-MM-DD".
 
-  const applyApproximateTime = useDebounceCallback((baseDateStr: string, varianceDaysNum: number) => {
-    if (!baseDateStr) {
-      onDateRangeChange('', '');
-      onFiltersChange?.();
-      return;
-    }
-
-    const base = new Date(baseDateStr);
-
+    // Simple way, create dates and format back to YYYY-MM-DD
     const start = new Date(base);
-    start.setUTCDate(base.getUTCDate() - varianceDaysNum);
-    const startStr = start.toISOString().split('T')[0];
+    start.setUTCDate(base.getUTCDate() - approxVarianceDays);
 
     const end = new Date(base);
-    end.setUTCDate(base.getUTCDate() + varianceDaysNum);
-    const endStr = end.toISOString().split('T')[0];
+    end.setUTCDate(base.getUTCDate() + approxVarianceDays);
 
-    onDateRangeChange(startStr, endStr);
-    onFiltersChange?.();
-  }, 400);
+    const formatDate = (date: Date) => {
+      const yyyy = date.getUTCFullYear();
+      const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(date.getUTCDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
 
-  const handleDateModeChange = (mode: 'exact' | 'approx') => {
-    if (mode !== dateMode) {
-      if (mode === 'approx') {
-        onDateRangeChange('', '');
-        setApproxBaseDate('');
-        setApproxVarianceDays(0);
-      }
-      setDateMode(mode);
-      onFiltersChange?.();
-    }
+    onStartDateChange(formatDate(start));
+    onEndDateChange(formatDate(end));
+    onPageReset?.();
   };
 
   const hasActiveDateRange = filters.startDate !== '' || filters.endDate !== '';
   const hasActiveNode = filters.nodeId !== undefined;
-  const hasActiveAmountRange = filters.minAmount !== undefined || filters.maxAmount !== undefined;
 
   return (
     <>
       <Modal open={showFilters} onClose={onToggleFilters} title={t('common.filters')}>
-        <div className="space-y-3">
+        <div className="space-y-6">
           <div className="flex justify-end">
             {hasAnyFilter && (
               <button
                 type="button"
-                onClick={() => {
-                  onResetFilters();
-                  setSelectedDynamicPeriod(undefined);
-                  setSelectedTimePeriodId('');
-                  setApproxBaseDate('');
-                  setApproxVarianceDays(0);
-                  setDateMode('exact');
-                }}
-                className="text-xs text-dn-primary font-medium hover:text-dn-primary/80 mt-[-1]"
+                onClick={onResetFilters}
+                className="text-xs text-dn-primary font-medium hover:text-dn-primary/80"
               >
                 {t('common.clearFilters')}
               </button>
             )}
           </div>
-
-          {pillsPosition === 'modal' && pillsToRender && pillsToRender.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium text-dn-text-main">{t('events.eventType')}</h3>
-              <div className="flex gap-2 flex-wrap">
-                <PillButtons pills={pillsToRender} activePill={activePill} onPillChange={onPillChange} />
-              </div>
-            </div>
-          )}
 
           {/* Time Periods */}
           <div className="space-y-3">
@@ -271,100 +172,53 @@ export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, Event
             />
           </div>
 
-          <div className="space-y-3">
-            <SegmentedControl
-              options={[
-                { value: 'exact', label: t('events.exactDates') },
-                { value: 'approx', label: t('events.approximateTime') },
-              ]}
-              value={dateMode}
-              onChange={handleDateModeChange}
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              type="date"
+              label={t('events.startDate')}
+              value={filters.startDate}
+              onChange={(event) => {
+                onStartDateChange(event.target.value);
+                onPageReset?.();
+              }}
             />
-
-            {dateMode === 'exact' ? (
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  type="date"
-                  label={t('events.startDate')}
-                  value={filters.startDate ? filters.startDate.split('T')[0] : ''}
-                  onChange={(event) => {
-                    onDateRangeChange(event.target.value, filters.endDate);
-                    onFiltersChange?.();
-                  }}
-                />
-                <Input
-                  type="date"
-                  label={t('events.endDate')}
-                  value={filters.endDate ? filters.endDate.split('T')[0] : ''}
-                  onChange={(event) => {
-                    onDateRangeChange(filters.startDate, event.target.value);
-                    onFiltersChange?.();
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3 items-end">
-                  <Input
-                    type="date"
-                    label={t('events.baseDate')}
-                    value={approxBaseDate}
-                    onChange={(e) => {
-                      const newBaseDate = e.target.value;
-                      setApproxBaseDate(newBaseDate);
-                      if (!newBaseDate) {
-                        setApproxVarianceDays(0);
-                      }
-                      applyApproximateTime(newBaseDate, !newBaseDate ? 0 : approxVarianceDays);
-                    }}
-                  />
-                  <Input
-                    type="number"
-                    label={t('events.varianceDays')}
-                    value={String(approxVarianceDays)}
-                    onChange={(e) => {
-                      const newVariance = Number(e.target.value);
-                      setApproxVarianceDays(newVariance);
-                      applyApproximateTime(approxBaseDate, newVariance);
-                    }}
-                    min="0"
-                    disabled={!approxBaseDate}
-                  />
-                </div>
-              </div>
-            )}
+            <Input
+              type="date"
+              label={t('events.endDate')}
+              value={filters.endDate}
+              onChange={(event) => {
+                onEndDateChange(event.target.value);
+                onPageReset?.();
+              }}
+            />
           </div>
 
-          <details className="group border border-white/5 rounded-2xl overflow-hidden bg-dn-surface">
-            <summary className="flex items-center justify-between p-4 cursor-pointer marker:hidden list-none font-medium text-sm text-dn-text-main group-open:border-b group-open:border-white/5">
-              {t('events.amountRange')}
-              <Icon name="keyboard_arrow_down" className="text-xl text-dn-text-muted transition-transform group-open:rotate-180" />
-            </summary>
-            <div className="p-4 grid grid-cols-2 gap-3">
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-dn-text-main">{t('events.approximateTime', 'Approximate Time')}</h3>
+            <div className="grid grid-cols-2 gap-3 items-end">
               <Input
-                type="number"
-                label={t('events.minAmount')}
-                value={filters.minAmount !== undefined ? String(filters.minAmount) : ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  onMinAmountChange(v === '' ? undefined : Number(v));
-                  onFiltersChange?.();
-                }}
-                min="0"
+                type="date"
+                label={t('events.baseDate', 'Base Date')}
+                value={approxBaseDate}
+                onChange={(e) => setApproxBaseDate(e.target.value)}
               />
               <Input
                 type="number"
-                label={t('events.maxAmount')}
-                value={filters.maxAmount !== undefined ? String(filters.maxAmount) : ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  onMaxAmountChange(v === '' ? undefined : Number(v));
-                  onFiltersChange?.();
-                }}
+                label={t('events.varianceDays', '+/- Days')}
+                value={String(approxVarianceDays)}
+                onChange={(e) => setApproxVarianceDays(Number(e.target.value))}
                 min="0"
               />
             </div>
-          </details>
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={applyApproximateTime}
+              disabled={!approxBaseDate}
+            >
+              {t('events.applyApproximate', 'Apply Approximate')}
+            </Button>
+          </div>
 
           {categories.length > 0 && (
             <details className="group border border-white/5 rounded-2xl overflow-hidden bg-dn-surface">
@@ -381,7 +235,7 @@ export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, Event
                     const prev = filters.categoryIds.map(String);
                     [...newIds.filter(id => !prev.includes(id)), ...prev.filter(id => !newIds.includes(id))]
                       .forEach(id => onToggleCategory(Number(id)));
-                    onFiltersChange?.();
+                    onPageReset?.();
                   }}
                   showAdd={false}
                 />
@@ -403,7 +257,7 @@ export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, Event
                     const prev = filters.tagIds.map(String);
                     [...newIds.filter(id => !prev.includes(id)), ...prev.filter(id => !newIds.includes(id))]
                       .forEach(id => onToggleTag(Number(id)));
-                    onFiltersChange?.();
+                    onPageReset?.();
                   }}
                   showAdd={false}
                 />
@@ -418,13 +272,18 @@ export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, Event
                 <Icon name="keyboard_arrow_down" className="text-xl text-dn-text-muted transition-transform group-open:rotate-180" />
               </summary>
               <div className="p-4">
-                <NodeSelector
-                  nodes={nodes}
-                  value={filters.nodeId}
-                  onChange={(id) => {
-                    onNodeIdChange(id);
-                    onFiltersChange?.();
+                <SearchableSelect
+                  label={t('events.filterNode')}
+                  value={filters.nodeId ?? ''}
+                  options={[
+                    { value: '', label: t('events.filterNodePlaceholder') },
+                    ...nodes.map((node) => ({ value: node.id, label: node.name })),
+                  ]}
+                  onChange={(value) => {
+                    onNodeIdChange(value ? Number(value) : undefined);
+                    onPageReset?.();
                   }}
+                  placeholder={t('events.filterNodePlaceholder')}
                 />
               </div>
             </details>
@@ -480,21 +339,10 @@ export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, Event
               {t('events.filterNode')}
             </span>
           )}
-          {hasActiveAmountRange && (
-            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary">
-              {t('events.amountRange')}
-            </span>
-          )}
-        </div>
-      )}
-
-      {pillsPosition === 'inline' && pillsToRender && pillsToRender.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-          <PillButtons pills={pillsToRender} activePill={activePill} onPillChange={onPillChange} />
         </div>
       )}
 
       {children}
     </>
   );
-});
+}

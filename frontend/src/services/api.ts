@@ -41,7 +41,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
   }
   if (res.status === 204) return null as T;
   const data = await res.json();
-  // Transform all server timezone date strings from the server to the user's timezone
+  // Transform all UTC date strings from the server to the user's timezone
   return transformDates(data, fromServerDate) as T;
 }
 
@@ -56,7 +56,7 @@ export const api = {
     }).then((r) => handleResponse<T>(r)),
 
   post: <T>(path: string, body?: unknown): Promise<T> => {
-    // Transform all local date strings to server timezone before sending to the server
+    // Transform all local date strings to UTC before sending to the server
     const transformedBody = body !== undefined ? transformDates(body, toServerDate) : undefined;
     return fetch(`${BASE_URL}${path}`, {
       method: 'POST',
@@ -71,7 +71,7 @@ export const api = {
   },
 
   put: <T>(path: string, body: unknown): Promise<T> => {
-    // Transform all local date strings to server timezone before sending to the server
+    // Transform all local date strings to UTC before sending to the server
     const transformedBody = transformDates(body, toServerDate);
     return fetch(`${BASE_URL}${path}`, {
       method: 'PUT',
@@ -86,7 +86,7 @@ export const api = {
   },
 
   patch: <T>(path: string, body: unknown): Promise<T> => {
-    // Transform all local date strings to server timezone before sending to the server
+    // Transform all local date strings to UTC before sending to the server
     const transformedBody = transformDates(body, toServerDate);
     return fetch(`${BASE_URL}${path}`, {
       method: 'PATCH',

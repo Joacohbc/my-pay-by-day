@@ -39,8 +39,6 @@ const FILTER_PARAMS = {
   tagIds: { key: 'tags', defaultValue: '', type: 'string' },
   mergeIds: { key: 'mergeIds', defaultValue: '', type: 'string' },
   nodeId: { key: 'node', defaultValue: '', type: 'string' },
-  minAmount: { key: 'minAmt', defaultValue: '', type: 'string' },
-  maxAmount: { key: 'maxAmt', defaultValue: '', type: 'string' },
 } satisfies Record<string, ParamConfig>;
 
 export function EventsPage() {
@@ -67,8 +65,6 @@ export function EventsPage() {
     tagIdsStr = '',
     mergeIdsStr = '',
     nodeIdStr = '',
-    minAmountStr = '',
-    maxAmountStr = '',
   } = useMemo(() => ({
     page: values.page as number | undefined,
     search: values.search as string,
@@ -80,8 +76,6 @@ export function EventsPage() {
     tagIdsStr: values.tagIds as string,
     mergeIdsStr: values.mergeIds as string,
     nodeIdStr: values.nodeId as string,
-    minAmountStr: values.minAmount as string,
-    maxAmountStr: values.maxAmount as string,
   }), [values]);
 
   const categoryIdsArr = useMemo(
@@ -89,8 +83,6 @@ export function EventsPage() {
     [categoryIdsStr]
   );
   const nodeIdNum = useMemo(() => (nodeIdStr ? Number(nodeIdStr) : undefined), [nodeIdStr]);
-  const minAmountNum = useMemo(() => (minAmountStr ? Number(minAmountStr) : undefined), [minAmountStr]);
-  const maxAmountNum = useMemo(() => (maxAmountStr ? Number(maxAmountStr) : undefined), [maxAmountStr]);
 
   const tagIdsArr = useMemo(
     () => (tagIdsStr ? tagIdsStr.split(',').map(Number).filter(Boolean) : []),
@@ -101,8 +93,8 @@ export function EventsPage() {
 
   // --- 2. Advanced Filters State ---
   const advancedFilters = useMemo<AdvancedFiltersState>(
-    () => ({ startDate, endDate, dateField, categoryIds: categoryIdsArr, tagIds: tagIdsArr, nodeId: nodeIdNum, minAmount: minAmountNum, maxAmount: maxAmountNum }),
-    [startDate, endDate, dateField, categoryIdsArr, tagIdsArr, nodeIdNum, minAmountNum, maxAmountNum]
+    () => ({ startDate, endDate, dateField, categoryIds: categoryIdsArr, tagIds: tagIdsArr, nodeId: nodeIdNum }),
+    [startDate, endDate, dateField, categoryIdsArr, tagIdsArr, nodeIdNum]
   );
 
   const setAdvancedFilters = useCallback(
@@ -114,8 +106,6 @@ export function EventsPage() {
         categoryIds: next.categoryIds.length ? next.categoryIds.join(',') : '',
         tagIds: next.tagIds.length ? next.tagIds.join(',') : '',
         nodeId: next.nodeId ? String(next.nodeId) : '',
-        minAmount: next.minAmount !== undefined ? String(next.minAmount) : '',
-        maxAmount: next.maxAmount !== undefined ? String(next.maxAmount) : '',
         page: 0,
       }),
     [setValues]
@@ -167,8 +157,6 @@ export function EventsPage() {
     categoryIds: categoryIdsArr.length ? categoryIdsArr : undefined,
     tagIds: tagIdsArr.length ? tagIdsArr : undefined,
     nodeId: nodeIdNum,
-    minAmount: minAmountNum,
-    maxAmount: maxAmountNum,
   });
 
   const { data: draftEvents } = useFinanceEventDrafts();
@@ -196,6 +184,13 @@ export function EventsPage() {
         .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0),
     [events]
   );
+
+  const filterPills = [
+    { label: t('common.all'), value: 'ALL' },
+    { label: t('events.income'), value: 'INBOUND' },
+    { label: t('events.expenses'), value: 'OUTBOUND' },
+    { label: t('events.transfers'), value: 'OTHER' },
+  ];
 
   if (error) {
     return (
@@ -251,7 +246,9 @@ export function EventsPage() {
         advancedFilters={advancedFilters}
         onAdvancedFiltersChange={setAdvancedFilters}
         onClearFilters={clearFilters}
-        pills={{ active: filter, onChange: setFilter, position: 'inline' }}
+        filterPills={filterPills}
+        activePill={filter}
+        onPillChange={setFilter}
         emptyTitle={t('events.noEventsFound')}
         emptyDescription={
           search ? t('events.noEventsFoundSearch') : t('events.noEventsFoundCreate')

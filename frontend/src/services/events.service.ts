@@ -16,8 +16,6 @@ export interface EventFilters {
   categoryIds?: number[];
   tagIds?: number[];
   nodeId?: number;
-  minAmount?: number;
-  maxAmount?: number;
 }
 
 export const eventsService = {
@@ -36,8 +34,6 @@ export const eventsService = {
     filters.categoryIds?.forEach((id) => params.append('categoryIds', id.toString()));
     filters.tagIds?.forEach((id) => params.append('tagIds', id.toString()));
     if (filters.nodeId) params.append('nodeId', filters.nodeId.toString());
-    if (filters.minAmount !== undefined) params.append('minAmount', filters.minAmount.toString());
-    if (filters.maxAmount !== undefined) params.append('maxAmount', filters.maxAmount.toString());
 
     return api.get<PagedResponse<FinanceEvent>>(`/events?${params.toString()}`);
   },
