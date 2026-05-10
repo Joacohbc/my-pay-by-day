@@ -13,15 +13,16 @@ import { DynamicTimePeriodSelector, type DynamicPeriodOption } from '@/component
 import type { EventModalFiltersState } from '@/hooks/useEventModalFilters';
 import type { DateField } from '@/services/events.service';
 import type { Category, FinanceNode, Tag } from '@/models';
+import { useTimePeriods } from '@/hooks/useTimePeriods';
+import { useDebounceCallback } from '@/hooks/useDebounce';
+import { getDynamicPeriodDates } from '@/lib/utils/dateUtils';
+import { formatIsoDate } from '@/lib/utils/dateFormat';
+
 export interface FilterPill {
   label: string;
   value: string;
   badge?: number;
 }
-import { useTimePeriods } from '@/hooks/useTimePeriods';
-import { useDebounceCallback } from '@/hooks/useDebounce';
-import { getDynamicPeriodDates } from '@/lib/utils/dateUtils';
-import { formatIsoDate } from '@/lib/utils/dateFormat';
 
 type EventSearchbarFilterProps = {
   search: string;
