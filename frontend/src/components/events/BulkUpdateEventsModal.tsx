@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEvents, useBulkUpdateEvents } from '@/hooks/useEvents';
 import { useCategories } from '@/hooks/useCategories';
@@ -9,7 +9,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { EventSelectionList } from '@/components/events/EventSelectionList';
-import { EventSearchbarFilter } from '@/components/events/EventSearchbarFilter';
+import { EventSearchbarFilter, type EventSearchbarFilterHandle } from '@/components/events/EventSearchbarFilter';
 import type { Category, Tag } from '@/models';
 
 type BulkUpdateStep = 'select' | 'configure' | 'confirm';
@@ -48,7 +48,11 @@ export function BulkUpdateEventsModal({
     setStartDate,
     setEndDate,
     setNodeId,
+    setMinAmount,
+    setMaxAmount,
   } = useEventModalFilters();
+
+  const filterRef = useRef<EventSearchbarFilterHandle>(null);
 
   const combinedFilters = useMemo(
     () => ({ ...toEventFilters(), page, search }),
@@ -81,6 +85,7 @@ export function BulkUpdateEventsModal({
     setTagsMode('unchanged');
     setSelectedTagIds(new Set());
     resetFilters();
+    filterRef.current?.reset();
     setShowFilters(false);
     onClose();
   };
@@ -139,6 +144,7 @@ export function BulkUpdateEventsModal({
         {step === 'select' && (
           <>
             <EventSearchbarFilter
+              ref={filterRef}
               search={search}
               onSearchChange={(value) => {
                 setSearch(value);
@@ -156,10 +162,11 @@ export function BulkUpdateEventsModal({
               onToggleCategory={toggleFilterCategory}
               onToggleTag={toggleFilterTag}
               onDateFieldChange={setDateField}
-              onStartDateChange={setStartDate}
-              onEndDateChange={setEndDate}
+              onDateRangeChange={(s, e) => { setStartDate(s); setEndDate(e); }}
               onNodeIdChange={setNodeId}
-              onPageReset={() => setPage(0)}
+              onMinAmountChange={setMinAmount}
+              onMaxAmountChange={setMaxAmount}
+              onFiltersChange={() => setPage(0)}
             >
               <EventSelectionList
                 events={allEvents}

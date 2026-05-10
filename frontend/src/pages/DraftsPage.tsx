@@ -330,9 +330,7 @@ export function DraftsPage() {
         isLoading={isLoading}
         search={search}
         onSearchChange={setSearch}
-        filterPills={pills}
-        activePill={segment}
-        onPillChange={(value) => setSegment(value as DraftSegment)}
+        pills={{ items: pills, active: segment, onChange: (value) => setSegment(value as DraftSegment) }}
         renderItem={renderDraftItem}
         keyResolver={getDraftSelectionId}
         emptyTitle={t('drafts.noDraftsTitle')}
