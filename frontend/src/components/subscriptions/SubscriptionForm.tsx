@@ -119,11 +119,21 @@ export function SubscriptionForm({ editTarget, onSubmit, onCancel, loading }: Su
               />
             )}
           />
-          <Input
-            label={t('subscriptions.next')}
-            type="date"
-            error={errors.nextExecutionDate?.message}
-            {...register('nextExecutionDate')}
+          <Controller
+            name="nextExecutionDate"
+            control={control}
+            render={({ field }) => (
+              <Input
+                type="date"
+                label={t('subscriptions.next')}
+                error={errors.nextExecutionDate?.message}
+                name={field.name}
+                ref={field.ref}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
           />
         </div>
 

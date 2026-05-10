@@ -5,7 +5,7 @@ import type { FormValues } from '@/components/events/EventFormMapper';
 
 export function TypeAndDateFields() {
   const { t } = useTranslation();
-  const { control, register, formState: { errors } } = useFormContext<FormValues>();
+  const { control, formState: { errors } } = useFormContext<FormValues>();
 
   return (
     <div className="space-y-3">
@@ -57,11 +57,21 @@ export function TypeAndDateFields() {
         }}
       />
 
-      <Input
-        type="datetime-local"
-        label={t('eventForm.dateTime')}
-        error={errors.transactionDate?.message}
-        {...register('transactionDate')}
+      <Controller
+        name="transactionDate"
+        control={control}
+        render={({ field }) => (
+          <Input
+            type="datetime-local"
+            label={t('eventForm.dateTime')}
+            error={errors.transactionDate?.message}
+            name={field.name}
+            ref={field.ref}
+            value={field.value ?? ''}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+          />
+        )}
       />
     </div>
   );
