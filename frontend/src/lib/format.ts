@@ -1,6 +1,7 @@
 import i18n from '@/lib/i18n';
 import type { FinanceEvent } from '@/models';
-import { getUserTimezone, getServerTimezone } from '@/lib/utils/dateUtils';
+import { getUserTimezone } from '@/lib/utils/dateUtils';
+import { formatIsoDate, getMaskPlaceholder } from '@/lib/utils/dateFormat';
 
 const LOCALE_MAP: Record<string, string> = {
   en: 'en-US',
@@ -123,28 +124,11 @@ export function formatDateInput(isoString: string): string {
 }
 
 export function formatDateInputDisplay(isoDate: string): string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return '';
-  return new Intl.DateTimeFormat(locale(), {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    timeZone: getServerTimezone(),
-  }).format(new Date(isoDate + 'T00:00:00Z'));
+  return formatIsoDate(isoDate);
 }
 
 export function getDateInputPlaceholder(): string {
-  const parts = new Intl.DateTimeFormat(locale(), {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    timeZone: getServerTimezone(),
-  }).formatToParts(new Date('2001-11-21T00:00:00Z'));
-  return parts.map((p) => {
-    if (p.type === 'day') return 'dd';
-    if (p.type === 'month') return 'mm';
-    if (p.type === 'year') return 'yyyy';
-    return p.value;
-  }).join('');
+  return getMaskPlaceholder();
 }
 
 /**

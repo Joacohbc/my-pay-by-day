@@ -1,7 +1,6 @@
-import { forwardRef, useRef } from 'react';
+import { forwardRef } from 'react';
 import type { InputHTMLAttributes, ReactNode } from 'react';
-import { Icon } from '@/components/ui/Icon';
-import { formatDateInputDisplay, getDateInputPlaceholder } from '@/lib/format';
+import { DateInputField, type DateInputFieldProps } from '@/components/ui/DateInputField';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -14,7 +13,28 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, labelRight, error, hint, className = '', id, ...props }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
-    const internalDateRef = useRef<HTMLInputElement>(null);
+
+    if (props.type === 'date') {
+      const { value, onChange, disabled, readOnly, min, max, name } = props;
+      return (
+        <DateInputField
+          ref={ref}
+          id={inputId}
+          name={name}
+          label={label}
+          labelRight={labelRight}
+          error={error}
+          hint={hint}
+          className={className}
+          value={typeof value === 'string' ? value : ''}
+          onChange={onChange as unknown as DateInputFieldProps['onChange']}
+          disabled={disabled}
+          readOnly={readOnly}
+          min={typeof min === 'string' ? min : undefined}
+          max={typeof max === 'string' ? max : undefined}
+        />
+      );
+    }
 
     const baseInputClass = [
       'w-full bg-dn-surface-low rounded-input px-4 py-3 text-sm text-dn-text-main placeholder-dn-text-muted/50',
@@ -35,56 +55,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {labelRight}
       </div>
     );
-
-    if (props.type === 'date') {
-      const { value, onChange, disabled, min, max } = props;
-
-      const combinedRef = (el: HTMLInputElement | null) => {
-        (internalDateRef as { current: HTMLInputElement | null }).current = el;
-        if (typeof ref === 'function') ref(el);
-        else if (ref) (ref as { current: HTMLInputElement | null }).current = el;
-      };
-
-      const displayValue = typeof value === 'string' ? formatDateInputDisplay(value) : '';
-
-      return (
-        <div className="flex flex-col gap-1.5">
-          {labelBlock}
-          <div className="relative">
-            <div
-              id={inputId}
-              onClick={() => !disabled && internalDateRef.current?.showPicker()}
-              className={[baseInputClass, 'pr-10 cursor-pointer flex items-center'].join(' ')}
-            >
-              {displayValue
-                ? <span>{displayValue}</span>
-                : <span className="text-dn-text-muted/50">{getDateInputPlaceholder()}</span>
-              }
-            </div>
-            <input
-              ref={combinedRef}
-              type="date"
-              value={value as string}
-              onChange={onChange}
-              disabled={disabled}
-              min={min}
-              max={max}
-              className="sr-only"
-            />
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => internalDateRef.current?.showPicker()}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-dn-text-muted hover:text-dn-text-main transition-colors"
-            >
-              <Icon name="calendar_today" className="text-xl" />
-            </button>
-          </div>
-          {error && <p className="text-xs text-dn-error">{error}</p>}
-          {hint && !error && <p className="text-xs text-dn-text-muted">{hint}</p>}
-        </div>
-      );
-    }
 
     return (
       <div className="flex flex-col gap-1.5">
