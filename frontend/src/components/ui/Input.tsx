@@ -14,7 +14,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, labelRight, error, hint, className = '', id, ...props }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
 
-    if (props.type === 'date') {
+    if (props.type === 'date' || props.type === 'datetime-local') {
       const { value, onChange, disabled, readOnly, min, max, name } = props;
       return (
         <DateInputField
@@ -32,6 +32,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           readOnly={readOnly}
           min={typeof min === 'string' ? min : undefined}
           max={typeof max === 'string' ? max : undefined}
+          mode={props.type === 'datetime-local' ? 'datetime' : 'date'}
         />
       );
     }

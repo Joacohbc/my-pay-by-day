@@ -12,6 +12,7 @@ import {
   onDateFormatChange,
   parseFormattedDate,
   setDateFormatId,
+  withTime,
   type DateFormatOption,
 } from '@/lib/utils/dateFormat';
 import { getLocalizedTodayString } from '@/lib/format';
@@ -30,6 +31,7 @@ export interface DateInputFieldProps {
   readOnly?: boolean;
   className?: string;
   name?: string;
+  mode?: 'date' | 'datetime';
 }
 
 function emitIsoChange(onChange: DateInputFieldProps['onChange'], iso: string) {
@@ -39,7 +41,7 @@ function emitIsoChange(onChange: DateInputFieldProps['onChange'], iso: string) {
 
 export const DateInputField = forwardRef<HTMLInputElement, DateInputFieldProps>(
   (
-    { label, labelRight, error, hint, id, value, onChange, min, max, disabled, readOnly, className = '', name },
+    { label, labelRight, error, hint, id, value, onChange, min, max, disabled, readOnly, className = '', name, mode = 'date' },
     ref,
   ) => {
     const { t } = useTranslation();
@@ -50,8 +52,10 @@ export const DateInputField = forwardRef<HTMLInputElement, DateInputFieldProps>(
     const [, forceTick] = useState(0);
     useEffect(() => onDateFormatChange(() => forceTick((n) => n + 1)), []);
 
-    const formatOption = getDateFormat();
+    const baseFormatOption = getDateFormat();
+    const formatOption = mode === 'datetime' ? withTime(baseFormatOption) : baseFormatOption;
     const isInteractive = !disabled && !readOnly;
+    const nativeInputType = mode === 'datetime' ? 'datetime-local' : 'date';
 
     const [typedValue, setTypedValue] = useState<string>(() =>
       value ? formatIsoDate(value, formatOption) : '',
@@ -212,8 +216,8 @@ export const DateInputField = forwardRef<HTMLInputElement, DateInputFieldProps>(
           )}
           <input
             ref={combinedRef}
-            type="date"
-            value={value ?? ''}
+            type={nativeInputType}
+            value={value ? value.slice(0, mode === 'datetime' ? 16 : 10) : ''}
             onChange={handleNativePickerChange}
             disabled={disabled}
             readOnly={readOnly}
@@ -245,6 +249,7 @@ export const DateInputField = forwardRef<HTMLInputElement, DateInputFieldProps>(
               <ul className="max-h-56 overflow-y-auto py-1 scrollbar-thin">
                 {DATE_FORMAT_OPTIONS.map((opt) => {
                   const isSelected = opt.id === formatOption.id;
+                  const previewOpt = mode === 'datetime' ? withTime(opt) : opt;
                   return (
                     <li key={opt.id}>
                       <button
@@ -255,8 +260,8 @@ export const DateInputField = forwardRef<HTMLInputElement, DateInputFieldProps>(
                           isSelected ? 'text-dn-primary' : 'text-dn-text-main',
                         ].join(' ')}
                       >
-                        <span className="truncate">{formatIsoDate(todayPreview, opt)}</span>
-                        <span className="font-mono text-[10px] text-dn-text-muted truncate">{opt.mask ?? opt.pattern}</span>
+                        <span className="truncate">{formatIsoDate(todayPreview, previewOpt)}</span>
+                        <span className="font-mono text-[10px] text-dn-text-muted truncate">{previewOpt.mask ?? previewOpt.pattern}</span>
                       </button>
                     </li>
                   );

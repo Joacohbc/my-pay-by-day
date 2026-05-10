@@ -20,6 +20,18 @@ export interface DateFormatOption {
   mask?: string;
   separator?: string;
   digitGroups?: number[];
+  hasTime?: boolean;
+}
+
+export function withTime(opt: DateFormatOption): DateFormatOption {
+  if (opt.hasTime) return opt;
+  return {
+    ...opt,
+    pattern: `${opt.pattern} HH:mm`,
+    mask: opt.mask ? `${opt.mask} hh:mm` : undefined,
+    digitGroups: opt.digitGroups ? [...opt.digitGroups, 2, 2] : undefined,
+    hasTime: true,
+  };
 }
 
 export const DATE_FORMAT_OPTIONS: DateFormatOption[] = [
@@ -79,9 +91,10 @@ function activeLocale(): Locale {
 }
 
 function isoToLocalDate(iso: string): Date | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d);
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (!m) return null;
+  const [, y, mo, d, h, mi, s] = m;
+  return new Date(+y, +mo - 1, +d, h ? +h : 0, mi ? +mi : 0, s ? +s : 0);
 }
 
 export function formatIsoDate(iso: string, opt: DateFormatOption = getDateFormat()): string {
@@ -97,6 +110,11 @@ export function parseFormattedDate(text: string, opt: DateFormatOption = getDate
   const yyyy = String(parsed.getFullYear()).padStart(4, '0');
   const mm = String(parsed.getMonth() + 1).padStart(2, '0');
   const dd = String(parsed.getDate()).padStart(2, '0');
+  if (opt.hasTime) {
+    const hh = String(parsed.getHours()).padStart(2, '0');
+    const mi = String(parsed.getMinutes()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+  }
   return `${yyyy}-${mm}-${dd}`;
 }
 
