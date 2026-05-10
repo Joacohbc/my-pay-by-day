@@ -21,6 +21,7 @@ export interface FilterPill {
 import { useTimePeriods } from '@/hooks/useTimePeriods';
 import { useDebounceCallback } from '@/hooks/useDebounce';
 import { getDynamicPeriodDates } from '@/lib/utils/dateUtils';
+import { formatIsoDate } from '@/lib/utils/dateFormat';
 
 type EventSearchbarFilterProps = {
   search: string;
@@ -461,28 +462,39 @@ export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, Event
       {hasAnyFilter && (
         <div className="flex flex-wrap gap-2 px-1">
           {filters.categoryIds.length > 0 && (
-            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary">
-              {t('common.category')}: {filters.categoryIds.length}
+            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary flex items-center gap-1.5">
+              <Icon name="category" className="text-sm" />
+              {categories
+                .filter((c) => filters.categoryIds.includes(c.id))
+                .map((c) => c.name)
+                .join(', ')}
             </span>
           )}
           {filters.tagIds.length > 0 && (
-            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary">
-              {t('common.tag')}: {filters.tagIds.length}
+            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary flex items-center gap-1.5">
+              <Icon name="sell" className="text-sm" />
+              {tags
+                .filter((t) => filters.tagIds.includes(t.id))
+                .map((t) => t.name)
+                .join(', ')}
             </span>
           )}
           {hasActiveDateRange && (
-            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary">
-              {t('events.dateField')}
+            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary flex items-center gap-1.5">
+              <Icon name="event" className="text-sm" />
+              {filters.startDate ? formatIsoDate(filters.startDate) : '...'} - {filters.endDate ? formatIsoDate(filters.endDate) : '...'}
             </span>
           )}
           {hasActiveNode && (
-            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary">
-              {t('events.filterNode')}
+            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary flex items-center gap-1.5">
+              <Icon name="account_balance_wallet" className="text-sm" />
+              {nodes.find((n) => n.id === filters.nodeId)?.name || t('events.filterNode')}
             </span>
           )}
           {hasActiveAmountRange && (
-            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary">
-              {t('events.amountRange')}
+            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary flex items-center gap-1.5">
+              <Icon name="payments" className="text-sm" />
+              {filters.minAmount !== undefined ? `${filters.minAmount}` : '0'} - {filters.maxAmount !== undefined ? `${filters.maxAmount}` : '∞'}
             </span>
           )}
         </div>
