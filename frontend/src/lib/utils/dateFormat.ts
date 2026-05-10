@@ -19,17 +19,28 @@ export interface DateFormatOption {
   isNumeric: boolean;
   mask?: string;
   separator?: string;
+  separators?: string[];
   digitGroups?: number[];
   hasTime?: boolean;
 }
 
+function resolveSeparators(opt: DateFormatOption): string[] | null {
+  if (opt.separators) return opt.separators;
+  if (opt.separator && opt.digitGroups) {
+    return Array(opt.digitGroups.length - 1).fill(opt.separator);
+  }
+  return null;
+}
+
 export function withTime(opt: DateFormatOption): DateFormatOption {
   if (opt.hasTime) return opt;
+  const baseSeparators = resolveSeparators(opt);
   return {
     ...opt,
     pattern: `${opt.pattern} HH:mm`,
     mask: opt.mask ? `${opt.mask} hh:mm` : undefined,
     digitGroups: opt.digitGroups ? [...opt.digitGroups, 2, 2] : undefined,
+    separators: baseSeparators ? [...baseSeparators, ' ', ':'] : undefined,
     hasTime: true,
   };
 }
@@ -123,18 +134,21 @@ export function getMaskPlaceholder(opt: DateFormatOption = getDateFormat()): str
 }
 
 export function applyDateMask(input: string, opt: DateFormatOption): string {
-  if (!opt.isNumeric || !opt.separator || !opt.digitGroups) return input;
+  if (!opt.isNumeric || !opt.digitGroups) return input;
+  const separators = resolveSeparators(opt);
+  if (!separators) return input;
   const digits = input.replace(/\D/g, '');
   const totalDigits = opt.digitGroups.reduce((sum, n) => sum + n, 0);
   const trimmed = digits.slice(0, totalDigits);
-  const parts: string[] = [];
+  let out = '';
   let cursor = 0;
-  for (const groupSize of opt.digitGroups) {
+  for (let i = 0; i < opt.digitGroups.length; i++) {
     if (cursor >= trimmed.length) break;
-    parts.push(trimmed.slice(cursor, cursor + groupSize));
-    cursor += groupSize;
+    if (i > 0) out += separators[i - 1];
+    out += trimmed.slice(cursor, cursor + opt.digitGroups[i]);
+    cursor += opt.digitGroups[i];
   }
-  return parts.join(opt.separator);
+  return out;
 }
 
 export function isMaskComplete(text: string, opt: DateFormatOption): boolean {

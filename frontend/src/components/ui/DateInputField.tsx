@@ -53,7 +53,10 @@ export const DateInputField = forwardRef<HTMLInputElement, DateInputFieldProps>(
     useEffect(() => onDateFormatChange(() => forceTick((n) => n + 1)), []);
 
     const baseFormatOption = getDateFormat();
-    const formatOption = mode === 'datetime' ? withTime(baseFormatOption) : baseFormatOption;
+    const formatOption = useMemo(
+      () => (mode === 'datetime' ? withTime(baseFormatOption) : baseFormatOption),
+      [mode, baseFormatOption],
+    );
     const isInteractive = !disabled && !readOnly;
     const nativeInputType = mode === 'datetime' ? 'datetime-local' : 'date';
 
