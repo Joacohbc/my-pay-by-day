@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { FieldPath, FieldValues, UseFormGetValues, UseFormSetValue } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/contexts/AlertContext';
@@ -75,21 +75,15 @@ export function useAiFormController<T extends FieldValues>({
   const { t } = useTranslation();
   const alert = useAlert();
   const [loadingByField, setLoadingByField] = useState<Record<string, boolean>>({});
-  const [activeFieldKey, setActiveFieldKey] = useState<string>(fields[0]?.key ?? '');
+  const [selectedFieldKey, setSelectedFieldKey] = useState<string>(fields[0]?.key ?? '');
 
-  useEffect(() => {
-    if (fields.length === 0) {
-      if (activeFieldKey !== '') {
-        setActiveFieldKey('');
-      }
-      return;
-    }
+  const activeFieldKey = useMemo(() => {
+    if (fields.length === 0) return '';
+    const isSelectedFieldValid = fields.some((field) => field.key === selectedFieldKey);
+    return isSelectedFieldValid ? selectedFieldKey : fields[0].key;
+  }, [selectedFieldKey, fields]);
 
-    const hasActiveField = fields.some((field) => field.key === activeFieldKey);
-    if (!hasActiveField) {
-      setActiveFieldKey(fields[0].key);
-    }
-  }, [activeFieldKey, fields]);
+  const setActiveFieldKey = setSelectedFieldKey;
 
   const activeField = useMemo(
     () => fields.find((field) => field.key === activeFieldKey) ?? null,

@@ -15,6 +15,15 @@ import { useNodes } from '@/hooks/useNodes';
 import { useFiles } from '@/hooks/useFiles';
 import { changeLanguage } from '@/lib/i18n';
 import { getCurrency, setCurrency, onCurrencyChange } from '@/lib/format';
+import {
+  DATE_FORMAT_OPTIONS,
+  formatIsoDate,
+  getDateFormatId,
+  onDateFormatChange,
+  setDateFormatId,
+  type DateFormatId,
+} from '@/lib/utils/dateFormat';
+import { getLocalizedTodayString } from '@/lib/format';
 import { commonTimezones } from '@/lib/utils/timezones';
 import { getUserTimezone, setUserTimezone } from '@/lib/utils/dateUtils';
 import { currenciesList } from '@/lib/utils/currencies';
@@ -62,6 +71,7 @@ export function SettingsPage() {
   const resetDismissedBanners = useDismissedBannersStore((s) => s.reset);
   const [currency, _setCurrency] = useState(getCurrency);
   const [timezone, _setTimezone] = useState(() => getUserTimezone());
+  const [dateFormatId, _setDateFormatId] = useState<DateFormatId>(() => getDateFormatId());
   const [isImporting, setIsImporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
   const { data: categories } = useCategories();
@@ -72,6 +82,12 @@ export function SettingsPage() {
   const { data: filesPaged } = useFiles(0, 1);
 
   useEffect(() => onCurrencyChange(() => _setCurrency(getCurrency())), []);
+  useEffect(() => onDateFormatChange(() => _setDateFormatId(getDateFormatId())), []);
+
+  const handleDateFormatChange = (id: DateFormatId) => {
+    setDateFormatId(id);
+    _setDateFormatId(id);
+  };
 
   const handleCurrencyChange = (code: string) => {
     setCurrency(code);
@@ -184,6 +200,25 @@ export function SettingsPage() {
                   { value: '', label: `${t('settings.timezoneBrowserDefault')} (${getUserTimezone()})` },
                   ...commonTimezones.map(tz => ({ value: tz, label: tz }))
                 ]}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-4 px-4 py-3.5">
+            <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-dn-surface-low text-dn-text-muted shrink-0">
+              <Icon name="event" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-dn-text-main">{t('settings.dateFormat')}</p>
+              <p className="text-xs text-dn-text-muted">{t('settings.dateFormatDesc')}</p>
+            </div>
+            <div className="relative shrink-0 w-48">
+              <SearchableSelect
+                value={dateFormatId}
+                onChange={(val) => handleDateFormatChange(String(val) as DateFormatId)}
+                options={DATE_FORMAT_OPTIONS.map((opt) => ({
+                  value: opt.id,
+                  label: `${opt.mask ?? opt.pattern} · ${formatIsoDate(getLocalizedTodayString(), opt)}`,
+                }))}
               />
             </div>
           </div>

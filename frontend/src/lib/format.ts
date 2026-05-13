@@ -1,6 +1,8 @@
 import i18n from '@/lib/i18n';
 import type { FinanceEvent } from '@/models';
-import { getUserTimezone } from '@/lib/utils/dateUtils';
+import { getServerTimezone, getUserTimezone } from '@/lib/utils/dateUtils';
+import { formatIsoDate, getMaskPlaceholder } from '@/lib/utils/dateFormat';
+import { formatInTimeZone } from 'date-fns-tz';
 
 const LOCALE_MAP: Record<string, string> = {
   en: 'en-US',
@@ -95,13 +97,13 @@ export function formatDate(input: string | Date): string {
 }
 
 export function formatDateFromParts(dateOnly: string): string {
-  // Always evaluate "just a date" using UTC internally so it doesn't drift,
+  // Always evaluate "just a date" using server timezone internally so it doesn't drift,
   // as LocalDate on the server has no timezone.
   return new Intl.DateTimeFormat(locale(), {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-    timeZone: 'UTC',
+    timeZone: getServerTimezone(),
   }).format(new Date(dateOnly + 'T00:00:00Z'));
 }
 
@@ -122,23 +124,24 @@ export function formatDateInput(isoString: string): string {
   return isoString.slice(0, 16);
 }
 
+export function formatDateInputDisplay(isoDate: string): string {
+  return formatIsoDate(isoDate);
+}
+
+export function getDateInputPlaceholder(): string {
+  return getMaskPlaceholder();
+}
+
 /**
  * Returns a new Date object representing "now" evaluated in the user's localized timezone.
  */
 export function getLocalizedNow(): Date {
-  const nowIso = new Date().toLocaleString('en-US', { timeZone: getUserTimezone() });
-  return new Date(nowIso);
+  const wallClockIso = formatInTimeZone(new Date(), getUserTimezone(), "yyyy-MM-dd'T'HH:mm:ss");
+  return new Date(wallClockIso);
 }
 
-/**
- * Returns the localized "today" as a YYYY-MM-DD string.
- */
 export function getLocalizedTodayString(): string {
-  const now = new Date();
-  const yyyy = new Intl.DateTimeFormat('en-CA', { year: 'numeric', timeZone: getUserTimezone() }).format(now);
-  const mm = new Intl.DateTimeFormat('en-CA', { month: '2-digit', timeZone: getUserTimezone() }).format(now);
-  const dd = new Intl.DateTimeFormat('en-CA', { day: '2-digit', timeZone: getUserTimezone() }).format(now);
-  return `${yyyy}-${mm}-${dd}`;
+  return formatInTimeZone(new Date(), getUserTimezone(), 'yyyy-MM-dd');
 }
 
 /**

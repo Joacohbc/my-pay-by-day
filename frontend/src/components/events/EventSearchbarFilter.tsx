@@ -1,43 +1,95 @@
-import { useState, type ReactNode } from 'react';
+import { useState, forwardRef, useImperativeHandle, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
+import { NodeSelector } from '@/components/ui/NodeSelector';
+import { DynamicTimePeriodSelector, type DynamicPeriodOption } from '@/components/time-periods/DynamicTimePeriodSelector';
 import type { EventModalFiltersState } from '@/hooks/useEventModalFilters';
 import type { DateField } from '@/services/events.service';
-import type { Category, Tag } from '@/models';
+import type { Category, FinanceNode, Tag } from '@/models';
+import { useTimePeriods } from '@/hooks/useTimePeriods';
+import { useDebounceCallback } from '@/hooks/useDebounce';
+import { getDynamicPeriodDates } from '@/lib/utils/dateUtils';
+import { formatIsoDate } from '@/lib/utils/dateFormat';
 
-type EventNodeFilterItem = {
-  id: number;
-  name: string;
-};
+export interface FilterPill {
+  label: string;
+  value: string;
+  badge?: number;
+}
 
 type EventSearchbarFilterProps = {
   search: string;
-  onSearchChange: (value: string) => void;
   searchPlaceholder?: string;
   showFilters: boolean;
   hasAnyFilter: boolean;
   filters: EventModalFiltersState;
   categories: Category[];
   tags: Tag[];
-  nodes: EventNodeFilterItem[];
+  nodes: FinanceNode[];
+  pills?: PillsConfig;
+  onSearchChange: (value: string) => void;
   onToggleFilters: () => void;
   onResetFilters: () => void;
   onToggleCategory: (id: number) => void;
   onToggleTag: (id: number) => void;
   onDateFieldChange: (field: DateField) => void;
-  onStartDateChange: (value: string) => void;
-  onEndDateChange: (value: string) => void;
+  onDateRangeChange: (start: string, end: string) => void;
   onNodeIdChange: (nodeId: number | undefined) => void;
-  onPageReset?: () => void;
+  onMinAmountChange: (value: number | undefined) => void;
+  onMaxAmountChange: (value: number | undefined) => void;
+  onFiltersChange?: () => void;
   children?: ReactNode;
 };
 
-export function EventSearchbarFilter({
+export type PillsConfig = {
+  items?: FilterPill[];
+  active?: string;
+  onChange?: (v: string) => void;
+  position?: 'modal' | 'inline';
+};
+
+type PillButtonsProps = {
+  pills: FilterPill[];
+  activePill?: string;
+  onPillChange?: (v: string) => void;
+};
+
+function PillButtons({ pills, activePill, onPillChange }: PillButtonsProps) {
+  return (
+    <>
+      {pills.map(({ label, value, badge }) => (
+        <button
+          key={value}
+          onClick={() => onPillChange?.(value)}
+          className={[
+            'shrink-0 px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5',
+            activePill === value
+              ? 'bg-dn-primary/20 text-dn-primary'
+              : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
+          ].join(' ')}
+        >
+          {label}
+          {typeof badge === 'number' && badge > 0 && (
+            <span className="bg-dn-error text-white text-[10px] leading-tight font-semibold px-1.5 py-0.5 rounded-full min-w-4.5 text-center inline-block">
+              {badge}
+            </span>
+          )}
+        </button>
+      ))}
+    </>
+  );
+}
+
+export type EventSearchbarFilterHandle = { reset(): void };
+
+export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, EventSearchbarFilterProps>(function EventSearchbarFilter({
   search,
   onSearchChange,
   searchPlaceholder,
@@ -52,107 +104,277 @@ export function EventSearchbarFilter({
   onToggleCategory,
   onToggleTag,
   onDateFieldChange,
-  onStartDateChange,
-  onEndDateChange,
+  onDateRangeChange,
   onNodeIdChange,
-  onPageReset,
+  onMinAmountChange,
+  onMaxAmountChange,
+  pills,
+  onFiltersChange,
   children,
-}: EventSearchbarFilterProps) {
+}: EventSearchbarFilterProps, ref) {
   const { t } = useTranslation();
-  const [isFilterPanelCollapsed, setIsFilterPanelCollapsed] = useState(false);
+
+  const { items: filterPills, active: activePill, onChange: onPillChange, position: pillsPosition = 'modal' } = pills ?? {};
+
+  const defaultPills: FilterPill[] = [
+    { label: t('common.all'), value: 'ALL' },
+    { label: t('events.income'), value: 'INBOUND' },
+    { label: t('events.expenses'), value: 'OUTBOUND' },
+    { label: t('events.transfers'), value: 'OTHER' },
+  ];
+
+  const pillsToRender = filterPills ?? (onPillChange ? defaultPills : undefined);
+
+  const { data: pagedTimePeriods } = useTimePeriods(0, 100);
+  const timePeriods = pagedTimePeriods?.content || [];
+  const [selectedDynamicPeriod, setSelectedDynamicPeriod] = useState<DynamicPeriodOption | undefined>();
+  const [selectedTimePeriodId, setSelectedTimePeriodId] = useState<string>('');
+
+  const handleDynamicPeriodChange = (option: DynamicPeriodOption) => {
+    setSelectedDynamicPeriod(option);
+    setSelectedTimePeriodId('');
+
+    const { startDate, endDate } = getDynamicPeriodDates(option);
+    onDateRangeChange(startDate, endDate);
+    onFiltersChange?.();
+  };
+
+  const handleTimePeriodChange = (val: string | number | null) => {
+    const idStr = String(val || '');
+    setSelectedTimePeriodId(idStr);
+    setSelectedDynamicPeriod(undefined);
+    if (!idStr) {
+      onDateRangeChange('', '');
+      onFiltersChange?.();
+      return;
+    }
+    const tp = timePeriods.find((t) => String(t.id) === idStr);
+    if (tp) {
+      onDateRangeChange(tp.startDate, tp.endDate);
+      onFiltersChange?.();
+    }
+  };
+
+  const [approxBaseDate, setApproxBaseDate] = useState<string>('');
+  const [approxVarianceDays, setApproxVarianceDays] = useState<number>(0);
+  const [dateMode, setDateMode] = useState<'exact' | 'approx'>('exact');
+
+  useImperativeHandle(ref, () => ({
+    reset() {
+      setSelectedDynamicPeriod(undefined);
+      setSelectedTimePeriodId('');
+      setApproxBaseDate('');
+      setApproxVarianceDays(0);
+      setDateMode('exact');
+    },
+  }));
+
+  const applyApproximateTime = useDebounceCallback((baseDateStr: string, varianceDaysNum: number) => {
+    if (!baseDateStr) {
+      onDateRangeChange('', '');
+      onFiltersChange?.();
+      return;
+    }
+
+    const base = new Date(baseDateStr);
+
+    const start = new Date(base);
+    start.setUTCDate(base.getUTCDate() - varianceDaysNum);
+    const startStr = start.toISOString().split('T')[0];
+
+    const end = new Date(base);
+    end.setUTCDate(base.getUTCDate() + varianceDaysNum);
+    const endStr = end.toISOString().split('T')[0];
+
+    onDateRangeChange(startStr, endStr);
+    onFiltersChange?.();
+  }, 400);
+
+  const handleDateModeChange = (mode: 'exact' | 'approx') => {
+    if (mode !== dateMode) {
+      if (mode === 'approx') {
+        onDateRangeChange('', '');
+        setApproxBaseDate('');
+        setApproxVarianceDays(0);
+      }
+      setDateMode(mode);
+      onFiltersChange?.();
+    }
+  };
 
   const hasActiveDateRange = filters.startDate !== '' || filters.endDate !== '';
   const hasActiveNode = filters.nodeId !== undefined;
+  const hasActiveAmountRange = filters.minAmount !== undefined || filters.maxAmount !== undefined;
 
   return (
     <>
-      {showFilters && (
-        <div className="space-y-4 rounded-3xl p-4 border border-white/5 cursor-pointer">
-          <div className="flex items-center justify-between gap-2 px-1"
-            onClick={() => setIsFilterPanelCollapsed((value) => !value)}>
-            <button
-              type="button"
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-2 min-w-0"
-            >
-              <span className="text-sm font-medium text-dn-text-main">{t('common.filters')}</span>
-              <Icon
-                name={isFilterPanelCollapsed ? 'keyboard_arrow_down' : 'keyboard_arrow_up'}
-                className="text-base text-dn-text-muted"
-              />
-            </button>
-            <div className="flex items-center gap-3">
-              {hasAnyFilter && (
-                <button
-                  type="button"
-                  onClick={onResetFilters}
-                  className="text-xs text-dn-primary font-medium hover:text-dn-primary/80"
-                >
-                  {t('common.clearFilters')}
-                </button>
-              )}
-            </div>
+      <Modal open={showFilters} onClose={onToggleFilters} title={t('common.filters')}>
+        <div className="space-y-3">
+          <div className="flex justify-end">
+            {hasAnyFilter && (
+              <button
+                type="button"
+                onClick={() => {
+                  onResetFilters();
+                  setSelectedDynamicPeriod(undefined);
+                  setSelectedTimePeriodId('');
+                  setApproxBaseDate('');
+                  setApproxVarianceDays(0);
+                  setDateMode('exact');
+                }}
+                className="text-xs text-dn-primary font-medium hover:text-dn-primary/80 mt-[-1]"
+              >
+                {t('common.clearFilters')}
+              </button>
+            )}
           </div>
-          {isFilterPanelCollapsed && hasAnyFilter && (
-            <div className="flex flex-wrap gap-2 px-1">
-              {filters.categoryIds.length > 0 && (
-                <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary">
-                  {t('common.category')}: {filters.categoryIds.length}
-                </span>
-              )}
-              {filters.tagIds.length > 0 && (
-                <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary">
-                  {t('common.tag')}: {filters.tagIds.length}
-                </span>
-              )}
-              {hasActiveDateRange && (
-                <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary">
-                  {t('events.dateField')}
-                </span>
-              )}
-              {hasActiveNode && (
-                <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary">
-                  {t('events.filterNode')}
-                </span>
-              )}
+
+          {pillsPosition === 'modal' && pillsToRender && pillsToRender.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-dn-text-main">{t('events.eventType')}</h3>
+              <div className="flex gap-2 flex-wrap">
+                <PillButtons pills={pillsToRender} activePill={activePill} onPillChange={onPillChange} />
+              </div>
             </div>
           )}
 
-          {!isFilterPanelCollapsed && (
-            <>
+          {/* Time Periods */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-dn-text-main">{t('common.timePeriod')}</h3>
+            <DynamicTimePeriodSelector
+              value={selectedDynamicPeriod as DynamicPeriodOption}
+              onChange={handleDynamicPeriodChange}
+            />
+            {timePeriods.length > 0 && (
               <SearchableSelect
-                label={t('events.dateField')}
-                value={filters.dateField}
+                label={t('common.timePeriod')}
+                value={selectedTimePeriodId}
                 options={[
-                  { value: 'TRANSACTION', label: t('events.dateFieldTransaction') },
-                  { value: 'CREATED', label: t('events.dateFieldCreated') },
-                  { value: 'UPDATED', label: t('events.dateFieldUpdated') },
+                  { value: '', label: t('common.select') },
+                  ...timePeriods.map((tp) => ({ value: String(tp.id), label: tp.name })),
                 ]}
-                onChange={(value) => onDateFieldChange((value as DateField) || 'TRANSACTION')}
+                onChange={handleTimePeriodChange}
+                placeholder={t('common.select')}
               />
+            )}
+          </div>
 
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-dn-text-main">{t('events.dateField')}</h3>
+            <SearchableSelect
+              label={t('events.dateField')}
+              value={filters.dateField}
+              options={[
+                { value: 'TRANSACTION', label: t('events.dateFieldTransaction') },
+                { value: 'CREATED', label: t('events.dateFieldCreated') },
+                { value: 'UPDATED', label: t('events.dateFieldUpdated') },
+              ]}
+              onChange={(value) => onDateFieldChange((value as DateField) || 'TRANSACTION')}
+            />
+          </div>
+
+          <div className="space-y-3">
+            <SegmentedControl
+              options={[
+                { value: 'exact', label: t('events.exactDates') },
+                { value: 'approx', label: t('events.approximateTime') },
+              ]}
+              value={dateMode}
+              onChange={handleDateModeChange}
+            />
+
+            {dateMode === 'exact' ? (
               <div className="grid grid-cols-2 gap-3">
                 <Input
                   type="date"
                   label={t('events.startDate')}
-                  value={filters.startDate}
+                  value={filters.startDate ? filters.startDate.split('T')[0] : ''}
                   onChange={(event) => {
-                    onStartDateChange(event.target.value);
-                    onPageReset?.();
+                    onDateRangeChange(event.target.value, filters.endDate);
+                    onFiltersChange?.();
                   }}
                 />
                 <Input
                   type="date"
                   label={t('events.endDate')}
-                  value={filters.endDate}
+                  value={filters.endDate ? filters.endDate.split('T')[0] : ''}
                   onChange={(event) => {
-                    onEndDateChange(event.target.value);
-                    onPageReset?.();
+                    onDateRangeChange(filters.startDate, event.target.value);
+                    onFiltersChange?.();
                   }}
                 />
               </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 items-end">
+                  <Input
+                    type="date"
+                    label={t('events.baseDate')}
+                    value={approxBaseDate}
+                    onChange={(e) => {
+                      const newBaseDate = e.target.value;
+                      setApproxBaseDate(newBaseDate);
+                      if (!newBaseDate) {
+                        setApproxVarianceDays(0);
+                      }
+                      applyApproximateTime(newBaseDate, !newBaseDate ? 0 : approxVarianceDays);
+                    }}
+                  />
+                  <Input
+                    type="number"
+                    label={t('events.varianceDays')}
+                    value={String(approxVarianceDays)}
+                    onChange={(e) => {
+                      const newVariance = Number(e.target.value);
+                      setApproxVarianceDays(newVariance);
+                      applyApproximateTime(approxBaseDate, newVariance);
+                    }}
+                    min="0"
+                    disabled={!approxBaseDate}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
-              {categories.length > 0 && (
+          <details className="group border border-white/5 rounded-2xl overflow-hidden bg-dn-surface">
+            <summary className="flex items-center justify-between p-4 cursor-pointer marker:hidden list-none font-medium text-sm text-dn-text-main group-open:border-b group-open:border-white/5">
+              {t('events.amountRange')}
+              <Icon name="keyboard_arrow_down" className="text-xl text-dn-text-muted transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="p-4 grid grid-cols-2 gap-3">
+              <Input
+                type="number"
+                label={t('events.minAmount')}
+                value={filters.minAmount !== undefined ? String(filters.minAmount) : ''}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  onMinAmountChange(v === '' ? undefined : Number(v));
+                  onFiltersChange?.();
+                }}
+                min="0"
+              />
+              <Input
+                type="number"
+                label={t('events.maxAmount')}
+                value={filters.maxAmount !== undefined ? String(filters.maxAmount) : ''}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  onMaxAmountChange(v === '' ? undefined : Number(v));
+                  onFiltersChange?.();
+                }}
+                min="0"
+              />
+            </div>
+          </details>
+
+          {categories.length > 0 && (
+            <details className="group border border-white/5 rounded-2xl overflow-hidden bg-dn-surface">
+              <summary className="flex items-center justify-between p-4 cursor-pointer marker:hidden list-none font-medium text-sm text-dn-text-main group-open:border-b group-open:border-white/5">
+                {t('common.category')}
+                <Icon name="keyboard_arrow_down" className="text-xl text-dn-text-muted transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="p-4">
                 <CategorySelector
                   multiSelect
                   categories={categories}
@@ -161,13 +383,21 @@ export function EventSearchbarFilter({
                     const prev = filters.categoryIds.map(String);
                     [...newIds.filter(id => !prev.includes(id)), ...prev.filter(id => !newIds.includes(id))]
                       .forEach(id => onToggleCategory(Number(id)));
-                    onPageReset?.();
+                    onFiltersChange?.();
                   }}
                   showAdd={false}
                 />
-              )}
+              </div>
+            </details>
+          )}
 
-              {tags.length > 0 && (
+          {tags.length > 0 && (
+            <details className="group border border-white/5 rounded-2xl overflow-hidden bg-dn-surface">
+              <summary className="flex items-center justify-between p-4 cursor-pointer marker:hidden list-none font-medium text-sm text-dn-text-main group-open:border-b group-open:border-white/5">
+                {t('common.tag')}
+                <Icon name="keyboard_arrow_down" className="text-xl text-dn-text-muted transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="p-4">
                 <TagSelector
                   tags={tags}
                   value={filters.tagIds.map(String)}
@@ -175,36 +405,34 @@ export function EventSearchbarFilter({
                     const prev = filters.tagIds.map(String);
                     [...newIds.filter(id => !prev.includes(id)), ...prev.filter(id => !newIds.includes(id))]
                       .forEach(id => onToggleTag(Number(id)));
-                    onPageReset?.();
+                    onFiltersChange?.();
                   }}
                   showAdd={false}
                 />
-              )}
-
-              {nodes.length > 0 && (
-                <SearchableSelect
-                  label={t('events.filterNode')}
-                  value={filters.nodeId ?? ''}
-                  options={[
-                    { value: '', label: t('events.filterNodePlaceholder') },
-                    ...nodes.map((node) => ({ value: node.id, label: node.name })),
-                  ]}
-                  onChange={(value) => {
-                    onNodeIdChange(value ? Number(value) : undefined);
-                    onPageReset?.();
-                  }}
-                  placeholder={t('events.filterNodePlaceholder')}
-                />
-              )}
-
-              <div className="flex justify-center items-center cursor-pointer" 
-                onClick={() => setIsFilterPanelCollapsed((value) => !value)}>
-                <Icon name="keyboard_arrow_up" className="text-xl" />
               </div>
-            </>
+            </details>
+          )}
+
+          {nodes.length > 0 && (
+            <details className="group border border-white/5 rounded-2xl overflow-hidden bg-dn-surface">
+              <summary className="flex items-center justify-between p-4 cursor-pointer marker:hidden list-none font-medium text-sm text-dn-text-main group-open:border-b group-open:border-white/5">
+                {t('events.filterNode')}
+                <Icon name="keyboard_arrow_down" className="text-xl text-dn-text-muted transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="p-4">
+                <NodeSelector
+                  nodes={nodes}
+                  value={filters.nodeId}
+                  onChange={(id) => {
+                    onNodeIdChange(id);
+                    onFiltersChange?.();
+                  }}
+                />
+              </div>
+            </details>
           )}
         </div>
-      )}
+      </Modal>
 
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
@@ -232,7 +460,54 @@ export function EventSearchbarFilter({
         </Button>
       </div>
 
+      {hasAnyFilter && (
+        <div className="flex flex-wrap gap-2 px-1">
+          {filters.categoryIds.length > 0 && (
+            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary flex items-center gap-1.5">
+              <Icon name="category" className="text-sm" />
+              {categories
+                .filter((c) => filters.categoryIds.includes(c.id))
+                .map((c) => c.name)
+                .join(', ')}
+            </span>
+          )}
+          {filters.tagIds.length > 0 && (
+            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary flex items-center gap-1.5">
+              <Icon name="sell" className="text-sm" />
+              {tags
+                .filter((t) => filters.tagIds.includes(t.id))
+                .map((t) => t.name)
+                .join(', ')}
+            </span>
+          )}
+          {hasActiveDateRange && (
+            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary flex items-center gap-1.5">
+              <Icon name="event" className="text-sm" />
+              {filters.startDate ? formatIsoDate(filters.startDate) : '...'} - {filters.endDate ? formatIsoDate(filters.endDate) : '...'}
+            </span>
+          )}
+          {hasActiveNode && (
+            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary flex items-center gap-1.5">
+              <Icon name="account_balance_wallet" className="text-sm" />
+              {nodes.find((n) => n.id === filters.nodeId)?.name || t('events.filterNode')}
+            </span>
+          )}
+          {hasActiveAmountRange && (
+            <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary flex items-center gap-1.5">
+              <Icon name="payments" className="text-sm" />
+              {filters.minAmount !== undefined ? `${filters.minAmount}` : '0'} - {filters.maxAmount !== undefined ? `${filters.maxAmount}` : '∞'}
+            </span>
+          )}
+        </div>
+      )}
+
+      {pillsPosition === 'inline' && pillsToRender && pillsToRender.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <PillButtons pills={pillsToRender} activePill={activePill} onPillChange={onPillChange} />
+        </div>
+      )}
+
       {children}
     </>
   );
-}
+});
