@@ -28,6 +28,23 @@ export default defineConfig([
         'error',
         { allowSameFolder: false, rootDir: 'src', prefix: '@' },
       ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXOpeningElement[name.name='input'] > JSXAttribute[name.name='type'][value.value='date']",
+          message: "Don't use raw <input type=\"date\">. Use <Input type=\"date\"> or <DateInputField mode=\"date\">.",
+        },
+        {
+          selector: "JSXOpeningElement[name.name='input'] > JSXAttribute[name.name='type'][value.value='datetime-local']",
+          message: "Don't use raw <input type=\"datetime-local\">. Use <Input type=\"datetime-local\"> or <DateInputField mode=\"datetime\">.",
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/components/ui/DateInputField.tsx'],
+    rules: {
+      'no-restricted-syntax': 'off',
     },
   },
 ])

@@ -1,7 +1,8 @@
 import i18n from '@/lib/i18n';
 import type { FinanceEvent } from '@/models';
-import { getUserTimezone } from '@/lib/utils/dateUtils';
+import { getServerTimezone, getUserTimezone } from '@/lib/utils/dateUtils';
 import { formatIsoDate, getMaskPlaceholder } from '@/lib/utils/dateFormat';
+import { formatInTimeZone } from 'date-fns-tz';
 
 const LOCALE_MAP: Record<string, string> = {
   en: 'en-US',
@@ -102,7 +103,7 @@ export function formatDateFromParts(dateOnly: string): string {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-    timeZone: getUserTimezone(),
+    timeZone: getServerTimezone(),
   }).format(new Date(dateOnly + 'T00:00:00Z'));
 }
 
@@ -135,19 +136,12 @@ export function getDateInputPlaceholder(): string {
  * Returns a new Date object representing "now" evaluated in the user's localized timezone.
  */
 export function getLocalizedNow(): Date {
-  const nowIso = new Date().toLocaleString('en-US', { timeZone: getUserTimezone() });
-  return new Date(nowIso);
+  const wallClockIso = formatInTimeZone(new Date(), getUserTimezone(), "yyyy-MM-dd'T'HH:mm:ss");
+  return new Date(wallClockIso);
 }
 
-/**
- * Returns the localized "today" as a YYYY-MM-DD string.
- */
 export function getLocalizedTodayString(): string {
-  const now = new Date();
-  const yyyy = new Intl.DateTimeFormat('en-CA', { year: 'numeric', timeZone: getUserTimezone() }).format(now);
-  const mm = new Intl.DateTimeFormat('en-CA', { month: '2-digit', timeZone: getUserTimezone() }).format(now);
-  const dd = new Intl.DateTimeFormat('en-CA', { day: '2-digit', timeZone: getUserTimezone() }).format(now);
-  return `${yyyy}-${mm}-${dd}`;
+  return formatInTimeZone(new Date(), getUserTimezone(), 'yyyy-MM-dd');
 }
 
 /**
