@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
@@ -24,6 +25,7 @@ import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
+import com.mypaybyday.i18n.TimezoneContext;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.service.CategoryService;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
@@ -35,11 +37,13 @@ public class EventGetService {
 	private final EventRepository eventRepository;
 	private final CategoryService categoryService;
 	private final Messages messages;
+	private final TimezoneContext timezoneContext;
 
-	public EventGetService(EventRepository eventRepository, CategoryService categoryService, Messages messages) {
+	public EventGetService(EventRepository eventRepository, CategoryService categoryService, Messages messages, TimezoneContext timezoneContext) {
 		this.eventRepository = eventRepository;
 		this.categoryService = categoryService;
 		this.messages = messages;
+		this.timezoneContext = timezoneContext;
 	}
 
 	@Transactional
@@ -55,21 +59,26 @@ public class EventGetService {
 			case TRANSACTION -> "e.transaction.transactionDate";
 		};
 
+		ZoneId userZone = ZoneId.of(timezoneContext.getTimezone());
+
 		if (queryRequest.startDate() != null && !queryRequest.startDate().isBlank()) {
 			query.append(" and ").append(dateFieldExpression).append(" >= :startDate");
+			LocalDate start = LocalDate.parse(queryRequest.startDate());
 			if (instantDateField) {
-				params.put("startDate", LocalDate.parse(queryRequest.startDate()).atStartOfDay(ZoneOffset.UTC).toInstant());
+				params.put("startDate", start.atStartOfDay(userZone).toInstant());
 			} else {
-				params.put("startDate", LocalDate.parse(queryRequest.startDate()).atStartOfDay());
+				// transactionDate column is LocalDateTime stored in UTC; convert user-TZ midnight to UTC wall-clock.
+				params.put("startDate", start.atStartOfDay(userZone).withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime());
 			}
 		}
 
 		if (queryRequest.endDate() != null && !queryRequest.endDate().isBlank()) {
 			query.append(" and ").append(dateFieldExpression).append(" <= :endDate");
+			LocalDate end = LocalDate.parse(queryRequest.endDate());
 			if (instantDateField) {
-				params.put("endDate", LocalDate.parse(queryRequest.endDate()).atTime(LocalTime.MAX).atOffset(ZoneOffset.UTC).toInstant());
+				params.put("endDate", end.atTime(LocalTime.MAX).atZone(userZone).toInstant());
 			} else {
-				params.put("endDate", LocalDate.parse(queryRequest.endDate()).atTime(LocalTime.MAX));
+				params.put("endDate", end.atTime(LocalTime.MAX).atZone(userZone).withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime());
 			}
 		}
 
@@ -106,16 +115,27 @@ public class EventGetService {
 		query.append(" ORDER BY ").append(dateFieldExpression).append(" DESC");
 		PanacheQuery<FinanceEventEntity> panacheQuery = eventRepository.find(query.toString(), params);
 
-		if (queryRequest.search() != null && !queryRequest.search().isBlank()) {
-			String searchLower = queryRequest.search().toLowerCase();
+		boolean hasSearch = queryRequest.search() != null && !queryRequest.search().isBlank();
+		boolean hasAmountRange = queryRequest.minAmount() != null || queryRequest.maxAmount() != null;
+
+		if (hasSearch || hasAmountRange) {
+			String searchLower = hasSearch ? queryRequest.search().toLowerCase() : null;
 			List<FinanceEventEntity> matchingEvents = panacheQuery.stream()
 					.filter(event -> {
-						boolean nameMatch = event.name != null && event.name.toLowerCase().contains(searchLower);
-						boolean descriptionMatch = event.description != null && event.description.toLowerCase().contains(searchLower);
-						boolean categoryMatch = event.category != null
-								&& event.category.name != null
-								&& event.category.name.toLowerCase().contains(searchLower);
-						return nameMatch || descriptionMatch || categoryMatch;
+						if (hasSearch) {
+							boolean nameMatch = event.name != null && event.name.toLowerCase().contains(searchLower);
+							boolean descriptionMatch = event.description != null && event.description.toLowerCase().contains(searchLower);
+							boolean categoryMatch = event.category != null
+									&& event.category.name != null
+									&& event.category.name.toLowerCase().contains(searchLower);
+							if (!nameMatch && !descriptionMatch && !categoryMatch) return false;
+						}
+						if (hasAmountRange) {
+							BigDecimal total = eventTotalAmount(event);
+							if (queryRequest.minAmount() != null && total.compareTo(queryRequest.minAmount()) < 0) return false;
+							if (queryRequest.maxAmount() != null && total.compareTo(queryRequest.maxAmount()) > 0) return false;
+						}
+						return true;
 					})
 					.collect(Collectors.toList());
 
@@ -136,6 +156,14 @@ public class EventGetService {
 				.map(FinanceEventDto::from)
 				.toList();
 		return PagedResponse.of(content, queryRequest.page(), queryRequest.size(), totalElements);
+	}
+
+	private BigDecimal eventTotalAmount(FinanceEventEntity event) {
+		if (event.transaction == null || event.transaction.lineItems == null) return BigDecimal.ZERO;
+		return event.transaction.lineItems.stream()
+				.map(li -> li.amount)
+				.filter(a -> a != null && a.compareTo(BigDecimal.ZERO) > 0)
+				.reduce(BigDecimal.ZERO, BigDecimal::add);
 	}
 
 	@Transactional

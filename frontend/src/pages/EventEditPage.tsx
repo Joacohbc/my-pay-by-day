@@ -32,7 +32,6 @@ export function EventEditPage() {
   useEffect(() => {
     if (!isLoadingDraft && !draftInitial.current.captured) {
       draftInitial.current = { data: fetchedDraft ?? undefined, captured: true };
-      // eslint-disable-next-line
       setDraftToForm(fetchedDraft ?? undefined);
     }
   }, [isLoadingDraft, fetchedDraft]);

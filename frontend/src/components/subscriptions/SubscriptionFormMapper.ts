@@ -7,6 +7,7 @@ import {
   optionalTagIdsField,
 } from '@/lib/validation';
 import type { Subscription, CreateSubscriptionDto, EventType, RecurrenceFrequency, SubscriptionStatus } from '@/models';
+import { getLocalizedTodayString } from '@/lib/format';
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ export const DEFAULT_VALUES: FormValues = {
   categoryId: '',
   tagIds: [],
   recurrence: 'MONTHLY',
-  nextExecutionDate: new Date().toISOString().split('T')[0],
+  nextExecutionDate: getLocalizedTodayString(),
   status: 'ACTIVE',
 };
 

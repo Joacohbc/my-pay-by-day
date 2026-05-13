@@ -423,17 +423,39 @@ export function TimePeriodsPage() {
             error={errors.name?.message}
             {...register('name', { required: t('common.nameRequired') })}
           />
-          <Input
-            label={t('periods.startDate')}
-            type="date"
-            error={errors.startDate?.message}
-            {...register('startDate', { required: t('periods.startDateRequired') })}
+          <Controller
+            name="startDate"
+            control={control}
+            rules={{ required: t('periods.startDateRequired') }}
+            render={({ field }) => (
+              <Input
+                type="date"
+                label={t('periods.startDate')}
+                error={errors.startDate?.message}
+                name={field.name}
+                ref={field.ref}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
           />
-          <Input
-            label={t('periods.endDate')}
-            type="date"
-            error={errors.endDate?.message}
-            {...register('endDate', { required: t('periods.endDateRequired') })}
+          <Controller
+            name="endDate"
+            control={control}
+            rules={{ required: t('periods.endDateRequired') }}
+            render={({ field }) => (
+              <Input
+                type="date"
+                label={t('periods.endDate')}
+                error={errors.endDate?.message}
+                name={field.name}
+                ref={field.ref}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
           />
 
           <div className="space-y-2">
