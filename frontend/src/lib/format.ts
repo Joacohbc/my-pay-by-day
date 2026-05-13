@@ -159,7 +159,7 @@ export function eventNetAmount(event: FinanceEvent): number {
     return items.filter((li) => li.amount < 0).reduce((s, li) => s + Number(li.amount), 0);
   }
   // OTHER
-  return items.reduce((s, li) => s + Number(li.amount), 0);
+  return items.reduce((s, li) => s + Math.abs(Number(li.amount)), 0) / 2;
 }
 
 export function toLocalDateTimeString(input: string | Date): string {
