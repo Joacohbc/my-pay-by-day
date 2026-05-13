@@ -111,7 +111,7 @@ export function EventsListView({
   const filtersValue = advancedFilters ?? EMPTY_FILTERS;
   const hasAdvancedFilters = hasAnyAdvanced(filtersValue);
 
-  const [showFilters, setShowFilters] = useState(hasAdvancedFilters);
+  const [showFilters, setShowFilters] = useState(false);
 
   const [iconSource, setIconSource] = useState<'category' | 'node'>(
     () => (localStorage.getItem('events-icon-source') as 'category' | 'node') ?? 'category'
