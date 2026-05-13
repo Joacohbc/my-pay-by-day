@@ -37,18 +37,21 @@ export function useVoiceRecorder(onAudioReady: (audioBlob: Blob) => Promise<void
 
   const isRecordingSupported = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
 
-  const checkPermission = useCallback(async () => {
+  useEffect(() => {
     if (typeof navigator === 'undefined' || !navigator.permissions) return;
-    try {
-      // Permission API for microphone is widely supported in modern browsers
-      const status = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-      setPermissionState(status.state as VoicePermissionState);
-      status.onchange = () => {
+
+    let cancelled = false;
+    navigator.permissions.query({ name: 'microphone' as PermissionName })
+      .then((status) => {
+        if (cancelled) return;
         setPermissionState(status.state as VoicePermissionState);
-      };
-    } catch {
-      // If permissions.query fails, we'll rely on getUserMedia to determine state later
-    }
+        status.onchange = () => {
+          setPermissionState(status.state as VoicePermissionState);
+        };
+      })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
   }, []);
 
   const requestPermission = useCallback(async () => {
@@ -68,10 +71,6 @@ export function useVoiceRecorder(onAudioReady: (audioBlob: Blob) => Promise<void
       return false;
     }
   }, [isRecordingSupported, onError]);
-
-  useEffect(() => {
-    checkPermission();
-  }, [checkPermission]);
 
   const stopRecording = useCallback(() => {
     const recorder = mediaRecorderRef.current;

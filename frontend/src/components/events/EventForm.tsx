@@ -160,6 +160,8 @@ export function EventForm({
   const hasUserInteracted = useRef(false);
 
   useEffect(() => {
+    // Added eslint-disable-next-line - idiomatic RHF subscription pattern
+    // eslint-disable-next-line react-hooks/incompatible-library
     const subscription = watch((values, { name }) => {
       if (name === 'draftId') return;
 
