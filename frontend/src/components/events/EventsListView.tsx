@@ -200,11 +200,10 @@ export function EventsListView({
                   </button>
                 </div>
                 <Card className="divide-y divide-white/5">
-                  {events.map((event, index) => (
+                  {events.map((event) => (
                     <div
                       key={keyResolver ? keyResolver(event) : event.id}
                       className="py-3 first:pt-0 last:pb-0 animate-in"
-                      style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
                     >
                       {renderItem ? renderItem(event) : <EventCard event={event} from={from} iconSource={iconSource} />}
                     </div>
