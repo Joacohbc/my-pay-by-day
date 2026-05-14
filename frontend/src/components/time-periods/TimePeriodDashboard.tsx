@@ -7,7 +7,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { NewEventFab } from '@/components/time-periods/NewEventFab';
 import { PeriodBalanceSummary } from '@/components/time-periods/PeriodBalanceSummary';
 import { PeriodRecentActivity } from '@/components/time-periods/PeriodRecentActivity';
-import { formatCurrency, formatDateFromParts, getLocalizedNow } from '@/lib/format';
+import { formatCurrency, formatServerDate, getLocalizedNow } from '@/lib/format';
 import { Icon } from '@/components/ui/Icon';
 import type { FinanceEvent, TimePeriod } from '@/models';
 
@@ -136,5 +136,5 @@ export function TimePeriodDashboard({
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function formatPeriodLabel(tp: TimePeriod): string {
-  return `${formatDateFromParts(tp.startDate)} - ${formatDateFromParts(tp.endDate)}`;
+  return `${formatServerDate(tp.startDate)} - ${formatServerDate(tp.endDate)}`;
 }

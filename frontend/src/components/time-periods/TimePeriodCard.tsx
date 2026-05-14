@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTimePeriodBalance } from '@/hooks/useTimePeriods';
 import { useDefaultTimePeriod } from '@/hooks/useDefaultTimePeriod';
-import { formatDateFromParts, formatCurrencyShort } from '@/lib/format';
+import { formatServerDate, formatCurrencyShort } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
@@ -24,7 +24,7 @@ function BalanceSkeleton() {
   );
 }
 
-const formatCardDate = (d: string) => formatDateFromParts(d);
+const formatCardDate = (d: string) => formatServerDate(d);
 
 const fmt = (n: number) => formatCurrencyShort(n);
 

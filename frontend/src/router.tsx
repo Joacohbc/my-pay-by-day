@@ -22,11 +22,13 @@ import { DuplicateSettingsPage } from '@/pages/DuplicateSettingsPage';
 import { EventDuplicatesPage } from '@/pages/EventDuplicatesPage';
 import { AgentTaskDetailPage } from '@/pages/AgentTaskDetailPage';
 import { Routes } from '@/lib/routes';
+import { RouteErrorBoundary } from '@/components/ui/RouteErrorBoundary';
 
 export const router = createBrowserRouter([
   {
     path: Routes.DASHBOARD,
     element: <AppLayout />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <DashboardPage /> },
 
