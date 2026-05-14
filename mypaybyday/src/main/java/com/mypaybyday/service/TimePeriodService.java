@@ -98,8 +98,8 @@ public class TimePeriodService {
 	public TimePeriodBalanceDto getBalance(Long id) throws BusinessException {
 		TimePeriodEntity timePeriod = findTimePeriodEntity(id);
 
-		LocalDateTime from = timePeriod.startDate.atStartOfDay();
-		LocalDateTime to   = timePeriod.endDate.atTime(LocalTime.MAX);
+		LocalDateTime from = timePeriod.startDate;
+		LocalDateTime to   = timePeriod.endDate;
 
 		List<FinanceEventDto> events = eventService.findByDateRange(from, to);
 
@@ -161,14 +161,14 @@ public class TimePeriodService {
 	}
 
 	@Transactional
-	public DynamicTimePeriodBalanceDto getDynamicBalance(LocalDate startDate, LocalDate endDate) throws BusinessException {
+	public DynamicTimePeriodBalanceDto getDynamicBalance(LocalDateTime startDate, LocalDateTime endDate) throws BusinessException {
 		if (startDate == null || endDate == null) {
 			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_START_DATE_REQUIRED)); // or appropriate generic date message
 		}
 		dateValidator.validateDateRange(startDate, endDate);
 
-		LocalDateTime from = startDate.atStartOfDay();
-		LocalDateTime to = endDate.atTime(LocalTime.MAX);
+		LocalDateTime from = startDate;
+		LocalDateTime to = endDate;
 
 		List<FinanceEventDto> events = eventService.findByDateRange(from, to);
 

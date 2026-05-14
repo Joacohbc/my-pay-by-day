@@ -1,6 +1,7 @@
 package com.mypaybyday.service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -45,7 +46,7 @@ public class JobSchedulerService {
 		}
 
 		for (SystemJobEntity job : pendingJobs) {
-			if (job.nextExecutionDate.isAfter(LocalDate.now())) {
+			if (job.nextExecutionDate.isAfter(LocalDateTime.now())) {
 				continue;
 			}
 
@@ -80,7 +81,7 @@ public class JobSchedulerService {
 		List<SystemJobEntity> pendingJobs = systemJobRepository.findPendingJobsByCategory(JobCategory.DUPLICATE_DETECTION);
 
 		for (SystemJobEntity job : pendingJobs) {
-			if (job.nextExecutionDate.isAfter(LocalDate.now())) {
+			if (job.nextExecutionDate.isAfter(LocalDateTime.now())) {
 				continue;
 			}
 

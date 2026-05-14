@@ -53,9 +53,8 @@ public class AggregationService {
     @Transactional
     public Map<Long, BigDecimal> byTagInPeriod(Long periodId) throws BusinessException {
         TimePeriodEntity period = findPeriodEntity(periodId);
-        LocalDateTime from = period.startDate.atStartOfDay();
-        LocalDateTime to = period.endDate.atTime(LocalTime.MAX);
-        List<FinanceEventDto> events = eventService.findByDateRange(from, to);
+        		LocalDateTime from = period.startDate;
+        		LocalDateTime to = period.endDate;        List<FinanceEventDto> events = eventService.findByDateRange(from, to);
         return aggregateByTag(events);
     }
 
@@ -83,9 +82,8 @@ public class AggregationService {
     @Transactional
     public BigDecimal categorySpendingInPeriod(Long categoryId, Long periodId) throws BusinessException {
         TimePeriodEntity period = findPeriodEntity(periodId);
-        LocalDateTime from = period.startDate.atStartOfDay();
-        LocalDateTime to = period.endDate.atTime(LocalTime.MAX);
-        List<FinanceEventDto> events = eventService.findByDateRange(from, to);
+        		LocalDateTime from = period.startDate;
+        		LocalDateTime to = period.endDate;        List<FinanceEventDto> events = eventService.findByDateRange(from, to);
         return events.stream()
                 .filter(e -> e.category() != null && categoryId.equals(e.category().id()))
                 .filter(e -> e.type() == EventType.OUTBOUND)

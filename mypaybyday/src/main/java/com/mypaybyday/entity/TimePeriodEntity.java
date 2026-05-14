@@ -1,7 +1,7 @@
 package com.mypaybyday.entity;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -30,10 +30,10 @@ public class TimePeriodEntity extends BaseEntity {
 	public String name;
 
 	@NotNull
-	public LocalDate startDate;
+	public LocalDateTime startDate;
 
 	@NotNull
-	public LocalDate endDate;
+	public LocalDateTime endDate;
 
 	@OneToMany(mappedBy = "timePeriod", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
 	@Builder.Default

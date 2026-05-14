@@ -63,22 +63,21 @@ public class EventGetService {
 
 		if (queryRequest.startDate() != null && !queryRequest.startDate().isBlank()) {
 			query.append(" and ").append(dateFieldExpression).append(" >= :startDate");
-			LocalDate start = LocalDate.parse(queryRequest.startDate());
+			LocalDateTime start = LocalDateTime.parse(queryRequest.startDate());
 			if (instantDateField) {
-				params.put("startDate", start.atStartOfDay(userZone).toInstant());
+				params.put("startDate", start.toInstant(ZoneOffset.UTC));
 			} else {
-				// transactionDate column is LocalDateTime stored in UTC; convert user-TZ midnight to UTC wall-clock.
-				params.put("startDate", start.atStartOfDay(userZone).withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime());
+				params.put("startDate", start);
 			}
 		}
 
 		if (queryRequest.endDate() != null && !queryRequest.endDate().isBlank()) {
 			query.append(" and ").append(dateFieldExpression).append(" <= :endDate");
-			LocalDate end = LocalDate.parse(queryRequest.endDate());
+			LocalDateTime end = LocalDateTime.parse(queryRequest.endDate());
 			if (instantDateField) {
-				params.put("endDate", end.atTime(LocalTime.MAX).atZone(userZone).toInstant());
+				params.put("endDate", end.toInstant(ZoneOffset.UTC));
 			} else {
-				params.put("endDate", end.atTime(LocalTime.MAX).atZone(userZone).withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime());
+				params.put("endDate", end);
 			}
 		}
 

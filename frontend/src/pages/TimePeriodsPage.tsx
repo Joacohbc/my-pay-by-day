@@ -8,6 +8,7 @@ import {
   useDeleteTimePeriod,
 } from '@/hooks/useTimePeriods';
 import { useCategories } from '@/hooks/useCategories';
+import { formatStartOfDateInUTC, formatEndOfDateInUTC, fromServerDate } from '@/lib/utils/dateUtils';
 import { useDefaultTimePeriod } from '@/hooks/useDefaultTimePeriod';
 import { TimePeriodCard } from '@/components/time-periods/TimePeriodCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -26,6 +27,7 @@ import { DismissibleBanner } from '@/components/ui/DismissibleBanner';
 import { BANNER_IDS } from '@/store/dismissedBannersStore';
 import type { TimePeriod, CreateTimePeriodDto } from '@/models';
 import { getBudgetLimitMode, type BudgetLimitMode } from '@/lib/timePeriods';
+import { useAccumulatedData } from '@/hooks/useAccumulatedData';
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -68,7 +70,13 @@ export function TimePeriodsPage() {
   const deletePeriod = useDeleteTimePeriod();
   const { defaultId, setDefaultId } = useDefaultTimePeriod();
 
-  const allPeriods = useMemo(() => paged?.content ?? [], [paged]);
+  const { displayedData: allPeriods } = useAccumulatedData(
+    paged?.content,
+    page,
+    setPage,
+    []
+  );
+
   const totalPages = paged?.totalPages ?? 1;
 
   const [editTarget, setEditTarget] = useState<TimePeriod | null>(null);
@@ -180,8 +188,8 @@ export function TimePeriodsPage() {
     const detectMode = getBudgetLimitMode(tp);
 
     setValue('name', tp.name);
-    setValue('startDate', tp.startDate);
-    setValue('endDate', tp.endDate);
+    setValue('startDate', fromServerDate(tp.startDate).split('T')[0]);
+    setValue('endDate', fromServerDate(tp.endDate).split('T')[0]);
     setValue('budgets', tpBudgets);
     setValue('savingsPercentageGoal', tp.savingsPercentageGoal != null ? String(tp.savingsPercentageGoal) : '');
     setValue('budgetLimitMode', detectMode);
@@ -213,10 +221,14 @@ export function TimePeriodsPage() {
       effectiveBudgetLimit = null;
     }
 
+    // Ensure the dates are evaluated in local time before converting to UTC bounds
+    const sDate = new Date(`${values.startDate}T00:00:00`);
+    const eDate = new Date(`${values.endDate}T00:00:00`);
+
     const dto = {
       name: values.name,
-      startDate: values.startDate,
-      endDate: values.endDate,
+      startDate: formatStartOfDateInUTC(sDate),
+      endDate: formatEndOfDateInUTC(eDate),
       budgets,
       savingsPercentageGoal: values.savingsPercentageGoal
         ? parseFloat(values.savingsPercentageGoal)
@@ -256,7 +268,7 @@ export function TimePeriodsPage() {
 
   // ─── render ─────────────────────────────────────────────────────────────────
 
-  if (isLoading) return <FullPageSpinner />;
+  if (isLoading && page === 0) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
 
   const filterTabs: { key: FilterTab; label: string }[] = [
@@ -403,7 +415,7 @@ export function TimePeriodsPage() {
         </div>
       )}
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} isLoading={isLoading} />
 
       {/* Create / Edit Modal */}
       <Modal

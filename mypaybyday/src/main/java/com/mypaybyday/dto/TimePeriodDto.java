@@ -1,7 +1,7 @@
 package com.mypaybyday.dto;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -10,8 +10,8 @@ import com.mypaybyday.entity.TimePeriodEntity;
 public record TimePeriodDto(
 	Long id,
 	String name,
-	LocalDate startDate,
-	LocalDate endDate,
+	LocalDateTime startDate,
+	LocalDateTime endDate,
 	List<TimePeriodBudgetDto> budgets,
 	BigDecimal savingsPercentageGoal,
 	BigDecimal budgetLimit

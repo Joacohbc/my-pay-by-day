@@ -94,13 +94,6 @@ export function transformDates(obj: unknown, transformer: (val: string) => strin
 export function getDynamicPeriodDates(option: DynamicPeriodOption): { startDate: string; endDate: string } {
   const now = getLocalizedNow();
 
-  const formatDate = (date: Date) => {
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  };
-
   const start = new Date(now);
   const end = new Date(now);
 
@@ -145,7 +138,17 @@ export function getDynamicPeriodDates(option: DynamicPeriodOption): { startDate:
   }
 
   return {
-    startDate: formatDate(start),
-    endDate: formatDate(end),
+    startDate: formatStartOfDateInUTC(start),
+    endDate: formatEndOfDateInUTC(end),
   };
 }
+
+export const formatStartOfDateInUTC = (date: Date) => {
+  date.setHours(0, 0, 0, 0);
+  return formatInTimeZone(date, getServerTimezone(), "yyyy-MM-dd'T'HH:mm:ss");
+};
+
+export const formatEndOfDateInUTC = (date: Date) => {
+  date.setHours(23, 59, 59, 999);
+  return formatInTimeZone(date, getServerTimezone(), "yyyy-MM-dd'T'HH:mm:ss.SSS");
+};

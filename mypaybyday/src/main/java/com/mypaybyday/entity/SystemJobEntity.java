@@ -1,6 +1,6 @@
 package com.mypaybyday.entity;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -32,7 +32,7 @@ public class SystemJobEntity extends BaseEntity {
 	public JobStatus status;
 
 	@NotNull
-	public LocalDate nextExecutionDate;
+	public LocalDateTime nextExecutionDate;
 
 	public String entityId;
 

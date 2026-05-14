@@ -1,7 +1,7 @@
 package com.mypaybyday.dto;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.mypaybyday.entity.SubscriptionEntity;
@@ -22,7 +22,7 @@ public record SubscriptionDto(
 	EventType eventType,
 	BigDecimal modifierValue,
 	RecurrenceFrequency recurrence,
-	LocalDate nextExecutionDate,
+	LocalDateTime nextExecutionDate,
 	SubscriptionStatus status) {
 
     public static SubscriptionDto from(SubscriptionEntity s) {

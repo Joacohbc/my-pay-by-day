@@ -1,7 +1,7 @@
 package com.mypaybyday.entity;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -62,7 +62,7 @@ public class SubscriptionEntity extends BaseEntity {
 	public RecurrenceFrequency recurrence;
 
 	@NotNull
-	public LocalDate nextExecutionDate;
+	public LocalDateTime nextExecutionDate;
 
 	@NotNull
 	@Enumerated(EnumType.STRING)

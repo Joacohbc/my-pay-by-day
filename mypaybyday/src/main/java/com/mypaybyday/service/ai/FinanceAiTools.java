@@ -2,6 +2,7 @@ package com.mypaybyday.service.ai;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.Temporal;
 import java.util.List;
 import java.util.Map;
@@ -258,7 +259,7 @@ public class FinanceAiTools {
     @AgentToolKind(AgentToolKind.Kind.READ)
     @Transactional
     public String getActiveTimePeriod() {
-        LocalDate today = LocalDate.now();
+        LocalDateTime today = LocalDateTime.now();
         var response = timePeriodService.listAll(0, 100);
         return response.content().stream()
                 .filter(p -> p.startDate() != null && p.endDate() != null

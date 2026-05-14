@@ -81,8 +81,8 @@ public class TimePeriodResource {
 	@APIResponse(responseCode = "400", description = "Validation error")
     })
     public Response getDynamicBalance(
-	@Parameter(description = "Start date (YYYY-MM-DD)", required = true) @QueryParam("startDate") java.time.LocalDate startDate,
-	@Parameter(description = "End date (YYYY-MM-DD)", required = true) @QueryParam("endDate") java.time.LocalDate endDate)
+	@Parameter(description = "Start date (YYYY-MM-DDTHH:mm:ss)", required = true) @QueryParam("startDate") java.time.LocalDateTime startDate,
+	@Parameter(description = "End date (YYYY-MM-DDTHH:mm:ss)", required = true) @QueryParam("endDate") java.time.LocalDateTime endDate)
 	throws BusinessException {
 	return Response.ok(timePeriodService.getDynamicBalance(startDate, endDate)).build();
     }
