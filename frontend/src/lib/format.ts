@@ -1,6 +1,6 @@
 import i18n from '@/lib/i18n';
 import type { FinanceEvent } from '@/models';
-import { getServerTimezone, getUserTimezone } from '@/lib/utils/dateUtils';
+import { getServerTimezone, getUserTimezone, fromServerDate } from '@/lib/utils/dateUtils';
 import { formatIsoDate, getMaskPlaceholder } from '@/lib/utils/dateFormat';
 import { formatInTimeZone } from 'date-fns-tz';
 
@@ -86,8 +86,10 @@ export function formatCurrencyShort(amount: number): string {
   }).format(amount);
 }
 
-export function formatDate(input: string | Date): string {
+export function formatDate(input: string | Date | undefined | null): string {
+  if (!input) return '';
   const date = typeof input === 'string' ? new Date(input) : input;
+  if (isNaN(date.getTime())) return typeof input === 'string' ? input : '';
   return new Intl.DateTimeFormat(locale(), {
     month: 'short',
     day: 'numeric',
@@ -96,7 +98,21 @@ export function formatDate(input: string | Date): string {
   }).format(date);
 }
 
-export function formatDateFromParts(dateOnly: string): string {
+export function formatServerDate(serverDateTime: string | undefined | null): string {
+  if (!serverDateTime) return '';
+  if (serverDateTime.length === 10) {
+    return formatDateFromParts(serverDateTime);
+  }
+  const localDateStr = fromServerDate(serverDateTime);
+  return formatDate(localDateStr);
+}
+
+export function formatDateFromParts(dateOnly: string | undefined | null): string {
+  if (!dateOnly) return '';
+  const dateStr = dateOnly.includes('T') ? dateOnly : `${dateOnly}T00:00:00Z`;
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateOnly;
+
   // Always evaluate "just a date" using server timezone internally so it doesn't drift,
   // as LocalDate on the server has no timezone.
   return new Intl.DateTimeFormat(locale(), {
@@ -104,11 +120,13 @@ export function formatDateFromParts(dateOnly: string): string {
     day: 'numeric',
     year: 'numeric',
     timeZone: getServerTimezone(),
-  }).format(new Date(dateOnly + 'T00:00:00Z'));
+  }).format(date);
 }
 
-export function formatDateTime(input: string | Date): string {
+export function formatDateTime(input: string | Date | undefined | null): string {
+  if (!input) return '';
   const date = typeof input === 'string' ? new Date(input) : input;
+  if (isNaN(date.getTime())) return typeof input === 'string' ? input : '';
   return new Intl.DateTimeFormat(locale(), {
     month: 'short',
     day: 'numeric',

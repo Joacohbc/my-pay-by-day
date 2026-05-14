@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useDynamicTimePeriodBalance } from '@/hooks/useTimePeriods';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { formatDateFromParts } from '@/lib/format';
+import { formatServerDate } from '@/lib/format';
 import { NewEventFab } from '@/components/time-periods/NewEventFab';
 import { PeriodBalanceSummary } from '@/components/time-periods/PeriodBalanceSummary';
 import { PeriodRecentActivity } from '@/components/time-periods/PeriodRecentActivity';
@@ -32,7 +32,7 @@ export function DynamicTimePeriodDashboard({
     .sort((a, b) => (b.transactionDate ?? '').localeCompare(a.transactionDate ?? ''))
     .slice(0, 8);
 
-  const dateLabel = `${formatDateFromParts(startDate)} - ${formatDateFromParts(endDate)}`;
+  const dateLabel = `${formatServerDate(startDate)} - ${formatServerDate(endDate)}`;
 
   return (
     <div className="space-y-6 px-5 pt-6">
