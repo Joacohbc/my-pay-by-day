@@ -186,14 +186,16 @@ export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, Event
     const base = new Date(baseDateStr);
 
     const start = new Date(base);
-    start.setUTCDate(base.getUTCDate() - varianceDaysNum);
-    const startStr = start.toISOString().split('T')[0];
+    start.setDate(base.getDate() - varianceDaysNum);
 
     const end = new Date(base);
-    end.setUTCDate(base.getUTCDate() + varianceDaysNum);
-    const endStr = end.toISOString().split('T')[0];
+    end.setDate(base.getDate() + varianceDaysNum);
 
-    onDateRangeChange(startStr, endStr);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const startLocalStr = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}T${pad(start.getHours())}:${pad(start.getMinutes())}`;
+    const endLocalStr = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
+
+    onDateRangeChange(toServerDate(startLocalStr), toServerDate(endLocalStr));
     onFiltersChange?.();
   }, 400);
 
@@ -492,7 +494,7 @@ export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, Event
           {hasActiveDateRange && (
             <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary flex items-center gap-1.5">
               <Icon name="event" className="text-sm" />
-              {filters.startDate ? formatIsoDate(filters.startDate, withTime(getDateFormat())) : '...'} - {filters.endDate ? formatIsoDate(filters.endDate, withTime(getDateFormat())) : '...'}
+              {filters.startDate ? formatIsoDate(fromServerDate(filters.startDate), withTime(getDateFormat())) : '...'} - {filters.endDate ? formatIsoDate(fromServerDate(filters.endDate), withTime(getDateFormat())) : '...'}
             </span>
           )}
           {hasActiveNode && (
