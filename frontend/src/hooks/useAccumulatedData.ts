@@ -1,6 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
-import { usePaginationMode } from '@/hooks/usePaginationMode';
 
 export function useAccumulatedData<T extends { id: number | string }>(
   data: T[] | undefined,
@@ -8,7 +7,6 @@ export function useAccumulatedData<T extends { id: number | string }>(
   setPage: (page: number) => void,
   dependencies: unknown[]
 ) {
-  const { mode } = usePaginationMode();
   const [accumulatedData, setAccumulatedData] = useState<T[]>([]);
 
   // Reset when filters or mode change
@@ -18,10 +16,10 @@ export function useAccumulatedData<T extends { id: number | string }>(
       setPage(0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...dependencies, mode]);
+  }, [...dependencies]);
 
   useEffect(() => {
-    if (mode === 'load-more' && data) {
+    if (data) {
       if (page === 0) {
         setAccumulatedData(data);
       } else {
@@ -32,13 +30,11 @@ export function useAccumulatedData<T extends { id: number | string }>(
         });
       }
     }
-  }, [data, mode, page]);
+  }, [data, page]);
 
-  const displayedData = mode === 'load-more' ? accumulatedData : (data ?? []);
+  const displayedData = accumulatedData;
 
   return {
     displayedData,
-    mode,
-    isLoadingMore: mode === 'load-more' && page > 0,
   };
 }
