@@ -47,9 +47,6 @@ const en = {
     deleteConfirm: 'Permanently delete this item?',
     nameRequired: 'Name is required',
     loading: 'Loading…',
-    prevPage: 'Previous',
-    nextPage: 'Next',
-    pageOf: 'Page {{page}} of {{total}}',
     selectCategory: 'Select Category',
     expand: 'Expand',
     collapse: 'Collapse',
@@ -57,11 +54,6 @@ const en = {
     alertError: 'Error',
     alertSuccess: 'Success',
     alertInfo: 'Info',
-    paginationMode: 'Pagination',
-    loadMoreMode: 'Infinite Scroll',
-    loadMoreButton: 'Load More',
-    viewModePagination: 'Switch to Pagination',
-    viewModeLoadMore: 'Switch to Load More',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────

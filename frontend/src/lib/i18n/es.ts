@@ -46,9 +46,6 @@ const es = {
     deleteConfirm: '¿Eliminar este elemento permanentemente?',
     nameRequired: 'El nombre es requerido',
     loading: 'Cargando…',
-    prevPage: 'Anterior',
-    nextPage: 'Siguiente',
-    pageOf: 'Página {{page}} de {{total}}',
     selectCategory: 'Seleccionar Categoría',
     expand: 'Expandir',
     collapse: 'Contraer',
@@ -56,11 +53,6 @@ const es = {
     alertError: 'Error',
     alertSuccess: 'Éxito',
     alertInfo: 'Info',
-    paginationMode: 'Paginación',
-    loadMoreMode: 'Carga incremental',
-    loadMoreButton: 'Cargar más',
-    viewModePagination: 'Cambiar a paginación',
-    viewModeLoadMore: 'Cambiar a carga incremental',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────
