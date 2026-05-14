@@ -13,6 +13,7 @@ type EventSelectionListPagination = {
   totalPages: number;
   onPageChange: (page: number) => void;
   hideWhenSearching?: boolean;
+  isLoading?: boolean;
 };
 
 type EventSelectionListProps = {
@@ -129,6 +130,7 @@ export function EventSelectionList({
             page={pagination.page}
             totalPages={pagination.totalPages}
             onPageChange={pagination.onPageChange}
+            isLoading={pagination.isLoading}
           />
         </div>
       )}

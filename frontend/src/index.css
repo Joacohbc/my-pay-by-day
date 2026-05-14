@@ -98,6 +98,22 @@ body,
   transition: transform 0.1s;
 }
 
+/* Entry animations */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: slideUp 0.3s ease-out forwards;
+}
+
 /* Ensure alerts always appear on top of everything */
 [data-sileo-viewport] {
   z-index: 2147483647 !important;

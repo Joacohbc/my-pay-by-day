@@ -55,8 +55,11 @@ export function useSearchParamState(
   const setValue = useCallback(
     (newValue: SearchParamValue) => {
       setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
         const serialized = serializeValue(newValue, defaultValue);
+        const current = prev.get(key);
+        if (serialized === current) return prev;
+
+        const next = new URLSearchParams(prev);
         if (serialized === null) {
           next.delete(key);
         } else {
@@ -100,17 +103,23 @@ export function useSearchParamsBatch(
     (partial: Partial<SearchParamsRecord>) => {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
+        let changed = false;
+
         for (const [field, newValue] of Object.entries(partial)) {
           const config = configs[field];
           if (!config) continue;
           const serialized = serializeValue(newValue, config.defaultValue);
-          if (serialized === null) {
-            next.delete(config.key);
-          } else {
-            next.set(config.key, serialized);
+          const current = prev.get(config.key);
+          if (serialized !== current) {
+            if (serialized === null) {
+              next.delete(config.key);
+            } else {
+              next.set(config.key, serialized);
+            }
+            changed = true;
           }
         }
-        return next;
+        return changed ? next : prev;
       }, { replace: true });
     },
     [configs, setSearchParams],
@@ -119,10 +128,14 @@ export function useSearchParamsBatch(
   const clearAll = useCallback(() => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
+      let changed = false;
       for (const [, config] of configEntries) {
-        next.delete(config.key);
+        if (prev.has(config.key)) {
+          next.delete(config.key);
+          changed = true;
+        }
       }
-      return next;
+      return changed ? next : prev;
     }, { replace: true });
   }, [configEntries, setSearchParams]);
 

@@ -56,7 +56,11 @@ const es = {
     alertError: 'Error',
     alertSuccess: 'Éxito',
     alertInfo: 'Info',
-    alertWarning: 'Advertencia',
+    paginationMode: 'Paginación',
+    loadMoreMode: 'Carga incremental',
+    loadMoreButton: 'Cargar más',
+    viewModePagination: 'Cambiar a paginación',
+    viewModeLoadMore: 'Cambiar a carga incremental',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────

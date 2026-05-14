@@ -75,6 +75,7 @@ function hasAnyAdvanced(filters: AdvancedFiltersState): boolean {
 
 export function EventsListView({
   events,
+  isLoading,
   search,
   onSearchChange,
   searchPlaceholder,
@@ -94,16 +95,11 @@ export function EventsListView({
 }: EventsListViewProps) {
   const { t } = useTranslation();
 
-
   const { data: nodesResponse } = useNodes();
-  const nodes = Array.isArray(nodesResponse)
-    ? nodesResponse
-    : nodesResponse || [];
+  const nodes = Array.isArray(nodesResponse) ? nodesResponse : nodesResponse || [];
 
   const { data: categoriesResponse } = useCategories();
-  const categories = Array.isArray(categoriesResponse)
-    ? categoriesResponse
-    : categoriesResponse || [];
+  const categories = Array.isArray(categoriesResponse) ? categoriesResponse : categoriesResponse || [];
 
   const { data: tagsResponse } = useTags();
   const tags = Array.isArray(tagsResponse) ? tagsResponse : tagsResponse || [];
@@ -183,7 +179,7 @@ export function EventsListView({
       </div>
 
       <div className="px-5">
-        {events.length === 0 ? (
+        {events.length === 0 && !isLoading ? (
           <EmptyState
             title={emptyTitle}
             description={emptyDescription}
@@ -191,32 +187,37 @@ export function EventsListView({
           />
         ) : (
           <>
-            <div className="flex justify-end mb-2">
-              <button
-                onClick={toggleIconSource}
-                title={iconSource === 'category' ? t('events.iconSourceNode') : t('events.iconSourceCategory')}
-                className="flex items-center gap-1 text-xs text-dn-text-muted hover:text-dn-text-main transition-colors px-2 py-1 rounded-md hover:bg-dn-surface"
-              >
-                <Icon name={iconSource === 'category' ? 'category' : 'account_balance_wallet'} className="text-sm" />
-                <span>{iconSource === 'category' ? t('events.iconSourceCategory') : t('events.iconSourceNode')}</span>
-              </button>
-            </div>
-            <Card className="divide-y divide-white/5">
-              {events.map((event) => (
-                <div
-                  key={keyResolver ? keyResolver(event) : event.id}
-                  className="py-3 first:pt-0 last:pb-0"
-                >
-                  {renderItem ? renderItem(event) : <EventCard event={event} from={from} iconSource={iconSource} />}
+            {events.length > 0 && (
+              <>
+                <div className="flex justify-end mb-2">
+                  <button
+                    onClick={toggleIconSource}
+                    title={iconSource === 'category' ? t('events.iconSourceNode') : t('events.iconSourceCategory')}
+                    className="flex items-center gap-1 text-xs text-dn-text-muted hover:text-dn-text-main transition-colors px-2 py-1 rounded-md hover:bg-dn-surface"
+                  >
+                    <Icon name={iconSource === 'category' ? 'category' : 'account_balance_wallet'} className="text-sm" />
+                    <span>{iconSource === 'category' ? t('events.iconSourceCategory') : t('events.iconSourceNode')}</span>
+                  </button>
                 </div>
-              ))}
-            </Card>
+                <Card className="divide-y divide-white/5">
+                  {events.map((event, index) => (
+                    <div
+                      key={keyResolver ? keyResolver(event) : event.id}
+                      className="py-3 first:pt-0 last:pb-0 animate-in"
+                      style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
+                    >
+                      {renderItem ? renderItem(event) : <EventCard event={event} from={from} iconSource={iconSource} />}
+                    </div>
+                  ))}
+                </Card>
+              </>
+            )}
           </>
         )}
       </div>
 
       {showPagination && (
-        <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
+        <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} isLoading={isLoading} />
       )}
     </>
   );

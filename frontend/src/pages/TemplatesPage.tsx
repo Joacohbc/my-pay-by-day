@@ -16,6 +16,7 @@ import { truncate } from '@/lib/format';
 import type { Template, CreateTemplateDto } from '@/models';
 import { TemplateForm } from '@/components/templates/TemplateForm';
 import { Routes } from '@/lib/routes';
+import { useAccumulatedData } from '@/hooks/useAccumulatedData';
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
   INBOUND: 'Income',
@@ -34,6 +35,13 @@ export function TemplatesPage() {
   const [page, setPage] = useState(0);
   const { data: paged, isLoading, error } = useTemplates(page);
 
+  const { displayedData: allTemplates } = useAccumulatedData(
+    paged?.content,
+    page,
+    setPage,
+    []
+  );
+
   const createTemplate = useCreateTemplate();
   const updateTemplate = useUpdateTemplate();
   const deleteTemplate = useDeleteTemplate();
@@ -42,10 +50,9 @@ export function TemplatesPage() {
   const [showModal, setShowModal] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
-  if (isLoading) return <FullPageSpinner />;
+  if (isLoading && page === 0) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
 
-  const allTemplates = paged?.content ?? [];
   const totalPages = paged?.totalPages ?? 1;
 
   const openCreate = () => {
@@ -188,7 +195,7 @@ export function TemplatesPage() {
         </div>
       )}
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} isLoading={isLoading} />
 
       <Modal
         open={showModal}

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { EventSelectionList } from '@/components/events/EventSelectionList';
 import { EventSearchbarFilter, type EventSearchbarFilterHandle } from '@/components/events/EventSearchbarFilter';
 import type { EventFilters } from '@/services/events.service';
+import { useAccumulatedData } from '@/hooks/useAccumulatedData';
 
 interface EventMultiSelectModalProps {
   open: boolean;
@@ -27,6 +28,8 @@ interface EventMultiSelectModalProps {
   eventFilters?: Omit<EventFilters, 'page' | 'search'>;
 }
 
+const DEFAULT_EVENT_FILTERS = {};
+
 export function EventMultiSelectModal({
   open,
   onClose,
@@ -39,7 +42,7 @@ export function EventMultiSelectModal({
   maxSelection,
   initialSelectedIds = new Set(),
   excludeEventIds = new Set(),
-  eventFilters = {},
+  eventFilters = DEFAULT_EVENT_FILTERS,
 }: EventMultiSelectModalProps) {
   const { t } = useTranslation();
   const [page, setPage] = useState(0);
@@ -87,9 +90,16 @@ export function EventMultiSelectModal({
 
   const { data: paged, isLoading, error } = useEvents(combinedFilters);
 
+  const { displayedData: events } = useAccumulatedData(
+    paged?.content,
+    page,
+    setPage,
+    [search, filters, eventFilters]
+  );
+
   const allEvents = useMemo(
-    () => (paged?.content ?? []).filter((event) => !excludeEventIds.has(event.id)),
-    [excludeEventIds, paged]
+    () => events.filter((event) => !excludeEventIds.has(event.id)),
+    [excludeEventIds, events]
   );
 
   const handleToggle = (id: number) => {
@@ -186,6 +196,7 @@ export function EventMultiSelectModal({
               totalPages: paged?.totalPages ?? 1,
               onPageChange: setPage,
               hideWhenSearching: false,
+              isLoading: isLoading,
             }}
           />
         </EventSearchbarFilter>

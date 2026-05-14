@@ -21,6 +21,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import type { Subscription, CreateSubscriptionDto } from '@/models';
 import { SubscriptionForm } from '@/components/subscriptions/SubscriptionForm';
 import { useBanner, BANNER_IDS } from '@/store/dismissedBannersStore';
+import { useAccumulatedData } from '@/hooks/useAccumulatedData';
 
 // EVENT_TYPE_COLORS provides the tailwind classes for each event type
 const EVENT_TYPE_COLORS: Record<string, string> = {
@@ -164,6 +165,13 @@ export function SubscriptionsPage() {
   const [page, setPage] = useState(0);
   const { data: paged, isLoading, error } = useSubscriptions(page);
 
+  const { displayedData: allSubs } = useAccumulatedData(
+    paged?.content,
+    page,
+    setPage,
+    [] // No filters here, but reset if mode changes
+  );
+
   const createSub = useCreateSubscription();
   const updateSub = useUpdateSubscription();
   const deleteSub = useDeleteSubscription();
@@ -174,10 +182,9 @@ export function SubscriptionsPage() {
 
   const howItWorksBanner = useBanner(BANNER_IDS.SUBSCRIPTIONS_HOW_IT_WORKS);
 
-  if (isLoading) return <FullPageSpinner />;
+  if (isLoading && page === 0) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
 
-  const allSubs = paged?.content ?? [];
   const totalPages = paged?.totalPages ?? 1;
 
   const openCreate = () => {
@@ -287,7 +294,7 @@ export function SubscriptionsPage() {
         </div>
       )}
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} isLoading={isLoading} />
 
       <Modal
         open={showModal}

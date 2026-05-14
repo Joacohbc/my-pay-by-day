@@ -86,6 +86,8 @@ export function MergeEventsModal({
 
   const sourceEvents = allEvents.filter((e) => selectedSourceIds.has(e.id));
 
+  const sourcesFilters = useMemo(() => ({ type: baseEvent?.type }), [baseEvent?.type]);
+
   // Unique nodes across base + selected sources
   const allNodes = useMemo(() => {
     const nodeMap = new Map<number, string>();
@@ -250,7 +252,7 @@ export function MergeEventsModal({
         minSelection={1}
         initialSelectedIds={selectedSourceIds}
         excludeEventIds={new Set([baseEvent.id])}
-        eventFilters={{ type: baseEvent.type }}
+        eventFilters={sourcesFilters}
       />
     );
   }

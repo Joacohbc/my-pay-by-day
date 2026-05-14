@@ -25,6 +25,7 @@ import {
 } from '@/components/events/EventsListView';
 import { formatCurrencyShort, eventNetAmount } from '@/lib/format';
 import type { DateField } from '@/services/events.service';
+import { useAccumulatedData } from '@/hooks/useAccumulatedData';
 
 type FilterType = 'ALL' | EventType;
 
@@ -171,13 +172,19 @@ export function EventsPage() {
     maxAmount: maxAmountNum,
   });
 
+  const { displayedData: events } = useAccumulatedData(
+    paged?.content,
+    page,
+    setPage,
+    [debouncedSearch, filter, startDate, endDate, dateField, categoryIdsStr, tagIdsStr, nodeIdStr, minAmountStr, maxAmountStr]
+  );
+
   const { data: draftEvents } = useFinanceEventDrafts();
   const draftsCount = draftEvents?.length ?? 0;
 
   const { data: pendingDuplicates } = useDuplicates('FINANCE_EVENT', 'PENDING');
   const duplicatesCount = pendingDuplicates?.length ?? 0;
 
-  const events = useMemo(() => paged?.content ?? [], [paged]);
   const totalPages = paged?.totalPages ?? 1;
   const totalElements = paged?.totalElements ?? 0;
 

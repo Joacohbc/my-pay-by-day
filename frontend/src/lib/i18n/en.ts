@@ -57,7 +57,11 @@ const en = {
     alertError: 'Error',
     alertSuccess: 'Success',
     alertInfo: 'Info',
-    alertWarning: 'Warning',
+    paginationMode: 'Pagination',
+    loadMoreMode: 'Infinite Scroll',
+    loadMoreButton: 'Load More',
+    viewModePagination: 'Switch to Pagination',
+    viewModeLoadMore: 'Switch to Load More',
   },
 
   // ─── Navigation ──────────────────────────────────────────────────────────
