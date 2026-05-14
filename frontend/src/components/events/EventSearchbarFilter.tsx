@@ -52,6 +52,7 @@ type EventSearchbarFilterProps = {
   onMinAmountChange: (value: number | undefined) => void;
   onMaxAmountChange: (value: number | undefined) => void;
   onFiltersChange?: () => void;
+  searchTrailing?: ReactNode;
   children?: ReactNode;
 };
 
@@ -117,6 +118,7 @@ export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, Event
   onMaxAmountChange,
   pills,
   onFiltersChange,
+  searchTrailing,
   children,
 }: EventSearchbarFilterProps, ref) {
   const { t } = useTranslation();
@@ -458,6 +460,7 @@ export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, Event
             className="w-full bg-dn-surface-low rounded-input pl-10 pr-3 py-3 text-sm text-dn-text-main placeholder-dn-text-muted focus:outline-none focus:ring-2 focus:ring-dn-primary/30 scheme-dark"
           />
         </div>
+        {searchTrailing}
         <Button
           variant={showFilters ? 'primary' : 'secondary'}
           className="shrink-0 aspect-square p-0 w-4 flex items-center justify-center rounded-input"
