@@ -37,13 +37,11 @@ public class EventGetService {
 	private final EventRepository eventRepository;
 	private final CategoryService categoryService;
 	private final Messages messages;
-	private final TimezoneContext timezoneContext;
 
-	public EventGetService(EventRepository eventRepository, CategoryService categoryService, Messages messages, TimezoneContext timezoneContext) {
+	public EventGetService(EventRepository eventRepository, CategoryService categoryService, Messages messages) {
 		this.eventRepository = eventRepository;
 		this.categoryService = categoryService;
 		this.messages = messages;
-		this.timezoneContext = timezoneContext;
 	}
 
 	@Transactional
@@ -58,8 +56,6 @@ public class EventGetService {
 			case UPDATED -> "e.updatedAt";
 			case TRANSACTION -> "e.transaction.transactionDate";
 		};
-
-		ZoneId userZone = ZoneId.of(timezoneContext.getTimezone());
 
 		if (queryRequest.startDate() != null && !queryRequest.startDate().isBlank()) {
 			query.append(" and ").append(dateFieldExpression).append(" >= :startDate");

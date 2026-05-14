@@ -15,8 +15,15 @@ import type { DateField } from '@/services/events.service';
 import type { Category, FinanceNode, Tag } from '@/models';
 import { useTimePeriods } from '@/hooks/useTimePeriods';
 import { useDebounceCallback } from '@/hooks/useDebounce';
-import { getDynamicPeriodDates } from '@/lib/utils/dateUtils';
-import { formatIsoDate } from '@/lib/utils/dateFormat';
+import { getDynamicPeriodDates, fromServerDate, toServerDate } from '@/lib/utils/dateUtils';
+import { formatIsoDate, withTime, getDateFormat } from '@/lib/utils/dateFormat';
+
+const formatForDatetimeLocal = (val: string | undefined, isEnd: boolean) => {
+  if (!val) return '';
+  const localStr = fromServerDate(val);
+  if (localStr.length === 10) return `${localStr}T${isEnd ? '23:59' : '00:00'}`;
+  return localStr.slice(0, 16);
+};
 
 export interface FilterPill {
   label: string;
@@ -286,20 +293,22 @@ export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, Event
             {dateMode === 'exact' ? (
               <div className="grid grid-cols-2 gap-3">
                 <Input
-                  type="date"
+                  type="datetime-local"
                   label={t('events.startDate')}
-                  value={filters.startDate ? filters.startDate.split('T')[0] : ''}
+                  value={formatForDatetimeLocal(filters.startDate, false)}
                   onChange={(event) => {
-                    onDateRangeChange(event.target.value, filters.endDate);
+                    const serverDate = event.target.value ? toServerDate(event.target.value) : '';
+                    onDateRangeChange(serverDate, filters.endDate);
                     onFiltersChange?.();
                   }}
                 />
                 <Input
-                  type="date"
+                  type="datetime-local"
                   label={t('events.endDate')}
-                  value={filters.endDate ? filters.endDate.split('T')[0] : ''}
+                  value={formatForDatetimeLocal(filters.endDate, true)}
                   onChange={(event) => {
-                    onDateRangeChange(filters.startDate, event.target.value);
+                    const serverDate = event.target.value ? toServerDate(event.target.value) : '';
+                    onDateRangeChange(filters.startDate, serverDate);
                     onFiltersChange?.();
                   }}
                 />
@@ -308,7 +317,7 @@ export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, Event
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3 items-end">
                   <Input
-                    type="date"
+                    type="datetime-local"
                     label={t('events.baseDate')}
                     value={approxBaseDate}
                     onChange={(e) => {
@@ -483,7 +492,7 @@ export const EventSearchbarFilter = forwardRef<EventSearchbarFilterHandle, Event
           {hasActiveDateRange && (
             <span className="px-2.5 py-1 rounded-pill text-xs font-medium bg-dn-primary/20 border border-dn-primary/30 text-dn-primary flex items-center gap-1.5">
               <Icon name="event" className="text-sm" />
-              {filters.startDate ? formatIsoDate(filters.startDate) : '...'} - {filters.endDate ? formatIsoDate(filters.endDate) : '...'}
+              {filters.startDate ? formatIsoDate(filters.startDate, withTime(getDateFormat())) : '...'} - {filters.endDate ? formatIsoDate(filters.endDate, withTime(getDateFormat())) : '...'}
             </span>
           )}
           {hasActiveNode && (
