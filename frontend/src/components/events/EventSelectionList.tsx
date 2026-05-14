@@ -122,18 +122,18 @@ export function EventSelectionList({
             </div>
           );
         })}
+        
+        {shouldRenderPagination && pagination && (
+          <div className={paginationClassName}>
+            <Pagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={pagination.onPageChange}
+              isLoading={pagination.isLoading}
+            />
+          </div>
+        )}
       </div>
-
-      {shouldRenderPagination && pagination && (
-        <div className={paginationClassName}>
-          <Pagination
-            page={pagination.page}
-            totalPages={pagination.totalPages}
-            onPageChange={pagination.onPageChange}
-            isLoading={pagination.isLoading}
-          />
-        </div>
-      )}
     </>
   );
 }

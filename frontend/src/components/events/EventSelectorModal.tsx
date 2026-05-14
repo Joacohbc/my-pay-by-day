@@ -6,6 +6,13 @@ import { Button } from '@/components/ui/Button';
 import { EventSelectionList } from '@/components/events/EventSelectionList';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useUsageStats, useRecordSelection } from '@/hooks/useSelectionHistory';
+import { useEventModalFilters } from '@/hooks/useEventModalFilters';
+import { useCategories } from '@/hooks/useCategories';
+import { useTags } from '@/hooks/useTags';
+import { useNodes } from '@/hooks/useNodes';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useAccumulatedData } from '@/hooks/useAccumulatedData';
+import { EventSearchbarFilter } from '@/components/events/EventSearchbarFilter';
 import { sortByUsage } from '@/lib/usageSorter';
 import type { SortMode } from '@/lib/usageSorter';
 
@@ -34,8 +41,68 @@ export function EventSelectorModal({
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('smart');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
 
-  const { data: paged, isLoading, error } = useEvents({ page });
+  const {
+    filters,
+    reset: resetFilters,
+    hasAnyFilter,
+    toEventFilters,
+    toggleTag,
+    toggleCategory,
+    setDateField,
+    setStartDate,
+    setEndDate,
+    setNodeId,
+    setMinAmount,
+    setMaxAmount,
+  } = useEventModalFilters();
+
+  const debouncedSearch = useDebounce(search, 500);
+
+  const { data: categoriesResponse } = useCategories();
+  const categories = Array.isArray(categoriesResponse) ? categoriesResponse : categoriesResponse || [];
+
+  const { data: tagsResponse } = useTags();
+  const tags = Array.isArray(tagsResponse) ? tagsResponse : tagsResponse || [];
+
+  const { data: nodesResponse } = useNodes();
+  const nodes = Array.isArray(nodesResponse) ? nodesResponse : nodesResponse || [];
+
+  const { data: paged, isLoading, error } = useEvents({ 
+    page, 
+    search: debouncedSearch,
+    ...toEventFilters() 
+  });
+
+  const {
+    tagIds,
+    categoryIds,
+    startDate,
+    endDate,
+    dateField,
+    nodeId,
+    minAmount,
+    maxAmount,
+  } = filters;
+
+  const { displayedData: events } = useAccumulatedData(
+    paged?.content,
+    page,
+    setPage,
+    [
+      debouncedSearch,
+      startDate,
+      endDate,
+      dateField,
+      nodeId,
+      minAmount,
+      maxAmount,
+      tagIds.join(','),
+      categoryIds.join(','),
+    ]
+  );
+
   const { data: stats } = useUsageStats('FINANCE_EVENT');
   const recordSelection = useRecordSelection();
   const addRelation = useAddEventRelations();
@@ -63,17 +130,9 @@ export function EventSelectorModal({
     onClose();
   };
 
-  const allEvents = paged?.content || [];
-  const filteredEvents = allEvents.filter((e) => {
+  const filteredEvents = events.filter((e) => {
     if (e.id === baseEventId) return false;
     if (existingRelatedIds.includes(e.id)) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      const matchesName = e.name.toLowerCase().includes(q) || e.description?.toLowerCase().includes(q);
-      const matchesCategory = e.category?.name.toLowerCase().includes(q);
-      const matchesDate = e.transactionDate?.includes(q);
-      return matchesName || matchesCategory || matchesDate;
-    }
     return true;
   });
 
@@ -116,17 +175,53 @@ export function EventSelectorModal({
           </p>
         )}
 
-        <EventSelectionList
-          events={sortedEvents}
-          isLoading={isLoading}
-          error={error}
+        <EventSearchbarFilter
           search={search}
-          onSearchChange={setSearch}
+          onSearchChange={(val) => {
+            setSearch(val);
+            setPage(0);
+          }}
           searchPlaceholder={t('events.searchPlaceholder')}
-          emptyStateTitle={search ? t('events.noEventsFoundSearch') : t('events.noEventsFound')}
-          onSelectEvent={(event) => handleToggle(event.id)}
-          selectionIndicator="radio"
-          selectedIds={selectedIds}
+          showFilters={showFilters}
+          hasAnyFilter={hasAnyFilter}
+          filters={filters}
+          categories={categories}
+          tags={tags}
+          nodes={nodes}
+          onToggleFilters={() => setShowFilters((prev) => !prev)}
+          onResetFilters={() => {
+            resetFilters();
+            setPage(0);
+          }}
+          onToggleCategory={(id) => {
+            toggleCategory(id);
+            setPage(0);
+          }}
+          onToggleTag={(id) => {
+            toggleTag(id);
+            setPage(0);
+          }}
+          onDateFieldChange={(f) => {
+            setDateField(f);
+            setPage(0);
+          }}
+          onDateRangeChange={(s, e) => {
+            setStartDate(s);
+            setEndDate(e);
+            setPage(0);
+          }}
+          onNodeIdChange={(id) => {
+            setNodeId(id);
+            setPage(0);
+          }}
+          onMinAmountChange={(v) => {
+            setMinAmount(v);
+            setPage(0);
+          }}
+          onMaxAmountChange={(v) => {
+            setMaxAmount(v);
+            setPage(0);
+          }}
           searchTrailing={(
             <div className="shrink-0 w-45">
               <SearchableSelect
@@ -141,11 +236,20 @@ export function EventSelectorModal({
               />
             </div>
           )}
+        />
+
+        <EventSelectionList
+          events={sortedEvents}
+          isLoading={isLoading}
+          error={error}
+          emptyStateTitle={search ? t('events.noEventsFoundSearch') : t('events.noEventsFound')}
+          onSelectEvent={(event) => handleToggle(event.id)}
+          selectionIndicator="radio"
+          selectedIds={selectedIds}
           pagination={{
             page,
             totalPages: paged?.totalPages ?? 1,
             onPageChange: setPage,
-            hideWhenSearching: true,
           }}
           paginationClassName="pt-2"
         />
