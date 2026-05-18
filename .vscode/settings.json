@@ -4,5 +4,8 @@
     "javascript.preferences.importModuleSpecifier": "non-relative",
     "chat.tools.terminal.autoApprove": {
         "pnpm": true
+    },
+    "[java]": {
+        "editor.formatOnSave": false
     }
 }

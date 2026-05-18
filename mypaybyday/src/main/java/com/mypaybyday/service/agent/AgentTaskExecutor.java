@@ -9,15 +9,26 @@ import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import com.mypaybyday.enums.InternalErrorCode;
+import com.mypaybyday.exception.InternalException;
 
 
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Named;
 import jakarta.inject.Inject;
+
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import com.mypaybyday.enums.AgentAttachmentKind;
 import com.mypaybyday.enums.AgentTaskExecutionMode;
@@ -69,11 +80,18 @@ public class AgentTaskExecutor {
     private final TimezoneContext timezoneContext;
     private final Messages messages;
 
-    // TODO: Review this implementation for scalability and robustness.
-    // Consider using task queue for better performance and reliability in production environments.
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
+    @ConfigProperty(name = "mypaybyday.agent.executor.max-threads", defaultValue = "8")
+    int maxThreads;
+
+    @ConfigProperty(name = "mypaybyday.agent.executor.queue-capacity", defaultValue = "64")
+    int queueCapacity;
+
+    private ExecutorService executorService;
     private final Map<String, Future<?>> runningTasks = new ConcurrentHashMap<>();
 
+    // Self-injection required so submit() goes through the CDI proxy, allowing
+    // the @ActivateRequestContext interceptor to fire on runTaskWithRequestContext().
+    // Direct method calls within the same bean bypass interceptors.
     @Inject
     AgentTaskExecutor self;
 
@@ -96,6 +114,68 @@ public class AgentTaskExecutor {
         this.languageContext = languageContext;
         this.timezoneContext = timezoneContext;
         this.messages = messages;
+    }
+
+    @PostConstruct
+    void init() {
+        // Bounded thread pool for agent task execution.
+        //
+        // Why bounded (not Executors.newCachedThreadPool):
+        //   Cached pool grows without limit. Under burst load this exhausts memory
+        //   and saturates CPU. Agent tasks are long-running (LLM calls, tool loops),
+        //   so a small fixed pool gives predictable resource usage.
+        //
+        // Why LinkedBlockingQueue with capacity:
+        //   Excess submissions wait in a finite queue instead of spawning new threads
+        //   or being silently dropped. Capacity caps memory used by queued work.
+        //
+        // Why blocking rejection handler (queue.put):
+        //   When pool + queue are both full, the submitting thread blocks on
+        //   queue.put() until a slot frees up, then enqueues normally. This
+        //   creates backpressure without losing tasks (no AbortPolicy) and
+        //   without making the caller execute a long LLM task itself
+        //   (CallerRunsPolicy would tie up the REST handler for minutes).
+        //   The caller waits only until a worker thread picks it up.
+        //
+        // Why daemon threads:
+        //   JVM shutdown is not blocked by lingering pool threads; @PreDestroy
+        //   still calls shutdownNow() for graceful cancellation.
+        //
+        // Why allowCoreThreadTimeOut:
+        //   Idle threads release after 60s instead of pinning maxThreads forever.
+        ThreadFactory threadFactory = new ThreadFactory() {
+            private final AtomicInteger counter = new AtomicInteger();
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread t = new Thread(r, "agent-task-" + counter.incrementAndGet());
+                t.setDaemon(true);
+                return t;
+            }
+        };
+        RejectedExecutionHandler blockingHandler = new RejectedExecutionHandler() {
+            @Override
+            public void rejectedExecution(Runnable r, ThreadPoolExecutor exec) {
+                if (exec.isShutdown()) {
+                    throw new InternalException(InternalErrorCode.AGENT_TASK_SUBMIT_FAILED,
+                            "Agent task executor is shut down");
+                }
+                try {
+                    exec.getQueue().put(r);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new InternalException(InternalErrorCode.AGENT_TASK_SUBMIT_FAILED,
+                            "Interrupted while queuing agent task", e);
+                }
+            }
+        };
+        ThreadPoolExecutor pool = new ThreadPoolExecutor(
+                maxThreads, maxThreads,
+                60L, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(queueCapacity),
+                threadFactory,
+                blockingHandler);
+        pool.allowCoreThreadTimeOut(true);
+        this.executorService = pool;
     }
 
     public void submit(String taskId) {
