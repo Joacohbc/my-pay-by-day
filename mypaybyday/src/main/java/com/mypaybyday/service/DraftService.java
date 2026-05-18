@@ -24,6 +24,7 @@ import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.exception.ValidationException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EntityDraftRepository;
@@ -128,11 +129,11 @@ public class DraftService {
 				.orElse(null);
 		if (dto == null) throw new BusinessException(messages.get(MsgKey.DRAFT_NOT_FOUND, draftId));
 		if (dto.name() == null || dto.name().isBlank())
-			throw new BusinessException("Draft is missing a name");
+			throw new ValidationException(messages.get(MsgKey.DRAFT_NAME_REQUIRED));
 		if (dto.transactionDate() == null)
-			throw new BusinessException("Draft is missing a transaction date");
+			throw new ValidationException(messages.get(MsgKey.DRAFT_TRANSACTION_DATE_REQUIRED));
 		if (dto.lineItems() == null || dto.lineItems().isEmpty())
-			throw new BusinessException("Draft has no line items");
+			throw new ValidationException(messages.get(MsgKey.DRAFT_LINE_ITEMS_REQUIRED));
 
 		FinanceEventEntity event = new FinanceEventEntity();
 		event.name = dto.name();

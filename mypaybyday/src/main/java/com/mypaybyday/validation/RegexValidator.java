@@ -4,7 +4,7 @@ import java.util.regex.Pattern;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
-import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.exception.ValidationException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 
@@ -32,33 +32,33 @@ public class RegexValidator {
         return value.replace('\u00A0', ' ').replace('\u202F', ' ').trim();
     }
 
-    public void validateOnlyLetters(String value, int maxLength) throws BusinessException {
+    public void validateOnlyLetters(String value, int maxLength) throws ValidationException {
         if (value == null || value.isBlank()) return;
         if (value.length() > maxLength) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_MAX_LENGTH, maxLength));
+            throw new ValidationException(messages.get(MsgKey.VALIDATION_MAX_LENGTH, maxLength));
         }
         if (!ONLY_LETTERS_PATTERN.matcher(value).matches()) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_ONLY_LETTERS_INVALID_CHARS));
+            throw new ValidationException(messages.get(MsgKey.VALIDATION_ONLY_LETTERS_INVALID_CHARS));
         }
     }
 
-    public void validateOnlyNumbers(String value, int maxLength) throws BusinessException {
+    public void validateOnlyNumbers(String value, int maxLength) throws ValidationException {
         if (value == null || value.isEmpty()) return;
         if (value.length() > maxLength) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_MAX_LENGTH, maxLength));
+            throw new ValidationException(messages.get(MsgKey.VALIDATION_MAX_LENGTH, maxLength));
         }
         if (!ONLY_NUMBERS_PATTERN.matcher(value).matches()) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_ONLY_NUMBERS_INVALID_CHARS));
+            throw new ValidationException(messages.get(MsgKey.VALIDATION_ONLY_NUMBERS_INVALID_CHARS));
         }
     }
 
-    public void validateText(String value, int maxLength) throws BusinessException {
+    public void validateText(String value, int maxLength) throws ValidationException {
         if (value == null || value.isBlank()) return;
         if (value.length() > maxLength) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_MAX_LENGTH, maxLength));
+            throw new ValidationException(messages.get(MsgKey.VALIDATION_MAX_LENGTH, maxLength));
         }
         if (!GENERAL_TEXT_PATTERN.matcher(value).matches()) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_LETTERS_AND_NUMBERS_INVALID_CHARS));
+            throw new ValidationException(messages.get(MsgKey.VALIDATION_LETTERS_AND_NUMBERS_INVALID_CHARS));
         }
     }
 
@@ -66,18 +66,18 @@ public class RegexValidator {
      * Validates the standard name + description pair shared by Template, Subscription, and Event entities.
      * Mirrors the shared field builders in frontend/src/lib/validation.ts.
      */
-    public void validateNameAndDescription(String name, String description) throws BusinessException {
+    public void validateNameAndDescription(String name, String description) throws ValidationException {
         validateText(name, SHORT_MAX_LENGTH);
         validateText(description, LONG_MAX_LENGTH);
     }
 
-    public void validateIcon(String value) throws BusinessException {
+    public void validateIcon(String value) throws ValidationException {
         if (value == null || value.isEmpty()) return;
         if (value.length() > ICON_MAX_LENGTH) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_MAX_LENGTH, ICON_MAX_LENGTH));
+            throw new ValidationException(messages.get(MsgKey.VALIDATION_MAX_LENGTH, ICON_MAX_LENGTH));
         }
         if (!ICON_PATTERN.matcher(value).matches()) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_ICON_INVALID_CHARS));
+            throw new ValidationException(messages.get(MsgKey.VALIDATION_ICON_INVALID_CHARS));
         }
     }
 }

@@ -13,6 +13,8 @@ import java.util.Base64;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
+import com.mypaybyday.enums.InternalErrorCode;
+import com.mypaybyday.exception.InternalException;
 import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.dto.DataTransferDto;
 import com.mypaybyday.dto.DataTransferResult;
@@ -370,7 +372,7 @@ public class DataTransferService {
                     byte[] hashBytes = md.digest(entity.data);
                     entity.hash = java.util.HexFormat.of().formatHex(hashBytes);
                 } catch (java.security.NoSuchAlgorithmException e) {
-                    throw new RuntimeException(e);
+                    throw new InternalException(InternalErrorCode.HASHING_FAILED, "SHA-256 algorithm unavailable", e);
                 }
             }
             FileEntity.getEntityManager().persist(entity);

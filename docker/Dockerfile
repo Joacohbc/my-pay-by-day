@@ -55,6 +55,9 @@ RUN chmod +x /entrypoint.sh
 # Remove the default nginx site if present
 RUN rm -f /etc/nginx/sites-enabled/default
 
+# Pre-create log directory inside the data volume so the app can write rotating logs at boot
+RUN mkdir -p /data/logs
+
 # SQLite data volume
 VOLUME ["/data"]
 

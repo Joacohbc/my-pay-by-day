@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
-import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.exception.ValidationException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 
@@ -18,39 +18,39 @@ public class DateValidator {
         this.messages = messages;
     }
 
-    public void validateDateRange(LocalDate startDate, LocalDate endDate) throws BusinessException {
+    public void validateDateRange(LocalDate startDate, LocalDate endDate) throws ValidationException {
         if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_DATE_RANGE_INVALID));
+            throw new ValidationException(messages.get(MsgKey.VALIDATION_DATE_RANGE_INVALID));
         }
     }
 
-    public void validateDateRange(LocalDateTime startDate, LocalDateTime endDate) throws BusinessException {
+    public void validateDateRange(LocalDateTime startDate, LocalDateTime endDate) throws ValidationException {
         if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_DATE_RANGE_INVALID));
+            throw new ValidationException(messages.get(MsgKey.VALIDATION_DATE_RANGE_INVALID));
         }
     }
 
-    public void validateNotFuture(LocalDate date) throws BusinessException {
+    public void validateNotFuture(LocalDate date) throws ValidationException {
         if (date != null && date.isAfter(LocalDate.now())) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_DATE_IN_FUTURE));
+            throw new ValidationException(messages.get(MsgKey.VALIDATION_DATE_IN_FUTURE));
         }
     }
 
-    public void validateNotFuture(LocalDateTime date) throws BusinessException {
+    public void validateNotFuture(LocalDateTime date) throws ValidationException {
         if (date != null && date.isAfter(LocalDateTime.now())) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_DATE_IN_FUTURE));
+            throw new ValidationException(messages.get(MsgKey.VALIDATION_DATE_IN_FUTURE));
         }
     }
 
-    public void validateNotPast(LocalDate date) throws BusinessException {
+    public void validateNotPast(LocalDate date) throws ValidationException {
         if (date != null && date.isBefore(LocalDate.now())) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_DATE_IN_PAST));
+            throw new ValidationException(messages.get(MsgKey.VALIDATION_DATE_IN_PAST));
         }
     }
 
-    public void validateNotPast(LocalDateTime date) throws BusinessException {
+    public void validateNotPast(LocalDateTime date) throws ValidationException {
         if (date != null && date.isBefore(LocalDateTime.now())) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_DATE_IN_PAST));
+            throw new ValidationException(messages.get(MsgKey.VALIDATION_DATE_IN_PAST));
         }
     }
 }

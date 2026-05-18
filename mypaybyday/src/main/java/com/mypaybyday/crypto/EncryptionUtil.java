@@ -13,6 +13,9 @@ import javax.crypto.spec.SecretKeySpec;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 
+import com.mypaybyday.enums.InternalErrorCode;
+import com.mypaybyday.exception.InternalException;
+
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
@@ -37,7 +40,7 @@ public class EncryptionUtil {
 				.digest(rawKey.getBytes(StandardCharsets.UTF_8));
 			secretKey = new SecretKeySpec(keyBytes, "AES");
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to initialize encryption key", e);
+			throw new InternalException(InternalErrorCode.ENCRYPTION_INIT_FAILED, "Failed to initialize encryption key", e);
 		}
 	}
 
@@ -54,7 +57,7 @@ public class EncryptionUtil {
 			System.arraycopy(ciphertext, 0, combined, iv.length, ciphertext.length);
 			return Base64.getEncoder().encodeToString(combined);
 		} catch (Exception e) {
-			throw new RuntimeException("Encryption failed", e);
+			throw new InternalException(InternalErrorCode.ENCRYPTION_FAILED, "Encryption failed", e);
 		}
 	}
 
@@ -69,7 +72,7 @@ public class EncryptionUtil {
 			cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_BITS, iv));
 			return new String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8);
 		} catch (Exception e) {
-			throw new RuntimeException("Decryption failed", e);
+			throw new InternalException(InternalErrorCode.DECRYPTION_FAILED, "Decryption failed", e);
 		}
 	}
 }

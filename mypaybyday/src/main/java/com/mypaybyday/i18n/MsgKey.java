@@ -82,6 +82,9 @@ public enum MsgKey {
 	// ── Event Draft ──────────────────────────────────────
 	DRAFT_NOT_FOUND("error.draft.not_found"),
 	DRAFT_INVALID_PAYLOAD("error.draft.invalid_payload"),
+	DRAFT_NAME_REQUIRED("error.draft.name_required"),
+	DRAFT_TRANSACTION_DATE_REQUIRED("error.draft.transaction_date_required"),
+	DRAFT_LINE_ITEMS_REQUIRED("error.draft.line_items_required"),
 
 	// ── Intelligent Event ────────────────────────────────
 	INTELLIGENT_EVENT_DRAFT_CREATION_FAILED("error.intelligent_event.draft_creation_failed"),

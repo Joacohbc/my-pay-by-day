@@ -19,6 +19,8 @@ services:
       - MYPAYBYDAY_FILES_MAX_SIZE=${MYPAYBYDAY_FILES_MAX_SIZE:-10485760}
     volumes:
       - db_data:/data
+      - log_data:/data/logs
 
 volumes:
   db_data:
+  log_data:

@@ -16,7 +16,9 @@ import com.mypaybyday.dto.FileWithEventDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
+import com.mypaybyday.enums.InternalErrorCode;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.exception.InternalException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
@@ -82,7 +84,7 @@ public class FileService {
 			MessageDigest md = MessageDigest.getInstance("SHA-256");
 			return HexFormat.of().formatHex(md.digest(data));
 		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e);
+			throw new InternalException(InternalErrorCode.HASHING_FAILED, "SHA-256 algorithm unavailable", e);
 		}
 	}
 
