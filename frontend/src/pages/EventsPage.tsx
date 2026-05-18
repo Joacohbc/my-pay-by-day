@@ -196,6 +196,14 @@ export function EventsPage() {
     [events]
   );
 
+  const totalTransfers = useMemo(
+    () =>
+      events
+        .filter((e) => e.type === 'OTHER')
+        .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0),
+    [events]
+  );
+
   const totalExpenses = useMemo(
     () =>
       events
@@ -228,7 +236,7 @@ export function EventsPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 px-5">
+      <div className="grid grid-cols-3 gap-3 px-5">
         <Card className="text-center">
           <p className="text-xs text-dn-text-muted mb-1">{t('events.income')}</p>
           <p className="text-lg font-mono font-semibold text-dn-success">
@@ -239,6 +247,12 @@ export function EventsPage() {
           <p className="text-xs text-dn-text-muted mb-1">{t('events.expenses')}</p>
           <p className="text-lg font-mono font-semibold text-dn-text-main">
             {formatCurrencyShort(totalExpenses)}
+          </p>
+        </Card>
+        <Card className="text-center">
+          <p className="text-xs text-dn-text-muted mb-1">{t('events.transfers')}</p>
+          <p className="text-lg font-mono font-semibold text-dn-text-main">
+            {formatCurrencyShort(totalTransfers)}
           </p>
         </Card>
       </div>
