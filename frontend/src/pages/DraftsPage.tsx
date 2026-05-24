@@ -23,7 +23,7 @@ import { EventCard } from '@/components/events/EventCard';
 import { BulkActionsModal } from '@/components/events/BulkActionsModal';
 import { EventsListView } from '@/components/events/EventsListView';
 import { DraftsPageActions } from '@/components/events/DraftsPageActions';
-import { fromDraftToCreateDto, fromDraftToPatchDto } from '@/components/events/EventFormMapper';
+import { fromDraftToCreateDto } from '@/components/events/EventFormMapper';
 
 type DraftSegment = 'RECENT' | 'LINKED' | 'UNLINKED';
 
@@ -143,7 +143,7 @@ export function DraftsPage() {
   };
 
   const confirmDrafts = useCallback(
-    async (draftsToConfirm: FinanceEvent[], mode: 'merge' | 'createOnly'): Promise<number[]> => {
+    async (draftsToConfirm: FinanceEvent[]): Promise<number[]> => {
       if (!draftsToConfirm.length || isConfirming) return [];
       setIsConfirming(true);
       const newIds: number[] = [];
@@ -152,16 +152,8 @@ export function DraftsPage() {
           const persistedDraftId = draft.draftId;
           if (!persistedDraftId) continue;
 
-          const originalEventId =
-            mode === 'merge' && isLinkedDraft(draft) ? draft.id : undefined;
-
-          if (originalEventId) {
-            const updated = await eventsService.update(originalEventId, fromDraftToPatchDto(draft));
-            newIds.push(updated.id);
-          } else {
-            const created = await eventsService.create(fromDraftToCreateDto(draft));
-            newIds.push(created.id);
-          }
+          const created = await eventsService.create(fromDraftToCreateDto(draft));
+          newIds.push(created.id);
 
           await draftsService.delete(persistedDraftId);
         }
@@ -178,34 +170,15 @@ export function DraftsPage() {
     [isConfirming, queryClient, exitSelectionMode]
   );
 
-  const handleConfirmAllMerge = async () => {
-    const ids = await confirmDrafts(segmentedDrafts, 'merge');
-    if (ids.length > 1) {
-      navigate(`${Routes.EVENTS}?mergeIds=${ids.join(',')}`);
-    } else {
-      navigate(Routes.EVENTS);
-    }
-  };
-
   const handleConfirmAllCreate = async () => {
-    const ids = await confirmDrafts(segmentedDrafts, 'createOnly');
+    const ids = await confirmDrafts(segmentedDrafts);
     if (ids.length > 1) {
-      // Just navigate to Events to view created items
-      navigate(Routes.EVENTS);
-    }
-  };
-
-  const handleConfirmSelectedMerge = async () => {
-    const ids = await confirmDrafts(selectedDrafts, 'merge');
-    if (ids.length > 1) {
-      navigate(`${Routes.EVENTS}?mergeIds=${ids.join(',')}`);
-    } else {
       navigate(Routes.EVENTS);
     }
   };
 
   const handleConfirmSelectedCreate = async () => {
-    const ids = await confirmDrafts(selectedDrafts, 'createOnly');
+    const ids = await confirmDrafts(selectedDrafts);
     if (ids.length > 1) {
       navigate(Routes.EVENTS);
     }
@@ -357,7 +330,6 @@ export function DraftsPage() {
               </Button>
               <Button
                 size="sm"
-                variant="secondary"
                 className="flex-1 sm:flex-none"
                 onClick={handleConfirmSelectedCreate}
                 disabled={actionsBusy}
@@ -365,16 +337,6 @@ export function DraftsPage() {
               >
                 <Icon name="add_circle" className="text-sm" />
                 {t('drafts.confirmSelectedCreate')}
-              </Button>
-              <Button
-                size="sm"
-                className="flex-1 sm:flex-none"
-                onClick={handleConfirmSelectedMerge}
-                disabled={actionsBusy}
-                loading={isConfirming}
-              >
-                <Icon name="merge" className="text-sm" />
-                {t('drafts.confirmSelectedMerge')}
               </Button>
             </div>
           </div>
@@ -384,7 +346,6 @@ export function DraftsPage() {
       <BulkActionsModal
         open={showBulkActions}
         onClose={() => setShowBulkActions(false)}
-        onConfirmAllMerge={handleConfirmAllMerge}
         onConfirmAllCreate={handleConfirmAllCreate}
         onDeleteAll={handleDeleteAll}
         isConfirming={isConfirming}

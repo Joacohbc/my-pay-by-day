@@ -627,12 +627,9 @@ const en = {
   drafts: {
     title: 'Drafts',
     chooseDrafts: 'Choose Drafts',
-    confirmAllMerge: 'Confirm & merge',
-    confirmAllMergeDesc: 'Update linked events and create those that are not linked',
     confirmAllCreate: 'Confirm as new',
     confirmAllCreateDesc: 'Always create new events, ignoring existing links',
     confirmSelected: 'Confirm Selected',
-    confirmSelectedMerge: 'Create & merge',
     confirmSelectedCreate: 'Create only',
     deleteSelected: 'Delete Selected',
     untitledDraft: 'Untitled Draft',

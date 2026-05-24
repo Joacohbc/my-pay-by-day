@@ -7,7 +7,6 @@ import { Icon } from '@/components/ui/Icon';
 interface BulkActionsModalProps {
   open: boolean;
   onClose: () => void;
-  onConfirmAllMerge: () => Promise<void>;
   onConfirmAllCreate: () => Promise<void>;
   onDeleteAll: () => Promise<void>;
   isConfirming: boolean;
@@ -19,7 +18,6 @@ interface BulkActionsModalProps {
 export function BulkActionsModal({
   open,
   onClose,
-  onConfirmAllMerge,
   onConfirmAllCreate,
   onDeleteAll,
   isConfirming,
@@ -28,11 +26,6 @@ export function BulkActionsModal({
   onChooseDrafts,
 }: BulkActionsModalProps) {
   const { t } = useTranslation();
-
-  const handleConfirmMerge = async () => {
-    await onConfirmAllMerge();
-    onClose();
-  };
 
   const handleConfirmCreate = async () => {
     await onConfirmAllCreate();
@@ -71,21 +64,12 @@ export function BulkActionsModal({
           )}
 
           <HoldToConfirmButton
-            icon="merge"
-            label={isConfirming ? t('common.loading') : t('drafts.confirmAllMerge')}
-            description={t('drafts.confirmAllMergeDesc')}
-            onConfirm={handleConfirmMerge}
-            disabled={isConfirming || isDeleting}
-            variant="primary"
-          />
-
-          <HoldToConfirmButton
             icon="add_circle"
             label={isConfirming ? t('common.loading') : t('drafts.confirmAllCreate')}
             description={t('drafts.confirmAllCreateDesc')}
             onConfirm={handleConfirmCreate}
             disabled={isConfirming || isDeleting}
-            variant="secondary"
+            variant="primary"
           />
 
           <HoldToConfirmButton

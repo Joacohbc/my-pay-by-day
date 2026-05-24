@@ -626,12 +626,9 @@ const es = {
   drafts: {
     title: 'Borradores',
     chooseDrafts: 'Elegir borradores',
-    confirmAllMerge: 'Confirmar y mergear',
-    confirmAllMergeDesc: 'Actualiza los eventos linkeados y crea los que no lo estén',
     confirmAllCreate: 'Confirmar creando nuevos',
     confirmAllCreateDesc: 'Crea eventos nuevos ignorando los links existentes',
     confirmSelected: 'Confirmar seleccionados',
-    confirmSelectedMerge: 'Crear y mergear',
     confirmSelectedCreate: 'Solo crear',
     deleteSelected: 'Eliminar seleccionados',
     untitledDraft: 'Borrador sin título',
