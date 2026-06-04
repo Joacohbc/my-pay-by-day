@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useParams, Link } from 'react-router-dom';
-import { eventsRoute, Routes } from '@/lib/routes';
+import { eventsRoute } from '@/lib/routes';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
-import type { FinanceEvent } from '@/models';
 import { useEvent, useDeleteEvent, useUpdateEvent } from '@/hooks/useEvents';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -18,6 +17,7 @@ import { formatCurrency, formatDateTime, eventNetAmount } from '@/lib/format';
 import { useState } from 'react';
 import { RelatedEventsSection } from '@/components/events/RelatedEventsSection';
 import { EventDuplicatesSection } from '@/components/events/EventDuplicatesSection';
+import { CloneEventModal } from '@/components/events/CloneEventModal';
 import { FileUploader } from '@/components/ui/FileUploader';
 import type { FileDto } from '@/models';
 
@@ -48,13 +48,14 @@ const eventTypeConfig = {
 export function EventDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const { navigate, navigateBack, fromRoute } = useAppNavigation();
+  const { navigateBack, fromRoute } = useAppNavigation();
   const backRoute = fromRoute ?? eventsRoute();
 
   const { data: event, isLoading, error } = useEvent(Number(id));
   const deleteEvent = useDeleteEvent();
   const updateEvent = useUpdateEvent();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
 
   if (isLoading) return <FullPageSpinner />;
   if (error || !event) return <ErrorState message={t('errors.eventNotFound')} />;
@@ -94,6 +95,12 @@ export function EventDetailPage() {
         loading={deleteEvent.isPending}
       />
 
+      <CloneEventModal
+        open={isCloneModalOpen}
+        onClose={() => setIsCloneModalOpen(false)}
+        event={event}
+      />
+
       <PageHeader
         title={t('events.detail')}
         back={backRoute}
@@ -103,11 +110,7 @@ export function EventDetailPage() {
               variant="secondary"
               size="sm"
               title={t('events.clone')}
-              onClick={() => {
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const { id, transactionId, draftId, isDraft, ...cloneData } = event;
-                navigate(Routes.EVENT_NEW, { state: { draft: { ...cloneData, name: `${cloneData.name} (Copy)` } as Partial<FinanceEvent> } });
-              }}
+              onClick={() => setIsCloneModalOpen(true)}
             >
               <Icon name="content_copy" className="text-base" />
             </Button>
