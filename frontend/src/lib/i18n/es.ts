@@ -130,6 +130,7 @@ const es = {
     noEventsFoundCreate: 'Crea tu primer evento financiero',
     newEvent: 'Nuevo Evento',
     clone: 'Clonar',
+    findSimilar: 'Buscar Similares',
     cloneModalTitle: 'Clonar Evento',
     cloneModalSubtitle: 'Seleccioná qué datos copiar',
     cloneFieldName: 'Nombre',

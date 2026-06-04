@@ -131,6 +131,7 @@ const en = {
     noEventsFoundCreate: 'Create your first financial event',
     newEvent: 'New Event',
     clone: 'Clone',
+    findSimilar: 'Find Similar',
     cloneModalTitle: 'Clone Event',
     cloneModalSubtitle: 'Select which data to copy',
     cloneFieldName: 'Name',
