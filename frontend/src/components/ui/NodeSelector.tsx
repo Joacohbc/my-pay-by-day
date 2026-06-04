@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
+import { normalizeText } from '@/lib/utils/textUtils';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { NodeIcon } from '@/components/ui/NodeIcon';
@@ -55,7 +56,7 @@ export function NodeSelector({
     let result = sortByUsage(nodes.filter((n) => !n.archived), stats ?? [], sortMode);
     if (typeFilter !== 'ALL') result = result.filter((n) => n.type === typeFilter);
     if (debouncedSearch.trim()) {
-      result = result.filter((n) => n.name.toLowerCase().includes(debouncedSearch.toLowerCase()));
+      result = result.filter((n) => normalizeText(n.name).includes(normalizeText(debouncedSearch)));
     }
     return result;
   }, [nodes, stats, sortMode, typeFilter, debouncedSearch]);

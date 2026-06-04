@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { normalizeText } from '@/lib/utils/textUtils';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
@@ -55,7 +56,7 @@ export function TagSelector({
 
   const filteredTags = useMemo(
     () => debouncedSearch.trim()
-      ? sortedTags.filter((t) => t.name.toLowerCase().includes(debouncedSearch.toLowerCase()))
+      ? sortedTags.filter((t) => normalizeText(t.name).includes(normalizeText(debouncedSearch)))
       : sortedTags,
     [sortedTags, debouncedSearch]
   );

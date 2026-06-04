@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { normalizeText } from '@/lib/utils/textUtils';
 import { useTranslation } from 'react-i18next';
 import { useTags, useDeleteTag, useArchiveTag, useUnarchiveTag } from '@/hooks/useTags';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -42,7 +43,7 @@ export function TagsPage() {
 
   const allTags = paged ?? [];
   const filtered = search.trim()
-    ? allTags.filter(t => t.name.toLowerCase().includes(search.toLowerCase()))
+    ? allTags.filter(t => normalizeText(t.name).includes(normalizeText(search)))
     : allTags;
 
   const openCreate = () => {

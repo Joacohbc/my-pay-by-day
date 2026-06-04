@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { normalizeText } from '@/lib/utils/textUtils';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
@@ -72,7 +73,7 @@ export function DraftsPage() {
   );
 
   const segmentedDrafts = useMemo(() => {
-    const normalized = debouncedSearch.trim().toLowerCase();
+    const normalized = normalizeText(debouncedSearch.trim());
     return allDrafts
       .filter((draft) => {
         if (segment === 'LINKED') return isLinkedDraft(draft);
@@ -82,8 +83,8 @@ export function DraftsPage() {
       .filter((draft) => {
         if (!normalized) return true;
         return (
-          draft.name?.toLowerCase().includes(normalized) ||
-          draft.description?.toLowerCase().includes(normalized)
+          (draft.name ? normalizeText(draft.name).includes(normalized) : false) ||
+          (draft.description ? normalizeText(draft.description).includes(normalized) : false)
         );
       });
   }, [allDrafts, segment, debouncedSearch]);

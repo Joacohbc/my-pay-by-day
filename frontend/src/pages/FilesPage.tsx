@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { normalizeText } from '@/lib/utils/textUtils';
 import { Routes } from '@/lib/routes';
 import { useTranslation } from 'react-i18next';
 import { useFiles, useDeleteFile } from '@/hooks/useFiles';
@@ -27,8 +28,8 @@ export function FilesPage() {
   const files = useMemo(() => {
     let result = paged?.content ?? [];
     if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter((f) => f.fileName.toLowerCase().includes(q));
+      const q = normalizeText(search);
+      result = result.filter((f) => normalizeText(f.fileName).includes(q));
     }
     return [...result].sort((a, b) =>
       sortDir === 'asc' ? a.size - b.size : b.size - a.size

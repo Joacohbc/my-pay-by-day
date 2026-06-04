@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { normalizeText } from '@/lib/utils/textUtils';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useTranslation } from 'react-i18next';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
@@ -71,7 +72,7 @@ export function CategorySelector(props: CategorySelectorProps) {
 
   const filteredCategories = useMemo(
     () => debouncedSearch.trim()
-      ? sortedCategories.filter((c) => c.name.toLowerCase().includes(debouncedSearch.toLowerCase()))
+      ? sortedCategories.filter((c) => normalizeText(c.name).includes(normalizeText(debouncedSearch)))
       : sortedCategories,
     [sortedCategories, debouncedSearch]
   );
