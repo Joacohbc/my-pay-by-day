@@ -1,3 +1,6 @@
-stitch_gastos/
-utils.sh
 core
+.pnpm-store/
+
+# devcontainer-cli
+.dc_*/
+devcontainer.config.json
