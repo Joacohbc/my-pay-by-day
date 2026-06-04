@@ -52,6 +52,10 @@ export function DraftsPageActions({
     );
   }
 
+  if (!hasDrafts) {
+    return null;
+  }
+
   return (
     <div className="relative" onBlur={handleBlur} onKeyDown={handleKeyDown}>
       <div className="hidden flex-wrap items-center gap-2 sm:flex">
