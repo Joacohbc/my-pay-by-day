@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useParams, Link } from 'react-router-dom';
-import { eventsRoute } from '@/lib/routes';
+import { eventsRoute, similarEventsRoute } from '@/lib/routes';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useEvent, useDeleteEvent, useUpdateEvent } from '@/hooks/useEvents';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -106,6 +106,15 @@ export function EventDetailPage() {
         back={backRoute}
         action={
           <div className="flex gap-2">
+            <Link to={similarEventsRoute(event)} state={{ from: backRoute }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                title={t('events.findSimilar')}
+              >
+                <Icon name="search" className="text-base" />
+              </Button>
+            </Link>
             <Button
               variant="secondary"
               size="sm"

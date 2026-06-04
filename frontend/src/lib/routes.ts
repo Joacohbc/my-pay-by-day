@@ -1,3 +1,5 @@
+import type { FinanceEvent } from '@/models';
+
 export const Routes = {
   DASHBOARD: '/',
 
@@ -39,4 +41,23 @@ export function saveEventsSearch(search: string) {
 export function eventsRoute(): string {
   const saved = sessionStorage.getItem(EVENTS_SEARCH_KEY);
   return `${Routes.EVENTS}${saved || ''}`;
+}
+
+/**
+ * Builds the events list URL pre-filtered to surface events similar to the given one.
+ * "Similar" is defined by the event's classification — its type, category and tags —
+ * which are the filters a user would otherwise have to set by hand. The query keys
+ * must stay in sync with FILTER_PARAMS in EventsPage.
+ */
+export function similarEventsRoute(event: Pick<FinanceEvent, 'type' | 'category' | 'tags'>): string {
+  const params = new URLSearchParams();
+
+  if (event.type) params.set('type', event.type);
+  if (event.category?.id) params.set('cats', String(event.category.id));
+
+  const tagIds = event.tags?.map((tag) => tag.id).filter(Boolean) ?? [];
+  if (tagIds.length) params.set('tags', tagIds.join(','));
+
+  const query = params.toString();
+  return query ? `${Routes.EVENTS}?${query}` : Routes.EVENTS;
 }
