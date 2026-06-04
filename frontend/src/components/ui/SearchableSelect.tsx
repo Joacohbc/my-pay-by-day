@@ -2,6 +2,7 @@ import { useState, useEffect, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
+import { normalizeText } from '@/lib/utils/textUtils';
 
 interface Option {
   value: string | number;
@@ -59,7 +60,7 @@ export const SearchableSelect = forwardRef<HTMLDivElement, SearchableSelectProps
     }, [isOpen, onBlur]);
 
     const filteredOptions = options.filter((opt) =>
-      opt.label.toLowerCase().includes(search.toLowerCase())
+      normalizeText(opt.label).includes(normalizeText(search))
     );
 
     const handleSelect = (val: string | number | null) => {

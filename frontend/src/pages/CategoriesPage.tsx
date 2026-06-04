@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { normalizeText } from '@/lib/utils/textUtils';
 import { useTranslation } from 'react-i18next';
 import { useCategories, useDeleteCategory, useArchiveCategory, useUnarchiveCategory } from '@/hooks/useCategories';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -42,7 +43,7 @@ export function CategoriesPage() {
 
   const allCategories = paged ?? [];
   const filtered = search.trim()
-    ? allCategories.filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
+    ? allCategories.filter(c => normalizeText(c.name).includes(normalizeText(search)))
     : allCategories;
 
   const openCreate = () => {

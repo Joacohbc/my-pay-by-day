@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { normalizeText } from '@/lib/utils/textUtils';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import iconsData from '@/assets/icons-outlined.json';
@@ -37,8 +38,8 @@ function BrowseModal({ currentValue, onSelect, onClose }: BrowseModalProps) {
   };
 
   const filteredIcons = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return q ? ALL_ICONS.filter((name) => name.includes(q)) : ALL_ICONS;
+    const q = normalizeText(search.trim());
+    return q ? ALL_ICONS.filter((name) => normalizeText(name).includes(q)) : ALL_ICONS;
   }, [search]);
 
   // Lazy-load more icons when the sentinel enters the viewport
@@ -178,11 +179,11 @@ export function IconPicker({ value, onChange, label, error }: IconPickerProps) {
   const [modalOpen, setModalOpen] = useState(false);
 
   const { icons, isLimited } = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = normalizeText(search.trim());
     if (!q) {
       return { icons: ALL_ICONS.slice(0, MAX_UNFILTERED), isLimited: ALL_ICONS.length > MAX_UNFILTERED };
     }
-    const matches = ALL_ICONS.filter((name) => name.includes(q));
+    const matches = ALL_ICONS.filter((name) => normalizeText(name).includes(q));
     return { icons: matches, isLimited: false };
   }, [search]);
 

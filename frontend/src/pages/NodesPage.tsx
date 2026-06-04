@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { normalizeText } from '@/lib/utils/textUtils';
 import { useTranslation } from 'react-i18next';
 import { useNodes, useArchiveNode, useUnarchiveNode, useDeleteNode, useNodeBalance } from '@/hooks/useNodes';
 import { formatCurrency, formatCompactCurrency, formatCompactWitNotCurrency, getCurrency } from '@/lib/format';
@@ -256,7 +257,7 @@ export function NodesPage() {
         const query = queries[type];
         const allNodes = query.data ?? [];
         const nodes = search.trim()
-          ? allNodes.filter(n => n.name.toLowerCase().includes(search.toLowerCase()))
+          ? allNodes.filter(n => normalizeText(n.name).includes(normalizeText(search)))
           : allNodes;
         if (nodes.length === 0 && !showArchived) return null;
 

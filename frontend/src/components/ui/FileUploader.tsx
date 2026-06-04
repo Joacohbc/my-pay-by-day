@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { normalizeText } from '@/lib/utils/textUtils';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
@@ -23,8 +24,8 @@ function FileSelectorModal({ open, onClose, onSelect, excludeIds }: FileSelector
     let result = paged?.content ?? [];
     result = result.filter((f) => !excludeIds.includes(f.id));
     if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter((f) => f.fileName.toLowerCase().includes(q));
+      const q = normalizeText(search);
+      result = result.filter((f) => normalizeText(f.fileName).includes(q));
     }
     return result;
   }, [paged, search, excludeIds]);
