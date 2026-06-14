@@ -34,8 +34,14 @@ RUN mvn package -DskipTests -q
 # ─────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine
 
-# Install nginx and supervisord
-RUN apk add --no-cache nginx supervisor
+# Install nginx and supervisord.
+# `apk upgrade` pulls Alpine's latest security backports before installing, so
+# nginx ships with the fix for CVE-2026-42945 (heap overflow in
+# ngx_http_rewrite_module, "NGINX Rift", patched upstream in 1.30.1/1.31.0).
+# Alpine backports the fix onto its own packaged version, so we rely on fresh
+# package indexes (the CI build uses no-cache) rather than pinning a version.
+RUN apk upgrade --no-cache && \
+    apk add --no-cache nginx supervisor
 
 # ── Frontend static files ──
 COPY --from=frontend-builder /app/dist /usr/share/nginx/html
