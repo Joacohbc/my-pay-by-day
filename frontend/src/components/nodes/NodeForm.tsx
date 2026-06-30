@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { IconPicker } from '@/components/ui/IconPicker';
+import { ColorPicker } from '@/components/ui/ColorPicker';
 import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { useCreateNode, useUpdateNode } from '@/hooks/useNodes';
 import { useAiFormController } from '@/hooks/useAiFormController';
@@ -16,6 +17,7 @@ interface NodeFormValues {
   type: FinanceNodeType;
   description: string;
   icon: string;
+  color: string;
 }
 
 interface NodeFormProps {
@@ -35,6 +37,7 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
       type: editTarget?.type ?? 'OWN',
       description: editTarget?.description ?? '',
       icon: editTarget?.icon ?? '',
+      color: editTarget?.color ?? '',
     },
   });
 
@@ -110,6 +113,17 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
         render={({ field }) => (
           <IconPicker
             label={t('nodes.iconLabel')}
+            value={field.value}
+            onChange={field.onChange}
+          />
+        )}
+      />
+      <Controller
+        name="color"
+        control={control}
+        render={({ field }) => (
+          <ColorPicker
+            label={t('nodes.colorLabel')}
             value={field.value}
             onChange={field.onChange}
           />

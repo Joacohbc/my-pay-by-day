@@ -304,17 +304,17 @@ public class SubscriptionService {
 
 		switch (sub.eventType) {
 			case INBOUND -> {
-				lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, null, sub.modifierValue.negate()));
-				lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, null, sub.modifierValue));
+				lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, null, null, sub.modifierValue.negate()));
+				lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, null, null, sub.modifierValue));
 			}
 			case OUTBOUND -> {
-				lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, null, sub.modifierValue.negate()));
-				lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, null, sub.modifierValue));
+				lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, null, null, sub.modifierValue.negate()));
+				lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, null, null, sub.modifierValue));
 			}
 			case OTHER -> {
 				if (sub.destinationNode != null) {
-					lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, null, sub.modifierValue.negate()));
-					lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, null, sub.modifierValue));
+					lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, null, null, sub.modifierValue.negate()));
+					lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, null, null, sub.modifierValue));
 				} else {
 					LOG.warnf("Subscription %d is type OTHER but missing destinationNode. Skipping.", sub.id);
 					return;

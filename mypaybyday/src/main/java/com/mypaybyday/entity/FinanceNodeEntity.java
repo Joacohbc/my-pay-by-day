@@ -43,6 +43,9 @@ public class FinanceNodeEntity extends BaseEntity {
 
 	public String icon;
 
+	/** Palette key for the icon color (e.g. "blue", "rose"). Null = type-based default tint. */
+	public String color;
+
 	@Builder.Default
 	public boolean archived = false;
 

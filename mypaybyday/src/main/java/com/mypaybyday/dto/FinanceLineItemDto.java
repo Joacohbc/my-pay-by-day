@@ -8,6 +8,7 @@ public record FinanceLineItemDto(
 	Long financeNodeId,
 	String financeNodeName,
 	String financeNodeIcon,
+	String financeNodeColor,
 	BigDecimal amount
 ) {
 
@@ -16,6 +17,7 @@ public record FinanceLineItemDto(
 		item.financeNode != null ? item.financeNode.id : null,
 		item.financeNode != null ? item.financeNode.name : null,
 		item.financeNode != null ? item.financeNode.icon : null,
+		item.financeNode != null ? item.financeNode.color : null,
 		item.amount
 	);
     }

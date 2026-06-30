@@ -27,6 +27,8 @@ export interface Category extends Identifiable {
   name: string;
   description?: string;
   icon?: string;
+  /** Palette key for the icon color (see lib/iconColors). */
+  color?: string;
   archived: boolean;
 }
 
@@ -58,6 +60,8 @@ export interface FinanceNode extends Identifiable {
   type: FinanceNodeType;
   description?: string;
   icon?: string;
+  /** Palette key for the icon color (see lib/iconColors). */
+  color?: string;
   archived: boolean;
 }
 
@@ -70,6 +74,7 @@ export interface FinanceLineItem {
   financeNodeId: number;
   financeNodeName: string;
   financeNodeIcon?: string;
+  financeNodeColor?: string;
   amount: number;
 }
 

@@ -285,6 +285,7 @@ const es = {
     removeAsDefault: 'Quitar como predeterminado',
     descriptionPlaceholder: 'Descripción opcional',
     iconLabel: 'Ícono',
+    colorLabel: 'Color',
   },
 
   // ─── Node Types ──────────────────────────────────────────────────────────
@@ -309,6 +310,7 @@ const es = {
     archiveConfirm: '¿Archivar "{{name}}"? Los datos históricos se conservan.',
     showArchived: 'Ver archivadas',
     iconLabel: 'Ícono',
+    colorLabel: 'Color',
   },
 
   // ─── Tag Groups ──────────────────────────────────────────────────────────
@@ -625,6 +627,10 @@ const es = {
   },
 
   // ─── Icon Picker ─────────────────────────────────────────────────────────
+  colorPicker: {
+    default: 'Predeterminado',
+  },
+
   iconPicker: {
     searchPlaceholder: 'Buscar íconos…',
     noResults: 'No se encontraron íconos',

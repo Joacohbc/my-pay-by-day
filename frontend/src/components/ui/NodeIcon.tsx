@@ -1,5 +1,6 @@
 import { Icon } from '@/components/ui/Icon';
 import type { FinanceLineItem, FinanceNode } from '@/models';
+import { getIconColorClass } from '@/lib/iconColors';
 import { twMerge } from 'tailwind-merge';
 
 interface NodeIconProps {
@@ -55,11 +56,18 @@ export function NodeIcon({
 
   const archived = !!node && isFinanceNode(node) && node.archived;
 
+  const customColorKey = node
+    ? isFinanceNode(node)
+      ? node.color
+      : node.financeNodeColor
+    : undefined;
+  const customColorClass = getIconColorClass(customColorKey);
+
   return (
     <div
       className={twMerge(
         `${container} flex items-center justify-center ${shape} shrink-0`,
-        colorClass ?? cfg.colorClass,
+        colorClass ?? customColorClass ?? cfg.colorClass,
         className
       )}
       style={style}

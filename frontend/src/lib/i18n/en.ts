@@ -286,6 +286,7 @@ const en = {
     removeAsDefault: 'Remove as default',
     descriptionPlaceholder: 'Optional description',
     iconLabel: 'Icon',
+    colorLabel: 'Color',
   },
 
   // ─── Node Types ──────────────────────────────────────────────────────────
@@ -310,6 +311,7 @@ const en = {
     archiveConfirm: 'Archive "{{name}}"? Historical data is preserved.',
     showArchived: 'Show archived',
     iconLabel: 'Icon',
+    colorLabel: 'Color',
   },
 
   // ─── Tag Groups ──────────────────────────────────────────────────────────
@@ -632,6 +634,10 @@ const en = {
     showingCount: 'Showing {{count}} of {{total}} icons — search to find more',
     browseAll: 'Browse all',
     allIconsTitle: 'All Icons',
+  },
+
+  colorPicker: {
+    default: 'Default',
   },
 
   // ─── Drafts ──────────────────────────────────────────────────────────────

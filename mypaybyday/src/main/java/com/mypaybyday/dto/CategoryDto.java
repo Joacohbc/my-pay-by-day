@@ -7,11 +7,12 @@ public record CategoryDto(
 		String name,
 		String description,
 		String icon,
+		String color,
 		boolean archived
 ) {
 
 	public static CategoryDto from(CategoryEntity category) {
-		return new CategoryDto(category.id, category.name, category.description, category.icon, category.archived);
+		return new CategoryDto(category.id, category.name, category.description, category.icon, category.color, category.archived);
 	}
 
 
@@ -21,6 +22,7 @@ public record CategoryDto(
 		c.name = this.name;
 		c.description = this.description;
 		c.icon = this.icon;
+		c.color = this.color;
 		return c;
 	}
 }

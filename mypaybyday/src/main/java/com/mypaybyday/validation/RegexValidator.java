@@ -14,11 +14,13 @@ public class RegexValidator {
     public static final int SHORT_MAX_LENGTH = 255;
     public static final int LONG_MAX_LENGTH = 5100;
     public static final int ICON_MAX_LENGTH = 255;
+    public static final int COLOR_MAX_LENGTH = 50;
 
     private static final Pattern ONLY_LETTERS_PATTERN = Pattern.compile("^[\\p{L}\\s]+$");
     private static final Pattern ONLY_NUMBERS_PATTERN = Pattern.compile("^[\\p{N}]+$");
     private static final Pattern GENERAL_TEXT_PATTERN = Pattern.compile("^[\\p{L}\\p{N}\\s\\p{P}\\p{S}]+$");
     private static final Pattern ICON_PATTERN = Pattern.compile("^[a-zA-Z0-9_]+$");
+    private static final Pattern COLOR_PATTERN = Pattern.compile("^[a-zA-Z0-9_]+$");
 
     private final Messages messages;
 
@@ -77,6 +79,20 @@ public class RegexValidator {
             throw new BusinessException(messages.get(MsgKey.VALIDATION_MAX_LENGTH, ICON_MAX_LENGTH));
         }
         if (!ICON_PATTERN.matcher(value).matches()) {
+            throw new BusinessException(messages.get(MsgKey.VALIDATION_ICON_INVALID_CHARS));
+        }
+    }
+
+    /**
+     * Validates a palette color key (e.g. "blue", "rose"). The set of valid keys lives in the
+     * frontend palette; here we only enforce that the value is a short, safe token.
+     */
+    public void validateColor(String value) throws BusinessException {
+        if (value == null || value.isEmpty()) return;
+        if (value.length() > COLOR_MAX_LENGTH) {
+            throw new BusinessException(messages.get(MsgKey.VALIDATION_MAX_LENGTH, COLOR_MAX_LENGTH));
+        }
+        if (!COLOR_PATTERN.matcher(value).matches()) {
             throw new BusinessException(messages.get(MsgKey.VALIDATION_ICON_INVALID_CHARS));
         }
     }

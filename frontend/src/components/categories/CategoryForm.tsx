@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { IconPicker } from '@/components/ui/IconPicker';
+import { ColorPicker } from '@/components/ui/ColorPicker';
 import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { useCreateCategory, useUpdateCategory } from '@/hooks/useCategories';
 import { useAiFormController } from '@/hooks/useAiFormController';
@@ -14,6 +15,7 @@ interface CategoryFormValues {
   name: string;
   description: string;
   icon: string;
+  color: string;
 }
 
 interface CategoryFormProps {
@@ -32,6 +34,7 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
       name: editTarget?.name ?? '',
       description: editTarget?.description ?? '',
       icon: editTarget?.icon ?? '',
+      color: editTarget?.color ?? '',
     },
   });
 
@@ -106,6 +109,17 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
         render={({ field }) => (
           <IconPicker
             label={t('categories.iconLabel')}
+            value={field.value}
+            onChange={field.onChange}
+          />
+        )}
+      />
+      <Controller
+        name="color"
+        control={control}
+        render={({ field }) => (
+          <ColorPicker
+            label={t('categories.colorLabel')}
             value={field.value}
             onChange={field.onChange}
           />
