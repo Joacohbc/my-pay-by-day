@@ -68,6 +68,12 @@ export class BackendClient {
     return this.parse<T>(res);
   }
 
+  async getText(path: string): Promise<string> {
+    const res = await fetch(`${config.backendUrl}${path}`, { method: 'GET', headers: this.headers(false) });
+    if (!res.ok) throw new BackendError(res.status, `HTTP ${res.status}`);
+    return res.text();
+  }
+
   async post<T>(path: string, body?: unknown): Promise<T> {
     const res = await fetch(`${config.backendUrl}${path}`, {
       method: 'POST',

@@ -1,6 +1,7 @@
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from 'ai';
 import { Hono } from 'hono';
 import { buildAllTools, toolsForMode } from '../agent/buildTools.js';
+import { buildBackgroundTools } from '../tools/background.js';
 import { config } from '../config.js';
 import { requestContextFrom } from '../context.js';
 import { groundingNow } from '../dates.js';
@@ -43,7 +44,7 @@ chatRoute.post('/', async (c) => {
       memories: longTermMemory.contents(),
     }),
     messages: [...history, ...userMessages],
-    tools: toolsForMode(buildAllTools(ctx), 'AUTONOMOUS'),
+    tools: toolsForMode(buildAllTools(ctx, buildBackgroundTools(ctx)), 'AUTONOMOUS'),
     stopWhen: stepCountIs(config.agent.maxSteps),
     onFinish: ({ response }) => {
       conversationMemory.append(chatId, response.messages);
