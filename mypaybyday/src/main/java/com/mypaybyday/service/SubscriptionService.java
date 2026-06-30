@@ -256,6 +256,17 @@ public class SubscriptionService {
 	}
 
 	@Transactional
+	public SubscriptionDto cancel(Long id) throws BusinessException {
+		SubscriptionEntity subscription = subscriptionRepository.findById(id);
+		if (subscription == null) {
+			throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NOT_FOUND, id));
+		}
+		subscription.status = SubscriptionStatus.CANCELLED;
+		subscriptionRepository.persist(subscription);
+		return findById(id);
+	}
+
+	@Transactional
 	public void processSubscription(Long subscriptionId) throws BusinessException {
 		SubscriptionEntity sub = subscriptionRepository.findById(subscriptionId);
 		if (sub == null) {

@@ -17,6 +17,7 @@ import jakarta.ws.rs.core.Response;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.entity.DraftEntity;
 import com.mypaybyday.enums.EntityType;
+import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.DraftService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
@@ -107,5 +108,14 @@ public class DraftResource {
 	@APIResponse(responseCode = "400", description = "Draft not found (Business Exception)")
 	public DraftEntity updateFinanceEventDraft(@PathParam("id") Long draftId, FinanceEventDto dto) {
 		return draftService.update(draftId, dto);
+	}
+
+	@POST
+	@Path("/finance-events/{id}/confirm")
+	@Operation(summary = "Confirm a finance event draft, converting it into a real finance event")
+	@APIResponse(responseCode = "200", description = "Draft confirmed and published as a finance event")
+	@APIResponse(responseCode = "400", description = "Draft incomplete or not found (Business Exception)")
+	public FinanceEventDto confirmFinanceEventDraft(@PathParam("id") Long draftId) throws BusinessException {
+		return draftService.confirmDraft(draftId);
 	}
 }

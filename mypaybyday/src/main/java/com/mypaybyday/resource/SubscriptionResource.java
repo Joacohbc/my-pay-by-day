@@ -94,4 +94,32 @@ public class SubscriptionResource {
 	subscriptionService.delete(id);
 	return Response.noContent().build();
     }
+
+    @POST
+    @Path("/{id}/execute")
+    @Operation(summary = "Execute a subscription now, generating a finance event from its template")
+    @APIResponses({
+	@APIResponse(responseCode = "200", description = "Subscription executed"),
+	@APIResponse(responseCode = "404", description = "Subscription not found")
+    })
+    public Response execute(
+	@Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id)
+	throws BusinessException {
+	subscriptionService.processSubscription(id);
+	return Response.ok().build();
+    }
+
+    @POST
+    @Path("/{id}/cancel")
+    @Operation(summary = "Cancel a subscription, stopping future automatic event generation")
+    @APIResponses({
+	@APIResponse(responseCode = "200", description = "Subscription cancelled",
+	    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SubscriptionDto.class))),
+	@APIResponse(responseCode = "404", description = "Subscription not found")
+    })
+    public Response cancel(
+	@Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id)
+	throws BusinessException {
+	return Response.ok(subscriptionService.cancel(id)).build();
+    }
 }
