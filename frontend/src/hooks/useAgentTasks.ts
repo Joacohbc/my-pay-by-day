@@ -127,27 +127,19 @@ export function useRejectAction() {
   });
 }
 
-/** Opens a WebSocket for the given task ID and merges live updates into the query cache. */
+/** Opens an SSE stream for the given task ID and merges live updates into the query cache. */
 export function useAgentTaskSocket(taskId: string | null) {
   const queryClient = useQueryClient();
-  const wsRef = useRef<WebSocket | null>(null);
+  const sourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
     if (!taskId) return;
 
-    let wsUrl: string;
-    if (BASE_URL.startsWith('http')) {
-      const origin = new URL(BASE_URL).origin;
-      wsUrl = `${origin.replace(/^http/, 'ws')}/ws/agent-tasks/${taskId}`;
-    } else {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      wsUrl = `${protocol}//${window.location.host}/ws/agent-tasks/${taskId}`;
-    }
+    const streamUrl = `${BASE_URL}/agent-tasks/${taskId}/stream`;
+    const source = new EventSource(streamUrl);
+    sourceRef.current = source;
 
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    ws.onmessage = (ev) => {
+    source.onmessage = (ev) => {
       try {
         const raw = JSON.parse(ev.data);
 
@@ -156,6 +148,7 @@ export function useAgentTaskSocket(taskId: string | null) {
           queryClient.invalidateQueries({ queryKey: agentTaskKeys.detail(taskId) });
           return;
         }
+        if (raw.type === 'ping') return;
 
         const payload: AgentTaskWsPayload = raw;
         if (payload.taskId !== taskId) return;
@@ -201,11 +194,11 @@ export function useAgentTaskSocket(taskId: string | null) {
       }
     };
 
-    ws.onerror = () => ws.close();
+    source.onerror = () => source.close();
 
     return () => {
-      ws.close();
-      wsRef.current = null;
+      source.close();
+      sourceRef.current = null;
     };
   }, [taskId, queryClient]);
 }

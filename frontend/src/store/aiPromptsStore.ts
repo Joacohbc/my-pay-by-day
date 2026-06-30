@@ -8,6 +8,8 @@ export interface AiPrompts {
   fixNameSpelling: string;
   fixDescriptionSpelling: string;
   mergeDescription: string;
+  suggestNameFromSimilar: string;
+  suggestDescriptionFromSimilar: string;
 }
 
 interface AiPromptsState {
@@ -23,6 +25,8 @@ const DEFAULT_PROMPTS: AiPrompts = {
   fixNameSpelling: '',
   fixDescriptionSpelling: '',
   mergeDescription: '',
+  suggestNameFromSimilar: '',
+  suggestDescriptionFromSimilar: '',
 };
 
 export const useAiPromptsStore = create<AiPromptsState>()(

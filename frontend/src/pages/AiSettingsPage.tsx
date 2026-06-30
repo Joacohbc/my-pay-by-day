@@ -8,6 +8,7 @@ import { useAiPromptsStore, type AiPrompts } from '@/store/aiPromptsStore';
 import { useBanner, BANNER_IDS } from '@/store/dismissedBannersStore';
 import { Icon } from '@/components/ui/Icon';
 import { Routes } from '@/lib/routes';
+import { AiMemorySection } from '@/components/ai/AiMemorySection';
 
 export function AiSettingsPage() {
   const { t } = useTranslation();
@@ -30,6 +31,8 @@ export function AiSettingsPage() {
       fixNameSpelling: '',
       fixDescriptionSpelling: '',
       mergeDescription: '',
+      suggestNameFromSimilar: '',
+      suggestDescriptionFromSimilar: '',
     };
     setPrompts(defaultPrompts);
     alert.success(t('ai.settings.saved'));
@@ -98,6 +101,20 @@ export function AiSettingsPage() {
             onChange={(e) => setPromptForAction('mergeDescription', e.target.value)}
             rows={4}
           />
+          <Textarea
+            label={t('ai.settings.suggestNameFromSimilarLabel')}
+            placeholder={t('ai.settings.suggestNameFromSimilarPlaceholder')}
+            value={prompts.suggestNameFromSimilar}
+            onChange={(e) => setPromptForAction('suggestNameFromSimilar', e.target.value)}
+            rows={4}
+          />
+          <Textarea
+            label={t('ai.settings.suggestDescriptionFromSimilarLabel')}
+            placeholder={t('ai.settings.suggestDescriptionFromSimilarPlaceholder')}
+            value={prompts.suggestDescriptionFromSimilar}
+            onChange={(e) => setPromptForAction('suggestDescriptionFromSimilar', e.target.value)}
+            rows={4}
+          />
         </Card>
 
         <div className="flex gap-3">
@@ -108,6 +125,8 @@ export function AiSettingsPage() {
             {t('common.save')}
           </Button>
         </div>
+
+        <AiMemorySection />
       </section>
     </div>
   );

@@ -1,51 +1,83 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useMutation } from '@tanstack/react-query';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport, type FileUIPart, type UIMessage } from 'ai';
+import { BASE_URL } from '@/services/api';
 import { chatService } from '@/services/chat.service';
 import { audioService } from '@/services/audio.service';
 import { filesService } from '@/services/files.service';
 import { useChatStore, type ChatMessage } from '@/store/chatStore';
-import type { ChatSendParams } from '@/models/chat';
+import { getUserTimezone } from '@/lib/utils/dateUtils';
+import i18n from '@/lib/i18n';
 import type { FileDto } from '@/models';
 
-function convertBlobToDataUrl(blob: Blob): Promise<string> {
+function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
-    const fileReader = new FileReader();
-    fileReader.onload = () => resolve(fileReader.result as string);
-    fileReader.onerror = () => reject(new Error('audio_data_url_failed'));
-    fileReader.readAsDataURL(blob);
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('data_url_failed'));
+    reader.readAsDataURL(blob);
   });
+}
+
+async function toFilePart(file: FileDto): Promise<FileUIPart> {
+  const response = await fetch(filesService.getContentUrl(file.id));
+  const blob = await response.blob();
+  return {
+    type: 'file',
+    mediaType: file.mimeType || blob.type || 'image/jpeg',
+    url: await blobToDataUrl(blob),
+    filename: file.fileName,
+  };
+}
+
+function textOf(message: UIMessage): string {
+  return message.parts
+    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+    .map((part) => part.text)
+    .join('');
+}
+
+function imageUrlsOf(message: UIMessage): string[] {
+  return message.parts
+    .filter((part): part is FileUIPart => part.type === 'file' && (part.mediaType ?? '').startsWith('image/'))
+    .map((part) => part.url);
+}
+
+function toDisplayMessage(message: UIMessage): ChatMessage {
+  return {
+    id: message.id,
+    role: message.role === 'assistant' ? 'assistant' : 'user',
+    content: textOf(message),
+    imageUrls: imageUrlsOf(message),
+    timestamp: new Date().toISOString(),
+  };
 }
 
 export function useChatUI() {
   const { t } = useTranslation();
-  const {
-    chatId,
-    messages,
-    isClearing,
-    draftFiles,
-    setDraftFiles,
-    addMessage,
-    updateMessage,
-    newChat,
-    clearBackendMemory,
-    trimBackendMemory
-  } = useChatStore();
+  const { chatId, draftFiles, setDraftFiles, newChat } = useChatStore();
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: `${BASE_URL}/ai/chat`,
+        prepareSendMessagesRequest: ({ messages }) => ({
+          headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language },
+          body: { chatId, messages: messages.slice(-1) },
+        }),
+      }),
+    [chatId],
+  );
+
+  const { messages: uiMessages, sendMessage, status, setMessages } = useChat({ id: chatId, transport });
 
   const [input, setInput] = useState('');
+  const [isClearing, setIsClearing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const sendMutation = useMutation({
-    mutationFn: (params: ChatSendParams) => chatService.sendMessage(params),
-    onSuccess: (data) => {
-      addMessage({ role: 'assistant', content: data.response });
-    },
-    onError: (err: Error) => {
-      addMessage({ role: 'assistant', content: err.message || t('chat.error') });
-    },
-  });
-
-  const isPending = sendMutation.isPending;
+  const messages = useMemo(() => uiMessages.map(toDisplayMessage), [uiMessages]);
+  const isPending = status === 'submitted' || status === 'streaming';
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,9 +87,7 @@ export function useChatUI() {
     scrollToBottom();
   }, [messages, isPending, scrollToBottom]);
 
-  const imagePreviewUrls = useMemo(() => {
-    return draftFiles.map(f => filesService.getContentUrl(f.id));
-  }, [draftFiles]);
+  const imagePreviewUrls = useMemo(() => draftFiles.map((f) => filesService.getContentUrl(f.id)), [draftFiles]);
 
   const handleSend = useCallback(async () => {
     const userText = input.trim();
@@ -67,78 +97,55 @@ export function useChatUI() {
     setInput('');
     setDraftFiles([]);
 
-    addMessage({
-      role: 'user',
-      content: userText || t('chat.imageUploaded'),
-      imageUrls: currentFiles.map(f => filesService.getContentUrl(f.id)),
-    });
-
-    sendMutation.mutate({
-      chatId,
-      message: userText,
-      fileIds: currentFiles.map(f => f.id)
-    });
-  }, [input, draftFiles, addMessage, t, setDraftFiles, sendMutation, chatId]);
-
-  const handleAudioRecorded = useCallback(async (audioBlob: Blob) => {
-    const recordedAudioUrl = await convertBlobToDataUrl(audioBlob);
-
-    const audioMessageId = addMessage({
-      role: 'user',
-      content: '',
-      audioUrl: recordedAudioUrl,
-      audioTranscriptionStatus: 'pending',
-    });
-
-    let transcriptionText = '';
-
-    try {
-      const transcriptionResponse = await audioService.transcribeRecordedAudio(audioBlob);
-      transcriptionText = transcriptionResponse.transcription.trim();
-    } catch {
-      updateMessage(audioMessageId, { audioTranscriptionStatus: 'failed' });
-      throw new Error('transcription_failed');
+    const fileParts = await Promise.all(currentFiles.map(toFilePart));
+    if (userText) {
+      await sendMessage({ text: userText, files: fileParts });
+    } else {
+      await sendMessage({ files: fileParts });
     }
+  }, [input, draftFiles, setDraftFiles, sendMessage]);
 
-    if (!transcriptionText) {
-      updateMessage(audioMessageId, { audioTranscriptionStatus: 'failed' });
-      throw new Error('transcription_failed');
-    }
-
-    updateMessage(audioMessageId, {
-      content: transcriptionText,
-      audioTranscriptionStatus: 'ready',
-    });
-
-    sendMutation.mutate({
-      chatId,
-      message: transcriptionText,
-    });
-  }, [addMessage, chatId, sendMutation, updateMessage]);
+  const handleAudioRecorded = useCallback(
+    async (audioBlob: Blob) => {
+      const { transcription } = await audioService.transcribeRecordedAudio(audioBlob);
+      const text = transcription.trim();
+      if (!text) throw new Error('transcription_failed');
+      await sendMessage({ text });
+    },
+    [sendMessage],
+  );
 
   const handleNewChat = useCallback(() => {
     setDraftFiles([]);
+    setMessages([]);
     newChat();
-  }, [newChat, setDraftFiles]);
+  }, [newChat, setDraftFiles, setMessages]);
 
   const handleClearMemory = useCallback(async () => {
-    if (window.confirm(t('chat.confirmClearMemory'))) {
-      await clearBackendMemory();
+    if (!window.confirm(t('chat.confirmClearMemory'))) return;
+    setIsClearing(true);
+    try {
+      await chatService.clearMemory(chatId);
+      setMessages([]);
+    } finally {
+      setIsClearing(false);
     }
-  }, [clearBackendMemory, t]);
+  }, [chatId, setMessages, t]);
 
-  const handleEditMessage = useCallback(async (msg: ChatMessage) => {
-    setInput(msg.content);
-    await trimBackendMemory(msg.content);
-  }, [trimBackendMemory]);
+  const handleEditMessage = useCallback(
+    async (msg: ChatMessage) => {
+      setInput(msg.content);
+      await chatService.trimMemory(chatId, msg.content);
+      setMessages((prev) => {
+        const index = prev.findIndex((m) => m.id === msg.id);
+        return index >= 0 ? prev.slice(0, index) : prev;
+      });
+    },
+    [chatId, setMessages],
+  );
 
-  const handleAddFile = (file: FileDto) => {
-    setDraftFiles([...draftFiles, file]);
-  };
-
-  const handleRemoveFile = (fileId: number) => {
-    setDraftFiles(draftFiles.filter((f) => f.id !== fileId));
-  };
+  const handleAddFile = (file: FileDto) => setDraftFiles([...draftFiles, file]);
+  const handleRemoveFile = (fileId: number) => setDraftFiles(draftFiles.filter((f) => f.id !== fileId));
 
   return {
     messages,
