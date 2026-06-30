@@ -14,24 +14,36 @@ type AiPromptKey = keyof AiPrompts;
 interface AiActionDefinition {
   generateAction: AiTextAction;
   fixAction: AiTextAction;
+  suggestAction: AiTextAction;
   generatePromptKey: AiPromptKey;
   fixPromptKey: AiPromptKey;
+  suggestPromptKey: AiPromptKey;
 }
 
 const AI_ACTIONS_BY_SEMANTIC_FIELD: Record<AiFieldSemantic, AiActionDefinition> = {
   name: {
     generateAction: 'GENERATE_NAME',
     fixAction: 'FIX_NAME_SPELLING',
+    suggestAction: 'SUGGEST_NAME_FROM_SIMILAR',
     generatePromptKey: 'generateName',
     fixPromptKey: 'fixNameSpelling',
+    suggestPromptKey: 'suggestNameFromSimilar',
   },
   description: {
     generateAction: 'GENERATE_DESCRIPTION',
     fixAction: 'FIX_DESCRIPTION_SPELLING',
+    suggestAction: 'SUGGEST_DESCRIPTION_FROM_SIMILAR',
     generatePromptKey: 'generateDescription',
     fixPromptKey: 'fixDescriptionSpelling',
+    suggestPromptKey: 'suggestDescriptionFromSimilar',
   },
 };
+
+/** Optional grounding so SUGGEST_*_FROM_SIMILAR can filter the user's similar past events. */
+export interface AiSimilarGrounding {
+  categoryId?: number;
+  amount?: number;
+}
 
 export interface AiFormFieldConfig<T extends FieldValues> {
   key: string;
@@ -46,6 +58,7 @@ interface UseAiFormControllerParams<T extends FieldValues> {
   getValues: UseFormGetValues<T>;
   setValue: UseFormSetValue<T>;
   buildContext: () => string;
+  getSimilarGrounding?: () => AiSimilarGrounding;
   shouldDirty?: boolean;
 }
 
@@ -62,6 +75,7 @@ export interface AiFormController {
   canUseVoiceOnActiveField: boolean;
   generateForActiveField: () => Promise<void>;
   fixSpellingForActiveField: () => Promise<void>;
+  suggestForActiveField: () => Promise<void>;
   applyTranscriptionToActiveField: (transcription: string) => void;
 }
 
@@ -70,6 +84,7 @@ export function useAiFormController<T extends FieldValues>({
   getValues,
   setValue,
   buildContext,
+  getSimilarGrounding,
   shouldDirty = true,
 }: UseAiFormControllerParams<T>): AiFormController {
   const { t } = useTranslation();
@@ -107,7 +122,13 @@ export function useAiFormController<T extends FieldValues>({
 
   const getPromptForAction = useAiPromptsStore((s) => s.getPromptForAction);
 
-  const runActionForActiveField = async (mode: 'generate' | 'fix') => {
+  const ACTION_BY_MODE = {
+    generate: (c: AiActionDefinition) => ({ action: c.generateAction, promptKey: c.generatePromptKey }),
+    fix: (c: AiActionDefinition) => ({ action: c.fixAction, promptKey: c.fixPromptKey }),
+    suggest: (c: AiActionDefinition) => ({ action: c.suggestAction, promptKey: c.suggestPromptKey }),
+  } as const;
+
+  const runActionForActiveField = async (mode: 'generate' | 'fix' | 'suggest') => {
     if (!activeField) {
       return;
     }
@@ -124,14 +145,17 @@ export function useAiFormController<T extends FieldValues>({
       [activeField.key]: true,
     }));
 
+    const { action, promptKey } = ACTION_BY_MODE[mode](actionConfig);
+    const grounding = mode === 'suggest' ? getSimilarGrounding?.() : undefined;
+
     try {
       const result = await aiService.generateText({
-        action: mode === 'generate' ? actionConfig.generateAction : actionConfig.fixAction,
+        action,
         context: buildContext(),
         currentValue: mode === 'fix' ? currentValue : undefined,
-        customPrompt: getPromptForAction(
-          mode === 'generate' ? actionConfig.generatePromptKey : actionConfig.fixPromptKey
-        ),
+        customPrompt: getPromptForAction(promptKey),
+        categoryId: grounding?.categoryId,
+        amount: grounding?.amount,
       });
 
       updateFieldValue(activeField.name, result.text);
@@ -179,6 +203,7 @@ export function useAiFormController<T extends FieldValues>({
     canUseVoiceOnActiveField: !!activeField?.allowVoice,
     generateForActiveField: () => runActionForActiveField('generate'),
     fixSpellingForActiveField: () => runActionForActiveField('fix'),
+    suggestForActiveField: () => runActionForActiveField('suggest'),
     applyTranscriptionToActiveField,
   };
 }

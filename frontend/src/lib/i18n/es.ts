@@ -222,6 +222,8 @@ const es = {
 
   // ─── Event Form ──────────────────────────────────────────────────────────
   eventForm: {
+    extractFromImage: 'Completar desde imagen con IA',
+    extractFromImageDone: 'Formulario precompletado desde la imagen',
     eventName: 'Nombre del Evento',
     eventNamePlaceholder: 'ej. Cena con amigos',
     description: 'Descripción',
@@ -494,6 +496,7 @@ const es = {
       title: 'Acciones de IA',
       targetField: 'Campo objetivo',
       generate: 'Generar con IA',
+      suggestFromSimilar: 'Sugerir según similares',
       fixSpelling: 'Corregir ortografía',
       voiceInput: 'Dictar por voz',
       stopVoiceInput: 'Detener grabación de voz',

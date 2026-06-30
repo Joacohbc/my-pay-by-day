@@ -223,6 +223,8 @@ const en = {
 
   // ─── Event Form ──────────────────────────────────────────────────────────
   eventForm: {
+    extractFromImage: 'Fill from image with AI',
+    extractFromImageDone: 'Form pre-filled from the image',
     eventName: 'Event Name',
     eventNamePlaceholder: 'e.g. Dinner with friends',
     description: 'Description',
@@ -495,6 +497,7 @@ const en = {
       title: 'AI actions',
       targetField: 'Target field',
       generate: 'Generate with AI',
+      suggestFromSimilar: 'Suggest from similar',
       fixSpelling: 'Fix spelling',
       voiceInput: 'Dictate by voice',
       stopVoiceInput: 'Stop voice recording',

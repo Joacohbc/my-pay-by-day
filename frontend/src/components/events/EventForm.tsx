@@ -8,6 +8,8 @@ import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { TagGroupSelector } from '@/components/ui/TagGroupSelector';
 import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
+import { ImageExtractButton } from '@/components/events/ImageExtractButton';
+import type { ExtractedEvent } from '@/services/extract.service';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useTagGroups } from '@/hooks/useTagGroups';
@@ -238,19 +240,41 @@ export function EventForm({
     },
   ], [t]);
 
+  const buildSimilarGrounding = () => {
+    const values = getValues();
+    const categoryId = values.categoryId ? Number(values.categoryId) : undefined;
+    const amounts = values.lineItems
+      .map((li) => Math.abs(Number(li.amount)))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const amount = amounts.length > 0 ? Math.max(...amounts) : undefined;
+    return { categoryId: Number.isFinite(categoryId) ? categoryId : undefined, amount };
+  };
+
   const aiController = useAiFormController<FormValues>({
     fields: aiFields,
     getValues,
     setValue,
     buildContext: buildAiContext,
+    getSimilarGrounding: buildSimilarGrounding,
     shouldDirty: true,
   });
+
+  const applyExtractedEvent = (event: ExtractedEvent) => {
+    if (event.name) setValue('name', event.name, { shouldDirty: true });
+    if (event.description) setValue('description', event.description, { shouldDirty: true });
+    if (event.type) setValue('type', event.type, { shouldDirty: true });
+    if (event.categoryId != null) setValue('categoryId', String(event.categoryId), { shouldDirty: true });
+    if (event.tagIds?.length) setValue('tagIds', event.tagIds.map(String), { shouldDirty: true });
+    if (event.transactionDate) setValue('transactionDate', event.transactionDate, { shouldDirty: true });
+  };
 
   if (!formReady) return <FullPageSpinner />
 
   return (
     <FormProvider {...methods}>
       <form onSubmit={handleSubmit(handleFormSubmit, handleInvalidSubmit)} className="space-y-5">
+        <ImageExtractButton onExtracted={applyExtractedEvent} />
+
         <BasicInfoFields
           onNameFocus={() => aiController.markFieldAsActive('name')}
           onDescriptionFocus={() => aiController.markFieldAsActive('description')}

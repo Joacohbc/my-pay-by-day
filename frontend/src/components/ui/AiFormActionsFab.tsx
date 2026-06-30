@@ -122,6 +122,19 @@ export function AiFormActionsFab({ controller }: AiFormActionsFabProps) {
               type="button"
               onClick={() => {
                 setIsOpen(false);
+                void controller.suggestForActiveField();
+              }}
+              disabled={isActionsDisabled}
+              className="flex items-center gap-2 w-full px-3 py-2.5 text-sm rounded-lg text-dn-text-main hover:bg-dn-surface-low transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Icon name="lightbulb" className="text-base text-dn-primary" />
+              {t('ai.actions.suggestFromSimilar')}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
                 void controller.fixSpellingForActiveField();
               }}
               disabled={isActionsDisabled || !controller.canFixActiveField}
