@@ -4,7 +4,7 @@ import type { Tool } from 'ai';
  * Capability class of a tool, used to filter the available tool set by the
  * agent execution mode (mirrors the Java `AgentToolKind`).
  */
-export type ToolKind = 'READ' | 'WRITE' | 'DRAFT_CONFIRM';
+export type ToolKind = 'READ' | 'DRAFT_WRITE' | 'WRITE' | 'DRAFT_CONFIRM';
 
 export interface KindedTool {
   kind: ToolKind;

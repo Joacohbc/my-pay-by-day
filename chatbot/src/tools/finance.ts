@@ -262,7 +262,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
 
     // ===================== WRITE =====================
     createDraftEvent: {
-      kind: 'WRITE',
+      kind: 'DRAFT_WRITE',
       tool: tool({
         description:
           'Create a DRAFT finance event from structured data. Gather amount, source node (money out), destination node (money in), category, tags and date first. The draft is saved for the user to review; it does NOT post a real event. Create one draft per transaction.',
