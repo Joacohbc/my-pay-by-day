@@ -27,21 +27,6 @@ public class StartupLogger {
 	@ConfigProperty(name = "db.field.encryption.key")
 	String encryptionKey;
 
-	@ConfigProperty(name = "ai.primary.base-url")
-	String aiBaseUrl;
-
-	@ConfigProperty(name = "ai.primary.model-name")
-	String primaryModelName;
-
-	@ConfigProperty(name = "ai.vision.model-name")
-	String visionModelName;
-
-	@ConfigProperty(name = "ai.audio.model-name")
-	String audioModelName;
-
-	@ConfigProperty(name = "ai.agent.model-name")
-	String agentModelName;
-
 	@ConfigProperty(name = "mypaybyday.timezone")
 	String timezone;
 
@@ -60,11 +45,6 @@ public class StartupLogger {
 		LOG.info("=== Startup Configuration ===");
 		LOG.infof("  SQLite URL         : %s", jdbcUrl);
 		LOG.infof("  SQLite pool        : min=%d, max=%d", jdbcMinSize, jdbcMaxSize);
-		LOG.infof("  AI Base URL        : %s", aiBaseUrl);
-		LOG.infof("  AI Primary Model   : %s", primaryModelName);
-		LOG.infof("  AI Vision Model    : %s", visionModelName);
-		LOG.infof("  AI Audio Model     : %s", audioModelName);
-		LOG.infof("  AI Agent Model     : %s", agentModelName);
 		LOG.infof("  Encryption key set : %b", encryptionKey != null && !encryptionKey.isBlank());
 		LOG.infof("  Timezone           : %s", timezone);
 		LOG.infof("  Server Time        : %s", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
