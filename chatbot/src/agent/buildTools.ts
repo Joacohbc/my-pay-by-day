@@ -1,6 +1,7 @@
 import type { Tool } from 'ai';
 import type { RequestContext } from '@/context.js';
 import { logger } from '@/logging/logger.js';
+import { buildCalculatorTools } from '@/tools/calculator.js';
 import { buildDateTools } from '@/tools/dates.js';
 import { buildFinanceTools } from '@/tools/finance.js';
 import { buildMemoryTools } from '@/tools/memory.js';
@@ -62,6 +63,7 @@ export function buildAllTools(ctx: RequestContext, extra: KindedToolSet = {}): K
     ...buildDateTools(ctx),
     ...buildFinanceTools(ctx),
     ...buildMemoryTools(),
+    ...buildCalculatorTools(),
     ...extra,
   });
 }

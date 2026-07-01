@@ -39,7 +39,7 @@ export function chatSystemPrompt({ now, timezone, lang, memories }: PromptInput)
     `and ask the user only for what you cannot infer. Create drafts with createDraft (one per transaction); the user`,
     `confirms them later with confirmDraft (which creates a NEW event). To edit an existing event, use updateEvent to`,
     `apply changes in place — do NOT confirm an edit-as-draft expecting an update, as confirming always creates a new`,
-    `event. Never invent IDs.`,
+    `event. Never invent IDs. Always use the calculate tool for ANY calculations (sums, splits, etc.) instead of computing them in text.`,
     memoriesBlock(memories),
     STYLE.replace('{{LANGUAGE}}', languageName(lang)),
   ].join('\n');
@@ -65,7 +65,7 @@ export function agentSystemPrompt(
     DOMAIN,
     `\nPlan briefly, then act using tools. Use reportProgress to record meaningful milestones as you work. When you`,
     `need a human decision (in DRAFT_CONFIRMATION or before a risky write), use requestUserAction and stop until resolved.`,
-    `Resolve names to IDs with read tools before writing. Finish with a short summary of what you did.`,
+    `Resolve names to IDs with read tools before writing. Always use the calculate tool for ANY calculations (sums, splits, etc.) instead of computing them in text. Finish with a short summary of what you did.`,
     memoriesBlock(input.memories),
     STYLE.replace('{{LANGUAGE}}', languageName(input.lang)),
   ].join('\n');
