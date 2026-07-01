@@ -7,6 +7,7 @@ import { requestContextFrom } from '@/context.js';
 import { groundingNow } from '@/dates.js';
 import { compactIfNeeded } from '@/memory/compaction.js';
 import { conversationMemory } from '@/memory/conversation.js';
+import { chatTitles } from '@/memory/titles.js';
 import { longTermMemory } from '@/memory/longTerm.js';
 import { logger } from '@/logging/logger.js';
 import { largeModel } from '@/models.js';
@@ -21,6 +22,11 @@ interface ChatBody {
 }
 
 export const chatRoute = new Hono();
+
+chatRoute.get('/', (c) => {
+  const chats = conversationMemory.listAll();
+  return c.json(chats);
+});
 
 chatRoute.post('/', async (c) => {
   const ctx = requestContextFrom(c);
@@ -63,6 +69,7 @@ chatRoute.post('/', async (c) => {
       const newMessages = steps.flatMap((s) => s.response.messages);
       conversationMemory.append(chatId, newMessages);
       chatLog.info('chat finished', { chatId, steps: steps.length, reply: text });
+      void chatTitles.generateIfMissing(chatId, ctx.lang);
     },
   });
 
@@ -115,7 +122,7 @@ chatRoute.get('/:chatId', (c) => {
 });
 
 chatRoute.delete('/:chatId', (c) => {
-  conversationMemory.clear(c.req.param('chatId'));
+  conversationMemory.deleteChat(c.req.param('chatId'));
   return c.body(null, 204);
 });
 

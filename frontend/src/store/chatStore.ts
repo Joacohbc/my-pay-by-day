@@ -19,8 +19,12 @@ interface ChatStoreState {
   chatId: string;
   isClearing: boolean;
   draftFiles: FileDto[];
+  showChatList: boolean;
 
   newChat: () => void;
+  selectChat: (chatId: string) => void;
+  openChatList: () => void;
+  closeChatList: () => void;
   setDraftFiles: (files: FileDto[]) => void;
   setIsClearing: (isClearing: boolean) => void;
 }
@@ -31,13 +35,24 @@ export const useChatStore = create<ChatStoreState>()(
       chatId: crypto.randomUUID(),
       isClearing: false,
       draftFiles: [],
+      showChatList: true,
 
       newChat: () =>
         set({
           chatId: crypto.randomUUID(),
           draftFiles: [],
+          showChatList: false,
         }),
 
+      selectChat: (chatId) =>
+        set({
+          chatId,
+          draftFiles: [],
+          showChatList: false,
+        }),
+
+      openChatList: () => set({ showChatList: true }),
+      closeChatList: () => set({ showChatList: false }),
       setDraftFiles: (files) => set({ draftFiles: files }),
       setIsClearing: (isClearing) => set({ isClearing }),
     }),
@@ -46,6 +61,7 @@ export const useChatStore = create<ChatStoreState>()(
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         chatId: state.chatId,
+        showChatList: state.showChatList,
       }),
     },
   ),

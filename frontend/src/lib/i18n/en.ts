@@ -100,6 +100,10 @@ const en = {
       chat: 'Chat',
       tasks: 'Tasks',
     },
+    conversations: 'Conversations',
+    noConversations: 'No previous conversations',
+    messagesCount: '{{count}} messages',
+    backToList: 'Back to conversations',
     tools: {
       steps: 'Agent steps',
       listCategories: 'Checking budget categories...',
@@ -120,6 +124,8 @@ const en = {
       recallMemory: 'Recalling preferences...',
       forgetMemory: 'Forgetting memory...',
       running: 'Running...',
+      expand: 'Expand',
+      collapse: 'Collapse',
     },
   },
 

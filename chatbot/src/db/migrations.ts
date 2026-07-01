@@ -1,6 +1,12 @@
 import type { DatabaseSync } from 'node:sqlite';
 
 const SCHEMA = `
+CREATE TABLE IF NOT EXISTS conversation (
+  chat_id     TEXT    PRIMARY KEY,
+  title       TEXT,
+  created_at  TEXT    NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS conversation_message (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   chat_id     TEXT    NOT NULL,
@@ -75,6 +81,14 @@ CREATE INDEX IF NOT EXISTS idx_agent_task_attachment_task
   ON agent_task_attachment (task_id);
 `;
 
+const BACKFILL_CONVERSATION_FROM_MESSAGES = `
+INSERT INTO conversation (chat_id, created_at)
+SELECT chat_id, MIN(created_at) FROM conversation_message
+GROUP BY chat_id
+ON CONFLICT(chat_id) DO NOTHING;
+`;
+
 export function runMigrations(database: DatabaseSync): void {
   database.exec(SCHEMA);
+  database.exec(BACKFILL_CONVERSATION_FROM_MESSAGES);
 }

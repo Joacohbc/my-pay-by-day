@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTranslation } from 'react-i18next';
@@ -36,6 +36,20 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
   };
   const isUser = message.role === 'user';
   const allToolsDone = message.toolCalls?.every((tc) => tc.state === 'result') ?? true;
+  const toolStepGroups = (message.toolCalls ?? []).reduce<{ name: string; count: number; isDone: boolean }[]>(
+    (groups, tc) => {
+      const isDone = tc.state === 'result';
+      const last = groups[groups.length - 1];
+      if (last && last.name === tc.name) {
+        last.count += 1;
+        last.isDone = isDone;
+        return groups;
+      }
+      groups.push({ name: tc.name, count: 1, isDone });
+      return groups;
+    },
+    [],
+  );
   const [isCollapsedByUser, setIsCollapsedByUser] = useState<boolean | null>(null);
   const isStepsExpanded = isCollapsedByUser === null ? !allToolsDone : !isCollapsedByUser;
   const audioMessageUrl = typeof message.audioUrl === 'string' && message.audioUrl.length > 0
@@ -48,6 +62,15 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
   const hasSideActions = canCopy || isEditable;
   const [showEditModal, setShowEditModal] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isStepsFullyExpanded, setIsStepsFullyExpanded] = useState(false);
+  const stepsScrollRef = useRef<HTMLDivElement>(null);
+  const toolCallCount = message.toolCalls?.length ?? 0;
+
+  useEffect(() => {
+    const container = stepsScrollRef.current;
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
+  }, [toolCallCount]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
@@ -60,8 +83,30 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
     <div>
       <div className={`max-w-4xl mx-auto mt-5 px-4 md:px-8 flex flex-col`}>
 
-        {/* Header Row: Icon + Role */}
-        <div className={`flex items-center gap-2 mb-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+        {/* Header Row: Icon + Role + side actions */}
+        <div className={`flex items-center gap-2 mb-3 group ${isUser ? 'justify-end' : 'justify-start'}`}>
+          {isUser && hasSideActions && (
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-200">
+              {isEditable && (
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-dn-text-main/40 hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
+                  title={t('common.edit')}
+                >
+                  <Icon name="edit" className="text-[14px]" />
+                </button>
+              )}
+              {canCopy && (
+                <button
+                  onClick={handleCopy}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-dn-text-main/40 hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
+                  title={isCopied ? t('chat.copied') : t('chat.copy')}
+                >
+                  <Icon name={isCopied ? 'check' : 'content_copy'} className="text-[14px]" />
+                </button>
+              )}
+            </div>
+          )}
           <div className={`flex items-center gap-1 ${isUser ? 'flex-row-reverse' : 'flex-row'} rounded-4xl border border-white/10 max-w-min px-4 py-3`}>
             <Icon
               name={isUser ? 'person' : 'smart_toy'}
@@ -71,6 +116,19 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
               {isUser ? t('chat.user') : t('chat.assistant')}
             </span>
           </div>
+          {!isUser && hasSideActions && (
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-200">
+              {canCopy && (
+                <button
+                  onClick={handleCopy}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-dn-text-main/40 hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
+                  title={isCopied ? t('chat.copied') : t('chat.copy')}
+                >
+                  <Icon name={isCopied ? 'check' : 'content_copy'} className="text-[14px]" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Content Body */}
@@ -114,8 +172,8 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
             </div>
           )}
 
-          {/* Text content + side actions */}
-          <div className={`flex items-start gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'} ${hasSideActions ? 'group' : ''}`}>
+          {/* Text content */}
+          <div className={`flex items-start gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
 
             {/* Main content */}
             <div className="min-w-0 flex-1">
@@ -150,12 +208,29 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
               ) : (
                 <div className="flex flex-col gap-3">
                   {message.toolCalls && message.toolCalls.length > 0 && (
-                    <div className="flex flex-col rounded-xl bg-dn-surface-low/30 border border-white/5 max-w-md overflow-hidden transition-all">
-                      {/* Accordion Header */}
+                    allToolsDone && !isStepsExpanded ? (
                       <button
                         type="button"
+                        onClick={() => setIsCollapsedByUser(false)}
+                        className="animate-in flex items-center gap-1.5 text-[11px] text-dn-text-muted/60 hover:text-dn-text-main/80 transition-colors w-fit"
+                      >
+                        <Icon name="check_circle" className="text-[12px] leading-none shrink-0 text-green-500/70" />
+                        <span className="leading-none">{t('chat.tools.steps')} ({toolStepGroups.length})</span>
+                        <Icon name="keyboard_arrow_down" className="text-[13px] leading-none shrink-0" />
+                      </button>
+                    ) : (
+                    <div className="animate-in flex flex-col rounded-xl bg-dn-surface-low/30 border border-white/5 w-fit min-w-[220px] max-w-md overflow-hidden transition-all">
+                      {/* Accordion Header */}
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setIsCollapsedByUser(isStepsExpanded)}
-                        className="flex items-center justify-between w-full p-3 hover:bg-white/5 transition-colors text-left"
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Enter' && e.key !== ' ') return;
+                          e.preventDefault();
+                          setIsCollapsedByUser(isStepsExpanded);
+                        }}
+                        className="flex items-center justify-between w-full p-3 hover:bg-white/5 transition-colors text-left cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
                           <Icon
@@ -163,36 +238,64 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
                             className={`text-sm shrink-0 ${allToolsDone ? 'text-green-500/80' : 'text-dn-primary animate-spin'}`}
                           />
                           <span className="text-[10px] uppercase tracking-[0.15em] text-dn-text-muted/70 font-black leading-none">
-                            {t('chat.tools.steps')} ({message.toolCalls.length})
+                            {t('chat.tools.steps')} ({toolStepGroups.length})
                           </span>
                         </div>
-                        <Icon
-                          name="keyboard_arrow_down"
-                          className={`text-base text-dn-text-muted transition-transform duration-200 ${
-                            isStepsExpanded ? 'rotate-180' : ''
-                          }`}
-                        />
-                      </button>
+                        <div className="flex items-center gap-1">
+                          {isStepsExpanded && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsStepsFullyExpanded((v) => !v);
+                              }}
+                              className="w-6 h-6 flex items-center justify-center rounded-md text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
+                              title={isStepsFullyExpanded ? t('chat.tools.collapse') : t('chat.tools.expand')}
+                            >
+                              <Icon name={isStepsFullyExpanded ? 'close_fullscreen' : 'open_in_full'} className="text-[13px]" />
+                            </button>
+                          )}
+                          <Icon
+                            name="keyboard_arrow_down"
+                            className={`text-base text-dn-text-muted transition-transform duration-200 ${
+                              isStepsExpanded ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </div>
+                      </div>
 
                       {/* Accordion Content */}
                       {isStepsExpanded && (
-                        <div className="flex flex-col gap-2 p-3 pt-0 border-t border-white/5">
-                          {message.toolCalls.map((tc, idx) => {
-                            const label = toolFriendlyNames[tc.name] || `${t('chat.tools.running')} (${tc.name})`;
-                            const isDone = tc.state === 'result';
+                        <div
+                          ref={stepsScrollRef}
+                          className={`flex flex-col gap-2 p-3 pt-0 border-t border-white/5 overflow-y-auto ${
+                            isStepsFullyExpanded ? 'max-h-none' : 'max-h-48'
+                          }`}
+                        >
+                          {toolStepGroups.map((group, idx) => {
+                            const label = toolFriendlyNames[group.name] || `${t('chat.tools.running')} (${group.name})`;
                             return (
-                              <div key={idx} className="flex items-center gap-2 text-xs text-dn-text-main/70 first:mt-2">
+                              <div
+                                key={idx}
+                                className="animate-in flex items-center gap-2 text-xs text-dn-text-main/70 first:mt-2"
+                              >
                                 <Icon
-                                  name={isDone ? 'check_circle' : 'pending'}
-                                  className={`text-[12px] shrink-0 ${isDone ? 'text-green-500/80' : 'text-dn-primary animate-spin'}`}
+                                  name={group.isDone ? 'check_circle' : 'pending'}
+                                  className={`text-[12px] shrink-0 ${group.isDone ? 'text-green-500/80' : 'text-dn-primary animate-spin'}`}
                                 />
-                                <span className={isDone ? 'opacity-50' : 'font-medium'}>{label}</span>
+                                <span className={`flex-1 truncate ${group.isDone ? 'opacity-50' : 'font-medium'}`}>{label}</span>
+                                {group.count > 1 && (
+                                  <span className="shrink-0 text-[10px] font-bold text-dn-text-muted/60 bg-white/5 rounded-full px-1.5 py-0.5">
+                                    ×{group.count}
+                                  </span>
+                                )}
                               </div>
                             );
                           })}
                         </div>
                       )}
                     </div>
+                    )
                   )}
 
                   {hasTextContent && (
@@ -227,30 +330,6 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
                 </div>
               )}
             </div>
-
-            {/* Side action buttons — opposite side from text */}
-            {hasSideActions && (
-              <div className="flex flex-col gap-1 shrink-0 pt-0.5 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-200">
-                {canCopy && (
-                  <button
-                    onClick={handleCopy}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-dn-text-main/40 hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
-                    title={isCopied ? t('chat.copied') : t('chat.copy')}
-                  >
-                    <Icon name={isCopied ? 'check' : 'content_copy'} className="text-[14px]" />
-                  </button>
-                )}
-                {isEditable && (
-                  <button
-                    onClick={() => setShowEditModal(true)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-dn-text-main/40 hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
-                    title={t('common.edit')}
-                  >
-                    <Icon name="edit" className="text-[14px]" />
-                  </button>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>

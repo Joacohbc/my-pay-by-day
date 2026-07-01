@@ -99,6 +99,10 @@ const es = {
       chat: 'Chat',
       tasks: 'Tareas',
     },
+    conversations: 'Conversaciones',
+    noConversations: 'Sin conversaciones previas',
+    messagesCount: '{{count}} mensajes',
+    backToList: 'Volver a conversaciones',
     tools: {
       steps: 'Pasos del agente',
       listCategories: 'Consultando categorías de presupuesto...',
@@ -119,6 +123,8 @@ const es = {
       recallMemory: 'Recordando preferencias...',
       forgetMemory: 'Olvidando memoria...',
       running: 'Ejecutando...',
+      expand: 'Expandir',
+      collapse: 'Contraer',
     },
   },
 
