@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import type { AgentTaskActionDto, AgentTaskStatus, AgentTaskStepDto } from './types.js';
+import type { AgentTaskActionDto, AgentTaskStatus, AgentTaskStepDto } from '@/agent/types.js';
 
 export interface AgentTaskEvent {
   taskId: string;

@@ -1,9 +1,9 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { BackendClient, BackendError } from '../backend/client.js';
-import type { RequestContext } from '../context.js';
-import { toServerDateTime } from '../dates.js';
-import type { KindedToolSet } from './types.js';
+import { BackendClient, BackendError } from '@/backend/client.js';
+import type { RequestContext } from '@/context.js';
+import { toServerDateTime } from '@/dates.js';
+import type { KindedToolSet } from '@/tools/types.js';
 
 interface Paged<T> {
   content: T[];

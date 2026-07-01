@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { db, nowIso } from '../db/index.js';
+import { db, nowIso } from '@/db/index.js';
 import type {
   AgentActionStatus,
   AgentActionType,
@@ -10,7 +10,7 @@ import type {
   AgentTaskDto,
   AgentTaskStatus,
   AgentTaskStepDto,
-} from './types.js';
+} from '@/agent/types.js';
 
 interface TaskRow {
   id: string;

@@ -1,5 +1,5 @@
 import type { ModelMessage } from 'ai';
-import { db, nowIso } from '../db/index.js';
+import { db, nowIso } from '@/db/index.js';
 
 interface Row {
   message_json: string;

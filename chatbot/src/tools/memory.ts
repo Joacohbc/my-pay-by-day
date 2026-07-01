@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { longTermMemory } from '../memory/longTerm.js';
-import type { KindedToolSet } from './types.js';
+import { longTermMemory } from '@/memory/longTerm.js';
+import type { KindedToolSet } from '@/tools/types.js';
 
 /** Long-term memory tools (persist across conversations). */
 export function buildMemoryTools(): KindedToolSet {

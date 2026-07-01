@@ -1,8 +1,8 @@
 import { generateText } from 'ai';
 import { Hono } from 'hono';
-import { BackendClient } from '../backend/client.js';
-import { languageName, requestContextFrom, type RequestContext } from '../context.js';
-import { fastModel } from '../models.js';
+import { BackendClient } from '@/backend/client.js';
+import { languageName, requestContextFrom, type RequestContext } from '@/context.js';
+import { fastModel } from '@/models.js';
 
 export const TEXT_ACTIONS = [
   'GENERATE_NAME',

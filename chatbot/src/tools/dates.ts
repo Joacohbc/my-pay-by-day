@@ -1,8 +1,8 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import type { RequestContext } from '../context.js';
-import { groundingNow, nowInTimezone } from '../dates.js';
-import type { KindedToolSet } from './types.js';
+import type { RequestContext } from '@/context.js';
+import { groundingNow, nowInTimezone } from '@/dates.js';
+import type { KindedToolSet } from '@/tools/types.js';
 
 export function buildDateTools(ctx: RequestContext): KindedToolSet {
   return {

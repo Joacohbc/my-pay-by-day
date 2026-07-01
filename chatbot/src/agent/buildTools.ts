@@ -1,10 +1,10 @@
 import type { Tool } from 'ai';
-import type { RequestContext } from '../context.js';
-import { buildDateTools } from '../tools/dates.js';
-import { buildFinanceTools } from '../tools/finance.js';
-import { buildMemoryTools } from '../tools/memory.js';
-import type { ExecutionMode } from '../prompts/system.js';
-import { selectTools, type KindedToolSet, type ToolKind } from '../tools/types.js';
+import type { RequestContext } from '@/context.js';
+import { buildDateTools } from '@/tools/dates.js';
+import { buildFinanceTools } from '@/tools/finance.js';
+import { buildMemoryTools } from '@/tools/memory.js';
+import type { ExecutionMode } from '@/prompts/system.js';
+import { selectTools, type KindedToolSet, type ToolKind } from '@/tools/types.js';
 
 const ALLOWED_KINDS: Record<ExecutionMode, ReadonlySet<ToolKind>> = {
   AUTONOMOUS: new Set<ToolKind>(['READ', 'DRAFT_WRITE', 'WRITE', 'DRAFT_CONFIRM']),

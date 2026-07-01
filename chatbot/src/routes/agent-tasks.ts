@@ -1,13 +1,13 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
-import { BackendClient } from '../backend/client.js';
-import { requestContextFrom } from '../context.js';
-import { onTaskEvent } from '../agent/events.js';
-import { broadcastAction, recordStep } from '../agent/notify.js';
-import { forceCancel, forcePause, submitTask } from '../agent/executor.js';
-import { agentStore } from '../agent/store.js';
-import { conversationMemory } from '../memory/conversation.js';
-import type { AgentExecutionMode, AgentTaskStatus } from '../agent/types.js';
+import { BackendClient } from '@/backend/client.js';
+import { requestContextFrom } from '@/context.js';
+import { onTaskEvent } from '@/agent/events.js';
+import { broadcastAction, recordStep } from '@/agent/notify.js';
+import { forceCancel, forcePause, submitTask } from '@/agent/executor.js';
+import { agentStore } from '@/agent/store.js';
+import { conversationMemory } from '@/memory/conversation.js';
+import type { AgentExecutionMode, AgentTaskStatus } from '@/agent/types.js';
 
 interface SubmitBody {
   instruction: string;

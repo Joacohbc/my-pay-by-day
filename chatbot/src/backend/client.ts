@@ -1,5 +1,5 @@
-import { config } from '../config.js';
-import type { RequestContext } from '../context.js';
+import { config } from '@/config.js';
+import type { RequestContext } from '@/context.js';
 
 export class BackendError extends Error {
   constructor(public status: number, message: string) {

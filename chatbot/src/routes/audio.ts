@@ -1,7 +1,7 @@
 import { generateText } from 'ai';
 import { Hono } from 'hono';
-import { requestContextFrom } from '../context.js';
-import { largeModel } from '../models.js';
+import { requestContextFrom } from '@/context.js';
+import { largeModel } from '@/models.js';
 
 export const audioRoute = new Hono();
 

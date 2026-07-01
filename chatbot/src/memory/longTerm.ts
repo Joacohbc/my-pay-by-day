@@ -1,4 +1,4 @@
-import { db, nowIso } from '../db/index.js';
+import { db, nowIso } from '@/db/index.js';
 
 export interface MemoryRow {
   id: number;

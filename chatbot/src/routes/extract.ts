@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
-import { BackendClient } from '../backend/client.js';
-import { requestContextFrom } from '../context.js';
-import { extractFinanceEvent, toDraftPayload, type ImageInput } from '../agent/extraction.js';
+import { BackendClient } from '@/backend/client.js';
+import { requestContextFrom } from '@/context.js';
+import { extractFinanceEvent, toDraftPayload, type ImageInput } from '@/agent/extraction.js';
 
 interface ExtractBody {
   text?: string;

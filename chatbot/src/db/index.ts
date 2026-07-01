@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
-import { config } from '../config.js';
-import { runMigrations } from './migrations.js';
+import { config } from '@/config.js';
+import { runMigrations } from '@/db/migrations.js';
 
 let database: DatabaseSync | null = null;
 

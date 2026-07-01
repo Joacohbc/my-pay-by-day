@@ -1,8 +1,8 @@
 import { generateText } from 'ai';
-import { config } from '../config.js';
-import { languageName } from '../context.js';
-import { fastModel } from '../models.js';
-import { conversationMemory, textOf } from './conversation.js';
+import { config } from '@/config.js';
+import { languageName } from '@/context.js';
+import { fastModel } from '@/models.js';
+import { conversationMemory, textOf } from '@/memory/conversation.js';
 
 const COMPACTION_THRESHOLD = 0.9;
 

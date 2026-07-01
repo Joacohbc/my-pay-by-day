@@ -1,15 +1,15 @@
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from 'ai';
 import { Hono } from 'hono';
-import { buildAllTools, toolsForMode } from '../agent/buildTools.js';
-import { buildBackgroundTools } from '../tools/background.js';
-import { config } from '../config.js';
-import { requestContextFrom } from '../context.js';
-import { groundingNow } from '../dates.js';
-import { compactIfNeeded } from '../memory/compaction.js';
-import { conversationMemory } from '../memory/conversation.js';
-import { longTermMemory } from '../memory/longTerm.js';
-import { largeModel } from '../models.js';
-import { chatSystemPrompt } from '../prompts/system.js';
+import { buildAllTools, toolsForMode } from '@/agent/buildTools.js';
+import { buildBackgroundTools } from '@/tools/background.js';
+import { config } from '@/config.js';
+import { requestContextFrom } from '@/context.js';
+import { groundingNow } from '@/dates.js';
+import { compactIfNeeded } from '@/memory/compaction.js';
+import { conversationMemory } from '@/memory/conversation.js';
+import { longTermMemory } from '@/memory/longTerm.js';
+import { largeModel } from '@/models.js';
+import { chatSystemPrompt } from '@/prompts/system.js';
 
 interface ChatBody {
   chatId?: string;

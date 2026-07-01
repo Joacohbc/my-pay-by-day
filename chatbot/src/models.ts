@@ -1,6 +1,6 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import type { LanguageModel } from 'ai';
-import { config } from './config.js';
+import { config } from '@/config.js';
 
 const provider = createOpenRouter({
   apiKey: config.openRouter.apiKey,

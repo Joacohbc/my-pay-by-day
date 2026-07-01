@@ -1,18 +1,18 @@
 import { generateText, stepCountIs, type ModelMessage } from 'ai';
-import { config } from '../config.js';
-import type { RequestContext } from '../context.js';
-import { groundingNow } from '../dates.js';
-import { compactIfNeeded } from '../memory/compaction.js';
-import { conversationMemory } from '../memory/conversation.js';
-import { longTermMemory } from '../memory/longTerm.js';
-import { largeModel } from '../models.js';
-import { agentSystemPrompt } from '../prompts/system.js';
-import { buildAgentTools } from './agentTools.js';
-import { buildAllTools, toolsForMode } from './buildTools.js';
-import { recordStep, updateStatus } from './notify.js';
-import { isPauseSignal } from './signals.js';
-import { agentStore, type AttachmentContent } from './store.js';
-import { TERMINAL_STATUSES } from './types.js';
+import { config } from '@/config.js';
+import type { RequestContext } from '@/context.js';
+import { groundingNow } from '@/dates.js';
+import { compactIfNeeded } from '@/memory/compaction.js';
+import { conversationMemory } from '@/memory/conversation.js';
+import { longTermMemory } from '@/memory/longTerm.js';
+import { largeModel } from '@/models.js';
+import { agentSystemPrompt } from '@/prompts/system.js';
+import { buildAgentTools } from '@/agent/agentTools.js';
+import { buildAllTools, toolsForMode } from '@/agent/buildTools.js';
+import { recordStep, updateStatus } from '@/agent/notify.js';
+import { isPauseSignal } from '@/agent/signals.js';
+import { agentStore, type AttachmentContent } from '@/agent/store.js';
+import { TERMINAL_STATUSES } from '@/agent/types.js';
 
 type UserContentPart =
   | { type: 'text'; text: string }

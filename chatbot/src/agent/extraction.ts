@@ -1,9 +1,9 @@
 import { generateObject, generateText, type ModelMessage } from 'ai';
 import { z } from 'zod';
-import { BackendClient } from '../backend/client.js';
-import { languageName, type RequestContext } from '../context.js';
-import { groundingNow, toServerDateTime } from '../dates.js';
-import { largeModel, fastModel } from '../models.js';
+import { BackendClient } from '@/backend/client.js';
+import { languageName, type RequestContext } from '@/context.js';
+import { groundingNow, toServerDateTime } from '@/dates.js';
+import { largeModel, fastModel } from '@/models.js';
 
 export interface ImageInput {
   data: string;

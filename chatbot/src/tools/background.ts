@@ -1,9 +1,9 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import type { RequestContext } from '../context.js';
-import { submitTask } from '../agent/executor.js';
-import { agentStore } from '../agent/store.js';
-import type { KindedToolSet } from './types.js';
+import type { RequestContext } from '@/context.js';
+import { submitTask } from '@/agent/executor.js';
+import { agentStore } from '@/agent/store.js';
+import type { KindedToolSet } from '@/tools/types.js';
 
 /** Lets the interactive chat delegate a long, multi-step job to a background agent. */
 export function buildBackgroundTools(ctx: RequestContext): KindedToolSet {

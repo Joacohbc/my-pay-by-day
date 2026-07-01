@@ -1,8 +1,8 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import type { KindedToolSet } from '../tools/types.js';
-import { recordAction, recordStep, updateStatus } from './notify.js';
-import { PauseSignal } from './signals.js';
+import type { KindedToolSet } from '@/tools/types.js';
+import { recordAction, recordStep, updateStatus } from '@/agent/notify.js';
+import { PauseSignal } from '@/agent/signals.js';
 
 /** Tools available only to the background agent (progress reporting and human-in-the-loop). */
 export function buildAgentTools(taskId: string): KindedToolSet {

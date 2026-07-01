@@ -1,6 +1,6 @@
-import { emitTaskEvent } from './events.js';
-import { agentStore } from './store.js';
-import type { AgentActionType, AgentStepType, AgentTaskActionDto, AgentTaskStatus, AgentTaskStepDto } from './types.js';
+import { emitTaskEvent } from '@/agent/events.js';
+import { agentStore } from '@/agent/store.js';
+import type { AgentActionType, AgentStepType, AgentTaskActionDto, AgentTaskStatus, AgentTaskStepDto } from '@/agent/types.js';
 
 function currentProgress(taskId: string): { status: AgentTaskStatus; progress: number; currentStep?: string } {
   const row = agentStore.rawTask(taskId);

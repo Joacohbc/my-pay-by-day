@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { longTermMemory } from '../memory/longTerm.js';
+import { longTermMemory } from '@/memory/longTerm.js';
 
 export const memoryRoute = new Hono();
 

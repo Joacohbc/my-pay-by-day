@@ -1,4 +1,4 @@
-import { languageName } from '../context.js';
+import { languageName } from '@/context.js';
 
 export type ExecutionMode = 'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY' | 'DRAFT_CONFIRMATION';
 
