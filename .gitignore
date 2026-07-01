@@ -4,3 +4,6 @@ core
 # devcontainer-cli
 .dc_*/
 devcontainer.config.json
+
+# graphify
+graphify-out/

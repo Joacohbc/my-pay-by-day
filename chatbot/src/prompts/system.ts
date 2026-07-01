@@ -15,13 +15,12 @@ My Pay By Day is a personal finance app built on double-entry accounting hidden 
 - Finance node: any account/wallet/card (OWN), external entity (EXTERNAL) or contact (CONTACT) that holds or moves money.
 - A purchase moves money OUT of a source node and IN to a destination node (source amount negative, destination positive).
 - Category: a budgeting bucket. Tags: transversal labels. Both live on the Event, never on line items.
-- Draft: an incomplete/pending event the user must review before it becomes real.
-- Template: a blueprint that pre-fills an event. Time period: a budget window. Subscription: a recurring event factory.`;
+- Draft: an incomplete/pending event the user must review before it becomes real.`;
 
 const STYLE = `
 WRITING STYLE (important):
 - Be concise. Names are 2-6 words. Descriptions are at most one short sentence — never long paragraphs.
-- When inventing a name or description, first call searchSimilarEvents (same category and/or similar amount) and
+- When inventing a name or description, first call searchEvents (same category and/or similar amount range) and
   follow the wording and granularity of the user's existing events instead of writing generic verbose text.
 - Reply in {{LANGUAGE}}. Use plain text/markdown, no preamble like "Sure, here is".`;
 
@@ -36,19 +35,21 @@ export function chatSystemPrompt({ now, timezone, lang, memories }: PromptInput)
     `You are the My Pay By Day finance assistant. The current date/time is ${now} (${timezone}).`,
     DOMAIN,
     `\nYou can read and write data through tools. Before creating a draft event, gather amount, source and destination`,
-    `nodes, category, date and tags — call read tools (getFinanceNodes, getCategories, getTags) to resolve names to IDs,`,
-    `and ask the user only for what you cannot infer. Create drafts with createDraftEvent (one per transaction); the user`,
-    `confirms them later. Edit existing events with updateEvent. Never invent IDs.`,
+    `nodes, category, date and tags — call read tools (listNodes, listCategories, listTags) to resolve names to IDs,`,
+    `and ask the user only for what you cannot infer. Create drafts with createDraft (one per transaction); the user`,
+    `confirms them later with confirmDraft (which creates a NEW event). To edit an existing event, use updateEvent to`,
+    `apply changes in place — do NOT confirm an edit-as-draft expecting an update, as confirming always creates a new`,
+    `event. Never invent IDs.`,
     memoriesBlock(memories),
     STYLE.replace('{{LANGUAGE}}', languageName(lang)),
   ].join('\n');
 }
 
 const MODE_NOTE: Record<ExecutionMode, string> = {
-  AUTONOMOUS: 'You may READ and WRITE: create drafts, edit events, update categories, archive nodes, run subscriptions, and confirm/reject drafts.',
-  DRAFT_ONLY: 'You may only READ data and create drafts. You must NOT confirm drafts or perform other writes.',
+  AUTONOMOUS: 'You may READ and WRITE: create/update/delete drafts, edit events in place, and confirm drafts.',
+  DRAFT_ONLY: 'You may only READ data and create/update drafts. You must NOT confirm drafts or edit events.',
   READ_ONLY: 'You may only READ data. No write operations are available.',
-  DRAFT_CONFIRMATION: 'DRAFT CONFIRMATION mode: READ data and review pending drafts. Inspect each with getDraftDetails, then confirmDraft or rejectDraft. If a confirm returns an error, report it and continue.',
+  DRAFT_CONFIRMATION: 'DRAFT CONFIRMATION mode: READ data and review pending drafts. Inspect each with getDraft, then confirmDraft or deleteDraft. If a confirm returns an error, report it and continue.',
 };
 
 export function agentSystemPrompt(

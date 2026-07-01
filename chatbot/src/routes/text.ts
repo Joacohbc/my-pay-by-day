@@ -1,8 +1,11 @@
 import { generateText } from 'ai';
 import { Hono } from 'hono';
-import { BackendClient } from '@/backend/client.js';
+import { createApiClient, unwrap, type FinanceEventDto } from '@/backend/client.js';
 import { languageName, requestContextFrom, type RequestContext } from '@/context.js';
 import { fastModel } from '@/models.js';
+import { logger } from '@/logging/logger.js';
+
+const textLog = logger.child('text');
 
 export const TEXT_ACTIONS = [
   'GENERATE_NAME',
@@ -48,26 +51,31 @@ function needsSimilar(action: TextAction): boolean {
 
 async function similarExamples(ctx: RequestContext, req: TextRequest): Promise<string> {
   if (!needsSimilar(req.action)) return '';
-  const backend = new BackendClient(ctx);
+  const client = createApiClient(ctx);
   try {
     const tolerance = req.amount != null ? Math.max(req.amount * 0.25, 1) : undefined;
-    const page = await backend.get<{ content: Array<{ name: string; description?: string; amount?: number }> }>(
-      '/events',
-      {
-        page: 0,
-        size: 8,
-        search: req.currentValue || req.context,
-        categoryId: req.categoryId,
-        minAmount: req.amount != null && tolerance != null ? req.amount - tolerance : undefined,
-        maxAmount: req.amount != null && tolerance != null ? req.amount + tolerance : undefined,
-      },
+    const page = await unwrap(
+      client.GET('/events', {
+        params: {
+          query: {
+            page: 0,
+            size: 8,
+            search: req.currentValue || req.context,
+            categoryId: req.categoryId,
+            minAmount: req.amount != null && tolerance != null ? req.amount - tolerance : undefined,
+            maxAmount: req.amount != null && tolerance != null ? req.amount + tolerance : undefined,
+          },
+        },
+      }),
     );
-    if (page.content.length === 0) return '';
-    const lines = page.content
+    const events = (page.content ?? []) as FinanceEventDto[];
+    if (events.length === 0) return '';
+    const lines = events
       .map((e) => `- ${e.name}${e.description ? ` — ${e.description}` : ''}`)
       .join('\n');
     return `\n\nSIMILAR PAST EVENTS:\n${lines}`;
-  } catch {
+  } catch (e) {
+    textLog.warn('failed to fetch similar events', { error: (e as Error).message });
     return '';
   }
 }
@@ -102,6 +110,7 @@ textRoute.post('/', async (c) => {
     });
     return c.json({ text: text.trim().replace(/^["']|["']$/g, '') });
   } catch (e) {
+    textLog.error('text action failed', { error: (e as Error).message, action: req.action });
     return c.json({ error: (e as Error).message }, 400);
   }
 });

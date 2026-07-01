@@ -5,10 +5,11 @@
   "type": "module",
   "description": "AI chatbot/agent service for My Pay By Day (Vercel AI SDK + OpenRouter)",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx watch --env-file=.env src/server.ts",
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
-    "start": "node dist/server.js",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "start": "node --env-file=.env dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "gen:api": "openapi-typescript http://127.0.0.1:8080/openapi -o src/backend/schema.d.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.6",
@@ -17,10 +18,12 @@
     "date-fns": "^4.4.0",
     "date-fns-tz": "^3.2.0",
     "hono": "^4.12.27",
+    "openapi-fetch": "^0.17.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^24.12.3",
+    "openapi-typescript": "^7.13.0",
     "tsc-alias": "^1.8.17",
     "tsx": "^4.20.6",
     "typescript": "~5.9.3"

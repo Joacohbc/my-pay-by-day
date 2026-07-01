@@ -61,6 +61,16 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      '/api/ai': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/api/, ''),
+      },
+      '/api/agent-tasks': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/api/, ''),
+      },
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,

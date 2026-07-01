@@ -1,7 +1,10 @@
 import { Hono } from 'hono';
-import { BackendClient } from '@/backend/client.js';
+import { createApiClient, unwrap } from '@/backend/client.js';
 import { requestContextFrom } from '@/context.js';
 import { extractFinanceEvent, toDraftPayload, type ImageInput } from '@/agent/extraction.js';
+import { logger } from '@/logging/logger.js';
+
+const extractLog = logger.child('extract');
 
 interface ExtractBody {
   text?: string;
@@ -30,9 +33,10 @@ extractRoute.post('/', async (c) => {
       return c.json({ type: 'EXTRACTION', event });
     }
 
-    const draft = await new BackendClient(ctx).post('/drafts/finance-events', toDraftPayload(event));
+    const draft = await unwrap(createApiClient(ctx).POST('/drafts/finance-events', { body: toDraftPayload(event, ctx.timezone) }));
     return c.json({ type: 'DRAFT', event, draft });
   } catch (e) {
+    extractLog.error('event extraction failed', { error: (e as Error).message });
     return c.json({ error: (e as Error).message }, 400);
   }
 });
@@ -61,6 +65,7 @@ eventsRoute.post('/from-image', async (c) => {
     });
     return c.json({ event });
   } catch (e) {
+    extractLog.error('event extraction from image failed', { error: (e as Error).message });
     return c.json({ error: (e as Error).message }, 400);
   }
 });

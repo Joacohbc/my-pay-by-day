@@ -22,7 +22,7 @@ export const config = {
 
   models: {
     /** Multimodal model (text + image + audio) used for chat and the agent loop. */
-    large: env('MODEL_LARGE', 'google/gemini-flash-3.5'),
+    large: env('MODEL_LARGE', 'google/gemini-2.5-flash'),
     /** Fast/cheap model used for short text generation, extraction and memory summarisation. */
     fast: env('MODEL_FAST', 'google/gemini-flash-lite'),
   },
@@ -39,6 +39,17 @@ export const config = {
     maxSteps: intEnv('AGENT_MAX_STEPS', 25),
     /** Maximum conversation messages kept before compaction kicks in. */
     maxChatMessages: intEnv('AGENT_MAX_CHAT_MESSAGES', 50),
+  },
+
+  log: {
+    /** Verbosity threshold: silent | error | warn | info | debug | trace. */
+    level: env('LOG_LEVEL', 'info'),
+    /** Output format: 'text' (human-readable) or 'json' (structured, one object per line). */
+    format: env('LOG_FORMAT', 'text'),
+    /** Max characters per logged field value before truncation. */
+    maxFieldChars: intEnv('LOG_MAX_FIELD_CHARS', 800),
+    /** Prefix each line with an ISO timestamp (text format only). */
+    timestamps: env('LOG_TIMESTAMPS', 'true') !== 'false',
   },
 } as const;
 

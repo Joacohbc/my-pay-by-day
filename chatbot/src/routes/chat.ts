@@ -8,8 +8,11 @@ import { groundingNow } from '@/dates.js';
 import { compactIfNeeded } from '@/memory/compaction.js';
 import { conversationMemory } from '@/memory/conversation.js';
 import { longTermMemory } from '@/memory/longTerm.js';
+import { logger } from '@/logging/logger.js';
 import { largeModel } from '@/models.js';
 import { chatSystemPrompt } from '@/prompts/system.js';
+
+const chatLog = logger.child('chat');
 
 interface ChatBody {
   chatId?: string;
@@ -29,6 +32,12 @@ chatRoute.post('/', async (c) => {
   const lastUser = [...incoming].reverse().find((m) => m.role === 'user');
   if (!lastUser) return c.json({ error: 'a user message is required' }, 400);
 
+  const userText = (lastUser.parts ?? [])
+    .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+    .map((p) => p.text)
+    .join(' ');
+  chatLog.info('chat request', { chatId, tz: ctx.timezone, lang: ctx.lang, user: userText });
+
   await compactIfNeeded(chatId, ctx.lang);
 
   const history = conversationMemory.load(chatId);
@@ -46,8 +55,9 @@ chatRoute.post('/', async (c) => {
     messages: [...history, ...userMessages],
     tools: toolsForMode(buildAllTools(ctx, buildBackgroundTools(ctx)), 'AUTONOMOUS'),
     stopWhen: stepCountIs(config.agent.maxSteps),
-    onFinish: ({ response }) => {
+    onFinish: ({ response, text, steps }) => {
       conversationMemory.append(chatId, response.messages);
+      chatLog.info('chat finished', { chatId, steps: steps.length, reply: text });
     },
   });
 

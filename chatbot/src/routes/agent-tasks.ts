@@ -1,13 +1,16 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
-import { BackendClient } from '@/backend/client.js';
-import { requestContextFrom } from '@/context.js';
+import { createApiClient, getBackendText, unwrap } from '@/backend/client.js';
+import { requestContextFrom, type RequestContext } from '@/context.js';
 import { onTaskEvent } from '@/agent/events.js';
 import { broadcastAction, recordStep } from '@/agent/notify.js';
 import { forceCancel, forcePause, submitTask } from '@/agent/executor.js';
 import { agentStore } from '@/agent/store.js';
 import { conversationMemory } from '@/memory/conversation.js';
 import type { AgentExecutionMode, AgentTaskStatus } from '@/agent/types.js';
+import { logger } from '@/logging/logger.js';
+
+const tasksLog = logger.child('agent-tasks');
 
 interface SubmitBody {
   instruction: string;
@@ -31,20 +34,22 @@ function kindOf(mimeType: string): string {
   return KIND_BY_PREFIX.find(([re]) => re.test(mimeType))?.[1] ?? 'BINARY';
 }
 
-async function attachFiles(backend: BackendClient, taskId: string, fileIds?: number[]): Promise<void> {
+async function attachFiles(ctx: RequestContext, taskId: string, fileIds?: number[]): Promise<void> {
+  const client = createApiClient(ctx);
   for (const fileId of fileIds ?? []) {
     try {
-      const meta = await backend.get<{ fileName: string; mimeType: string }>(`/files/${fileId}`);
-      const dataUri = await backend.getText(`/files/${fileId}/content/base64`);
+      const meta = await unwrap(client.GET('/files/{id}', { params: { path: { id: fileId } } }));
+      const mimeType = meta.mimeType ?? 'application/octet-stream';
+      const dataUri = await getBackendText(ctx, `/files/${fileId}/content/base64`);
       const base64 = dataUri.includes(',') ? dataUri.slice(dataUri.indexOf(',') + 1) : dataUri;
       agentStore.saveAttachment(taskId, {
-        fileName: meta.fileName,
-        mimeType: meta.mimeType,
-        kind: kindOf(meta.mimeType),
+        fileName: meta.fileName ?? `file-${fileId}`,
+        mimeType,
+        kind: kindOf(mimeType),
         data: new Uint8Array(Buffer.from(base64, 'base64')),
       });
-    } catch {
-      // skip unavailable attachments
+    } catch (e) {
+      tasksLog.error('failed to attach file to task', { taskId, fileId, error: (e as Error).message });
     }
   }
 }
@@ -62,7 +67,7 @@ agentTasksRoute.post('/', async (c) => {
     lang: ctx.lang,
     timezone: ctx.timezone,
   });
-  await attachFiles(new BackendClient(ctx), task.id, body.fileIds);
+  await attachFiles(ctx, task.id, body.fileIds);
   submitTask(task.id);
   return c.json(agentStore.detail(task.id), 202);
 });
@@ -123,7 +128,7 @@ agentTasksRoute.post('/:id/message', async (c) => {
   const id = c.req.param('id');
   if (!agentStore.rawTask(id)) return c.json({ error: 'not found' }, 404);
   const body = (await c.req.json()) as MessageBody;
-  await attachFiles(new BackendClient(ctx), id, body.fileIds);
+  await attachFiles(ctx, id, body.fileIds);
   recordStep(id, { type: 'USER', content: body.message });
   conversationMemory.append(id, [{ role: 'user', content: body.message }]);
   submitTask(id);

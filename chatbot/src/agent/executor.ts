@@ -13,6 +13,9 @@ import { recordStep, updateStatus } from '@/agent/notify.js';
 import { isPauseSignal } from '@/agent/signals.js';
 import { agentStore, type AttachmentContent } from '@/agent/store.js';
 import { TERMINAL_STATUSES } from '@/agent/types.js';
+import { logger } from '@/logging/logger.js';
+
+const agentLog = logger.child('agent');
 
 type UserContentPart =
   | { type: 'text'; text: string }
@@ -98,6 +101,7 @@ async function run(taskId: string): Promise<void> {
     }
 
     const toolSet = buildAllTools(ctx, buildAgentTools(taskId));
+    agentLog.info('starting agent task', { taskId, mode: task.execution_mode, instruction: task.user_instruction });
     const result = await generateText({
       model: largeModel(),
       system: agentSystemPrompt({
@@ -115,6 +119,7 @@ async function run(taskId: string): Promise<void> {
     });
 
     conversationMemory.append(taskId, result.response.messages);
+    agentLog.info('completed agent task', { taskId, steps: result.steps.length, reply: result.text });
     if (result.text.trim()) recordStep(taskId, { type: 'MESSAGE', content: result.text.trim() });
 
     if (agentStore.status(taskId) !== 'PAUSED') {
@@ -138,6 +143,7 @@ function handleError(taskId: string, error: unknown): void {
     return;
   }
   const message = (error as Error).message ?? 'Unknown error';
+  agentLog.error('agent task failed', { taskId, error: message });
   recordStep(taskId, { type: 'ERROR', description: 'The agent failed', content: message });
   updateStatus(taskId, 'FAILED', undefined, 'Failed');
 }

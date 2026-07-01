@@ -2,6 +2,9 @@ import { generateText } from 'ai';
 import { Hono } from 'hono';
 import { requestContextFrom } from '@/context.js';
 import { largeModel } from '@/models.js';
+import { logger } from '@/logging/logger.js';
+
+const audioLog = logger.child('audio');
 
 export const audioRoute = new Hono();
 
@@ -38,6 +41,7 @@ audioRoute.post('/transcribe', async (c) => {
     });
     return c.json({ transcription: text.trim() });
   } catch (e) {
+    audioLog.error('audio transcription failed', { error: (e as Error).message });
     return c.json({ error: (e as Error).message }, 500);
   }
 });
