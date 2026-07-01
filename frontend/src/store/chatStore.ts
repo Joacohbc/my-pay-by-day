@@ -7,6 +7,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   imageUrls?: string[];
+  attachments?: { url: string; name: string; type: string }[];
   audioUrl?: string;
   audioTranscriptionStatus?: 'pending' | 'ready' | 'failed';
   timestamp: string;

@@ -44,12 +44,27 @@ function imageUrlsOf(message: UIMessage): string[] {
     .map((part) => part.url);
 }
 
+function attachmentsOf(message: UIMessage): { url: string; name: string; type: string }[] {
+  return message.parts
+    .filter((part): part is FileUIPart => part.type === 'file' && !(part.mediaType ?? '').startsWith('image/'))
+    .map((part) => {
+      // @ts-ignore - FileUIPart might have name or filename depending on version
+      const name = part.filename || part.name || 'File';
+      return {
+        url: part.url,
+        name,
+        type: part.mediaType ?? 'application/octet-stream',
+      };
+    });
+}
+
 function toDisplayMessage(message: UIMessage): ChatMessage {
   return {
     id: message.id,
     role: message.role === 'assistant' ? 'assistant' : 'user',
     content: textOf(message),
     imageUrls: imageUrlsOf(message),
+    attachments: attachmentsOf(message),
     timestamp: new Date().toISOString(),
   };
 }

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { AudioMessagePlayer } from '@/components/chat/AudioMessagePlayer';
+import { getFileIcon } from '@/lib/fileUtils';
 import type { ChatMessage as ChatMessageType } from '@/store/chatStore';
 
 interface ChatMessageProps {
@@ -62,6 +63,31 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
                   alt={t('chat.imageUploaded')}
                   className="rounded-xl max-h-72 w-auto object-contain shadow-lg border border-dn-border/30"
                 />
+              ))}
+            </div>
+          )}
+
+          {/* Attachments */}
+          {message.attachments && message.attachments.length > 0 && (
+            <div className={`flex flex-wrap gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+              {message.attachments.map((file, i) => (
+                <a
+                  key={i}
+                  href={file.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-3 bg-dn-surface-low hover:bg-dn-surface rounded-xl border border-white/5 hover:border-dn-primary/30 transition-all min-w-[200px] max-w-sm"
+                >
+                  <div className="w-9 h-9 shrink-0 bg-dn-surface rounded-lg flex items-center justify-center text-dn-text-muted">
+                    <Icon name={getFileIcon(file.type)} className="text-base" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-dn-text-main truncate">{file.name}</p>
+                    <p className="text-xs text-dn-text-muted truncate">
+                      {file.type.split('/')[1] || file.type}
+                    </p>
+                  </div>
+                </a>
               ))}
             </div>
           )}
