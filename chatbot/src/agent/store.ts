@@ -22,6 +22,7 @@ interface TaskRow {
   lang: string | null;
   timezone: string | null;
   cancel_requested: number;
+  step_budget: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -208,6 +209,10 @@ export const agentStore = {
 
   setCancelRequested(id: string, requested: boolean): void {
     db().prepare('UPDATE agent_task SET cancel_requested = ?, updated_at = ? WHERE id = ?').run(requested ? 1 : 0, nowIso(), id);
+  },
+
+  setStepBudget(id: string, budget: number): void {
+    db().prepare('UPDATE agent_task SET step_budget = ?, updated_at = ? WHERE id = ?').run(budget, nowIso(), id);
   },
 
   isCancelRequested(id: string): boolean {

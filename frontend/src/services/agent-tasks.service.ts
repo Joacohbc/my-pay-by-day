@@ -1,10 +1,7 @@
-import type { AgentTask, AgentTaskSubmitDto } from '@/models/agent-tasks';
+import type { AgentTask } from '@/models/agent-tasks';
 import { api } from '@/services/api';
 
 export const agentTasksService = {
-  submit: (dto: AgentTaskSubmitDto) =>
-    api.post<AgentTask>('/agent-tasks', dto),
-
   getAll: (status?: string) => {
     const path = status ? `/agent-tasks?status=${status}` : '/agent-tasks';
     return api.get<AgentTask[]>(path);

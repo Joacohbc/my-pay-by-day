@@ -9,13 +9,18 @@ import { largeModel } from '@/models.js';
 import { agentSystemPrompt } from '@/prompts/system.js';
 import { buildAgentTools } from '@/agent/agentTools.js';
 import { buildAllTools, toolsForMode } from '@/agent/buildTools.js';
-import { recordStep, updateStatus } from '@/agent/notify.js';
+import { recordAction, recordStep, updateStatus } from '@/agent/notify.js';
 import { isPauseSignal } from '@/agent/signals.js';
 import { agentStore, type AttachmentContent } from '@/agent/store.js';
 import { TERMINAL_STATUSES } from '@/agent/types.js';
 import { logger } from '@/logging/logger.js';
 
 const agentLog = logger.child('agent');
+
+const STEP_LIMIT_MESSAGE: Record<string, string> = {
+  en: 'I reached my step limit before finishing this task. Grant me more steps to continue where I left off.',
+  es: 'Alcancé mi límite de pasos antes de terminar esta tarea. Concedeme más pasos para continuar donde quedé.',
+};
 
 type UserContentPart =
   | { type: 'text'; text: string }
@@ -101,6 +106,7 @@ async function run(taskId: string): Promise<void> {
     }
 
     const toolSet = buildAllTools(ctx, buildAgentTools(taskId));
+    const stepBudget = task.step_budget ?? config.agent.maxSteps;
     agentLog.info('starting agent task', { taskId, mode: task.execution_mode, instruction: task.user_instruction });
     const result = await generateText({
       model: largeModel(),
@@ -114,7 +120,7 @@ async function run(taskId: string): Promise<void> {
       }),
       messages: conversationMemory.load(taskId),
       tools: toolsForMode(toolSet, task.execution_mode),
-      stopWhen: stepCountIs(config.agent.maxSteps),
+      stopWhen: stepCountIs(stepBudget),
       abortSignal: controller.signal,
     });
 
@@ -122,7 +128,15 @@ async function run(taskId: string): Promise<void> {
     agentLog.info('completed agent task', { taskId, steps: result.steps.length, reply: result.text });
     if (result.text.trim()) recordStep(taskId, { type: 'MESSAGE', content: result.text.trim() });
 
-    if (agentStore.status(taskId) !== 'PAUSED') {
+    const hitStepLimit = result.steps.length >= stepBudget && result.steps.at(-1)?.finishReason === 'tool-calls';
+
+    if (agentStore.status(taskId) === 'PAUSED') {
+      // already paused by a tool (e.g. requestUserAction)
+    } else if (hitStepLimit) {
+      const step = recordStep(taskId, { type: 'MESSAGE', content: STEP_LIMIT_MESSAGE[ctx.lang] ?? STEP_LIMIT_MESSAGE.en });
+      recordAction(taskId, { stepId: step.id, actionType: 'EXTEND_STEPS', payload: STEP_LIMIT_MESSAGE[ctx.lang] ?? STEP_LIMIT_MESSAGE.en });
+      updateStatus(taskId, 'PAUSED', task.progress, 'Waiting for more steps');
+    } else {
       updateStatus(taskId, 'COMPLETED', 100, 'Done');
     }
   } catch (error) {

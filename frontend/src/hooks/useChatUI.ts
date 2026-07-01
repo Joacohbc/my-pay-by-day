@@ -58,10 +58,10 @@ function attachmentsOf(message: UIMessage): { url: string; name: string; type: s
     });
 }
 
-function toolCallsOf(message: UIMessage, isFinished: boolean): { name: string; state: string }[] {
+function toolCallsOf(message: UIMessage, isFinished: boolean): { name: string; state: string; output?: unknown }[] {
   return message.parts
     .filter(
-      (part): part is UIMessage['parts'][number] & { toolName?: string; state: string } =>
+      (part): part is UIMessage['parts'][number] & { toolName?: string; state: string; output?: unknown } =>
         part.type.startsWith('tool-') || part.type === 'dynamic-tool',
     )
     .map((part) => {
@@ -69,8 +69,13 @@ function toolCallsOf(message: UIMessage, isFinished: boolean): { name: string; s
       return {
         name,
         state: isFinished ? 'result' : part.state,
+        output: part.output,
       };
     });
+}
+
+function stoppedByStepLimitOf(message: UIMessage): boolean {
+  return (message.metadata as { stoppedByStepLimit?: boolean } | undefined)?.stoppedByStepLimit ?? false;
 }
 
 function toDisplayMessage(message: UIMessage, isFinished: boolean): ChatMessage {
@@ -81,6 +86,7 @@ function toDisplayMessage(message: UIMessage, isFinished: boolean): ChatMessage 
     imageUrls: imageUrlsOf(message),
     attachments: attachmentsOf(message),
     toolCalls: toolCallsOf(message, isFinished),
+    stoppedByStepLimit: stoppedByStepLimitOf(message),
     timestamp: new Date().toISOString(),
   };
 }
@@ -112,6 +118,7 @@ function groupMessages(msgs: ChatMessage[]): ChatMessage[] {
       if (msg.audioTranscriptionStatus) {
         prev.audioTranscriptionStatus = msg.audioTranscriptionStatus;
       }
+      prev.stoppedByStepLimit = msg.stoppedByStepLimit ?? prev.stoppedByStepLimit;
     } else {
       grouped.push({
         ...msg,
@@ -343,6 +350,10 @@ export function useChatUI() {
     [chatId, setMessages],
   );
 
+  const handleContinue = useCallback(() => {
+    sendMessage({ text: t('chat.stepLimit.continueMessage') });
+  }, [sendMessage, t]);
+
   const handleAddFile = (file: FileDto) => setDraftFiles([...draftFiles, file]);
   const handleRemoveFile = (fileId: number) => setDraftFiles(draftFiles.filter((f) => f.id !== fileId));
 
@@ -359,6 +370,7 @@ export function useChatUI() {
     triggerSendNow,
     stop,
     handleSend,
+    handleContinue,
     handleNewChat,
     handleClearMemory,
     handleEditMessage,

@@ -12,7 +12,8 @@ export interface ChatMessage {
   audioUrl?: string;
   audioTranscriptionStatus?: 'pending' | 'ready' | 'failed';
   timestamp: string;
-  toolCalls?: { name: string; state: string }[];
+  toolCalls?: { name: string; state: string; output?: unknown }[];
+  stoppedByStepLimit?: boolean;
 }
 
 interface ChatStoreState {

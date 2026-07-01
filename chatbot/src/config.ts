@@ -37,6 +37,8 @@ export const config = {
   agent: {
     /** Maximum tool-calling steps per agent run before the loop stops. */
     maxSteps: intEnv('AGENT_MAX_STEPS', 25),
+    /** Maximum tool-calling steps per in-turn sub-agent delegation before it stops. */
+    subagentMaxSteps: intEnv('SUBAGENT_MAX_STEPS', 12),
     /** Maximum conversation messages kept before compaction kicks in. */
     maxChatMessages: intEnv('AGENT_MAX_CHAT_MESSAGES', 50),
   },

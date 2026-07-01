@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { AudioMessagePlayer } from '@/components/chat/AudioMessagePlayer';
+import { InlineTaskCard } from '@/components/agent-tasks/InlineTaskCard';
 import { getFileIcon } from '@/lib/fileUtils';
 import type { ChatMessage as ChatMessageType } from '@/store/chatStore';
 
@@ -28,13 +29,25 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
     updateDraft: t('chat.tools.updateDraft'),
     deleteDraft: t('chat.tools.deleteDraft'),
     confirmDraft: t('chat.tools.confirmDraft'),
+    updateEvent: t('chat.tools.updateEvent'),
     calculate: t('chat.tools.calculate'),
     getCurrentDateTime: t('chat.tools.getCurrentDateTime'),
     saveMemory: t('chat.tools.saveMemory'),
     recallMemory: t('chat.tools.recallMemory'),
     forgetMemory: t('chat.tools.forgetMemory'),
+    delegateTask: t('chat.tools.delegateTask'),
+    getTaskResult: t('chat.tools.getTaskResult'),
+    startBackgroundTask: t('chat.tools.startBackgroundTask'),
   };
   const isUser = message.role === 'user';
+  const backgroundTaskIds = [
+    ...new Set(
+      (message.toolCalls ?? [])
+        .filter((tc) => tc.name === 'startBackgroundTask')
+        .map((tc) => (tc.output as { taskId?: string } | undefined)?.taskId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
   const allToolsDone = message.toolCalls?.every((tc) => tc.state === 'result') ?? true;
   const toolStepGroups = (message.toolCalls ?? []).reduce<{ name: string; count: number; isDone: boolean }[]>(
     (groups, tc) => {
@@ -327,6 +340,10 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
                       </ReactMarkdown>
                     </div>
                   )}
+
+                  {backgroundTaskIds.map((taskId) => (
+                    <InlineTaskCard key={taskId} taskId={taskId} />
+                  ))}
                 </div>
               )}
             </div>

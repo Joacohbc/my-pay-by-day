@@ -3,12 +3,13 @@ import { streamSSE } from 'hono/streaming';
 import { createApiClient, getBackendText, unwrap } from '@/backend/client.js';
 import { requestContextFrom, type RequestContext } from '@/context.js';
 import { onTaskEvent } from '@/agent/events.js';
-import { broadcastAction, recordStep } from '@/agent/notify.js';
+import { broadcastAction, recordStep, updateStatus } from '@/agent/notify.js';
 import { forceCancel, forcePause, submitTask } from '@/agent/executor.js';
 import { agentStore } from '@/agent/store.js';
 import { conversationMemory } from '@/memory/conversation.js';
 import type { AgentExecutionMode, AgentTaskStatus } from '@/agent/types.js';
 import { logger } from '@/logging/logger.js';
+import { config } from '@/config.js';
 
 const tasksLog = logger.child('agent-tasks');
 
@@ -143,9 +144,18 @@ agentTasksRoute.post('/:id/actions/:actionId/approve', async (c) => {
   const { feedback } = (await c.req.json().catch(() => ({}))) as { feedback?: string };
   agentStore.resolveAction(actionId, 'APPROVED', feedback);
   broadcastAction(id, { ...action, status: 'APPROVED', resultMessage: feedback });
-  conversationMemory.append(id, [
-    { role: 'user', content: `The user APPROVED the requested action.${feedback ? ` Feedback: ${feedback}` : ''}` },
-  ]);
+  if (action.actionType === 'EXTEND_STEPS') {
+    const task = agentStore.rawTask(id);
+    if (task) {
+      const currentBudget = task.step_budget ?? config.agent.maxSteps;
+      agentStore.setStepBudget(id, currentBudget + config.agent.maxSteps);
+    }
+  }
+  const continuationMessage =
+    action.actionType === 'EXTEND_STEPS'
+      ? 'The user granted more steps. Continue the task where you left off.'
+      : `The user APPROVED the requested action.${feedback ? ` Feedback: ${feedback}` : ''}`;
+  conversationMemory.append(id, [{ role: 'user', content: continuationMessage }]);
   submitTask(id);
   return c.body(null, 202);
 });
@@ -158,6 +168,10 @@ agentTasksRoute.post('/:id/actions/:actionId/reject', async (c) => {
   const { feedback } = (await c.req.json().catch(() => ({}))) as { feedback?: string };
   agentStore.resolveAction(actionId, 'REJECTED', feedback);
   broadcastAction(id, { ...action, status: 'REJECTED', resultMessage: feedback });
+  if (action.actionType === 'EXTEND_STEPS') {
+    updateStatus(id, 'COMPLETED', 100, 'Done');
+    return c.body(null, 202);
+  }
   conversationMemory.append(id, [
     { role: 'user', content: `The user REJECTED the requested action.${feedback ? ` Feedback: ${feedback}` : ''}` },
   ]);

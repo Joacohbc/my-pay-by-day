@@ -10,7 +10,7 @@ export type AgentTaskStatus =
 
 export type AgentExecutionMode = 'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY' | 'DRAFT_CONFIRMATION';
 export type AgentStepType = 'MESSAGE' | 'USER' | 'ERROR' | 'RETRY' | 'PLANNED_STEP' | 'PROGRESS';
-export type AgentActionType = 'APPROVAL' | 'INFORMATION' | 'FEEDBACK';
+export type AgentActionType = 'APPROVAL' | 'INFORMATION' | 'FEEDBACK' | 'EXTEND_STEPS';
 export type AgentActionStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
 
 export const TERMINAL_STATUSES: ReadonlySet<AgentTaskStatus> = new Set([

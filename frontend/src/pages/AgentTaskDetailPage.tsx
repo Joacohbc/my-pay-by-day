@@ -407,7 +407,11 @@ export function AgentTaskDetailPage() {
               <Icon name="priority_high" className="text-dn-warning mt-0.5" />
               <div className="flex-1">
                 <h4 className="text-sm font-semibold text-dn-warning mb-1">
-                  {action.actionType === 'APPROVAL' ? t('agentTasks.approvalRequired') : t('agentTasks.informationRequired')}
+                  {action.actionType === 'APPROVAL'
+                    ? t('agentTasks.approvalRequired')
+                    : action.actionType === 'EXTEND_STEPS'
+                      ? t('agentTasks.stepLimitReached')
+                      : t('agentTasks.informationRequired')}
                 </h4>
                 <div className="text-sm text-dn-text-main/90 leading-relaxed prose prose-sm prose-invert max-w-none prose-p:my-0">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>

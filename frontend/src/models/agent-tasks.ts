@@ -9,7 +9,7 @@ export type AgentTaskStatus =
   | 'INTERRUPTED';
 
 export type AgentTaskExecutionMode = 'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY' | 'DRAFT_CONFIRMATION';
-export type AgentTaskActionType = 'APPROVAL' | 'INFORMATION' | 'FEEDBACK';
+export type AgentTaskActionType = 'APPROVAL' | 'INFORMATION' | 'FEEDBACK' | 'EXTEND_STEPS';
 
 export type AgentTaskStepType =
   | 'MESSAGE'
@@ -67,12 +67,6 @@ export interface AgentTask {
   steps?: AgentTaskStep[];
   actions?: AgentTaskAction[];
   attachments?: AgentTaskAttachment[];
-}
-
-export interface AgentTaskSubmitDto {
-  instruction: string;
-  executionMode: AgentTaskExecutionMode;
-  fileIds?: number[];
 }
 
 export interface AgentTaskWsPayload {

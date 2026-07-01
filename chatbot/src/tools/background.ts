@@ -33,5 +33,32 @@ export function buildBackgroundTools(ctx: RequestContext): KindedToolSet {
         },
       }),
     },
+    getTaskResult: {
+      kind: 'READ',
+      tool: tool({
+        description:
+          'Check the status and result of a background task previously started with startBackgroundTask. ' +
+          'Returns the current status, progress and the task final message when completed.',
+        inputSchema: z.object({ taskId: z.string() }),
+        execute: async ({ taskId }) => {
+          const task = agentStore.detail(taskId);
+          if (!task) return { error: `No background task found with id ${taskId}` };
+          const resultMessage = task.steps?.findLast((step) => step.type === 'MESSAGE')?.content;
+          const errorMessage = task.steps?.findLast((step) => step.type === 'ERROR')?.content;
+          const pendingAction = task.actions?.findLast((action) => action.status === 'PENDING_APPROVAL');
+          return {
+            taskId: task.id,
+            status: task.status,
+            progress: task.progress,
+            currentStep: task.currentStep,
+            resultMessage,
+            errorMessage,
+            pendingUserAction: pendingAction
+              ? { actionType: pendingAction.actionType, message: pendingAction.payload }
+              : undefined,
+          };
+        },
+      }),
+    },
   };
 }

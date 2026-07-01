@@ -88,7 +88,13 @@ GROUP BY chat_id
 ON CONFLICT(chat_id) DO NOTHING;
 `;
 
+function ensureColumn(database: DatabaseSync, table: string, column: string, ddl: string): void {
+  const columns = database.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (!columns.some((c) => c.name === column)) database.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+}
+
 export function runMigrations(database: DatabaseSync): void {
   database.exec(SCHEMA);
   database.exec(BACKFILL_CONVERSATION_FROM_MESSAGES);
+  ensureColumn(database, 'agent_task', 'step_budget', 'step_budget INTEGER');
 }

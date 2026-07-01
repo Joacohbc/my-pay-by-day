@@ -21,29 +21,55 @@ function returnedError(result: unknown): result is { error: string } {
   return typeof result === 'object' && result !== null && 'error' in result;
 }
 
-/** Wraps a tool's execute to log its name, input parameters, and result/error with timing. */
+function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
+  return typeof value === 'object' && value !== null && Symbol.asyncIterator in value;
+}
+
+async function* logIterable(name: string, startedAt: number, iterable: AsyncIterable<unknown>): AsyncGenerator<unknown> {
+  let lastChunk: unknown;
+  try {
+    for await (const chunk of iterable) {
+      lastChunk = chunk;
+      yield chunk;
+    }
+  } catch (e) {
+    toolLog.error(`✗ ${name} threw`, { ms: Date.now() - startedAt, error: (e as Error).message });
+    throw e;
+  }
+  const ms = Date.now() - startedAt;
+  toolLog.info(`← ${name}`, { ms });
+  toolLog.debug(`result ${name}`, { result: lastChunk });
+}
+
+async function logPromise(name: string, startedAt: number, result: Promise<unknown>): Promise<unknown> {
+  try {
+    const resolved = await result;
+    const ms = Date.now() - startedAt;
+    if (returnedError(resolved)) {
+      toolLog.warn(`← ${name} returned error`, { ms, error: resolved.error });
+    } else {
+      toolLog.info(`← ${name}`, { ms });
+    }
+    toolLog.debug(`result ${name}`, { result: resolved });
+    return resolved;
+  } catch (e) {
+    toolLog.error(`✗ ${name} threw`, { ms: Date.now() - startedAt, error: (e as Error).message });
+    throw e;
+  }
+}
+
+/** Wraps a tool's execute to log its name, input parameters, and result/error with timing. Supports both plain and async-generator (preliminary results) execute functions. */
 function withLogging(name: string, kinded: KindedToolSet[string]): KindedToolSet[string] {
   const original = kinded.tool.execute;
   if (!original) return kinded;
   const loggedTool: Tool = {
     ...kinded.tool,
-    execute: (async (input: unknown, options: unknown) => {
+    execute: ((input: unknown, options: unknown) => {
       const startedAt = Date.now();
       toolLog.info(`→ ${name}`, { kind: kinded.kind, args: input });
-      try {
-        const result = await (original as (i: unknown, o: unknown) => Promise<unknown>)(input, options);
-        const ms = Date.now() - startedAt;
-        if (returnedError(result)) {
-          toolLog.warn(`← ${name} returned error`, { ms, error: result.error });
-        } else {
-          toolLog.info(`← ${name}`, { ms });
-        }
-        toolLog.debug(`result ${name}`, { result });
-        return result;
-      } catch (e) {
-        toolLog.error(`✗ ${name} threw`, { ms: Date.now() - startedAt, error: (e as Error).message });
-        throw e;
-      }
+      const result = (original as (i: unknown, o: unknown) => unknown)(input, options);
+      if (isAsyncIterable(result)) return logIterable(name, startedAt, result);
+      return logPromise(name, startedAt, Promise.resolve(result));
     }) as Tool['execute'],
   };
   return { kind: kinded.kind, tool: loggedTool };
