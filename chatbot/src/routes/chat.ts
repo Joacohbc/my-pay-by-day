@@ -64,6 +64,51 @@ chatRoute.post('/', async (c) => {
   return result.toUIMessageStreamResponse();
 });
 
+chatRoute.get('/:chatId', (c) => {
+  const chatId = c.req.param('chatId');
+  const history = conversationMemory.load(chatId);
+  const uiMessages = history
+    .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
+    .map((msg, index) => {
+      const parts: any[] = [];
+      if (typeof msg.content === 'string') {
+        if (msg.content.trim()) {
+          parts.push({ type: 'text', text: msg.content });
+        }
+      } else if (Array.isArray(msg.content)) {
+        for (const part of msg.content) {
+          if (part.type === 'text') {
+            if (part.text.trim()) {
+              parts.push({ type: 'text', text: part.text });
+            }
+          } else if (part.type === 'file') {
+            parts.push({
+              type: 'file',
+              mediaType: part.mediaType,
+              filename: part.filename,
+              url: part.data,
+            });
+          } else if (part.type === 'tool-call') {
+            parts.push({
+              type: `tool-${part.toolName}`,
+              toolName: part.toolName,
+              toolCallId: part.toolCallId,
+              state: 'result',
+              input: part.input,
+            });
+          }
+        }
+      }
+      return {
+        id: `${chatId}-${index}`,
+        role: msg.role as 'user' | 'assistant',
+        parts,
+      };
+    })
+    .filter((msg) => msg.parts.length > 0);
+  return c.json(uiMessages);
+});
+
 chatRoute.delete('/:chatId', (c) => {
   conversationMemory.clear(c.req.param('chatId'));
   return c.body(null, 204);

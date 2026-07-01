@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { zustandStorage } from '@/lib/idbStorage';
+import type { FileDto } from '@/models';
 
 export interface ChatMessage {
   id: string;
@@ -11,108 +12,41 @@ export interface ChatMessage {
   audioUrl?: string;
   audioTranscriptionStatus?: 'pending' | 'ready' | 'failed';
   timestamp: string;
+  toolCalls?: { name: string; state: string }[];
 }
-
-type ChatMessageDraft = Omit<ChatMessage, 'id' | 'timestamp'>;
-type ChatMessageUpdate = Partial<ChatMessageDraft>;
-
-import { chatService } from '@/services/chat.service';
-import type { FileDto } from '@/models';
 
 interface ChatStoreState {
   chatId: string;
-  messages: ChatMessage[];
   isClearing: boolean;
   draftFiles: FileDto[];
 
-  addMessage: (msg: ChatMessageDraft) => string;
-  updateMessage: (messageId: string, patch: ChatMessageUpdate) => void;
-  clearChat: () => void;
   newChat: () => void;
-  clearBackendMemory: () => Promise<void>;
-  trimBackendMemory: (textToMatch: string) => Promise<void>;
   setDraftFiles: (files: FileDto[]) => void;
+  setIsClearing: (isClearing: boolean) => void;
 }
 
 export const useChatStore = create<ChatStoreState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       chatId: crypto.randomUUID(),
-      messages: [],
       isClearing: false,
       draftFiles: [],
-
-      addMessage: (msg) => {
-        const nextMessageId = crypto.randomUUID();
-
-        set((state) => ({
-          messages: [
-            ...state.messages,
-            {
-              ...msg,
-              id: nextMessageId,
-              timestamp: new Date().toISOString(),
-            },
-          ],
-        }));
-
-        return nextMessageId;
-      },
-
-      updateMessage: (messageId, patch) =>
-        set((state) => ({
-          messages: state.messages.map((message) =>
-            message.id === messageId
-              ? { ...message, ...patch }
-              : message
-          ),
-        })),
-
-      clearChat: () => set({ messages: [] }),
 
       newChat: () =>
         set({
           chatId: crypto.randomUUID(),
-          messages: [],
           draftFiles: [],
         }),
 
-      clearBackendMemory: async () => {
-        const { chatId } = get();
-        set({ isClearing: true });
-        try {
-          await chatService.clearMemory(chatId);
-          set({ messages: [] });
-        } finally {
-          set({ isClearing: false });
-        }
-      },
-
-      trimBackendMemory: async (textToMatch: string) => {
-        const { chatId, messages } = get();
-        set({ isClearing: true });
-        try {
-          await chatService.trimMemory(chatId, textToMatch);
-          // Also trim locally
-          const matchIndex = [...messages].reverse().findIndex(m => m.role === 'user' && m.content.includes(textToMatch));
-          if (matchIndex !== -1) {
-            const actualIndex = messages.length - 1 - matchIndex;
-            set({ messages: messages.slice(0, actualIndex) });
-          }
-        } finally {
-          set({ isClearing: false });
-        }
-      },
-
-      setDraftFiles: (files: FileDto[]) => set({ draftFiles: files }),
+      setDraftFiles: (files) => set({ draftFiles: files }),
+      setIsClearing: (isClearing) => set({ isClearing }),
     }),
     {
       name: 'mpbd-chat',
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         chatId: state.chatId,
-        messages: state.messages
-      })
-    }
-  )
+      }),
+    },
+  ),
 );

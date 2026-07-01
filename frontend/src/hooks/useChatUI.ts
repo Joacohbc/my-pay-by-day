@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type FileUIPart, type UIMessage } from 'ai';
-import { BASE_URL } from '@/services/api';
+import { api, BASE_URL } from '@/services/api';
 import { chatService } from '@/services/chat.service';
 import { audioService } from '@/services/audio.service';
 import { filesService } from '@/services/files.service';
@@ -48,7 +48,7 @@ function attachmentsOf(message: UIMessage): { url: string; name: string; type: s
   return message.parts
     .filter((part): part is FileUIPart => part.type === 'file' && !(part.mediaType ?? '').startsWith('image/'))
     .map((part) => {
-      // @ts-ignore - FileUIPart might have name or filename depending on version
+      // @ts-expect-error - FileUIPart might have name or filename depending on version
       const name = part.filename || part.name || 'File';
       return {
         url: part.url,
@@ -58,15 +58,64 @@ function attachmentsOf(message: UIMessage): { url: string; name: string; type: s
     });
 }
 
-function toDisplayMessage(message: UIMessage): ChatMessage {
+function toolCallsOf(message: UIMessage, isFinished: boolean): { name: string; state: string }[] {
+  return message.parts
+    .filter(
+      (part): part is UIMessage['parts'][number] & { toolName?: string; state: string } =>
+        part.type.startsWith('tool-') || part.type === 'dynamic-tool',
+    )
+    .map((part) => {
+      const name = part.toolName || part.type.replace(/^tool-/, '');
+      return {
+        name,
+        state: isFinished ? 'result' : part.state,
+      };
+    });
+}
+
+function toDisplayMessage(message: UIMessage, isFinished: boolean): ChatMessage {
   return {
     id: message.id,
     role: message.role === 'assistant' ? 'assistant' : 'user',
     content: textOf(message),
     imageUrls: imageUrlsOf(message),
     attachments: attachmentsOf(message),
+    toolCalls: toolCallsOf(message, isFinished),
     timestamp: new Date().toISOString(),
   };
+}
+
+function groupMessages(msgs: ChatMessage[]): ChatMessage[] {
+  const grouped: ChatMessage[] = [];
+  for (const msg of msgs) {
+    if (grouped.length > 0 && msg.role === 'assistant' && grouped[grouped.length - 1].role === 'assistant') {
+      const prev = grouped[grouped.length - 1];
+      prev.content = [prev.content, msg.content].filter(Boolean).join('\n\n').trim();
+      if (msg.imageUrls) {
+        prev.imageUrls = [...(prev.imageUrls || []), ...msg.imageUrls];
+      }
+      if (msg.attachments) {
+        prev.attachments = [...(prev.attachments || []), ...msg.attachments];
+      }
+      if (msg.toolCalls) {
+        prev.toolCalls = [...(prev.toolCalls || []), ...msg.toolCalls];
+      }
+      if (msg.audioUrl) {
+        prev.audioUrl = msg.audioUrl;
+      }
+      if (msg.audioTranscriptionStatus) {
+        prev.audioTranscriptionStatus = msg.audioTranscriptionStatus;
+      }
+    } else {
+      grouped.push({
+        ...msg,
+        imageUrls: msg.imageUrls ? [...msg.imageUrls] : undefined,
+        attachments: msg.attachments ? [...msg.attachments] : undefined,
+        toolCalls: msg.toolCalls ? [...msg.toolCalls] : undefined,
+      });
+    }
+  }
+  return grouped;
 }
 
 export function useChatUI() {
@@ -85,13 +134,51 @@ export function useChatUI() {
     [chatId],
   );
 
-  const { messages: uiMessages, sendMessage, status, setMessages } = useChat({ id: chatId, transport });
+  const { messages: uiMessages, sendMessage, status, setMessages } = useChat({
+    id: chatId,
+    transport,
+  });
+
+  useEffect(() => {
+    let active = true;
+    const fetchHistory = async () => {
+      try {
+        const response = await api.get<UIMessage[]>(`/ai/chat/${chatId}`);
+        if (active) {
+          setMessages(response);
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+      }
+    };
+    fetchHistory();
+    return () => {
+      active = false;
+    };
+  }, [chatId, setMessages]);
 
   const [input, setInput] = useState('');
   const [isClearing, setIsClearing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const messages = useMemo(() => uiMessages.map(toDisplayMessage), [uiMessages]);
+  const messages = useMemo(() => {
+    const isPendingVal = status === 'submitted' || status === 'streaming';
+    const rawDisplay = uiMessages.map((msg, idx) => {
+      const isLast = idx === uiMessages.length - 1;
+      const hasText = textOf(msg).trim().length > 0;
+      const isFinished = !isPendingVal || !isLast || hasText;
+      return toDisplayMessage(msg, isFinished);
+    });
+
+    const filtered = rawDisplay.filter(
+      (msg) =>
+        msg.content.trim().length > 0 ||
+        (msg.imageUrls && msg.imageUrls.length > 0) ||
+        (msg.attachments && msg.attachments.length > 0) ||
+        (msg.toolCalls && msg.toolCalls.length > 0),
+    );
+    return groupMessages(filtered);
+  }, [uiMessages, status]);
   const isPending = status === 'submitted' || status === 'streaming';
 
   const scrollToBottom = useCallback(() => {

@@ -15,6 +15,25 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message, onEdit }: ChatMessageProps) {
   const { t } = useTranslation();
+  const toolFriendlyNames: Record<string, string> = {
+    listCategories: t('chat.tools.listCategories'),
+    listTags: t('chat.tools.listTags'),
+    listTagGroups: t('chat.tools.listTagGroups'),
+    listNodes: t('chat.tools.listNodes'),
+    searchEvents: t('chat.tools.searchEvents'),
+    getEvent: t('chat.tools.getEvent'),
+    listDrafts: t('chat.tools.listDrafts'),
+    getDraft: t('chat.tools.getDraft'),
+    createDraft: t('chat.tools.createDraft'),
+    updateDraft: t('chat.tools.updateDraft'),
+    deleteDraft: t('chat.tools.deleteDraft'),
+    confirmDraft: t('chat.tools.confirmDraft'),
+    calculate: t('chat.tools.calculate'),
+    getCurrentDateTime: t('chat.tools.getCurrentDateTime'),
+    saveMemory: t('chat.tools.saveMemory'),
+    recallMemory: t('chat.tools.recallMemory'),
+    forgetMemory: t('chat.tools.forgetMemory'),
+  };
   const isUser = message.role === 'user';
   const audioMessageUrl = typeof message.audioUrl === 'string' && message.audioUrl.length > 0
     ? message.audioUrl
@@ -126,32 +145,59 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
                   )}
                 </div>
               ) : (
-                <div className="prose prose-sm prose-invert max-w-none prose-table:my-0 prose-p:leading-relaxed selection:bg-dn-primary/20">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      table: ({ ...props }) => (
-                        <div className="overflow-x-auto my-8 -mx-1 px-1">
-                          <table {...props} className="min-w-full border-collapse border border-dn-border/20 rounded-xl overflow-hidden shadow-sm bg-dn-surface-low/20" />
-                        </div>
-                      ),
-                      thead: ({ ...props }) => <thead {...props} className="bg-dn-surface-low/50" />,
-                      th: ({ ...props }) => (
-                        <th
-                          {...props}
-                          className="px-5 py-3.5 text-left text-[11px] font-bold text-dn-text-main/50 uppercase tracking-widest border-b border-dn-border/30 whitespace-nowrap"
-                        />
-                      ),
-                      td: ({ ...props }) => (
-                        <td
-                          {...props}
-                          className="px-5 py-3.5 text-sm text-dn-text-main/80 border-b border-dn-border/10 whitespace-nowrap"
-                        />
-                      ),
-                    }}
-                  >
-                    {message.content}
-                  </ReactMarkdown>
+                <div className="flex flex-col gap-3">
+                  {message.toolCalls && message.toolCalls.length > 0 && (
+                    <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-dn-surface-low/30 border border-white/5 max-w-md">
+                      <span className="text-[10px] uppercase tracking-[0.15em] text-dn-text-muted/60 font-black mb-1 block">
+                        {t('chat.tools.steps')}
+                      </span>
+                      <div className="flex flex-col gap-2">
+                        {message.toolCalls.map((tc, idx) => {
+                          const label = toolFriendlyNames[tc.name] || `${t('chat.tools.running')} (${tc.name})`;
+                          const isDone = tc.state === 'result';
+                          return (
+                            <div key={idx} className="flex items-center gap-2 text-xs text-dn-text-main/70">
+                              <Icon
+                                name={isDone ? 'check_circle' : 'pending'}
+                                className={`text-sm shrink-0 ${isDone ? 'text-green-500/80' : 'text-dn-primary animate-spin'}`}
+                              />
+                              <span className={isDone ? 'opacity-50' : 'font-medium'}>{label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {hasTextContent && (
+                    <div className="prose prose-sm prose-invert max-w-none prose-table:my-0 prose-p:leading-relaxed selection:bg-dn-primary/20">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          table: ({ ...props }) => (
+                            <div className="overflow-x-auto my-8 -mx-1 px-1">
+                              <table {...props} className="min-w-full border-collapse border border-dn-border/20 rounded-xl overflow-hidden shadow-sm bg-dn-surface-low/20" />
+                            </div>
+                          ),
+                          thead: ({ ...props }) => <thead {...props} className="bg-dn-surface-low/50" />,
+                          th: ({ ...props }) => (
+                            <th
+                              {...props}
+                              className="px-5 py-3.5 text-left text-[11px] font-bold text-dn-text-main/50 uppercase tracking-widest border-b border-dn-border/30 whitespace-nowrap"
+                            />
+                          ),
+                          td: ({ ...props }) => (
+                            <td
+                              {...props}
+                              className="px-5 py-3.5 text-sm text-dn-text-main/80 border-b border-dn-border/10 whitespace-nowrap"
+                            />
+                          ),
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
