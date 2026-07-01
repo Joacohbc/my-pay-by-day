@@ -80,6 +80,8 @@ const en = {
     confirmClearMemory: 'Are you sure you want to clear the AI\'s memory? The conversation history will be lost.',
     user: 'You',
     assistant: 'Assistant',
+    sendNow: 'Send Now',
+    stop: 'Stop',
     editMessage: 'Edit message',
     confirmEditMessage: 'Do you want to edit this message?',
     copy: 'Copy',

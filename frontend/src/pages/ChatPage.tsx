@@ -23,6 +23,9 @@ export function ChatPage() {
     draftFiles,
     imagePreviewUrls,
     messagesEndRef,
+    countdown,
+    triggerSendNow,
+    stop,
     handleSend,
     handleNewChat,
     handleClearMemory,
@@ -149,6 +152,9 @@ export function ChatPage() {
             onAddFile={handleAddFile}
             onRemoveFile={handleRemoveFile}
             isPending={isPending}
+            countdown={countdown}
+            onSendNow={triggerSendNow}
+            onStop={stop}
           />
         </>
       ) : (

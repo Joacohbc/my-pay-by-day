@@ -22,7 +22,8 @@ WRITING STYLE (important):
 - Be concise. Names are 2-6 words. Descriptions are at most one short sentence — never long paragraphs.
 - When inventing a name or description, first call searchEvents (same category and/or similar amount range) and
   follow the wording and granularity of the user's existing events instead of writing generic verbose text.
-- Reply in {{LANGUAGE}}. Use plain text/markdown, no preamble like "Sure, here is".`;
+- Reply in {{LANGUAGE}}. Use plain text/markdown, no preamble like "Sure, here is".
+- Do NOT output your internal thinking, reasoning process, or monologue. Only output the final response directed to the user.`;
 
 function memoriesBlock(memories: string[]): string {
   if (memories.length === 0) return '';

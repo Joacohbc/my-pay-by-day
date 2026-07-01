@@ -17,6 +17,9 @@ interface ChatInputProps {
   onAddFile?: (file: FileDto) => void;
   onRemoveFile?: (fileId: number) => void;
   placeholder?: string;
+  countdown?: number | null;
+  onSendNow?: () => void;
+  onStop?: () => void;
 }
 
 export function ChatInput({
@@ -29,6 +32,9 @@ export function ChatInput({
   onAddFile,
   onRemoveFile,
   placeholder,
+  countdown = null,
+  onSendNow,
+  onStop,
 }: ChatInputProps) {
   const { t } = useTranslation();
   const { error: showError } = useAlert();
@@ -56,7 +62,7 @@ export function ChatInput({
 
   const isRecording = recordingState === 'recording';
   const isPreparingAudio = recordingState === 'preparing';
-  const isBusy = isPending || isPreparingAudio;
+  const isBusy = isPreparingAudio;
 
   const micTitle = isRecording
     ? t('chat.stopRecording')
@@ -70,7 +76,7 @@ export function ChatInput({
       ? 'text-dn-primary/40'
       : 'text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10';
 
-  const canSend = (inputContent.trim() || draftFiles.length > 0) && !isBusy && !isRecording;
+  const canSend = (inputContent.trim() || draftFiles.length > 0) && !isBusy && !isRecording && !isPending;
 
   return (
     <div className="px-3 pb-3 pt-2 mt-auto">
@@ -151,18 +157,36 @@ export function ChatInput({
             )}
           </div>
 
-          {/* Right: send */}
-          <button
-            type="submit"
-            disabled={!canSend}
-            className={`w-9 h-9 flex items-center justify-center rounded-xl shrink-0 transition-all ${
-              canSend
-                ? 'bg-dn-primary text-white hover:bg-dn-primary/80 shadow-sm'
-                : 'bg-dn-surface text-dn-text-main/20'
-            }`}
-          >
-            <Icon name="send" className="text-[18px]" />
-          </button>
+          {/* Right: Action button (Stop / Send Now) and Send button */}
+          <div className="flex items-center gap-2">
+            {((isPending && onStop) || (countdown !== null && onSendNow)) && (
+              <button
+                type="button"
+                onClick={isPending ? onStop : onSendNow}
+                className={`w-9 h-9 flex items-center justify-center rounded-xl shrink-0 transition-all shadow-sm ${
+                  isPending
+                    ? 'bg-dn-error text-white hover:bg-dn-error/80'
+                    : 'bg-dn-primary/20 text-dn-primary hover:bg-dn-primary/30 border border-dn-primary/30 animate-pulse'
+                }`}
+                aria-label={isPending ? t('chat.stop') : t('chat.sendNow')}
+                title={isPending ? t('chat.stop') : `${t('chat.sendNow')} (${countdown}s)`}
+              >
+                <Icon name={isPending ? 'stop' : 'bolt'} className="text-[20px]" />
+              </button>
+            )}
+            
+            <button
+              type="submit"
+              disabled={!canSend}
+              className={`w-9 h-9 flex items-center justify-center rounded-xl shrink-0 transition-all ${
+                canSend
+                  ? 'bg-dn-primary text-white hover:bg-dn-primary/80 shadow-sm'
+                  : 'bg-dn-surface text-dn-text-main/20'
+              }`}
+            >
+              <Icon name="send" className="text-[18px]" />
+            </button>
+          </div>
         </div>
       </form>
     </div>

@@ -29,19 +29,23 @@ chatRoute.post('/', async (c) => {
   if (!chatId) return c.json({ error: 'chatId is required' }, 400);
 
   const incoming = body.messages ?? [];
-  const lastUser = [...incoming].reverse().find((m) => m.role === 'user');
-  if (!lastUser) return c.json({ error: 'a user message is required' }, 400);
+  const userMessages = await convertToModelMessages(incoming.filter((m) => m.role === 'user'));
+  if (userMessages.length === 0) return c.json({ error: 'a user message is required' }, 400);
 
-  const userText = (lastUser.parts ?? [])
-    .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
-    .map((p) => p.text)
+  const userText = userMessages
+    .map((m) => {
+      if (typeof m.content === 'string') return m.content;
+      if (Array.isArray(m.content)) {
+        return m.content.map((part) => (part.type === 'text' ? part.text : '')).join('');
+      }
+      return '';
+    })
     .join(' ');
   chatLog.info('chat request', { chatId, tz: ctx.timezone, lang: ctx.lang, user: userText });
 
   await compactIfNeeded(chatId, ctx.lang);
 
   const history = conversationMemory.load(chatId);
-  const userMessages = await convertToModelMessages([lastUser]);
   conversationMemory.append(chatId, userMessages);
 
   const result = streamText({
@@ -55,8 +59,9 @@ chatRoute.post('/', async (c) => {
     messages: [...history, ...userMessages],
     tools: toolsForMode(buildAllTools(ctx, buildBackgroundTools(ctx)), 'AUTONOMOUS'),
     stopWhen: stepCountIs(config.agent.maxSteps),
-    onFinish: ({ response, text, steps }) => {
-      conversationMemory.append(chatId, response.messages);
+    onFinish: ({ text, steps }) => {
+      const newMessages = steps.flatMap((s) => s.response.messages);
+      conversationMemory.append(chatId, newMessages);
       chatLog.info('chat finished', { chatId, steps: steps.length, reply: text });
     },
   });

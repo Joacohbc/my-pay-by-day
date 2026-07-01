@@ -79,6 +79,8 @@ const es = {
     confirmClearMemory: '¿Estás seguro de que deseas borrar la memoria del IA? El historial de la conversación se perderá.',
     user: 'Tú',
     assistant: 'Asistente',
+    sendNow: 'Enviar ya',
+    stop: 'Parar',
     editMessage: 'Editar mensaje',
     confirmEditMessage: '¿Deseas editar este mensaje?',
     copy: 'Copiar',

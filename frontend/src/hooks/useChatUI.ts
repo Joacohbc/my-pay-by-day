@@ -88,9 +88,15 @@ function toDisplayMessage(message: UIMessage, isFinished: boolean): ChatMessage 
 function groupMessages(msgs: ChatMessage[]): ChatMessage[] {
   const grouped: ChatMessage[] = [];
   for (const msg of msgs) {
-    if (grouped.length > 0 && msg.role === 'assistant' && grouped[grouped.length - 1].role === 'assistant') {
+    if (grouped.length > 0 && grouped[grouped.length - 1].role === msg.role) {
       const prev = grouped[grouped.length - 1];
-      prev.content = [prev.content, msg.content].filter(Boolean).join('\n\n').trim();
+      if (msg.role === 'assistant') {
+        if (msg.content.trim()) {
+          prev.content = msg.content;
+        }
+      } else {
+        prev.content = [prev.content, msg.content].filter(Boolean).join('\n').trim();
+      }
       if (msg.imageUrls) {
         prev.imageUrls = [...(prev.imageUrls || []), ...msg.imageUrls];
       }
@@ -126,18 +132,54 @@ export function useChatUI() {
     () =>
       new DefaultChatTransport({
         api: `${BASE_URL}/ai/chat`,
-        prepareSendMessagesRequest: ({ messages }) => ({
-          headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language },
-          body: { chatId, messages: messages.slice(-1) },
-        }),
+        prepareSendMessagesRequest: ({ messages }) => {
+          const lastAssistantIndex = [...messages].reverse().findIndex((m) => m.role === 'assistant');
+          const newMessages = lastAssistantIndex === -1 
+            ? messages 
+            : messages.slice(messages.length - lastAssistantIndex);
+          return {
+            headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language },
+            body: { chatId, messages: newMessages },
+          };
+        },
       }),
     [chatId],
   );
 
-  const { messages: uiMessages, sendMessage, status, setMessages } = useChat({
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const { messages: uiMessages, status, setMessages, sendMessage, stop } = useChat({
     id: chatId,
     transport,
   });
+
+  const triggerSendNow = useCallback(() => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    setCountdown(null);
+    sendMessage();
+  }, [sendMessage]);
+
+  useEffect(() => {
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    setTimeout(() => {
+      setCountdown(null);
+    }, 0);
+  }, [chatId]);
 
   useEffect(() => {
     let active = true;
@@ -200,21 +242,76 @@ export function useChatUI() {
     setDraftFiles([]);
 
     const fileParts = await Promise.all(currentFiles.map(toFilePart));
-    if (userText) {
-      await sendMessage({ text: userText, files: fileParts });
-    } else {
-      await sendMessage({ files: fileParts });
+    
+    const newMessage: UIMessage = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      role: 'user',
+      parts: [
+        ...(userText ? [{ type: 'text' as const, text: userText }] : []),
+        ...fileParts,
+      ],
+    };
+
+    setMessages((prev) => [...prev, newMessage]);
+
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
     }
-  }, [input, draftFiles, setDraftFiles, sendMessage]);
+    
+    let timeLeft = 5;
+    setCountdown(timeLeft);
+
+    countdownIntervalRef.current = setInterval(() => {
+      timeLeft -= 1;
+      if (timeLeft <= 0) {
+        if (countdownIntervalRef.current) {
+          clearInterval(countdownIntervalRef.current);
+          countdownIntervalRef.current = null;
+        }
+        setCountdown(null);
+        sendMessage();
+      } else {
+        setCountdown(timeLeft);
+      }
+    }, 1000);
+  }, [input, draftFiles, setDraftFiles, setMessages, sendMessage]);
 
   const handleAudioRecorded = useCallback(
     async (audioBlob: Blob) => {
       const { transcription } = await audioService.transcribeRecordedAudio(audioBlob);
       const text = transcription.trim();
       if (!text) throw new Error('transcription_failed');
-      await sendMessage({ text });
+      
+      const newMessage: UIMessage = {
+        id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        role: 'user',
+        parts: [{ type: 'text', text }],
+      };
+
+      setMessages((prev) => [...prev, newMessage]);
+
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+
+      let timeLeft = 5;
+      setCountdown(timeLeft);
+
+      countdownIntervalRef.current = setInterval(() => {
+        timeLeft -= 1;
+        if (timeLeft <= 0) {
+          if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+          }
+          setCountdown(null);
+          sendMessage();
+        } else {
+          setCountdown(timeLeft);
+        }
+      }, 1000);
     },
-    [sendMessage],
+    [setMessages, sendMessage],
   );
 
   const handleNewChat = useCallback(() => {
@@ -258,6 +355,9 @@ export function useChatUI() {
     draftFiles,
     imagePreviewUrls,
     messagesEndRef,
+    countdown,
+    triggerSendNow,
+    stop,
     handleSend,
     handleNewChat,
     handleClearMemory,

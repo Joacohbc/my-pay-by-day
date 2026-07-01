@@ -35,6 +35,9 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
     forgetMemory: t('chat.tools.forgetMemory'),
   };
   const isUser = message.role === 'user';
+  const allToolsDone = message.toolCalls?.every((tc) => tc.state === 'result') ?? true;
+  const [isCollapsedByUser, setIsCollapsedByUser] = useState<boolean | null>(null);
+  const isStepsExpanded = isCollapsedByUser === null ? !allToolsDone : !isCollapsedByUser;
   const audioMessageUrl = typeof message.audioUrl === 'string' && message.audioUrl.length > 0
     ? message.audioUrl
     : null;
@@ -147,25 +150,48 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
               ) : (
                 <div className="flex flex-col gap-3">
                   {message.toolCalls && message.toolCalls.length > 0 && (
-                    <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-dn-surface-low/30 border border-white/5 max-w-md">
-                      <span className="text-[10px] uppercase tracking-[0.15em] text-dn-text-muted/60 font-black mb-1 block">
-                        {t('chat.tools.steps')}
-                      </span>
-                      <div className="flex flex-col gap-2">
-                        {message.toolCalls.map((tc, idx) => {
-                          const label = toolFriendlyNames[tc.name] || `${t('chat.tools.running')} (${tc.name})`;
-                          const isDone = tc.state === 'result';
-                          return (
-                            <div key={idx} className="flex items-center gap-2 text-xs text-dn-text-main/70">
-                              <Icon
-                                name={isDone ? 'check_circle' : 'pending'}
-                                className={`text-sm shrink-0 ${isDone ? 'text-green-500/80' : 'text-dn-primary animate-spin'}`}
-                              />
-                              <span className={isDone ? 'opacity-50' : 'font-medium'}>{label}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                    <div className="flex flex-col rounded-xl bg-dn-surface-low/30 border border-white/5 max-w-md overflow-hidden transition-all">
+                      {/* Accordion Header */}
+                      <button
+                        type="button"
+                        onClick={() => setIsCollapsedByUser(isStepsExpanded)}
+                        className="flex items-center justify-between w-full p-3 hover:bg-white/5 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon
+                            name={allToolsDone ? 'check_circle' : 'pending'}
+                            className={`text-sm shrink-0 ${allToolsDone ? 'text-green-500/80' : 'text-dn-primary animate-spin'}`}
+                          />
+                          <span className="text-[10px] uppercase tracking-[0.15em] text-dn-text-muted/70 font-black leading-none">
+                            {t('chat.tools.steps')} ({message.toolCalls.length})
+                          </span>
+                        </div>
+                        <Icon
+                          name="keyboard_arrow_down"
+                          className={`text-base text-dn-text-muted transition-transform duration-200 ${
+                            isStepsExpanded ? 'rotate-180' : ''
+                          }`}
+                        />
+                      </button>
+
+                      {/* Accordion Content */}
+                      {isStepsExpanded && (
+                        <div className="flex flex-col gap-2 p-3 pt-0 border-t border-white/5">
+                          {message.toolCalls.map((tc, idx) => {
+                            const label = toolFriendlyNames[tc.name] || `${t('chat.tools.running')} (${tc.name})`;
+                            const isDone = tc.state === 'result';
+                            return (
+                              <div key={idx} className="flex items-center gap-2 text-xs text-dn-text-main/70 first:mt-2">
+                                <Icon
+                                  name={isDone ? 'check_circle' : 'pending'}
+                                  className={`text-[12px] shrink-0 ${isDone ? 'text-green-500/80' : 'text-dn-primary animate-spin'}`}
+                                />
+                                <span className={isDone ? 'opacity-50' : 'font-medium'}>{label}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
 
