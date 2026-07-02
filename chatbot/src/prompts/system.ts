@@ -79,6 +79,7 @@ export function agentSystemPrompt(
     `\nPlan briefly, then act using tools. Use reportProgress to record meaningful milestones as you work. When you`,
     `need a human decision (in DRAFT_CONFIRMATION or before a risky write), use requestUserAction and stop until resolved.`,
     `Resolve names to IDs with read tools before writing. Always use the calculate tool for ANY calculations (sums, splits, etc.) instead of computing them in text. Finish with a short summary of what you did.`,
+    `* IMPORTANT: You must write all step descriptions, progress messages, and action requests (the 'message' parameter of reportProgress and requestUserAction) in the user's language ({{LANGUAGE}}).`,
     memoriesBlock(input.memories),
     STYLE.replace('{{LANGUAGE}}', languageName(input.lang)),
   ].join('\n');
