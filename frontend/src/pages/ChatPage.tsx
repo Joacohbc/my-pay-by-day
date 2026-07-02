@@ -1,22 +1,17 @@
-import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useChatUI } from '@/hooks/useChatUI';
-import { useAgentTasks } from '@/hooks/useAgentTasks';
 import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { ChatImagePreview } from '@/components/chat/ChatImagePreview';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
 import { ChatList } from '@/components/chat/ChatList';
-import { TasksPanel } from '@/components/agent-tasks/TasksPanel';
 import { useChatStore } from '@/store/chatStore';
 
 export function ChatPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const { showChatList, openChatList } = useChatStore();
-  const { data: tasks } = useAgentTasks();
   const {
     messages,
     input,
@@ -40,14 +35,7 @@ export function ChatPage() {
     t,
   } = useChatUI();
 
-  const showTasks = searchParams.get('panel') === 'tasks';
-  const openTasks = () => setSearchParams({ panel: 'tasks' });
-  const closeTasks = () => setSearchParams({});
-
   const isChatListVisible = showChatList;
-  const activeTasksCount =
-    tasks?.filter((task) => task.status === 'RUNNING' || task.actions?.some((a) => a.status === 'PENDING_APPROVAL'))
-      .length ?? 0;
 
   const lastMessage = messages.at(-1);
   const showContinueCard = !isPending && lastMessage?.role === 'assistant' && lastMessage.stoppedByStepLimit;
@@ -87,19 +75,7 @@ export function ChatPage() {
                 <Icon name="delete_sweep" className="text-[18px]" />
               </button>
             )}
-            <button
-              onClick={showTasks ? closeTasks : openTasks}
-              className={`relative shrink-0 w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
-                showTasks ? 'bg-dn-primary text-white' : 'bg-dn-surface-low text-dn-text-main hover:bg-dn-surface'
-              }`}
-              aria-label={t('chat.tasks')}
-              title={t('chat.tasks')}
-            >
-              <Icon name="smart_toy" className="text-[18px]" />
-              {activeTasksCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-dn-primary rounded-full border-2 border-dn-bg" />
-              )}
-            </button>
+
           </div>
         }
       />
@@ -182,22 +158,7 @@ export function ChatPage() {
           )}
         </div>
 
-        {/* Sidebar Tasks Panel (Right Side) */}
-        {showTasks && (
-          <div className="w-full md:w-80 border-l border-white/5 bg-dn-surface-low/30 backdrop-blur-md flex flex-col shrink-0 overflow-hidden absolute md:relative inset-0 md:inset-auto z-40 animate-in slide-in-from-right duration-250">
-            <div className="flex items-center justify-between p-4 border-b border-white/5 shrink-0 bg-dn-surface-low/40">
-              <span className="text-xs font-bold uppercase tracking-wider text-dn-text-muted">{t('chat.tasks')}</span>
-              <button 
-                onClick={closeTasks} 
-                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/5 text-dn-text-muted hover:text-dn-text-main transition-colors"
-                title={t('common.close', 'Close')}
-              >
-                <Icon name="close" className="text-sm" />
-              </button>
-            </div>
-            <TasksPanel />
-          </div>
-        )}
+
       </div>
     </div>
   );
