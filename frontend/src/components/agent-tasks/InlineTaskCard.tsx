@@ -45,7 +45,7 @@ export function InlineTaskCard({ taskId }: InlineTaskCardProps) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-dn-text-main line-clamp-1">
-            {truncate(task.userInstruction, 60)}
+            {task.title || truncate(task.userInstruction, 60)}
           </p>
           <Badge size="sm" className={STATUS_COLORS[task.status]}>
             {t(`agentTasks.statuses.${task.status}`)}
@@ -55,7 +55,7 @@ export function InlineTaskCard({ taskId }: InlineTaskCardProps) {
 
       {task.currentStep && task.status === 'RUNNING' && (
         <div className="text-xs text-dn-text-muted bg-dn-surface-low p-2 rounded-md">
-          {task.progress}% - {task.currentStep}
+          {task.progress}% - {task.currentStep === 'Done' ? t('agentTasks.done', 'Completed') : task.currentStep === 'Resuming' ? t('agentTasks.resuming', 'Resuming...') : task.currentStep === 'Analyzing the request' ? t('agentTasks.analyzing', 'Analyzing request...') : task.currentStep}
         </div>
       )}
 

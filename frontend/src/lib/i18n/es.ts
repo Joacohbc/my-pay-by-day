@@ -776,6 +776,9 @@ const es = {
     noSteps: 'Sin pasos aún.',
     stepLimitReached: 'Límite de pasos alcanzado',
     openTask: 'Ver tarea',
+    status: 'Estado',
+    created: 'Creada',
+    updated: 'Actualizada',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

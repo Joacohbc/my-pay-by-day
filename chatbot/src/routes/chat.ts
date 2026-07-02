@@ -81,7 +81,6 @@ chatRoute.post('/', async (c) => {
       CHAT_EXECUTION_MODE,
     ),
     stopWhen: stepCountIs(config.agent.maxSteps),
-    abortSignal: c.req.raw.signal,
     onFinish: ({ text, steps }) => {
       const newMessages = steps.flatMap((s) => s.response.messages);
       conversationMemory.append(chatId, newMessages);

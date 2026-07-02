@@ -148,6 +148,7 @@ export const conversationMemory = {
         GROUP BY chat_id
         HAVING sequence = MIN(sequence)
       ) p ON p.chat_id = c.chat_id
+      WHERE c.chat_id NOT IN (SELECT id FROM agent_task)
       ORDER BY m.last_at DESC
     `;
     return db().prepare(query).all() as unknown as ChatSummary[];

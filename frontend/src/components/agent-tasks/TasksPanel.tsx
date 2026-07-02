@@ -45,7 +45,7 @@ export function TasksPanel() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-dn-text-main line-clamp-1">
-                      {task.userInstruction ? truncate(task.userInstruction, 50) : t('agentTasks.title')}
+                      {task.title || (task.userInstruction ? truncate(task.userInstruction, 50) : t('agentTasks.title'))}
                     </p>
                     <div className="flex gap-2 items-center mt-1">
                       <Badge size="sm" className={STATUS_COLORS[task.status]}>
@@ -68,7 +68,7 @@ export function TasksPanel() {
 
               {task.currentStep && task.status === 'RUNNING' && (
                 <div className="mt-2 text-xs text-dn-text-muted bg-dn-surface-low p-2 rounded-md">
-                  {task.progress}% - {task.currentStep || t('agentTasks.initializing')}
+                  {task.progress}% - {task.currentStep === 'Done' ? t('agentTasks.done', 'Completed') : task.currentStep === 'Resuming' ? t('agentTasks.resuming', 'Resuming...') : task.currentStep === 'Analyzing the request' ? t('agentTasks.analyzing', 'Analyzing request...') : task.currentStep}
                 </div>
               )}
             </Card>

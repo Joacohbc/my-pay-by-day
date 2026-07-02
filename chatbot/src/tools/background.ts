@@ -17,13 +17,19 @@ export function buildBackgroundTools(ctx: RequestContext): KindedToolSet {
           'Use this when the user asks for something that needs many steps or will take a while (e.g. "categorize all my uncategorized events"). ' +
           'Returns the background task id the user can follow.',
         inputSchema: z.object({
+          title: z
+            .string()
+            .describe(
+              'A very brief (3-5 words) friendly title/summary of the task in the user\'s language (e.g., "Categorizar transacciones", "Generar informe").'
+            ),
           instruction: z.string().describe('A clear, self-contained instruction for the background agent.'),
           executionMode: z
             .enum(['AUTONOMOUS', 'DRAFT_ONLY', 'READ_ONLY', 'DRAFT_CONFIRMATION'])
             .default('AUTONOMOUS'),
         }),
-        execute: async ({ instruction, executionMode }) => {
+        execute: async ({ title, instruction, executionMode }) => {
           const task = agentStore.create({
+            title,
             instruction,
             executionMode,
             lang: ctx.lang,

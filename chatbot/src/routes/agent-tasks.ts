@@ -101,22 +101,13 @@ agentTasksRoute.post('/:id/resume', (c) => {
   const id = c.req.param('id');
   if (!agentStore.rawTask(id)) return c.json({ error: 'not found' }, 404);
   conversationMemory.append(id, [{ role: 'user', content: 'Continue the task where you left off.' }]);
+  agentStore.setStatus(id, 'PENDING');
   submitTask(id);
   return c.json(agentStore.detail(id), 202);
 });
 
 agentTasksRoute.delete('/:id', (c) => {
-  const id = c.req.param('id');
-  const task = agentStore.rawTask(id);
-  if (!task) {
-    return c.json({ error: 'Task not found' }, 404);
-  }
-  const mapped = agentStore.detail(id);
-  if (mapped?.isAssociatedWithChat) {
-    return c.json({ error: 'Cannot delete a task that is associated with a chat session.' }, 400);
-  }
-  agentStore.delete(id);
-  return c.json({ success: true });
+  return c.json({ error: 'Tasks cannot be deleted directly. They are removed automatically when their associated chat session is deleted.' }, 400);
 });
 
 agentTasksRoute.patch('/:id/mode', async (c) => {
@@ -141,6 +132,7 @@ agentTasksRoute.post('/:id/message', async (c) => {
   await attachFiles(ctx, id, body.fileIds);
   recordStep(id, { type: 'USER', content: body.message });
   conversationMemory.append(id, [{ role: 'user', content: body.message }]);
+  agentStore.setStatus(id, 'PENDING');
   submitTask(id);
   return c.json(agentStore.detail(id), 202);
 });

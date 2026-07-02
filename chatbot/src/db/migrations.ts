@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS agent_task (
   lang             TEXT,
   timezone         TEXT,
   cancel_requested INTEGER NOT NULL DEFAULT 0,
+  title            TEXT,
   created_at       TEXT    NOT NULL,
   updated_at       TEXT    NOT NULL
 );

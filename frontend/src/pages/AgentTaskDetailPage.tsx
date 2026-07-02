@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -8,7 +8,6 @@ import {
   useAgentTaskSocket,
   useCancelAgentTask,
   usePauseAgentTask,
-  useDeleteAgentTask,
   useResumeAgentTask,
   useApproveAction,
   useRejectAction,
@@ -55,14 +54,12 @@ function StepIcon({ done, error }: { done: boolean; error?: boolean }) {
 export function AgentTaskDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   const { data: task, isLoading, error } = useAgentTask(id || '');
   useAgentTaskSocket(id || null);
 
   const cancelTask = useCancelAgentTask();
   const pauseTask = usePauseAgentTask();
-  const deleteTask = useDeleteAgentTask();
   const resumeTask = useResumeAgentTask();
   const approveAction = useApproveAction();
   const rejectAction = useRejectAction();
@@ -72,12 +69,12 @@ export function AgentTaskDetailPage() {
   const [feedbacks, setFeedbacks] = useState<Record<number, string>>({});
   const [reply, setReply] = useState('');
   const [draftFiles, setDraftFiles] = useState<FileDto[]>([]);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [isPlanCollapsed, setIsPlanCollapsed] = useState(false);
   const [isActivityCollapsed, setIsActivityCollapsed] = useState(false);
   const [isErrorsCollapsed, setIsErrorsCollapsed] = useState(false);
+  const [isStatusCollapsed, setIsStatusCollapsed] = useState(true);
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
@@ -85,7 +82,6 @@ export function AgentTaskDetailPage() {
 
   const isRunning = task.status === 'RUNNING' || task.status === 'RETRYING';
   const isPaused = task.status === 'PAUSED';
-  const isDone = task.status === 'COMPLETED' || task.status === 'FAILED' || task.status === 'CANCELLED';
   const hasPendingActions = task.actions?.some((a) => a.status === 'PENDING_APPROVAL');
 
   const steps = task.steps ?? [];
@@ -112,15 +108,7 @@ export function AgentTaskDetailPage() {
     return step;
   };
 
-  const handleDelete = async () => {
-    if (!id) return;
-    try {
-      await deleteTask.mutateAsync(id);
-      navigate(Routes.AGENT_TASKS);
-    } catch (err) {
-      console.error('Delete failed:', err);
-    }
-  };
+
 
   const handleCancel = async () => {
     if (!id) return;
@@ -224,16 +212,6 @@ export function AgentTaskDetailPage() {
   return (
     <div className="space-y-4 pb-20">
       <ConfirmModal
-        open={confirmDelete}
-        onClose={() => setConfirmDelete(false)}
-        onConfirm={handleDelete}
-        title={t('agentTasks.delete')}
-        message={t('common.deleteConfirm')}
-        confirmLabel={t('common.delete')}
-        loading={deleteTask.isPending}
-      />
-
-      <ConfirmModal
         open={confirmCancel}
         onClose={() => setConfirmCancel(false)}
         onConfirm={handleCancel}
@@ -248,25 +226,12 @@ export function AgentTaskDetailPage() {
         back={Routes.AGENT_TASKS}
         action={
           <div className="flex items-center gap-2">
-            {/* Final state: delete only */}
-            {isDone && !task.isAssociatedWithChat && (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="text-dn-error border-dn-error"
-                onClick={() => setConfirmDelete(true)}
-                loading={deleteTask.isPending}
-              >
-                <Icon name="delete" className="text-sm" />
-                {t('common.delete')}
-              </Button>
-            )}
 
             {/* Paused / Interrupted: resume + cancel */}
             {(isPaused || task.status === 'INTERRUPTED') && (
               <>
                 <Button
-                  variant="secondary"
+                  variant="primary"
                   size="sm"
                   loading={resumeTask.isPending}
                   onClick={handleResume}
@@ -276,9 +241,8 @@ export function AgentTaskDetailPage() {
                   {t('agentTasks.resume')}
                 </Button>
                 <Button
-                  variant="secondary"
+                  variant="danger"
                   size="sm"
-                  className="text-dn-error border-dn-error"
                   loading={cancelTask.isPending}
                   onClick={() => setConfirmCancel(true)}
                 >
@@ -301,9 +265,8 @@ export function AgentTaskDetailPage() {
                   {t('common.pause')}
                 </Button>
                 <Button
-                  variant="secondary"
+                  variant="danger"
                   size="sm"
-                  className="text-dn-error border-dn-error"
                   loading={cancelTask.isPending}
                   onClick={() => setConfirmCancel(true)}
                 >
@@ -316,9 +279,8 @@ export function AgentTaskDetailPage() {
             {/* Pending: cancel only */}
             {task.status === 'PENDING' && (
               <Button
-                variant="secondary"
+                variant="danger"
                 size="sm"
-                className="text-dn-error border-dn-error"
                 loading={cancelTask.isPending}
                 onClick={() => setConfirmCancel(true)}
               >
@@ -335,11 +297,11 @@ export function AgentTaskDetailPage() {
         {task.status !== 'PENDING' && (
           <div className={`flex items-center gap-3 p-3 rounded-xl border transition-colors duration-300 ${
             task.status === 'COMPLETED'
-              ? 'bg-green-500/10 border-green-500/30 text-green-500'
+              ? 'bg-dn-success/10 border-dn-success/30 text-dn-success'
               : task.status === 'FAILED' || task.status === 'CANCELLED' || task.status === 'INTERRUPTED'
-                ? 'bg-red-500/10 border-red-500/30 text-red-500'
+                ? 'bg-dn-error/10 border-dn-error/30 text-dn-error'
                 : task.status === 'PAUSED'
-                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-500'
+                  ? 'bg-dn-warning/10 border-dn-warning/30 text-dn-warning'
                   : 'bg-dn-primary/10 border-dn-primary/30 text-dn-primary'
           }`}>
             <Icon 
@@ -357,21 +319,21 @@ export function AgentTaskDetailPage() {
               </div>
               <div className={`h-1.5 w-full rounded-full overflow-hidden ${
                 task.status === 'COMPLETED'
-                  ? 'bg-green-500/20'
+                  ? 'bg-dn-success/20'
                   : task.status === 'FAILED' || task.status === 'CANCELLED' || task.status === 'INTERRUPTED'
-                    ? 'bg-red-500/20'
+                    ? 'bg-dn-error/20'
                     : task.status === 'PAUSED'
-                      ? 'bg-amber-500/20'
+                      ? 'bg-dn-warning/20'
                       : 'bg-dn-primary/20'
               }`}>
                 <div
                   className={`h-full transition-all duration-500 ease-out ${
                     task.status === 'COMPLETED'
-                      ? 'bg-green-500'
+                      ? 'bg-dn-success'
                       : task.status === 'FAILED' || task.status === 'CANCELLED' || task.status === 'INTERRUPTED'
-                        ? 'bg-red-500'
+                        ? 'bg-dn-error'
                         : task.status === 'PAUSED'
-                          ? 'bg-amber-500'
+                          ? 'bg-dn-warning'
                           : 'bg-dn-primary'
                   }`}
                   style={{ width: `${displayProgress}%` }}
@@ -383,57 +345,81 @@ export function AgentTaskDetailPage() {
 
         {/* Status card */}
         <Card className="p-4 space-y-3 bg-dn-surface-low/50">
-          <div className="flex items-center justify-between">
-            <span className={`text-[10px] uppercase px-2 py-0.5 rounded-full font-bold tracking-wider ${STATUS_COLORS[task.status] ?? 'text-dn-text-muted bg-dn-surface-low'}`}>
+          <div 
+            role="button"
+            tabIndex={0}
+            onClick={() => setIsStatusCollapsed(!isStatusCollapsed)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setIsStatusCollapsed(!isStatusCollapsed);
+              }
+            }}
+            className="flex items-center gap-2 cursor-pointer select-none"
+          >
+            <Icon name="info" className="text-dn-primary text-lg" />
+            <h3 className="text-sm font-semibold text-dn-text-main">{t('agentTasks.status', 'Status')}</h3>
+            <span className={`text-[10px] uppercase px-2 py-0.5 rounded-full font-bold tracking-wider ml-2 ${STATUS_COLORS[task.status] ?? 'text-dn-text-muted bg-dn-surface-low'}`}>
               {t(`agentTasks.statuses.${task.status}`, task.status)}
             </span>
-            <span className="text-xs font-mono text-dn-text-muted">ID: {task.id.slice(0, 8)}…</span>
+            <Icon 
+              name="keyboard_arrow_down" 
+              className={`ml-auto text-dn-text-muted transition-transform duration-200 ${!isStatusCollapsed ? 'rotate-180' : ''}`} 
+            />
           </div>
 
-          <div className="flex items-center gap-1.5 pt-1 border-t border-dn-border/20">
-            <span className="text-[10px] font-bold uppercase text-dn-text-muted tracking-wider">{t('agentTasks.executionMode')}:</span>
-            {!isRunning ? (
-              <div className="flex items-center gap-1 group cursor-pointer">
-                <select
-                  value={task.executionMode}
-                  onChange={(e) => updateMode.mutate({ id: task.id, mode: e.target.value })}
-                  disabled={updateMode.isPending}
-                  className="text-xs font-bold text-dn-primary bg-dn-primary/5 border border-dn-primary/20 rounded px-1.5 py-0.5 cursor-pointer focus:ring-1 focus:ring-dn-primary focus:outline-none hover:bg-dn-primary/10 transition-colors"
-                >
-                  {['AUTONOMOUS', 'DRAFT_ONLY', 'READ_ONLY', 'DRAFT_CONFIRMATION'].map((m) => (
-                    <option key={m} value={m} className="bg-dn-surface text-dn-text-main">
-                      {t(`agentTasks.modes.${m}`)}
-                    </option>
-                  ))}
-                </select>
-                <Icon name="edit" className="text-[10px] text-dn-primary opacity-50 group-hover:opacity-100 transition-opacity" />
+          {!isStatusCollapsed && (
+            <div className="space-y-3 border-t border-white/5 pt-3 animate-in fade-in duration-250">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono text-dn-text-muted">ID: {task.id}</span>
               </div>
-            ) : (
-              <span className="text-xs font-bold text-dn-primary">
-                {t(`agentTasks.modes.${task.executionMode}`)}
-              </span>
-            )}
-            {updateMode.isPending && <Icon name="sync" className="animate-spin text-[10px] text-dn-primary" />}
-          </div>
 
-          <div>
-            <h3 className="text-sm font-semibold text-dn-text-main mb-1">{t('agentTasks.instruction')}</h3>
-            <div className="text-sm text-dn-text-muted font-mono prose prose-sm prose-invert max-w-none prose-p:my-0">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {task.userInstruction || t('agentTasks.noInstruction')}
-              </ReactMarkdown>
-            </div>
-          </div>
-
-          {/* Attachments */}
-          {task.attachments && task.attachments.length > 0 && (
-            <div className="mt-4">
-              <h4 className="text-sm font-semibold text-dn-text-main mb-2">{t('agentTasks.attachments')}</h4>
-              <div className="flex flex-col gap-2">
-                {task.attachments.map((att) => (
-                  <FileCard key={att.id} file={{ ...att, size: att.sizeBytes || 0 }} />
-                ))}
+              <div className="flex items-center gap-1.5 pt-1">
+                <span className="text-[10px] font-bold uppercase text-dn-text-muted tracking-wider">{t('agentTasks.executionMode')}:</span>
+                {!isRunning ? (
+                  <div className="flex items-center gap-1 group cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                    <select
+                      value={task.executionMode}
+                      onChange={(e) => updateMode.mutate({ id: task.id, mode: e.target.value })}
+                      disabled={updateMode.isPending}
+                      className="text-xs font-bold text-dn-primary bg-dn-primary/5 border border-dn-primary/20 rounded px-1.5 py-0.5 cursor-pointer focus:ring-1 focus:ring-dn-primary focus:outline-none hover:bg-dn-primary/10 transition-colors"
+                    >
+                      {['AUTONOMOUS', 'DRAFT_ONLY', 'READ_ONLY', 'DRAFT_CONFIRMATION'].map((m) => (
+                        <option key={m} value={m} className="bg-dn-surface text-dn-text-main">
+                          {t(`agentTasks.modes.${m}`)}
+                        </option>
+                      ))}
+                    </select>
+                    <Icon name="edit" className="text-[10px] text-dn-primary opacity-50 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                ) : (
+                  <span className="text-xs font-bold text-dn-primary">
+                    {t(`agentTasks.modes.${task.executionMode}`)}
+                  </span>
+                )}
+                {updateMode.isPending && <Icon name="sync" className="animate-spin text-[10px] text-dn-primary" />}
               </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-dn-text-main mb-1">{t('agentTasks.instruction')}</h3>
+                <div className="text-sm text-dn-text-muted font-mono prose prose-sm prose-invert max-w-none prose-p:my-0">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {task.userInstruction || t('agentTasks.noInstruction')}
+                  </ReactMarkdown>
+                </div>
+              </div>
+
+              {/* Attachments */}
+              {task.attachments && task.attachments.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-semibold text-dn-text-main mb-2">{t('agentTasks.attachments')}</h4>
+                  <div className="flex flex-col gap-2">
+                    {task.attachments.map((att) => (
+                      <FileCard key={att.id} file={{ ...att, size: att.sizeBytes || 0 }} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Card>

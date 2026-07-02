@@ -22,6 +22,7 @@ interface TaskRow {
   lang: string | null;
   timezone: string | null;
   cancel_requested: number;
+  title: string | null;
   step_budget: number | null;
   created_at: string;
   updated_at: string;
@@ -75,6 +76,7 @@ function mapTask(row: TaskRow): AgentTaskDto {
     progress: row.progress,
     currentStep: row.current_step ?? undefined,
     lang: row.lang ?? undefined,
+    title: row.title ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     isAssociatedWithChat: match.count > 0,
@@ -123,15 +125,16 @@ export const agentStore = {
     executionMode: AgentExecutionMode;
     lang: string;
     timezone: string;
+    title?: string;
   }): AgentTaskDto {
     const id = randomUUID();
     const now = nowIso();
     db()
       .prepare(
-        `INSERT INTO agent_task (id, user_instruction, execution_mode, status, progress, lang, timezone, created_at, updated_at)
-         VALUES (?, ?, ?, 'PENDING', 0, ?, ?, ?, ?)`,
+        `INSERT INTO agent_task (id, user_instruction, execution_mode, status, progress, lang, timezone, title, created_at, updated_at)
+         VALUES (?, ?, ?, 'PENDING', 0, ?, ?, ?, ?, ?)`,
       )
-      .run(id, input.instruction, input.executionMode, input.lang, input.timezone, now, now);
+      .run(id, input.instruction, input.executionMode, input.lang, input.timezone, input.title ?? null, now, now);
     return this.findById(id)!.task;
   },
 

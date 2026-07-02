@@ -57,6 +57,7 @@ export interface AgentTaskDto {
   progress: number;
   currentStep?: string;
   lang?: string;
+  title?: string;
   createdAt: string;
   updatedAt: string;
   isAssociatedWithChat?: boolean;

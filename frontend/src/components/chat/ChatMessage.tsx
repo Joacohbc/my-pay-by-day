@@ -70,7 +70,7 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
     [],
   );
   const [isCollapsedByUser, setIsCollapsedByUser] = useState<boolean | null>(null);
-  const isStepsExpanded = isCollapsedByUser === null ? !allToolsDone : !isCollapsedByUser;
+  const isStepsExpanded = isCollapsedByUser === null ? false : !isCollapsedByUser;
   const audioMessageUrl = typeof message.audioUrl === 'string' && message.audioUrl.length > 0
     ? message.audioUrl
     : null;
@@ -81,7 +81,6 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
   const hasSideActions = canCopy || isEditable;
   const [showEditModal, setShowEditModal] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const [isStepsFullyExpanded, setIsStepsFullyExpanded] = useState(false);
   const stepsScrollRef = useRef<HTMLDivElement>(null);
   const toolCallCount = message.toolCalls?.length ?? 0;
 
@@ -261,19 +260,6 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
-                          {isStepsExpanded && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setIsStepsFullyExpanded((v) => !v);
-                              }}
-                              className="w-6 h-6 flex items-center justify-center rounded-md text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
-                              title={isStepsFullyExpanded ? t('chat.tools.collapse') : t('chat.tools.expand')}
-                            >
-                              <Icon name={isStepsFullyExpanded ? 'close_fullscreen' : 'open_in_full'} className="text-[13px]" />
-                            </button>
-                          )}
                           <Icon
                             name="keyboard_arrow_down"
                             className={`text-base text-dn-text-muted transition-transform duration-200 ${
@@ -287,9 +273,7 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
                       {isStepsExpanded && (
                         <div
                           ref={stepsScrollRef}
-                          className={`flex flex-col gap-2 p-3 pt-0 border-t border-white/5 overflow-y-auto ${
-                            isStepsFullyExpanded ? 'max-h-none' : 'max-h-48'
-                          }`}
+                          className="flex flex-col gap-2 p-3 pt-0 border-t border-white/5 overflow-y-auto max-h-48"
                         >
                           {toolStepGroups.map((group, idx) => {
                             let label = toolFriendlyNames[group.name] || `${t('chat.tools.running')} (${group.name})`;

@@ -19,8 +19,7 @@ export const agentTasksService = {
   resume: (id: string) =>
     api.post<AgentTask>(`/agent-tasks/${id}/resume`),
 
-  delete: (id: string) =>
-    api.delete(`/agent-tasks/${id}`),
+
 
   updateMode: (id: string, mode: string) =>
     api.patch<AgentTask>(`/agent-tasks/${id}/mode`, mode),

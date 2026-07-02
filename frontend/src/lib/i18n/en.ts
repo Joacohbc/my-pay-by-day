@@ -777,6 +777,9 @@ const en = {
     noSteps: 'No steps yet.',
     stepLimitReached: 'Step limit reached',
     openTask: 'View task',
+    status: 'Status',
+    created: 'Created',
+    updated: 'Updated',
   },
 
   // ─── Errors ──────────────────────────────────────────────────────────────

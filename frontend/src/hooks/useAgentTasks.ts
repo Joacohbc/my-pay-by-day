@@ -61,15 +61,7 @@ export function useResumeAgentTask() {
   });
 }
 
-export function useDeleteAgentTask() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => agentTasksService.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: agentTaskKeys.lists() });
-    },
-  });
-}
+
 
 export function useUpdateAgentTaskMode() {
   const queryClient = useQueryClient();
