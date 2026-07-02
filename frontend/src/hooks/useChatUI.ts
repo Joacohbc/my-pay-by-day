@@ -189,21 +189,48 @@ export function useChatUI() {
     }, 0);
   }, [chatId]);
 
+  const [isBackendGenerating, setIsBackendGenerating] = useState(false);
+
   useEffect(() => {
     let active = true;
-    const fetchHistory = async () => {
+    let pollingTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const reloadHistory = async () => {
       try {
         const response = await api.get<UIMessage[]>(`/ai/chat/${chatId}`);
-        if (active) {
-          setMessages(response);
-        }
-      } catch (error) {
-        console.error('Failed to load chat history:', error);
+        if (active) setMessages(response);
+      } catch {
+        /* history fetch failed — will retry on next poll if generating */
       }
     };
-    fetchHistory();
+
+    const pollUntilComplete = async () => {
+      if (!active) return;
+      try {
+        const generating = await chatService.isGenerating(chatId);
+        if (!active) return;
+        setIsBackendGenerating(generating);
+        if (!generating) {
+          await reloadHistory();
+          return;
+        }
+        pollingTimer = setTimeout(pollUntilComplete, 2000);
+      } catch {
+        if (active) setIsBackendGenerating(false);
+      }
+    };
+
+    const initialize = async () => {
+      await reloadHistory();
+      if (!active) return;
+      await pollUntilComplete();
+    };
+
+    initialize();
+
     return () => {
       active = false;
+      if (pollingTimer) clearTimeout(pollingTimer);
     };
   }, [chatId, setMessages]);
 
@@ -229,7 +256,8 @@ export function useChatUI() {
     );
     return groupMessages(filtered);
   }, [uiMessages, status]);
-  const isPending = status === 'submitted' || status === 'streaming';
+  const isStreamActive = status === 'submitted' || status === 'streaming';
+  const isPending = isStreamActive || isBackendGenerating;
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

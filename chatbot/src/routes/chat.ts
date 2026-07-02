@@ -1,4 +1,5 @@
 import { convertToModelMessages, stepCountIs, streamText, type ModelMessage, type UIMessage } from 'ai';
+import { chatGenerationTracker } from './chatGenerationTracker.js';
 import { Hono } from 'hono';
 import { buildAllTools, toolsForMode } from '@/agent/buildTools.js';
 import { buildBackgroundTools } from '@/tools/background.js';
@@ -67,6 +68,8 @@ chatRoute.post('/', async (c) => {
   const history = conversationMemory.load(chatId);
   conversationMemory.append(chatId, userMessages);
 
+  chatGenerationTracker.markGenerationActive(chatId);
+
   const result = streamText({
     model: largeModel(),
     system: chatSystemPrompt({
@@ -82,10 +85,14 @@ chatRoute.post('/', async (c) => {
     ),
     stopWhen: stepCountIs(config.agent.maxSteps),
     onFinish: ({ text, steps }) => {
+      chatGenerationTracker.markGenerationComplete(chatId);
       const newMessages = steps.flatMap((s) => s.response.messages);
       conversationMemory.append(chatId, newMessages);
       chatLog.info('chat finished', { chatId, steps: steps.length, reply: text });
       void chatTitles.generateIfMissing(chatId, ctx.lang);
+    },
+    onError: () => {
+      chatGenerationTracker.markGenerationComplete(chatId);
     },
   });
 
@@ -146,6 +153,11 @@ chatRoute.get('/:chatId', (c) => {
   }
 
   return c.json(uiMessages);
+});
+
+chatRoute.get('/:chatId/status', (c) => {
+  const chatId = c.req.param('chatId');
+  return c.json({ generating: chatGenerationTracker.isGenerationActive(chatId) });
 });
 
 chatRoute.delete('/:chatId', (c) => {

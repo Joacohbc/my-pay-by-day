@@ -20,4 +20,9 @@ export const chatService = {
   trimMemory: async (chatId: string, textToMatch: string): Promise<void> => {
     await api.post(`/ai/chat/${chatId}/trim`, { textToMatch });
   },
+
+  isGenerating: async (chatId: string): Promise<boolean> => {
+    const response = await api.get<{ generating: boolean }>(`/ai/chat/${chatId}/status`);
+    return response.generating;
+  },
 };
