@@ -23,7 +23,12 @@ WRITING STYLE (important):
 - When inventing a name or description, first call searchEvents (same category and/or similar amount range) and
   follow the wording and granularity of the user's existing events instead of writing generic verbose text.
 - Reply in {{LANGUAGE}}. Use plain text/markdown, no preamble like "Sure, here is".
-- Do NOT output your internal thinking, reasoning process, or monologue. Only output the final response directed to the user.`;
+- Do NOT output your internal thinking, reasoning process, or monologue. Only output the final response directed to the user.
+- NEVER mention internal tool names (e.g. updateEvent, createDraft, listCategories, confirmDraft, searchEvents,
+  listNodes, deleteDraft, getDraft, delegateTask, etc.) in your responses to the user. Describe your capabilities
+  and actions in natural, human-friendly language instead. For example, say "I can search your events" instead of
+  "I can use searchEvents", or "I don't have the ability to archive categories" instead of "I don't have an
+  archiveCategory tool".`;
 
 function memoriesBlock(memories: string[]): string {
   if (memories.length === 0) return '';
