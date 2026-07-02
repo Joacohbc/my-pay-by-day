@@ -1,5 +1,6 @@
 import type { ModelMessage } from 'ai';
 import { db, nowIso } from '@/db/index.js';
+import { agentStore } from '@/agent/store.js';
 
 interface Row {
   message_json: string;
@@ -63,8 +64,31 @@ export const conversationMemory = {
 
   /** Deletes the conversation entity along with all of its messages. */
   deleteChat(chatId: string): void {
+    // Find all referenced background tasks in this chat's messages
+    const rows = db()
+      .prepare("SELECT text FROM conversation_message WHERE chat_id = ? AND text LIKE '%[Background Task: %'")
+      .all(chatId) as { text: string | null }[];
+
+    const taskIds = new Set<string>();
+    const taskRegex = /\[Background Task: ([a-f0-9-]+)\]/gi;
+    for (const row of rows) {
+      if (row.text) {
+        let match;
+        taskRegex.lastIndex = 0;
+        while ((match = taskRegex.exec(row.text)) !== null) {
+          taskIds.add(match[1]);
+        }
+      }
+    }
+
+    // Clear messages and conversation
     this.clearMessages(chatId);
     db().prepare('DELETE FROM conversation WHERE chat_id = ?').run(chatId);
+
+    // Delete associated tasks in cascade
+    for (const taskId of taskIds) {
+      agentStore.delete(taskId);
+    }
   },
 
   count(chatId: string): number {

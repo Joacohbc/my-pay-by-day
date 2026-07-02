@@ -4,6 +4,7 @@ import type { Context } from 'hono';
 export interface RequestContext {
   timezone: string;
   lang: string;
+  chatId?: string;
 }
 
 const DEFAULT_TIMEZONE = 'UTC';

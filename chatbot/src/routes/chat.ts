@@ -42,10 +42,10 @@ chatRoute.get('/', (c) => {
 });
 
 chatRoute.post('/', async (c) => {
-  const ctx = requestContextFrom(c);
   const body = (await c.req.json()) as ChatBody;
   const chatId = body.chatId ?? body.id;
   if (!chatId) return c.json({ error: 'chatId is required' }, 400);
+  const ctx = { ...requestContextFrom(c), chatId };
 
   const incoming = body.messages ?? [];
   const userMessages = await convertToModelMessages(incoming.filter((m) => m.role === 'user'));

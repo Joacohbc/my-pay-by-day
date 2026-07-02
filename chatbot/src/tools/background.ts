@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { RequestContext } from '@/context.js';
 import { submitTask } from '@/agent/executor.js';
 import { agentStore } from '@/agent/store.js';
+import { db } from '@/db/index.js';
 import type { KindedToolSet } from '@/tools/types.js';
 
 /** Lets the interactive chat delegate a long, multi-step job to a background agent. */
@@ -57,6 +58,52 @@ export function buildBackgroundTools(ctx: RequestContext): KindedToolSet {
               ? { actionType: pendingAction.actionType, message: pendingAction.payload }
               : undefined,
           };
+        },
+      }),
+    },
+    listSessionTasks: {
+      kind: 'READ',
+      tool: tool({
+        description:
+          'List all background tasks currently or previously associated with this chat session, showing their statuses, progress and latest outcomes.',
+        inputSchema: z.object({}),
+        execute: async () => {
+          if (!ctx.chatId) return { tasks: [] };
+          
+          const rows = db()
+            .prepare("SELECT text FROM conversation_message WHERE chat_id = ? AND text LIKE '%[Background Task: %'")
+            .all(ctx.chatId) as { text: string | null }[];
+
+          const taskIds = new Set<string>();
+          const taskRegex = /\[Background Task: ([a-f0-9-]+)\]/gi;
+          for (const row of rows) {
+            if (row.text) {
+              let match;
+              taskRegex.lastIndex = 0;
+              while ((match = taskRegex.exec(row.text)) !== null) {
+                taskIds.add(match[1]);
+              }
+            }
+          }
+
+          const tasks = [];
+          for (const id of taskIds) {
+            const task = agentStore.detail(id);
+            if (task) {
+              const resultMessage = task.steps?.findLast((step) => step.type === 'MESSAGE')?.content;
+              const errorMessage = task.steps?.findLast((step) => step.type === 'ERROR')?.content;
+              tasks.push({
+                taskId: task.id,
+                instruction: task.userInstruction,
+                status: task.status,
+                progress: task.progress,
+                currentStep: task.currentStep,
+                resultMessage,
+                errorMessage,
+              });
+            }
+          }
+          return { tasks };
         },
       }),
     },
