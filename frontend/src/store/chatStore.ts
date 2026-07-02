@@ -12,7 +12,7 @@ export interface ChatMessage {
   audioUrl?: string;
   audioTranscriptionStatus?: 'pending' | 'ready' | 'failed';
   timestamp: string;
-  toolCalls?: { name: string; state: string; output?: unknown }[];
+  toolCalls?: { name: string; state: string; output?: unknown; args?: any }[];
   stoppedByStepLimit?: boolean;
 }
 

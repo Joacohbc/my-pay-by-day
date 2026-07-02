@@ -102,6 +102,7 @@ const en = {
     noConversations: 'No previous conversations',
     messagesCount: '{{count}} messages',
     backToList: 'Back to conversations',
+    subtask: 'Subtask',
     stepLimit: {
       title: 'The assistant reached the step limit',
       continue: 'Continue',
@@ -738,6 +739,8 @@ const en = {
     actionRequired: 'Action Required',
     approve: 'Approve',
     reject: 'Reject',
+    approved: 'Approved',
+    rejected: 'Rejected',
     approvalRequired: 'Approval Required',
     informationRequired: 'Information Required',
     feedbackPlaceholder: 'Add additional information or instructions...',

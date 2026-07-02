@@ -75,6 +75,7 @@ export function AgentTaskDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [isPlanCollapsed, setIsPlanCollapsed] = useState(false);
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
@@ -321,21 +322,48 @@ export function AgentTaskDetailPage() {
 
       <div className="px-5 space-y-4">
         {/* Live progress bar */}
-        {isRunning && (
-          <div className="flex items-center gap-3 p-3 bg-dn-primary/10 rounded-xl border border-dn-primary/30">
-            <Icon name="sync" className="animate-spin text-dn-primary text-lg shrink-0" />
+        {task.status !== 'PENDING' && (
+          <div className={`flex items-center gap-3 p-3 rounded-xl border transition-colors duration-300 ${
+            task.status === 'COMPLETED'
+              ? 'bg-green-500/10 border-green-500/30 text-green-500'
+              : task.status === 'FAILED' || task.status === 'CANCELLED' || task.status === 'INTERRUPTED'
+                ? 'bg-red-500/10 border-red-500/30 text-red-500'
+                : task.status === 'PAUSED'
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-500'
+                  : 'bg-dn-primary/10 border-dn-primary/30 text-dn-primary'
+          }`}>
+            <Icon 
+              name={isRunning ? 'sync' : task.status === 'COMPLETED' ? 'check_circle' : 'info'} 
+              className={`text-lg shrink-0 ${isRunning ? 'animate-spin' : ''}`} 
+            />
             <div className="flex-1 min-w-0 space-y-1.5">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-semibold text-dn-primary truncate leading-none">
-                  {task.currentStep || <span className="animate-pulse">{t('agentTasks.initializing')}</span>}
+                <span className="text-xs font-semibold truncate leading-none">
+                  {task.currentStep || (isRunning ? <span className="animate-pulse">{t('agentTasks.initializing')}</span> : t(`agentTasks.statuses.${task.status}`, task.status))}
                 </span>
-                <span className="text-[10px] font-bold text-dn-primary/80 ml-2 shrink-0 leading-none">
+                <span className="text-[10px] font-bold ml-2 shrink-0 leading-none">
                   {displayProgress}%
                 </span>
               </div>
-              <div className="h-1.5 w-full bg-dn-primary/20 rounded-full overflow-hidden">
+              <div className={`h-1.5 w-full rounded-full overflow-hidden ${
+                task.status === 'COMPLETED'
+                  ? 'bg-green-500/20'
+                  : task.status === 'FAILED' || task.status === 'CANCELLED' || task.status === 'INTERRUPTED'
+                    ? 'bg-red-500/20'
+                    : task.status === 'PAUSED'
+                      ? 'bg-amber-500/20'
+                      : 'bg-dn-primary/20'
+              }`}>
                 <div
-                  className="h-full bg-dn-primary transition-all duration-500 ease-out"
+                  className={`h-full transition-all duration-500 ease-out ${
+                    task.status === 'COMPLETED'
+                      ? 'bg-green-500'
+                      : task.status === 'FAILED' || task.status === 'CANCELLED' || task.status === 'INTERRUPTED'
+                        ? 'bg-red-500'
+                        : task.status === 'PAUSED'
+                          ? 'bg-amber-500'
+                          : 'bg-dn-primary'
+                  }`}
                   style={{ width: `${displayProgress}%` }}
                 />
               </div>
@@ -457,37 +485,54 @@ export function AgentTaskDetailPage() {
         {/* Plan checklist */}
         {plannedSteps.length > 0 && (
           <Card className="p-4 space-y-3">
-            <div className="flex items-center gap-2">
+            <div 
+              role="button"
+              tabIndex={0}
+              onClick={() => setIsPlanCollapsed(!isPlanCollapsed)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setIsPlanCollapsed(!isPlanCollapsed);
+                }
+              }}
+              className="flex items-center gap-2 cursor-pointer select-none"
+            >
               <Icon name="checklist" className="text-dn-primary text-lg" />
               <h3 className="text-sm font-semibold text-dn-text-main">{t('agentTasks.plan')}</h3>
-              <span className="ml-auto text-xs text-dn-text-muted">
+              <span className="text-xs text-dn-text-muted bg-white/5 rounded-full px-2 py-0.5 ml-2 font-mono leading-none">
                 {Math.min(completedPlanCount, plannedSteps.length)}/{plannedSteps.length}
               </span>
+              <Icon 
+                name="keyboard_arrow_down" 
+                className={`ml-auto text-dn-text-muted transition-transform duration-200 ${!isPlanCollapsed ? 'rotate-180' : ''}`} 
+              />
             </div>
-            <div className="space-y-2">
-              {plannedSteps.map((step, i) => {
-                const done = i < completedPlanCount;
-                return (
-                  <div key={step.id} className={`flex items-start gap-2.5 text-sm ${done ? 'text-dn-text-muted' : 'text-dn-text-main'}`}>
-                    <StepIcon done={done} />
-                    <span className={done ? 'line-through' : ''}>{step.description}</span>
-                  </div>
-                );
-              })}
-            </div>
+            {!isPlanCollapsed && (
+              <div className="space-y-2 border-t border-white/5 pt-3 animate-in fade-in duration-250">
+                {plannedSteps.map((step, i) => {
+                  const done = i < completedPlanCount;
+                  return (
+                    <div key={step.id} className={`flex items-start gap-2.5 text-sm ${done ? 'text-dn-text-muted' : 'text-dn-text-main'}`}>
+                      <StepIcon done={done} />
+                      <span className={done ? 'line-through' : ''}>{step.description}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </Card>
         )}
 
         {/* Activity timeline */}
         {progressSteps.length > 0 && (
-          <Card className="p-4 space-y-3">
-            <div className="flex items-center gap-2">
+          <Card className="p-4 space-y-4">
+            <div className="flex items-center gap-2 border-b border-white/5 pb-2">
               <Icon name="history" className="text-dn-primary text-lg" />
               <h3 className="text-sm font-semibold text-dn-text-main">{t('agentTasks.activity')}</h3>
             </div>
-            <div className="space-y-0">
+            <div className="space-y-0.5 pt-1">
               {progressSteps.map((step, i) => (
-                <ActivityRow key={step.id} step={step} isLast={i === progressSteps.length - 1} />
+                <ActivityRow key={step.id} step={step} isLast={i === progressSteps.length - 1} status={task.status} />
               ))}
             </div>
           </Card>
@@ -543,20 +588,27 @@ export function AgentTaskDetailPage() {
 
         {/* Final response or Thinking state */}
         {(latestMessage?.content || isRunning) && (
-          <Card className={`p-4 border-t-4 bg-dn-surface space-y-2 ${isRunning ? 'border-t-dn-primary animate-pulse' : 'border-t-dn-success'}`}>
+          <Card className={`p-5 border-l-4 bg-dn-surface-low/85 space-y-3 shadow-lg ${
+            isRunning 
+              ? 'border-l-dn-primary animate-pulse' 
+              : 'border-l-green-500 shadow-green-950/5'
+          }`}>
             <div className="flex items-center gap-2 mb-1">
-              <Icon name={isRunning ? 'sync' : 'task_alt'} className={`text-lg ${isRunning ? 'text-dn-primary animate-spin' : 'text-dn-success'}`} />
-              <h3 className={`text-sm font-semibold ${isRunning ? 'text-dn-primary' : 'text-dn-success'}`}>
+              <Icon 
+                name={isRunning ? 'sync' : 'check_circle'} 
+                className={`text-lg ${isRunning ? 'text-dn-primary animate-spin' : 'text-green-500'}`} 
+              />
+              <h3 className={`text-sm font-bold tracking-wide uppercase ${isRunning ? 'text-dn-primary' : 'text-green-500'}`}>
                 {isRunning ? t('agentTasks.generatingResponse', 'Thinking...') : t('agentTasks.result')}
               </h3>
             </div>
             {isRunning ? (
-              <div className="space-y-2">
-                <div className="h-2 bg-dn-border/50 rounded w-3/4" />
-                <div className="h-2 bg-dn-border/50 rounded w-1/2" />
+              <div className="space-y-2.5 py-1">
+                <div className="h-2 bg-white/5 rounded w-3/4 animate-pulse" />
+                <div className="h-2 bg-white/5 rounded w-1/2 animate-pulse" />
               </div>
             ) : (
-              <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed prose-table:my-0">
+              <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed selection:bg-green-500/20 border-t border-white/5 pt-3">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {latestMessage?.content || ''}
                 </ReactMarkdown>
@@ -590,23 +642,44 @@ export function AgentTaskDetailPage() {
   );
 }
 
-function ActivityRow({ step, isLast }: { step: AgentTaskStep; isLast: boolean }) {
+function ActivityRow({ step, isLast, status }: { step: AgentTaskStep; isLast: boolean; status: string }) {
   const isUser = step.type === 'USER';
+  const isRunningLast = isLast && (status === 'RUNNING' || status === 'RETRYING');
+  
+  let iconName = 'check_circle';
+  let iconClass = 'text-dn-success bg-dn-success/10 border-dn-success/20';
+  
+  if (isUser) {
+    iconName = 'person';
+    iconClass = 'text-dn-primary bg-dn-primary/10 border-dn-primary/20';
+  } else if (isRunningLast) {
+    iconName = 'sync';
+    iconClass = 'text-dn-primary bg-dn-primary/10 border-dn-primary/20 animate-spin';
+  } else {
+    iconName = 'smart_toy';
+    iconClass = 'text-dn-text-muted bg-white/5 border-white/10';
+  }
+
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-4 group">
       <div className="flex flex-col items-center">
-        <div className={`w-2 h-2 rounded-full ${isUser ? 'bg-dn-primary' : 'bg-dn-success'} mt-1.5 shrink-0`} />
-        {!isLast && <div className="w-px flex-1 bg-dn-border/50 my-1" />}
-      </div>
-      <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-3'}`}>
-        <div className={`text-xs ${isUser ? 'font-medium text-dn-primary' : 'text-dn-text-main'} prose prose-sm prose-invert max-w-none prose-p:my-0 prose-p:leading-tight`}>
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {(isUser ? `**[User]** ` : '') + (step.description || '')}
-          </ReactMarkdown>
+        <div className={`w-6 h-6 rounded-full flex items-center justify-center border shrink-0 ${iconClass}`}>
+          <Icon name={iconName} className="text-[11px]" />
         </div>
-        {step.stepCreatedAt && (
-          <p className="text-[10px] text-dn-text-muted mt-0.5">{formatTime(step.stepCreatedAt)}</p>
-        )}
+        {!isLast && <div className="w-px flex-1 bg-dn-border/20 my-1.5" />}
+      </div>
+      
+      <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-4.5'}`}>
+        <div className="flex items-start justify-between gap-2.5">
+          <span className={`text-xs ${isUser ? 'font-semibold text-dn-primary' : 'text-dn-text-main/90'} leading-relaxed`}>
+            {step.description || step.content || ''}
+          </span>
+          {step.stepCreatedAt && (
+            <span className="text-[9px] text-dn-text-muted font-mono leading-none mt-1 shrink-0 opacity-85">
+              {formatTime(step.stepCreatedAt)}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

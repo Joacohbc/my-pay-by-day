@@ -49,16 +49,22 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
     ),
   ];
   const allToolsDone = message.toolCalls?.every((tc) => tc.state === 'result') ?? true;
-  const toolStepGroups = (message.toolCalls ?? []).reduce<{ name: string; count: number; isDone: boolean }[]>(
+  const toolStepGroups = (message.toolCalls ?? []).reduce<{ name: string; count: number; isDone: boolean; args?: any; output?: any }[]>(
     (groups, tc) => {
       const isDone = tc.state === 'result';
-      const last = groups[groups.length - 1];
-      if (last && last.name === tc.name) {
-        last.count += 1;
-        last.isDone = isDone;
+      if (tc.name === 'delegateTask') {
+        groups.push({ name: tc.name, count: 1, isDone, args: tc.args, output: tc.output });
         return groups;
       }
-      groups.push({ name: tc.name, count: 1, isDone });
+      const last = groups[groups.length - 1];
+      if (last && last.name === tc.name && last.name !== 'delegateTask') {
+        last.count += 1;
+        last.isDone = isDone;
+        last.args = tc.args;
+        last.output = tc.output;
+        return groups;
+      }
+      groups.push({ name: tc.name, count: 1, isDone, args: tc.args, output: tc.output });
       return groups;
     },
     [],
@@ -286,7 +292,22 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
                           }`}
                         >
                           {toolStepGroups.map((group, idx) => {
-                            const label = toolFriendlyNames[group.name] || `${t('chat.tools.running')} (${group.name})`;
+                            let label = toolFriendlyNames[group.name] || `${t('chat.tools.running')} (${group.name})`;
+                            if (group.name === 'delegateTask') {
+                              const subtaskTitle = group.args?.title;
+                              const progressOutput = group.output as { type?: string; message?: string } | undefined;
+                              
+                              if (group.isDone) {
+                                label = subtaskTitle 
+                                  ? `${t('chat.subtask', 'Subtask')}: ${subtaskTitle}` 
+                                  : t('chat.tools.delegateTask');
+                              } else {
+                                const progressMsg = progressOutput?.type === 'progress' ? progressOutput.message : undefined;
+                                label = subtaskTitle
+                                  ? `${subtaskTitle} (${progressMsg || t('chat.tools.running', 'Running...')})`
+                                  : `${t('chat.tools.delegateTask')} (${progressMsg || t('chat.tools.running', 'Running...')})`;
+                              }
+                            }
                             return (
                               <div
                                 key={idx}

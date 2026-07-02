@@ -101,6 +101,7 @@ const es = {
     noConversations: 'Sin conversaciones previas',
     messagesCount: '{{count}} mensajes',
     backToList: 'Volver a conversaciones',
+    subtask: 'Subtarea',
     stepLimit: {
       title: 'El asistente alcanzó el límite de pasos',
       continue: 'Continuar',
@@ -737,6 +738,8 @@ const es = {
     actionRequired: 'Acción Requerida',
     approve: 'Aprobar',
     reject: 'Rechazar',
+    approved: 'Aprobado',
+    rejected: 'Rechazado',
     approvalRequired: 'Aprobación Requerida',
     informationRequired: 'Información Requerida',
     feedbackPlaceholder: 'Agregá información adicional o instrucciones...',

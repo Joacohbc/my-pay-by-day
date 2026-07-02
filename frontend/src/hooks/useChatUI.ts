@@ -58,10 +58,10 @@ function attachmentsOf(message: UIMessage): { url: string; name: string; type: s
     });
 }
 
-function toolCallsOf(message: UIMessage, isFinished: boolean): { name: string; state: string; output?: unknown }[] {
+function toolCallsOf(message: UIMessage, isFinished: boolean): { name: string; state: string; output?: unknown; args?: any }[] {
   return message.parts
     .filter(
-      (part): part is UIMessage['parts'][number] & { toolName?: string; state: string; output?: unknown } =>
+      (part): part is UIMessage['parts'][number] & { toolName?: string; state: string; output?: unknown; args?: any } =>
         part.type.startsWith('tool-') || part.type === 'dynamic-tool',
     )
     .map((part) => {
@@ -70,6 +70,7 @@ function toolCallsOf(message: UIMessage, isFinished: boolean): { name: string; s
         name,
         state: isFinished ? 'result' : part.state,
         output: part.output,
+        args: part.args,
       };
     });
 }
