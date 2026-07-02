@@ -222,7 +222,7 @@ export function AgentTaskDetailPage() {
       />
 
       <PageHeader
-        title={task.userInstruction || t('agentTasks.title')}
+        title={task.title || task.userInstruction || t('agentTasks.title')}
         back={Routes.AGENT_TASKS}
         action={
           <div className="flex items-center gap-2">
