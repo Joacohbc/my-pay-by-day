@@ -12,6 +12,7 @@ interface ChatInputProps {
   setInputContent: (val: string) => void;
   onSend: () => void;
   onAudioRecorded?: (audioBlob: Blob) => Promise<void>;
+  onAudioFileSelected?: (file: File) => Promise<void>;
   isPending?: boolean;
   draftFiles?: FileDto[];
   onAddFile?: (file: FileDto) => void;
@@ -27,6 +28,7 @@ export function ChatInput({
   setInputContent,
   onSend,
   onAudioRecorded,
+  onAudioFileSelected,
   isPending,
   draftFiles = [],
   onAddFile,
@@ -39,6 +41,17 @@ export function ChatInput({
   const { t } = useTranslation();
   const { error: showError } = useAlert();
   const [showUploader, setShowUploader] = useState(false);
+
+  const handleAudioFile = useCallback(
+    async (file: File) => {
+      try {
+        await onAudioFileSelected?.(file);
+      } catch {
+        showError(t('chat.transcriptionFailed'));
+      }
+    },
+    [onAudioFileSelected, showError, t],
+  );
 
   const handleVoiceError = useCallback((errorKey: string) => {
     if (errorKey === 'voice_not_supported') {
@@ -116,6 +129,8 @@ export function ChatInput({
               files={draftFiles}
               onAddFile={onAddFile}
               onRemoveFile={onRemoveFile}
+              accept={onAudioFileSelected ? 'image/*,video/*,.pdf,.csv,.json,text/*,audio/*' : undefined}
+              onAudioFile={onAudioFileSelected ? handleAudioFile : undefined}
             />
           </div>
         )}

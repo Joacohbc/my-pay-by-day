@@ -312,12 +312,11 @@ export function useChatUI() {
     }, 1000);
   }, [input, draftFiles, setDraftFiles, setMessages, sendMessage]);
 
-  const handleAudioRecorded = useCallback(
-    async (audioBlob: Blob) => {
-      const { transcription } = await audioService.transcribeRecordedAudio(audioBlob);
+  const sendTranscribedText = useCallback(
+    (transcription: string) => {
       const text = transcription.trim();
       if (!text) throw new Error('transcription_failed');
-      
+
       const newMessage: UIMessage = {
         id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         role: 'user',
@@ -348,6 +347,22 @@ export function useChatUI() {
       }, 1000);
     },
     [setMessages, sendMessage],
+  );
+
+  const handleAudioRecorded = useCallback(
+    async (audioBlob: Blob) => {
+      const { transcription } = await audioService.transcribeRecordedAudio(audioBlob);
+      sendTranscribedText(transcription);
+    },
+    [sendTranscribedText],
+  );
+
+  const handleAudioFileSelected = useCallback(
+    async (file: File) => {
+      const { transcription } = await audioService.transcribeAudio(file);
+      sendTranscribedText(transcription);
+    },
+    [sendTranscribedText],
   );
 
   const handleNewChat = useCallback(() => {
@@ -404,6 +419,7 @@ export function useChatUI() {
     handleClearMemory,
     handleEditMessage,
     handleAudioRecorded,
+    handleAudioFileSelected,
     handleAddFile,
     handleRemoveFile,
     t,

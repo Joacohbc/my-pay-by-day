@@ -21,10 +21,12 @@ export const config = {
   },
 
   models: {
-    /** Multimodal model (text + image + audio) used for chat and the agent loop. */
+    /** Multimodal model (text + image) used for chat and the agent loop. */
     large: env('MODEL_LARGE', 'google/gemini-2.5-flash'),
     /** Fast/cheap model used for short text generation, extraction and memory summarisation. */
     fast: env('MODEL_FAST', 'google/gemini-flash-lite'),
+    /** Dedicated speech-to-text model, called via OpenRouter's /audio/transcriptions endpoint. */
+    audio: env('MODEL_AUDIO', 'openai/whisper-large-v3-turbo'),
   },
 
   /** Base URL of the Java (Quarkus) domain backend that exposes the REST tools. */

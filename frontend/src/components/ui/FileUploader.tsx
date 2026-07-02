@@ -79,15 +79,21 @@ function FileSelectorModal({ open, onClose, onSelect, excludeIds }: FileSelector
   );
 }
 
+const DEFAULT_ACCEPT = 'image/*,video/*,.pdf,.csv,.json,text/*';
+
 export interface FileUploaderProps {
   files: FileDto[];
   onAddFile: (file: FileDto) => void;
   onRemoveFile: (fileId: number) => void;
+  accept?: string;
+  onAudioFile?: (file: File) => Promise<void>;
 }
 
-export function FileUploader({ files, onAddFile, onRemoveFile }: FileUploaderProps) {
+export function FileUploader({ files, onAddFile, onRemoveFile, accept = DEFAULT_ACCEPT, onAudioFile }: FileUploaderProps) {
   const { t } = useTranslation();
-  const { mutateAsync: uploadFile, isPending } = useUploadFile();
+  const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const isPending = isUploading || isTranscribing;
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [selectorOpen, setSelectorOpen] = useState(false);
 
@@ -96,6 +102,16 @@ export function FileUploader({ files, onAddFile, onRemoveFile }: FileUploaderPro
     if (selectedFiles.length === 0) return;
 
     for (const file of selectedFiles) {
+      if (onAudioFile && file.type.startsWith('audio/')) {
+        setIsTranscribing(true);
+        try {
+          await onAudioFile(file);
+        } finally {
+          setIsTranscribing(false);
+        }
+        continue;
+      }
+
       const reader = new FileReader();
       const base64Promise = new Promise<string>((resolve) => {
         reader.onloadend = () => resolve(reader.result as string);
@@ -164,7 +180,7 @@ export function FileUploader({ files, onAddFile, onRemoveFile }: FileUploaderPro
           onChange={handleFileChange}
           className="hidden"
           multiple
-          accept="image/*,video/*,.pdf,.csv,.json,text/*"
+          accept={accept}
         />
       </div>
     </div>

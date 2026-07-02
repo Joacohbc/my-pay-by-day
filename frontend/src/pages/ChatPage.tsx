@@ -30,6 +30,7 @@ export function ChatPage() {
     handleClearMemory,
     handleEditMessage,
     handleAudioRecorded,
+    handleAudioFileSelected,
     handleAddFile,
     handleRemoveFile,
     t,
@@ -146,6 +147,7 @@ export function ChatPage() {
                 setInputContent={setInput}
                 onSend={handleSend}
                 onAudioRecorded={handleAudioRecorded}
+                onAudioFileSelected={handleAudioFileSelected}
                 draftFiles={draftFiles}
                 onAddFile={handleAddFile}
                 onRemoveFile={handleRemoveFile}
