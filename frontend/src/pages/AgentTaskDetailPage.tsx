@@ -239,7 +239,7 @@ export function AgentTaskDetailPage() {
         action={
           <div className="flex items-center gap-2">
             {/* Final state: delete only */}
-            {isDone && (
+            {isDone && !task.isAssociatedWithChat && (
               <Button
                 variant="secondary"
                 size="sm"

@@ -106,8 +106,17 @@ agentTasksRoute.post('/:id/resume', (c) => {
 });
 
 agentTasksRoute.delete('/:id', (c) => {
-  agentStore.delete(c.req.param('id'));
-  return c.body(null, 204);
+  const id = c.req.param('id');
+  const task = agentStore.rawTask(id);
+  if (!task) {
+    return c.json({ error: 'Task not found' }, 404);
+  }
+  const mapped = agentStore.detail(id);
+  if (mapped?.isAssociatedWithChat) {
+    return c.json({ error: 'Cannot delete a task that is associated with a chat session.' }, 400);
+  }
+  agentStore.delete(id);
+  return c.json({ success: true });
 });
 
 agentTasksRoute.patch('/:id/mode', async (c) => {

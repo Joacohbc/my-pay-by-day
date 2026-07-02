@@ -59,6 +59,7 @@ export interface AgentTaskDto {
   lang?: string;
   createdAt: string;
   updatedAt: string;
+  isAssociatedWithChat?: boolean;
   steps?: AgentTaskStepDto[];
   actions?: AgentTaskActionDto[];
   attachments?: AgentTaskAttachmentDto[];

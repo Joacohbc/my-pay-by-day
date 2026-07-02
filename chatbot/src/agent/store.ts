@@ -63,6 +63,10 @@ export interface AttachmentContent extends AttachmentRow {
 }
 
 function mapTask(row: TaskRow): AgentTaskDto {
+  const match = db()
+    .prepare('SELECT COUNT(*) as count FROM conversation_message WHERE text LIKE ?')
+    .get(`%[Background Task: ${row.id}]%`) as { count: number };
+
   return {
     id: row.id,
     userInstruction: row.user_instruction,
@@ -73,6 +77,7 @@ function mapTask(row: TaskRow): AgentTaskDto {
     lang: row.lang ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    isAssociatedWithChat: match.count > 0,
   };
 }
 
