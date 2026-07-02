@@ -627,7 +627,7 @@ export function AgentTaskDetailPage() {
         {/* Final response or Thinking state */}
         {(latestMessage?.content || isRunning) && (
           <Card className="p-4 bg-dn-surface-low/50 space-y-3">
-            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            <div className={`flex items-center justify-between ${ !isRunning  && "border-b border-white/5 pb-2" }`}>
               <div className="flex items-center gap-2">
                 <Icon 
                   name={isRunning ? 'sync' : isSuccessfullyCompleted ? 'check_circle' : 'error'} 
@@ -645,18 +645,13 @@ export function AgentTaskDetailPage() {
                 </span>
               )}
             </div>
-            {isRunning ? (
-              <div className="space-y-2 py-1">
-                <div className="h-2 bg-dn-border/50 rounded w-3/4 animate-pulse" />
-                <div className="h-2 bg-dn-border/50 rounded w-1/2 animate-pulse" />
-              </div>
-            ) : (
+            { !isRunning && (
               <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed selection:bg-dn-primary/20 pt-1">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {latestMessage?.content || ''}
                 </ReactMarkdown>
               </div>
-            )}
+            ) }
           </Card>
         )}
 
@@ -667,8 +662,8 @@ export function AgentTaskDetailPage() {
           </div>
         )}
 
-        {/* Reply / continue — reuses ChatInput, hidden only when cancelled */}
-        {task.status !== 'CANCELLED' && (
+        {/* Reply / continue — hidden while running and when cancelled */}
+        {task.status !== 'CANCELLED' && !isRunning && (
           <ChatInput
             inputContent={reply}
             setInputContent={setReply}
@@ -676,7 +671,7 @@ export function AgentTaskDetailPage() {
             onAddFile={handleAddFile}
             onRemoveFile={handleRemoveFile}
             onAudioRecorded={handleAudioRecorded}
-            isPending={isRunning || sendMessage.isPending}
+            isPending={sendMessage.isPending}
             draftFiles={draftFiles}
           />
         )}
