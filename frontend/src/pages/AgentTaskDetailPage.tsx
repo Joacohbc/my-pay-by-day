@@ -76,6 +76,8 @@ export function AgentTaskDetailPage() {
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [isPlanCollapsed, setIsPlanCollapsed] = useState(false);
+  const [isActivityCollapsed, setIsActivityCollapsed] = useState(false);
+  const [isErrorsCollapsed, setIsErrorsCollapsed] = useState(false);
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
@@ -101,6 +103,14 @@ export function AgentTaskDetailPage() {
     : Math.min(95, Math.max(task.progress, steps.length * 5)); // Update progress based on any step if no plan
 
   const displayProgress = isSuccessfullyCompleted ? 100 : Math.max(task.progress, calculatedProgress);
+
+  const getLocalizedCurrentStep = (step: string | undefined | null) => {
+    if (!step) return <span className="animate-pulse">{t('agentTasks.initializing')}</span>;
+    if (step === 'Done') return t('agentTasks.done', 'Completed');
+    if (step === 'Resuming') return t('agentTasks.resuming', 'Resuming...');
+    if (step === 'Analyzing the request') return t('agentTasks.analyzing', 'Analyzing request...');
+    return step;
+  };
 
   const handleDelete = async () => {
     if (!id) return;
@@ -339,7 +349,7 @@ export function AgentTaskDetailPage() {
             <div className="flex-1 min-w-0 space-y-1.5">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-semibold truncate leading-none">
-                  {task.currentStep || (isRunning ? <span className="animate-pulse">{t('agentTasks.initializing')}</span> : t(`agentTasks.statuses.${task.status}`, task.status))}
+                  {getLocalizedCurrentStep(task.currentStep)}
                 </span>
                 <span className="text-[10px] font-bold ml-2 shrink-0 leading-none">
                   {displayProgress}%
@@ -512,7 +522,7 @@ export function AgentTaskDetailPage() {
                 {plannedSteps.map((step, i) => {
                   const done = i < completedPlanCount;
                   return (
-                    <div key={step.id} className={`flex items-start gap-2.5 text-sm ${done ? 'text-dn-text-muted' : 'text-dn-text-main'}`}>
+                    <div key={step.id} className={`flex items-center gap-2.5 text-sm ${done ? 'text-dn-text-muted' : 'text-dn-text-main'}`}>
                       <StepIcon done={done} />
                       <span className={done ? 'line-through' : ''}>{step.description}</span>
                     </div>
@@ -526,34 +536,76 @@ export function AgentTaskDetailPage() {
         {/* Activity timeline */}
         {progressSteps.length > 0 && (
           <Card className="p-4 space-y-4">
-            <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+            <div 
+              role="button"
+              tabIndex={0}
+              onClick={() => setIsActivityCollapsed(!isActivityCollapsed)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setIsActivityCollapsed(!isActivityCollapsed);
+                }
+              }}
+              className="flex items-center gap-2 cursor-pointer select-none"
+            >
               <Icon name="history" className="text-dn-primary text-lg" />
               <h3 className="text-sm font-semibold text-dn-text-main">{t('agentTasks.activity')}</h3>
+              <span className="text-xs text-dn-text-muted bg-white/5 rounded-full px-2 py-0.5 ml-2 font-mono leading-none">
+                {progressSteps.length}
+              </span>
+              <Icon 
+                name="keyboard_arrow_down" 
+                className={`ml-auto text-dn-text-muted transition-transform duration-200 ${!isActivityCollapsed ? 'rotate-180' : ''}`} 
+              />
             </div>
-            <div className="space-y-0.5 pt-1">
-              {progressSteps.map((step, i) => (
-                <ActivityRow key={step.id} step={step} isLast={i === progressSteps.length - 1} status={task.status} />
-              ))}
-            </div>
+            {!isActivityCollapsed && (
+              <div className="space-y-0.5 border-t border-white/5 pt-3 animate-in fade-in duration-250">
+                {progressSteps.map((step, i) => (
+                  <ActivityRow key={step.id} step={step} isLast={i === progressSteps.length - 1} status={task.status} />
+                ))}
+              </div>
+            )}
           </Card>
         )}
 
         {/* Error steps */}
-        {errorSteps.map((step) => (
-          <Card key={step.id} className="p-4 border border-dn-error/40 bg-dn-error/5">
-            <div className="flex items-start gap-2">
-              <Icon name="error" className="text-dn-error mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs font-semibold text-dn-error mb-1">{t('agentTasks.error')}</p>
-                <div className="text-xs text-dn-text-main font-mono prose prose-sm prose-invert max-w-none prose-p:my-0">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {step.description || step.content || ''}
-                  </ReactMarkdown>
-                </div>
-              </div>
+        {errorSteps.length > 0 && (
+          <Card className="p-4 space-y-3 border border-dn-error/35 bg-dn-error/5">
+            <div 
+              role="button"
+              tabIndex={0}
+              onClick={() => setIsErrorsCollapsed(!isErrorsCollapsed)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setIsErrorsCollapsed(!isErrorsCollapsed);
+                }
+              }}
+              className="flex items-center gap-2 cursor-pointer select-none"
+            >
+              <Icon name="error" className="text-dn-error text-lg" />
+              <h3 className="text-sm font-semibold text-dn-error">{t('agentTasks.error', 'Error')}</h3>
+              <span className="text-xs text-dn-error bg-dn-error/15 rounded-full px-2 py-0.5 ml-2 font-mono leading-none">
+                {errorSteps.length}
+              </span>
+              <Icon 
+                name="keyboard_arrow_down" 
+                className={`ml-auto text-dn-error transition-transform duration-200 ${!isErrorsCollapsed ? 'rotate-180' : ''}`} 
+              />
             </div>
+            {!isErrorsCollapsed && (
+              <div className="space-y-3 border-t border-dn-error/15 pt-3 animate-in fade-in duration-250">
+                {errorSteps.map((step) => (
+                  <div key={step.id} className="text-xs text-dn-text-main font-mono prose prose-sm prose-invert max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {step.description || step.content || ''}
+                    </ReactMarkdown>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
-        ))}
+        )}
 
         {/* Previous Results (History) */}
         {previousMessages.length > 0 && (
@@ -588,27 +640,32 @@ export function AgentTaskDetailPage() {
 
         {/* Final response or Thinking state */}
         {(latestMessage?.content || isRunning) && (
-          <Card className={`p-5 border-l-4 bg-dn-surface-low/85 space-y-3 shadow-lg ${
-            isRunning 
-              ? 'border-l-dn-primary animate-pulse' 
-              : 'border-l-green-500 shadow-green-950/5'
-          }`}>
-            <div className="flex items-center gap-2 mb-1">
-              <Icon 
-                name={isRunning ? 'sync' : 'check_circle'} 
-                className={`text-lg ${isRunning ? 'text-dn-primary animate-spin' : 'text-green-500'}`} 
-              />
-              <h3 className={`text-sm font-bold tracking-wide uppercase ${isRunning ? 'text-dn-primary' : 'text-green-500'}`}>
-                {isRunning ? t('agentTasks.generatingResponse', 'Thinking...') : t('agentTasks.result')}
-              </h3>
+          <Card className="p-4 bg-dn-surface-low/50 space-y-3">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+              <div className="flex items-center gap-2">
+                <Icon 
+                  name={isRunning ? 'sync' : isSuccessfullyCompleted ? 'check_circle' : 'error'} 
+                  className={`text-lg ${isRunning ? 'text-dn-primary animate-spin' : isSuccessfullyCompleted ? 'text-dn-success' : 'text-dn-error'}`} 
+                />
+                <h3 className="text-sm font-semibold text-dn-text-main">
+                  {isRunning ? t('agentTasks.generatingResponse', 'Thinking...') : t('agentTasks.result')}
+                </h3>
+              </div>
+              {!isRunning && (
+                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                  isSuccessfullyCompleted ? 'bg-dn-success/10 text-dn-success' : 'bg-dn-error/10 text-dn-error'
+                }`}>
+                  {isSuccessfullyCompleted ? 'OK' : 'ERROR'}
+                </span>
+              )}
             </div>
             {isRunning ? (
-              <div className="space-y-2.5 py-1">
-                <div className="h-2 bg-white/5 rounded w-3/4 animate-pulse" />
-                <div className="h-2 bg-white/5 rounded w-1/2 animate-pulse" />
+              <div className="space-y-2 py-1">
+                <div className="h-2 bg-dn-border/50 rounded w-3/4 animate-pulse" />
+                <div className="h-2 bg-dn-border/50 rounded w-1/2 animate-pulse" />
               </div>
             ) : (
-              <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed selection:bg-green-500/20 border-t border-white/5 pt-3">
+              <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed selection:bg-dn-primary/20 pt-1">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {latestMessage?.content || ''}
                 </ReactMarkdown>
