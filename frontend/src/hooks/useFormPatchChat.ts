@@ -1,18 +1,16 @@
-import { useCallback, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useAlert } from '@/contexts/AlertContext';
-import { formChatService, type FormPatchEntityType, type FormPatchTurn } from '@/services/formChat.service';
-import { filesService } from '@/services/files.service';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport, type FileUIPart, type UIMessage } from 'ai';
+import { BASE_URL } from '@/services/api';
 import { audioService } from '@/services/audio.service';
+import { filesService } from '@/services/files.service';
+import { getUserTimezone } from '@/lib/utils/dateUtils';
 import { useSendCountdown } from '@/hooks/useSendCountdown';
+import i18n from '@/lib/i18n';
+import type { ChatMessage } from '@/store/chatStore';
 import type { FileDto } from '@/models';
-import type { FilePayload } from '@/services/extract.service';
 
-export interface FormChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  text: string;
-}
+export type FormPatchEntityType = 'category' | 'tag' | 'node' | 'template';
 
 interface UseFormPatchChatParams {
   entityType: FormPatchEntityType;
@@ -20,71 +18,145 @@ interface UseFormPatchChatParams {
   onPatch: (patch: Record<string, unknown>) => void;
 }
 
-async function toFilePayload(file: FileDto): Promise<FilePayload> {
-  const response = await fetch(filesService.getContentUrl(file.id));
-  const blob = await response.blob();
-  const dataUrl = await new Promise<string>((resolve, reject) => {
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = () => reject(new Error('data_url_failed'));
     reader.readAsDataURL(blob);
   });
+}
+
+async function toFilePart(file: FileDto): Promise<FileUIPart> {
+  const response = await fetch(filesService.getContentUrl(file.id));
+  const blob = await response.blob();
   return {
-    data: dataUrl.slice(dataUrl.indexOf(',') + 1),
-    mediaType: file.mimeType || blob.type || 'application/octet-stream',
+    type: 'file',
+    mediaType: file.mimeType || blob.type || 'image/jpeg',
+    url: await blobToDataUrl(blob),
     filename: file.fileName,
   };
 }
 
-/** Lightweight, non-agentic mini-chat for small forms (Category/Tag/Node/Template): each turn asks the
- * backend for a structured patch of only the fields the user's message changed, applied via onPatch. */
-export function useFormPatchChat({ entityType, getCurrentValues, onPatch }: UseFormPatchChatParams) {
-  const { t } = useTranslation();
-  const alert = useAlert();
-  const [messages, setMessages] = useState<FormChatMessage[]>([]);
+function textOf(message: UIMessage): string {
+  return message.parts
+    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+    .map((part) => part.text)
+    .join('');
+}
+
+function toolCallsOf(message: UIMessage, isFinished: boolean): NonNullable<ChatMessage['toolCalls']> {
+  return message.parts
+    .filter(
+      (
+        part,
+      ): part is UIMessage['parts'][number] & {
+        toolName?: string;
+        state: string;
+        output?: unknown;
+        input?: unknown;
+        toolCallId?: string;
+        approval?: { id: string; approved?: boolean };
+      } => part.type.startsWith('tool-') || part.type === 'dynamic-tool',
+    )
+    .map((part) => {
+      const name = part.toolName || part.type.replace(/^tool-/, '');
+      return {
+        name,
+        state: isFinished ? 'result' : part.state,
+        output: part.output,
+        args: part.input,
+        toolCallId: part.toolCallId,
+        approval: part.approval,
+      };
+    });
+}
+
+function toDisplayMessage(message: UIMessage, isFinished: boolean): ChatMessage {
+  return {
+    id: message.id,
+    role: message.role === 'assistant' ? 'assistant' : 'user',
+    content: textOf(message),
+    toolCalls: toolCallsOf(message, isFinished),
+    timestamp: new Date().toISOString(),
+  };
+}
+
+export function useFormPatchChat({
+  entityType,
+  getCurrentValues,
+  onPatch,
+}: UseFormPatchChatParams) {
+  const [chatId] = useState(() => crypto.randomUUID());
   const [input, setInput] = useState('');
   const [draftFiles, setDraftFiles] = useState<FileDto[]>([]);
-  const [isPending, setIsPending] = useState(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const { countdown, schedule: scheduleSend, sendNow: triggerSendNow } = useSendCountdown();
+  const getCurrentValuesRef = useRef(getCurrentValues);
+  useEffect(() => {
+    getCurrentValuesRef.current = getCurrentValues;
+  }, [getCurrentValues]);
 
-  const performSend = useCallback(
-    async (text: string, files: FileDto[], userMessage: FormChatMessage) => {
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-      setIsPending(true);
-      try {
-        const conversation: FormPatchTurn[] = messages.map((m) => ({ role: m.role, text: m.text }));
-        const filePayloads = await Promise.all(files.map(toFilePayload));
-        const { patch, reply } = await formChatService.send(
-          {
-            entityType,
-            currentValues: getCurrentValues(),
-            conversation,
-            message: text,
-            files: filePayloads.length ? filePayloads : undefined,
-          },
-          controller.signal,
-        );
-        if (Object.keys(patch).length > 0) onPatch(patch);
-        setMessages((prev) => [...prev, { id: `msg-${Date.now()}-a`, role: 'assistant', text: reply }]);
-      } catch (error) {
-        setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
-        setInput(text);
-        setDraftFiles(files);
-        if (!(error instanceof DOMException && error.name === 'AbortError')) {
-          alert.error(error instanceof Error ? error.message : t('common.error'));
-        }
-      } finally {
-        abortControllerRef.current = null;
-        setIsPending(false);
-      }
+  const prepareSendMessagesRequest = useCallback(
+    ({ messages }: { messages: UIMessage[] }) => {
+      return {
+        headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language },
+        body: {
+          entityType,
+          messages,
+          currentValues: JSON.stringify(getCurrentValuesRef.current()),
+        },
+      };
     },
-    [messages, entityType, getCurrentValues, onPatch, alert, t],
+    [entityType],
   );
 
-  const handleSend = useCallback(() => {
+  const transport = useMemo(() => new DefaultChatTransport({ api: `${BASE_URL}/ai/form-chat`, prepareSendMessagesRequest }), [prepareSendMessagesRequest]);
+
+  const {
+    messages: uiMessages,
+    status,
+    setMessages,
+    sendMessage,
+    stop,
+  } = useChat({
+    id: chatId,
+    transport,
+  });
+
+  const isPending = status === 'submitted' || status === 'streaming';
+  const { countdown, schedule: scheduleSend, sendNow: triggerSendNow } = useSendCountdown();
+
+  const messages = useMemo(() => {
+    return uiMessages
+      .map((msg, idx) => {
+        const isLast = idx === uiMessages.length - 1;
+        const isFinished = !isPending || !isLast || textOf(msg).trim().length > 0;
+        return toDisplayMessage(msg, isFinished);
+      })
+      .filter((msg) => msg.content.trim().length > 0 || (msg.toolCalls && msg.toolCalls.length > 0));
+  }, [uiMessages, isPending]);
+
+  const appliedPatchToolCallIds = useRef(new Set<string>());
+
+  useEffect(() => {
+    for (const message of messages) {
+      for (const call of message.toolCalls ?? []) {
+        if (call.name !== 'patch_form') continue;
+        
+        if (call.toolCallId && !appliedPatchToolCallIds.current.has(call.toolCallId)) {
+          appliedPatchToolCallIds.current.add(call.toolCallId);
+          // Only apply the non-null properties dynamically mapped by the tool
+          const rawArgs = (call.args ?? {}) as Record<string, unknown>;
+          const patch = Object.fromEntries(Object.entries(rawArgs).filter(([, v]) => v !== null && v !== undefined));
+          if (Object.keys(patch).length > 0) {
+            onPatch(patch);
+          }
+        }
+      }
+    }
+  }, [messages, onPatch]);
+
+  const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text && draftFiles.length === 0) return;
 
@@ -92,20 +164,15 @@ export function useFormPatchChat({ entityType, getCurrentValues, onPatch }: UseF
     setInput('');
     setDraftFiles([]);
 
-    const userMessage: FormChatMessage = {
-      id: `msg-${Date.now()}-u`,
+    const fileParts = await Promise.all(files.map(toFilePart));
+    const newMessage: UIMessage = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       role: 'user',
-      text: text || t('ai.chatWidget.attachedFile'),
+      parts: [...(text ? [{ type: 'text' as const, text }] : []), ...fileParts],
     };
-    setMessages((prev) => [...prev, userMessage]);
-    scheduleSend(() => {
-      void performSend(text, files, userMessage);
-    });
-  }, [input, draftFiles, t, scheduleSend, performSend]);
-
-  const handleStop = useCallback(() => {
-    abortControllerRef.current?.abort();
-  }, []);
+    setMessages((prev) => [...prev, newMessage]);
+    scheduleSend(() => sendMessage());
+  }, [input, draftFiles, setMessages, sendMessage, scheduleSend]);
 
   const applyTranscribedText = useCallback((transcription: string) => {
     const text = transcription.trim();
@@ -145,6 +212,6 @@ export function useFormPatchChat({ entityType, getCurrentValues, onPatch }: UseF
     handleRemoveFile,
     countdown,
     triggerSendNow,
-    handleStop,
+    handleStop: stop,
   };
 }

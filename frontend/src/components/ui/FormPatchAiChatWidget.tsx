@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { AiChatWidget } from '@/components/ui/AiChatWidget';
-import { AiChatBubble } from '@/components/ui/AiChatBubble';
-import { useFormPatchChat } from '@/hooks/useFormPatchChat';
-import type { FormPatchEntityType } from '@/services/formChat.service';
+import { ChatMessage } from '@/components/chat/ChatMessage';
+import { useFormPatchChat, type FormPatchEntityType } from '@/hooks/useFormPatchChat';
 
 interface FormPatchAiChatWidgetProps {
   entityType: FormPatchEntityType;
@@ -46,7 +45,15 @@ export function FormPatchAiChatWidget({ entityType, getCurrentValues, onPatch }:
       onStop={handleStop}
     >
       {messages.map((message) => (
-        <AiChatBubble key={message.id} role={message.role} text={message.text} />
+        <ChatMessage
+          key={message.id}
+          message={{
+            id: message.id,
+            role: message.role,
+            content: message.text,
+            timestamp: new Date().toISOString(),
+          }}
+        />
       ))}
     </AiChatWidget>
   );

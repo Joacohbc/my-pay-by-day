@@ -1,11 +1,12 @@
-import { generateObject, type ModelMessage } from 'ai';
+import { streamText, tool, stepCountIs, type ModelMessage } from 'ai';
 import { z } from 'zod';
 import { createApiClient, unwrap } from '@/backend/client.js';
 import { EVENT_TYPES, FINANCE_NODE_TYPES } from '@/backend/enums.js';
 import type { components } from '@/backend/schema.js';
 import { languageName, type RequestContext } from '@/context.js';
-import { fastModel } from '@/models.js';
+import { largeModel } from '@/models.js';
 import { logger } from '@/logging/logger.js';
+import { buildFinanceTools } from '@/tools/finance.js';
 
 const formPatchLog = logger.child('formPatch');
 
@@ -26,14 +27,7 @@ export interface FormPatchTurn {
 export interface FormPatchInput {
   entityType: FormPatchEntityType;
   currentValues: Record<string, unknown>;
-  conversation: FormPatchTurn[];
-  message: string;
-  files?: FormPatchFileInput[];
-}
-
-export interface FormPatchResult {
-  patch: Record<string, unknown>;
-  reply: string;
+  messages: ModelMessage[];
 }
 
 const ENTITY_LABEL: Record<FormPatchEntityType, string> = {
@@ -81,13 +75,6 @@ const PATCH_SCHEMA_BY_ENTITY = {
   template: templatePatchSchema,
 };
 
-function schemaFor(entityType: FormPatchEntityType) {
-  return z.object({
-    patch: PATCH_SCHEMA_BY_ENTITY[entityType],
-    reply: z.string().describe("Short, friendly reply describing what you changed, in the user's language."),
-  });
-}
-
 function compactList<T extends object>(items: T[], fields: Array<keyof T & string>): string {
   return items
     .map((it) => `[${fields.map((f) => `${f}=${(it as Record<string, unknown>)[f] ?? ''}`).join(', ')}]`)
@@ -108,48 +95,64 @@ async function groundingFor(ctx: RequestContext, entityType: FormPatchEntityType
   );
 }
 
-/** Generates a partial patch (only the fields the user asked to change) for a form-attached mini-chat, plus a short reply. */
-export async function generateFormPatch(ctx: RequestContext, input: FormPatchInput): Promise<FormPatchResult> {
+/** Streams a partial patch (only the fields the user asked to change) for a form-attached mini-chat, plus a short reply. */
+export async function streamFormPatch(ctx: RequestContext, input: FormPatchInput) {
   const grounding = await groundingFor(ctx, input.entityType);
   const system = [
     `You help the user fill in a "${ENTITY_LABEL[input.entityType]}" form in a personal finance app, through a short chat.`,
     `CURRENT FORM VALUES:\n${JSON.stringify(input.currentValues)}`,
     grounding,
-    `\nReturn a patch with ONLY the fields the user's latest message asks to change — leave every other field null.`,
-    `Never invent IDs; only use IDs from the lists provided. If the user attaches an image/file, use it as the source`,
-    `of truth for the fields it clearly shows (e.g. a logo, a receipt).`,
-    `Also return a short "reply" summarizing what you changed (or, if nothing applied, why), in ${languageName(ctx.lang)}.`,
+    `\nYou have tools to query the user's financial data to help them fill the form.`,
+    `To apply edits to the form, you MUST call the "patch_form" tool with ONLY the fields the user wants to change (leave others null).`,
+    `Never invent IDs; search for the correct entity using your tools if needed, or use IDs from the grounding lists provided.`,
+    `If the user attaches an image/file, use it as the source of truth for the fields it clearly shows.`,
+    `Your final text response should be a short friendly reply summarizing what you changed (or why you couldn't), in ${languageName(ctx.lang)}.`,
   ].join('\n');
 
-  const userContent: Array<
-    | { type: 'text'; text: string }
-    | { type: 'image'; image: string; mediaType: string }
-    | { type: 'file'; data: string; mediaType: string; filename?: string }
-  > = [];
-  if (input.message) userContent.push({ type: 'text', text: input.message });
-  for (const file of input.files ?? []) {
-    if (file.mediaType.startsWith('image/')) {
-      userContent.push({ type: 'image', image: file.data, mediaType: file.mediaType });
-    } else {
-      userContent.push({ type: 'file', data: file.data, mediaType: file.mediaType, filename: file.filename });
-    }
-  }
-  if (userContent.length === 0) userContent.push({ type: 'text', text: 'Apply the requested changes.' });
-
-  const messages: ModelMessage[] = [
-    ...input.conversation.map((turn): ModelMessage => ({ role: turn.role, content: turn.text })),
-    { role: 'user', content: userContent },
-  ];
+  const financeTools = buildFinanceTools(ctx);
+  const readTools = Object.fromEntries(
+    Object.entries(financeTools)
+      .filter(([, t]) => t.kind === 'READ')
+      .map(([name, t]) => [name, t.tool])
+  );
 
   try {
-    const { object } = await generateObject({
-      model: fastModel(),
-      schema: schemaFor(input.entityType),
+    const result = streamText({
+      model: largeModel(),
       system,
-      messages,
+      messages: input.messages,
+      stopWhen: stepCountIs(5),
+      tools: {
+        ...readTools,
+        patch_form: input.entityType === 'category' ? tool({
+          description: `Apply changes to the category form. You must call this tool to apply any edits requested by the user.`,
+          inputSchema: categoryPatchSchema,
+          execute: async () => {
+            return { success: true };
+          },
+        }) : input.entityType === 'tag' ? tool({
+          description: `Apply changes to the tag form. You must call this tool to apply any edits requested by the user.`,
+          inputSchema: tagPatchSchema,
+          execute: async () => {
+            return { success: true };
+          },
+        }) : input.entityType === 'node' ? tool({
+          description: `Apply changes to the node form. You must call this tool to apply any edits requested by the user.`,
+          inputSchema: nodePatchSchema,
+          execute: async () => {
+            return { success: true };
+          },
+        }) : tool({
+          description: `Apply changes to the template form. You must call this tool to apply any edits requested by the user.`,
+          inputSchema: templatePatchSchema,
+          execute: async () => {
+            return { success: true };
+          },
+        }),
+      },
     });
-    const patch = Object.fromEntries(Object.entries(object.patch).filter(([, value]) => value !== null && value !== undefined));
-    return { patch, reply: object.reply };
+    
+    return result;
   } catch (e) {
     formPatchLog.error('form patch generation failed', { error: (e as Error).message, entityType: input.entityType });
     throw e;
