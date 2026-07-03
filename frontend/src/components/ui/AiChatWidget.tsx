@@ -6,8 +6,6 @@ import { ChatInput } from '@/components/chat/ChatInput';
 import type { FileDto } from '@/models';
 
 interface AiChatWidgetProps {
-  /** 'modal' anchors inside a scrollable Modal body; 'page' pins to the viewport corner (full-page forms). */
-  variant: 'modal' | 'page';
   isLoading?: boolean;
   hasMessages: boolean;
   children: ReactNode;
@@ -29,7 +27,6 @@ interface AiChatWidgetProps {
 }
 
 export function AiChatWidget({
-  variant,
   isLoading = false,
   hasMessages,
   children,

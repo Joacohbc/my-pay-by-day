@@ -30,7 +30,6 @@ export function FormPatchAiChatWidget({ entityType, getCurrentValues, onPatch }:
 
   return (
     <AiChatWidget
-      variant="modal"
       isLoading={isPending}
       hasMessages={messages.length > 0}
       inputContent={input}

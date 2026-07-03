@@ -39,7 +39,6 @@ export function EventAiChatWidget({ draftId, onEnsureDraft, onDraftIdResolved, o
 
   return (
     <AiChatWidget
-      variant="page"
       isLoading={isPending}
       hasMessages={messages.length > 0}
       inputContent={input}
