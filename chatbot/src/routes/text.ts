@@ -23,7 +23,6 @@ interface TextRequest {
   action: TextAction;
   context?: string;
   currentValue?: string;
-  customPrompt?: string;
   categoryId?: number;
   amount?: number;
   instruction?: string;
@@ -93,7 +92,7 @@ textRoute.post('/', async (c) => {
     return c.json({ error: 'instruction is required' }, 400);
   }
 
-  const base = req.customPrompt?.trim() || BASE_PROMPT[req.action];
+  const base = BASE_PROMPT[req.action];
   const system =
     `You are a personal-finance writing assistant. ${base}\n` +
     `OUTPUT RULES: return ONLY the resulting plain text — no markdown, no quotes, no explanation. ` +

@@ -12,7 +12,6 @@ import { formatCurrency, eventNetAmount } from '@/lib/format';
 import { Routes, eventsRoute } from '@/lib/routes';
 import { aiService } from '@/services/ai.service';
 import { useAlert } from '@/contexts/AlertContext';
-import { useAiPromptsStore } from '@/store/aiPromptsStore';
 import type { Category, FinanceEvent, Tag } from '@/models';
 
 type MergeStep = 'select-base' | 'select-sources' | 'configure-grouping' | 'configure-meta' | 'confirm';
@@ -30,7 +29,6 @@ export function MergeEventsModal({
   const { navigate } = useAppNavigation();
   const alert = useAlert();
   const mergeEvents = useMergeEvents();
-  const getPromptForAction = useAiPromptsStore((s) => s.getPromptForAction);
 
   const [step, setStep] = useState<MergeStep>('select-base');
   const [baseEvent, setBaseEvent] = useState<FinanceEvent | null>(null);
@@ -144,7 +142,6 @@ export function MergeEventsModal({
       const result = await aiService.generateText({
         action: 'MERGE_DESCRIPTION',
         context: allDescriptions,
-        customPrompt: getPromptForAction('mergeDescription'),
       });
       setMergedDescription(result.text);
     } catch (err) {

@@ -307,8 +307,8 @@ export function SettingsPage() {
           <SettingRow
             to={Routes.SETTINGS_AI}
             icon="auto_awesome"
-            title={t('ai.settings.title')}
-            subtitle={t('settings.aiDesc')}
+            title={t('ai.memory.title')}
+            subtitle={t('ai.memory.subtitle')}
           />
           <SettingRow
             to={Routes.SETTINGS_DUPLICATES}

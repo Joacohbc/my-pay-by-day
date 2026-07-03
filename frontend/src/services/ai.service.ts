@@ -13,7 +13,6 @@ export interface AiTextRequest {
   action: AiTextAction;
   context?: string;
   currentValue?: string;
-  customPrompt?: string;
   /** Optional grounding for SUGGEST_*_FROM_SIMILAR: filter similar past events. */
   categoryId?: number;
   amount?: number;
