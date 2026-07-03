@@ -415,7 +415,7 @@ export function AgentTaskDetailPage() {
                   <h4 className="text-sm font-semibold text-dn-text-main mb-2">{t('agentTasks.attachments')}</h4>
                   <div className="flex flex-col gap-2">
                     {task.attachments.map((att) => (
-                      <FileCard key={att.id} file={{ ...att, size: att.sizeBytes || 0 }} />
+                      <FileCard key={att.id} file={{ ...att, size: att.sizeBytes || 0 }} hideEventLinks />
                     ))}
                   </div>
                 </div>

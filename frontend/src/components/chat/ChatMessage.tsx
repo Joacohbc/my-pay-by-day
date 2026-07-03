@@ -9,7 +9,7 @@ import { InlineTaskCard } from '@/components/agent-tasks/InlineTaskCard';
 import { InlineEventCard, InlineDraftCard, InlineTagCard, InlineCategoryCard } from '@/components/chat/InlineEntityCard';
 import { InlineToolApprovalCard } from '@/components/chat/InlineToolApprovalCard';
 import { extractEntityRefs } from '@/components/chat/chatEntityRefs';
-import { getFileIcon } from '@/lib/fileUtils';
+import { getFileIcon, getFileTypeLabel } from '@/lib/fileUtils';
 import type { ChatMessage as ChatMessageType } from '@/store/chatStore';
 
 interface ChatMessageProps {
@@ -191,7 +191,7 @@ export function ChatMessage({ message, onEdit, onApprove }: ChatMessageProps) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-dn-text-main truncate">{file.name}</p>
                     <p className="text-xs text-dn-text-muted truncate">
-                      {file.type.split('/')[1] || file.type}
+                      {getFileTypeLabel(file.name, file.type)}
                     </p>
                   </div>
                 </a>

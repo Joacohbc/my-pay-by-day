@@ -18,6 +18,7 @@ const en = {
     archived: 'Archived',
     moreActions: 'More actions',
     view: 'View',
+    download: 'Download',
     add: 'Add',
     search: 'Search...',
     select: 'Select',
@@ -555,6 +556,13 @@ const en = {
     all: 'All',
     orphansOnly: 'Orphans',
     linkedOnly: 'Linked',
+    preview: {
+      title: 'Preview',
+      failed: 'Failed to load preview.',
+      unavailable: 'Preview not available for this file type.',
+      converting: 'Generating preview…',
+      download: 'Download file',
+    },
   },
 
   // ─── AI ──────────────────────────────────────────────────────────────────

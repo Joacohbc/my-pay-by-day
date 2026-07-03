@@ -18,6 +18,7 @@ const es = {
     archived: 'Archivado',
     moreActions: 'Más acciones',
     view: 'Ver',
+    download: 'Descargar',
     add: 'Agregar',
     search: 'Buscar',
     select: 'Seleccionar',
@@ -554,6 +555,13 @@ const es = {
     all: 'Todos',
     orphansOnly: 'Huérfanos',
     linkedOnly: 'Vinculados',
+    preview: {
+      title: 'Vista previa',
+      failed: 'No se pudo cargar la vista previa.',
+      unavailable: 'Vista previa no disponible para este tipo de archivo.',
+      converting: 'Generando vista previa…',
+      download: 'Descargar archivo',
+    },
   },
 
   // ─── AI ──────────────────────────────────────────────────────────────────

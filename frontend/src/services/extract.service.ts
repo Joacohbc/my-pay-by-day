@@ -30,6 +30,11 @@ export const extractService = {
   fromImage: (files: FilePayload[], templateId?: number): Promise<{ event: ExtractedEvent }> =>
     api.post<{ event: ExtractedEvent }>('/ai/events/from-image', { files, templateId }),
 
+  /** Convert a document (docx, xlsx, csv, …) to Markdown via the MarkItDown sidecar. Rejects with a
+   * non-2xx error when the sidecar is disabled or cannot handle the file. */
+  toMarkdown: (file: FilePayload): Promise<{ markdown: string }> =>
+    api.post<{ markdown: string }>('/ai/files/markdown', file),
+
   /**
    * Extract an event from free text and/or files (optionally using a template); optionally persist it
    * as a draft. When `chatId` is provided and a draft is created, the backend also appends the exchange

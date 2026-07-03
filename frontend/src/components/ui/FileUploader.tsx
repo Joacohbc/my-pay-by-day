@@ -6,7 +6,6 @@ import { Modal } from '@/components/ui/Modal';
 import { useFiles, useUploadFile } from '@/hooks/useFiles';
 import { FileCard } from '@/components/files/FileCard';
 import type { FileDto } from '@/models';
-import { getFileIcon } from '@/lib/fileUtils';
 
 interface FileSelectorModalProps {
   open: boolean;
@@ -54,23 +53,12 @@ function FileSelectorModal({ open, onClose, onSelect, excludeIds }: FileSelector
         ) : (
           <div className="space-y-2 max-h-72 overflow-y-auto">
             {files.map((file) => (
-              <button
+              <FileCard
                 key={file.id}
-                type="button"
-                onClick={() => onSelect(file)}
-                className="w-full flex items-center gap-3 p-3 bg-dn-surface-low hover:bg-dn-surface rounded-xl border border-white/5 hover:border-dn-primary/30 transition-all text-left"
-              >
-                <div className="w-9 h-9 shrink-0 bg-dn-surface rounded-lg flex items-center justify-center text-dn-text-muted">
-                  <Icon name={getFileIcon(file.mimeType)} className="text-base" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-dn-text-main truncate">{file.fileName}</p>
-                  <p className="text-xs text-dn-text-muted">
-                    {(file.size / 1024).toFixed(1)} KB · {file.mimeType.split('/')[1] || file.mimeType}
-                  </p>
-                </div>
-                <Icon name="add_circle" className="text-dn-primary shrink-0" />
-              </button>
+                file={file}
+                onSelect={() => onSelect(file)}
+                hideEventLinks
+              />
             ))}
           </div>
         )}
@@ -151,6 +139,7 @@ export function FileUploader({ files, onAddFile, onRemoveFile, accept = DEFAULT_
             key={file.id}
             file={file}
             onDelete={() => onRemoveFile(file.id)}
+            hideEventLinks
           />
         ))}
 
