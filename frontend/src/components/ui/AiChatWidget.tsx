@@ -54,11 +54,9 @@ export function AiChatWidget({
     if (open) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [open, hasMessages, isLoading]);
 
-  // 'sticky' (not absolute/fixed) keeps the launcher anchored to the bottom of the modal's own
-  // scrollable body, instead of escaping its rounded corners or floating over the backdrop.
-  const wrapperClass =
-    variant === 'page' ? 'fixed bottom-25 left-5 z-50' : 'sticky bottom-3 z-20 flex justify-end pointer-events-none';
-  const surfaceClass = variant === 'modal' ? 'pointer-events-auto' : '';
+  // Always fixed at page level with max z-index, regardless of variant
+  const wrapperClass = 'fixed bottom-6 right-6 z-[9999] flex flex-col items-end pointer-events-none';
+  const surfaceClass = 'pointer-events-auto';
 
   if (!open) {
     return (
@@ -79,7 +77,7 @@ export function AiChatWidget({
   return (
     <div className={wrapperClass}>
       <div
-        className={`${surfaceClass} w-full max-w-sm bg-dn-surface border border-white/10 rounded-card shadow-xl flex flex-col max-h-[60vh]`}
+        className={`${surfaceClass} w-[90vw] sm:w-[384px] bg-dn-surface border border-white/10 rounded-card shadow-xl flex flex-col max-h-[60vh]`}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-dn-bg/30">
           <div className="flex items-center gap-2 text-sm font-semibold text-dn-text-main">
