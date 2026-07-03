@@ -112,6 +112,11 @@ agentTasksRoute.delete('/:id', (c) => {
 
 agentTasksRoute.patch('/:id/mode', async (c) => {
   const id = c.req.param('id');
+  const task = agentStore.rawTask(id);
+  if (!task) return c.json({ error: 'not found' }, 404);
+  if (task.status === 'RUNNING' || task.status === 'RETRYING') {
+    return c.json({ error: 'Cannot change execution mode while the task is running.' }, 409);
+  }
   const raw = await c.req.text();
   let mode = raw.trim().replace(/^"|"$/g, '');
   try {

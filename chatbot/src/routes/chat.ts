@@ -1,7 +1,7 @@
 import { convertToModelMessages, stepCountIs, streamText, type ModelMessage, type UIMessage } from 'ai';
 import { chatGenerationTracker } from './chatGenerationTracker.js';
 import { Hono } from 'hono';
-import { buildAllTools, toolsForMode } from '@/agent/buildTools.js';
+import { buildAllTools, toolsForModeWithApproval } from '@/agent/buildTools.js';
 import { buildBackgroundTools } from '@/tools/background.js';
 import { buildDelegateTools } from '@/tools/delegate.js';
 import { config } from '@/config.js';
@@ -14,9 +14,12 @@ import { longTermMemory } from '@/memory/longTerm.js';
 import { logger } from '@/logging/logger.js';
 import { largeModel } from '@/models.js';
 import { chatSystemPrompt, type ExecutionMode } from '@/prompts/system.js';
+import type { ToolKind } from '@/tools/types.js';
 
 const chatLog = logger.child('chat');
 const CHAT_EXECUTION_MODE: ExecutionMode = 'AUTONOMOUS';
+/** Tool kinds that require explicit human approval before executing in the interactive chat. */
+const CHAT_APPROVAL_KINDS: ReadonlySet<ToolKind> = new Set(['WRITE', 'DRAFT_CONFIRM']);
 
 function toolOutputsByCallId(history: ModelMessage[]): Map<string, unknown> {
   const outputs = new Map<string, unknown>();
@@ -27,6 +30,22 @@ function toolOutputsByCallId(history: ModelMessage[]): Map<string, unknown> {
     }
   }
   return outputs;
+}
+
+/** Maps toolCallId -> approvalId for every pending tool-approval-request found in an assistant's history. */
+function pendingApprovalsByToolCallId(history: ModelMessage[]): Map<string, string> {
+  const pending = new Map<string, string>();
+  for (const message of history) {
+    if (message.role !== 'assistant' || !Array.isArray(message.content)) continue;
+    for (const part of message.content) {
+      if (part.type === 'tool-approval-request') pending.set(part.toolCallId, part.approvalId);
+    }
+  }
+  return pending;
+}
+
+function isApprovalResponseMessage(message: UIMessage): boolean {
+  return message.role === 'assistant' && message.parts.some((part) => 'state' in part && part.state === 'approval-responded');
 }
 
 interface ChatBody {
@@ -48,22 +67,55 @@ chatRoute.post('/', async (c) => {
   if (!chatId) return c.json({ error: 'chatId is required' }, 400);
   const ctx = { ...requestContextFrom(c), chatId };
 
+  const chatTools = toolsForModeWithApproval(
+    buildAllTools(ctx, { ...buildBackgroundTools(ctx), ...buildDelegateTools(ctx, CHAT_EXECUTION_MODE) }),
+    CHAT_EXECUTION_MODE,
+    CHAT_APPROVAL_KINDS,
+  );
+
   const incoming = body.messages ?? [];
-  const userMessages = await convertToModelMessages(incoming.filter((m) => m.role === 'user'));
-  if (userMessages.length === 0) return c.json({ error: 'a user message is required' }, 400);
+  const userUIMessages = incoming.filter((m) => m.role === 'user');
+  const userMessages = await convertToModelMessages(userUIMessages);
+  const approvalUIMessages = incoming.filter(isApprovalResponseMessage);
 
-  const userText = userMessages
-    .map((m) => {
-      if (typeof m.content === 'string') return m.content;
-      if (Array.isArray(m.content)) {
-        return m.content.map((part) => (part.type === 'text' ? part.text : '')).join('');
+  if (userMessages.length === 0 && approvalUIMessages.length === 0) {
+    return c.json({ error: 'a user message or tool approval response is required' }, 400);
+  }
+
+  if (userMessages.length > 0) {
+    const userText = userMessages
+      .map((m) => {
+        if (typeof m.content === 'string') return m.content;
+        if (Array.isArray(m.content)) {
+          return m.content.map((part) => (part.type === 'text' ? part.text : '')).join('');
+        }
+        return '';
+      })
+      .join(' ');
+    chatLog.info('chat request', { chatId, tz: ctx.timezone, lang: ctx.lang, user: userText });
+    conversationMemory.append(chatId, userMessages);
+  }
+
+  if (approvalUIMessages.length > 0) {
+    // Never trust the client's echoed assistant message wholesale — the tool-call/tool-approval-request
+    // it carries is already persisted from the prior turn's onFinish. Extract only the one new fact the
+    // client is allowed to report: the approval decision (a 'tool'-role message), and discard the rest.
+    let approvedCount = 0;
+    let deniedCount = 0;
+    for (const approvalMessage of approvalUIMessages) {
+      const converted = await convertToModelMessages([approvalMessage], { tools: chatTools });
+      const toolMessages = converted.filter((m): m is ModelMessage & { role: 'tool' } => m.role === 'tool');
+      conversationMemory.append(chatId, toolMessages);
+      for (const part of approvalMessage.parts) {
+        if ('state' in part && part.state === 'approval-responded' && 'approval' in part) {
+          if (part.approval.approved) approvedCount++;
+          else deniedCount++;
+        }
       }
-      return '';
-    })
-    .join(' ');
-  chatLog.info('chat request', { chatId, tz: ctx.timezone, lang: ctx.lang, user: userText });
+    }
+    chatLog.info('chat approval response', { chatId, approvedCount, deniedCount });
+  }
 
-  conversationMemory.append(chatId, userMessages);
   await compactIfNeeded(chatId, ctx.lang);
   const modelMessages = buildModelContext(chatId);
 
@@ -78,10 +130,7 @@ chatRoute.post('/', async (c) => {
       memories: longTermMemory.contents(),
     }),
     messages: modelMessages,
-    tools: toolsForMode(
-      buildAllTools(ctx, { ...buildBackgroundTools(ctx), ...buildDelegateTools(ctx, CHAT_EXECUTION_MODE) }),
-      CHAT_EXECUTION_MODE,
-    ),
+    tools: chatTools,
     stopWhen: stepCountIs(config.agent.maxSteps),
     onFinish: ({ text, steps }) => {
       chatGenerationTracker.markGenerationComplete(chatId);
@@ -105,6 +154,7 @@ chatRoute.get('/:chatId', (c) => {
   const chatId = c.req.param('chatId');
   const history = conversationMemory.load(chatId);
   const outputsByCallId = toolOutputsByCallId(history);
+  const pendingApprovals = pendingApprovalsByToolCallId(history);
   const uiMessages = history
     .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
     .map((msg, index) => {
@@ -127,14 +177,27 @@ chatRoute.get('/:chatId', (c) => {
               url: part.data,
             });
           } else if (part.type === 'tool-call') {
-            parts.push({
-              type: `tool-${part.toolName}`,
-              toolName: part.toolName,
-              toolCallId: part.toolCallId,
-              state: 'result',
-              input: part.input,
-              output: outputsByCallId.get(part.toolCallId),
-            });
+            const approvalId = pendingApprovals.get(part.toolCallId);
+            const isPendingApproval = approvalId != null && !outputsByCallId.has(part.toolCallId);
+            parts.push(
+              isPendingApproval
+                ? {
+                    type: `tool-${part.toolName}`,
+                    toolName: part.toolName,
+                    toolCallId: part.toolCallId,
+                    state: 'approval-requested',
+                    input: part.input,
+                    approval: { id: approvalId },
+                  }
+                : {
+                    type: `tool-${part.toolName}`,
+                    toolName: part.toolName,
+                    toolCallId: part.toolCallId,
+                    state: 'result',
+                    input: part.input,
+                    output: outputsByCallId.get(part.toolCallId),
+                  },
+            );
           }
         }
       }

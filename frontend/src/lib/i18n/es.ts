@@ -102,10 +102,24 @@ const es = {
     messagesCount: '{{count}} mensajes',
     backToList: 'Volver a conversaciones',
     subtask: 'Subtarea',
+    instantDraft: {
+      toggle: 'Borrador instantáneo',
+      placeholder: 'Describí una transacción para crear un borrador al instante...',
+      active: 'El modo borrador instantáneo está activo — tu próximo mensaje crea un borrador directamente.',
+      creating: 'Creando borrador...',
+      failed: 'No se pudo crear el borrador. Intentá de nuevo.',
+    },
     stepLimit: {
       title: 'El asistente alcanzó el límite de pasos',
       continue: 'Continuar',
       continueMessage: 'Continúa donde quedaste.',
+    },
+    approval: {
+      title: 'Se requiere aprobación',
+      approve: 'Aprobar',
+      reject: 'Rechazar',
+      approved: 'Aprobado',
+      rejected: 'Rechazado',
     },
     tools: {
       steps: 'Pasos del agente',
@@ -274,8 +288,8 @@ const es = {
 
   // ─── Event Form ──────────────────────────────────────────────────────────
   eventForm: {
-    extractFromImage: 'Completar desde imagen con IA',
-    extractFromImageDone: 'Formulario precompletado desde la imagen',
+    extractFromFile: 'Completar desde archivo con IA',
+    extractFromFileDone: 'Formulario precompletado desde el archivo',
     eventName: 'Nombre del Evento',
     eventNamePlaceholder: 'ej. Cena con amigos',
     description: 'Descripción',
@@ -545,14 +559,13 @@ const es = {
   // ─── AI ──────────────────────────────────────────────────────────────────
   ai: {
     actions: {
-      title: 'Acciones de IA',
-      targetField: 'Campo objetivo',
       generate: 'Generar con IA',
-      suggestFromSimilar: 'Sugerir según similares',
-      fixSpelling: 'Corregir ortografía',
       voiceInput: 'Dictar por voz',
       stopVoiceInput: 'Detener grabación de voz',
       enableMic: 'Habilitar micrófono',
+      improve: 'Mejorar con IA',
+      voiceInstruct: 'Mejorar por instrucción de voz',
+      stopVoiceInstruct: 'Detener grabación de instrucción',
     },
     settings: {
       title: 'Prompts de IA',
@@ -562,16 +575,16 @@ const es = {
       generateNamePlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
       generateDescriptionLabel: 'Prompt para Generar Descripción',
       generateDescriptionPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
-      fixNameSpellingLabel: 'Prompt para Corregir Ortografía del Nombre',
-      fixNameSpellingPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
-      fixDescriptionSpellingLabel: 'Prompt para Corregir Ortografía de la Descripción',
-      fixDescriptionSpellingPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
       mergeDescriptionLabel: 'Prompt para Unificar Descripciones',
       mergeDescriptionPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
       suggestNameFromSimilarLabel: 'Prompt para Sugerir Nombre (según eventos similares)',
       suggestNameFromSimilarPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
       suggestDescriptionFromSimilarLabel: 'Prompt para Sugerir Descripción (según eventos similares)',
       suggestDescriptionFromSimilarPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
+      improveTextLabel: 'Prompt para Mejorar Texto',
+      improveTextPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
+      applyInstructionsLabel: 'Prompt para Mejorar por Instrucción de Voz',
+      applyInstructionsPlaceholder: 'Dejá vacío para usar el prompt predeterminado...',
       saved: 'Prompts de IA guardados',
       reset: 'Restablecer predeterminados',
     },

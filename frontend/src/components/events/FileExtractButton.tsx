@@ -5,24 +5,28 @@ import { Spinner } from '@/components/ui/Spinner';
 import { useAlert } from '@/contexts/AlertContext';
 import { extractService, type ExtractedEvent } from '@/services/extract.service';
 
-interface ImageExtractButtonProps {
+interface FileExtractButtonProps {
   templateId?: number;
   onExtracted: (event: ExtractedEvent) => void;
 }
 
-function readAsBase64(file: File): Promise<{ data: string; mediaType: string }> {
+function readAsBase64(file: File): Promise<{ data: string; mediaType: string; filename: string }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      resolve({ data: result.slice(result.indexOf(',') + 1), mediaType: file.type || 'image/jpeg' });
+      resolve({
+        data: result.slice(result.indexOf(',') + 1),
+        mediaType: file.type || 'application/octet-stream',
+        filename: file.name,
+      });
     };
     reader.onerror = () => reject(new Error('read_failed'));
     reader.readAsDataURL(file);
   });
 }
 
-export function ImageExtractButton({ templateId, onExtracted }: ImageExtractButtonProps) {
+export function FileExtractButton({ templateId, onExtracted }: FileExtractButtonProps) {
   const { t } = useTranslation();
   const alert = useAlert();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -35,10 +39,10 @@ export function ImageExtractButton({ templateId, onExtracted }: ImageExtractButt
 
     setLoading(true);
     try {
-      const image = await readAsBase64(file);
-      const { event: extracted } = await extractService.fromImage([image], templateId);
+      const filePayload = await readAsBase64(file);
+      const { event: extracted } = await extractService.fromImage([filePayload], templateId);
       onExtracted(extracted);
-      alert.success(t('eventForm.extractFromImageDone'));
+      alert.success(t('eventForm.extractFromFileDone'));
     } catch (error) {
       alert.error(error instanceof Error ? error.message : t('common.error'));
     } finally {
@@ -48,15 +52,21 @@ export function ImageExtractButton({ templateId, onExtracted }: ImageExtractButt
 
   return (
     <>
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*,application/pdf,.pdf"
+        className="hidden"
+        onChange={handleFile}
+      />
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={loading}
         className="flex items-center justify-center gap-2 w-full rounded-input border border-dashed border-dn-border px-3 py-2.5 text-sm text-dn-text-muted hover:text-dn-text-main hover:border-dn-primary/50 transition-colors disabled:opacity-50"
       >
-        {loading ? <Spinner size="sm" /> : <Icon name="image_search" className="text-base text-dn-primary" />}
-        {t('eventForm.extractFromImage')}
+        {loading ? <Spinner size="sm" /> : <Icon name="upload_file" className="text-base text-dn-primary" />}
+        {t('eventForm.extractFromFile')}
       </button>
     </>
   );

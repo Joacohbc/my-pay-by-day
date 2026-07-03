@@ -2,10 +2,11 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, type FileUIPart, type UIMessage } from 'ai';
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses, type FileUIPart, type UIMessage } from 'ai';
 import { api, BASE_URL } from '@/services/api';
 import { chatService } from '@/services/chat.service';
 import { audioService } from '@/services/audio.service';
+import { extractService, type FilePayload } from '@/services/extract.service';
 import { filesService } from '@/services/files.service';
 import { useChatStore, type ChatMessage } from '@/store/chatStore';
 import { DRAFTS_KEY } from '@/hooks/useDrafts';
@@ -32,6 +33,17 @@ async function toFilePart(file: FileDto): Promise<FileUIPart> {
     type: 'file',
     mediaType: file.mimeType || blob.type || 'image/jpeg',
     url: await blobToDataUrl(blob),
+    filename: file.fileName,
+  };
+}
+
+async function toFilePayload(file: FileDto): Promise<FilePayload> {
+  const response = await fetch(filesService.getContentUrl(file.id));
+  const blob = await response.blob();
+  const dataUrl = await blobToDataUrl(blob);
+  return {
+    data: dataUrl.slice(dataUrl.indexOf(',') + 1),
+    mediaType: file.mimeType || blob.type || 'application/octet-stream',
     filename: file.fileName,
   };
 }
@@ -63,19 +75,34 @@ function attachmentsOf(message: UIMessage): { url: string; name: string; type: s
     });
 }
 
-function toolCallsOf(message: UIMessage, isFinished: boolean): { name: string; state: string; output?: unknown; args?: any }[] {
+const PRESERVED_STATES = new Set(['approval-requested', 'approval-responded']);
+
+function toolCallsOf(
+  message: UIMessage,
+  isFinished: boolean,
+): { name: string; state: string; output?: unknown; args?: any; toolCallId?: string; approval?: { id: string; approved?: boolean } }[] {
   return message.parts
     .filter(
-      (part): part is UIMessage['parts'][number] & { toolName?: string; state: string; output?: unknown; args?: any } =>
-        part.type.startsWith('tool-') || part.type === 'dynamic-tool',
+      (
+        part,
+      ): part is UIMessage['parts'][number] & {
+        toolName?: string;
+        state: string;
+        output?: unknown;
+        args?: any;
+        toolCallId?: string;
+        approval?: { id: string; approved?: boolean };
+      } => part.type.startsWith('tool-') || part.type === 'dynamic-tool',
     )
     .map((part) => {
       const name = part.toolName || part.type.replace(/^tool-/, '');
       return {
         name,
-        state: isFinished ? 'result' : part.state,
+        state: isFinished && !PRESERVED_STATES.has(part.state) ? 'result' : part.state,
         output: part.output,
         args: part.args,
+        toolCallId: part.toolCallId,
+        approval: part.approval,
       };
     });
 }
@@ -139,7 +166,7 @@ function groupMessages(msgs: ChatMessage[]): ChatMessage[] {
 
 export function useChatUI() {
   const { t } = useTranslation();
-  const { chatId, draftFiles, setDraftFiles, newChat } = useChatStore();
+  const { chatId, draftFiles, setDraftFiles, newChat, instantDraftMode, toggleInstantDraftMode } = useChatStore();
   const queryClient = useQueryClient();
 
   const invalidateFinanceCaches = useCallback(() => {
@@ -153,10 +180,17 @@ export function useChatUI() {
       new DefaultChatTransport({
         api: `${BASE_URL}/ai/chat`,
         prepareSendMessagesRequest: ({ messages }) => {
-          const lastAssistantIndex = [...messages].reverse().findIndex((m) => m.role === 'assistant');
-          const newMessages = lastAssistantIndex === -1 
-            ? messages 
-            : messages.slice(messages.length - lastAssistantIndex);
+          const lastMessage = messages[messages.length - 1];
+          let newMessages: UIMessage[];
+          if (lastMessage?.role === 'assistant') {
+            // An approval decision mutates the tool part inside this same trailing assistant
+            // message (no new user message is appended) — send it as-is instead of trimming
+            // it away, or the approval response would be silently dropped.
+            newMessages = [lastMessage];
+          } else {
+            const lastAssistantIndex = [...messages].reverse().findIndex((m) => m.role === 'assistant');
+            newMessages = lastAssistantIndex === -1 ? messages : messages.slice(messages.length - lastAssistantIndex);
+          }
           return {
             headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language },
             body: { chatId, messages: newMessages },
@@ -169,9 +203,10 @@ export function useChatUI() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { messages: uiMessages, status, setMessages, sendMessage, stop } = useChat({
+  const { messages: uiMessages, status, setMessages, sendMessage, stop, addToolApprovalResponse } = useChat({
     id: chatId,
     transport,
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     onFinish: invalidateFinanceCaches,
   });
 
@@ -204,14 +239,18 @@ export function useChatUI() {
 
   const [isBackendGenerating, setIsBackendGenerating] = useState(false);
 
+  const reloadHistory = useCallback(async () => {
+    const response = await api.get<UIMessage[]>(`/ai/chat/${chatId}`);
+    setMessages(response);
+  }, [chatId, setMessages]);
+
   useEffect(() => {
     let active = true;
     let pollingTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const reloadHistory = async () => {
+    const reloadHistorySafely = async () => {
       try {
-        const response = await api.get<UIMessage[]>(`/ai/chat/${chatId}`);
-        if (active) setMessages(response);
+        await reloadHistory();
       } catch {
         /* history fetch failed — will retry on next poll if generating */
       }
@@ -224,7 +263,7 @@ export function useChatUI() {
         if (!active) return;
         setIsBackendGenerating(generating);
         if (!generating) {
-          await reloadHistory();
+          await reloadHistorySafely();
           invalidateFinanceCaches();
           return;
         }
@@ -235,7 +274,7 @@ export function useChatUI() {
     };
 
     const initialize = async () => {
-      await reloadHistory();
+      await reloadHistorySafely();
       if (!active) return;
       await pollUntilComplete();
     };
@@ -246,10 +285,11 @@ export function useChatUI() {
       active = false;
       if (pollingTimer) clearTimeout(pollingTimer);
     };
-  }, [chatId, setMessages, invalidateFinanceCaches]);
+  }, [chatId, invalidateFinanceCaches, reloadHistory]);
 
   const [input, setInput] = useState('');
   const [isClearing, setIsClearing] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const messages = useMemo(() => {
@@ -271,7 +311,7 @@ export function useChatUI() {
     return groupMessages(filtered);
   }, [uiMessages, status]);
   const isStreamActive = status === 'submitted' || status === 'streaming';
-  const isPending = isStreamActive || isBackendGenerating;
+  const isPending = isStreamActive || isBackendGenerating || isExtracting;
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -283,7 +323,48 @@ export function useChatUI() {
 
   const imagePreviewUrls = useMemo(() => draftFiles.map((f) => filesService.getContentUrl(f.id)), [draftFiles]);
 
+  const handleInstantDraft = useCallback(async () => {
+    const userText = input.trim();
+    const currentFiles = [...draftFiles];
+    if (!userText && currentFiles.length === 0) return;
+
+    setInput('');
+    setDraftFiles([]);
+
+    const [uiFileParts, payloadFiles] = await Promise.all([
+      Promise.all(currentFiles.map(toFilePart)),
+      Promise.all(currentFiles.map(toFilePayload)),
+    ]);
+
+    const optimisticMessage: UIMessage = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      role: 'user',
+      parts: [
+        ...(userText ? [{ type: 'text' as const, text: userText }] : []),
+        ...uiFileParts,
+      ],
+    };
+    setMessages((prev) => [...prev, optimisticMessage]);
+    setIsExtracting(true);
+    try {
+      await extractService.fromText(userText, undefined, true, chatId, payloadFiles.length ? payloadFiles : undefined);
+      await reloadHistory();
+      invalidateFinanceCaches();
+    } catch {
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticMessage.id));
+      setInput(userText);
+      setDraftFiles(currentFiles);
+    } finally {
+      setIsExtracting(false);
+    }
+  }, [input, draftFiles, setDraftFiles, chatId, setMessages, reloadHistory, invalidateFinanceCaches]);
+
   const handleSend = useCallback(async () => {
+    if (instantDraftMode) {
+      await handleInstantDraft();
+      return;
+    }
+
     const userText = input.trim();
     if (!userText && draftFiles.length === 0) return;
 
@@ -324,7 +405,7 @@ export function useChatUI() {
         setCountdown(timeLeft);
       }
     }, 1000);
-  }, [input, draftFiles, setDraftFiles, setMessages, sendMessage]);
+  }, [input, draftFiles, setDraftFiles, setMessages, sendMessage, instantDraftMode, handleInstantDraft]);
 
   const applyTranscribedText = useCallback(
     (transcription: string) => {
@@ -384,6 +465,13 @@ export function useChatUI() {
     sendMessage({ text: t('chat.stepLimit.continueMessage') });
   }, [sendMessage, t]);
 
+  const handleToolApproval = useCallback(
+    (approvalId: string, approved: boolean) => {
+      addToolApprovalResponse({ id: approvalId, approved });
+    },
+    [addToolApprovalResponse],
+  );
+
   const handleAddFile = (file: FileDto) => setDraftFiles([...draftFiles, file]);
   const handleRemoveFile = (fileId: number) => setDraftFiles(draftFiles.filter((f) => f.id !== fileId));
 
@@ -393,6 +481,9 @@ export function useChatUI() {
     setInput,
     isPending,
     isClearing,
+    isExtracting,
+    instantDraftMode,
+    toggleInstantDraftMode,
     draftFiles,
     imagePreviewUrls,
     messagesEndRef,
@@ -401,6 +492,7 @@ export function useChatUI() {
     stop,
     handleSend,
     handleContinue,
+    handleToolApproval,
     handleNewChat,
     handleClearMemory,
     handleEditMessage,

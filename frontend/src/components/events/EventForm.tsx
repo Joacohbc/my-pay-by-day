@@ -7,14 +7,13 @@ import { Button } from '@/components/ui/Button';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { TagGroupSelector } from '@/components/ui/TagGroupSelector';
-import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
-import { ImageExtractButton } from '@/components/events/ImageExtractButton';
+import { FileExtractButton } from '@/components/events/FileExtractButton';
 import type { ExtractedEvent } from '@/services/extract.service';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useTagGroups } from '@/hooks/useTagGroups';
 import { useNodes } from '@/hooks/useNodes';
-import { useAiFormController } from '@/hooks/useAiFormController';
+import { useAiFieldController } from '@/hooks/useAiFieldController';
 import type { CreateEventDto, PatchEventDto, FinanceEvent, FinanceEventDraftInputDto } from '@/models';
 import { buildSchema, buildFormDefaults, MIN_LINE_ITEMS, toDraftDto } from '@/components/events/EventFormMapper';
 import { prependMissingArchived } from '@/lib/prependMissingArchived';
@@ -223,23 +222,6 @@ export function EventForm({
     return parts.join('\n');
   };
 
-  const aiFields = useMemo(() => [
-    {
-      key: 'name',
-      name: 'name' as const,
-      label: t('eventForm.eventName'),
-      semantic: 'name' as const,
-      allowVoice: true,
-    },
-    {
-      key: 'description',
-      name: 'description' as const,
-      label: t('eventForm.description'),
-      semantic: 'description' as const,
-      allowVoice: true,
-    },
-  ], [t]);
-
   const buildSimilarGrounding = () => {
     const values = getValues();
     const categoryId = values.categoryId ? Number(values.categoryId) : undefined;
@@ -250,12 +232,25 @@ export function EventForm({
     return { categoryId: Number.isFinite(categoryId) ? categoryId : undefined, amount };
   };
 
-  const aiController = useAiFormController<FormValues>({
-    fields: aiFields,
+  const nameAi = useAiFieldController<FormValues>({
+    name: 'name',
+    semantic: 'name',
     getValues,
     setValue,
     buildContext: buildAiContext,
     getSimilarGrounding: buildSimilarGrounding,
+    allowVoice: true,
+    shouldDirty: true,
+  });
+
+  const descriptionAi = useAiFieldController<FormValues>({
+    name: 'description',
+    semantic: 'description',
+    getValues,
+    setValue,
+    buildContext: buildAiContext,
+    getSimilarGrounding: buildSimilarGrounding,
+    allowVoice: true,
     shouldDirty: true,
   });
 
@@ -273,12 +268,9 @@ export function EventForm({
   return (
     <FormProvider {...methods}>
       <form onSubmit={handleSubmit(handleFormSubmit, handleInvalidSubmit)} className="space-y-5">
-        <ImageExtractButton onExtracted={applyExtractedEvent} />
+        <FileExtractButton onExtracted={applyExtractedEvent} />
 
-        <BasicInfoFields
-          onNameFocus={() => aiController.markFieldAsActive('name')}
-          onDescriptionFocus={() => aiController.markFieldAsActive('description')}
-        />
+        <BasicInfoFields nameAi={nameAi} descriptionAi={descriptionAi} />
 
         <TypeAndDateFields />
 
@@ -330,7 +322,6 @@ export function EventForm({
         </Button>
 
       </form>
-      <AiFormActionsFab controller={aiController} />
     </FormProvider>
   );
 }

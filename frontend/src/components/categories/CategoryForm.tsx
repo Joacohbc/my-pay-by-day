@@ -1,13 +1,11 @@
-import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { IconPicker } from '@/components/ui/IconPicker';
-import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { useCreateCategory, useUpdateCategory } from '@/hooks/useCategories';
-import { useAiFormController } from '@/hooks/useAiFormController';
+import { useAiFieldController } from '@/hooks/useAiFieldController';
 import type { Category } from '@/models';
 
 interface CategoryFormValues {
@@ -43,22 +41,22 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
     return parts.join('\n');
   };
 
-  const aiFields = useMemo(() => [
-    { key: 'name', name: 'name' as const, label: t('common.name'), semantic: 'name' as const, allowVoice: true },
-    {
-      key: 'description',
-      name: 'description' as const,
-      label: t('common.description'),
-      semantic: 'description' as const,
-      allowVoice: true,
-    },
-  ], [t]);
-
-  const aiController = useAiFormController<CategoryFormValues>({
-    fields: aiFields,
+  const nameAi = useAiFieldController<CategoryFormValues>({
+    name: 'name',
+    semantic: 'name',
     getValues,
     setValue,
     buildContext,
+    allowVoice: true,
+  });
+
+  const descriptionAi = useAiFieldController<CategoryFormValues>({
+    name: 'description',
+    semantic: 'description',
+    getValues,
+    setValue,
+    buildContext,
+    allowVoice: true,
   });
 
   const onSubmit = async (values: CategoryFormValues, e?: React.BaseSyntheticEvent) => {
@@ -79,8 +77,7 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
   const isSubmitting = createCategory.isPending || updateCategory.isPending;
 
   return (
-    <>
-        <form
+    <form
       onSubmit={(e) => {
         e.stopPropagation();
         handleSubmit(onSubmit)(e);
@@ -92,13 +89,13 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
         placeholder={t('categories.namePlaceholder')}
         error={errors.name?.message}
         {...register('name', { required: t('common.nameRequired') })}
-        onFocus={() => aiController.markFieldAsActive('name')}
+        ai={nameAi}
       />
       <Textarea
         label={t('common.description')}
         placeholder={t('categories.descriptionPlaceholder')}
         {...register('description')}
-        onFocus={() => aiController.markFieldAsActive('description')}
+        ai={descriptionAi}
       />
       <Controller
         name="icon"
@@ -124,7 +121,5 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
       </div>
 
     </form>
-    <AiFormActionsFab controller={aiController} />
-    </>
   );
 }

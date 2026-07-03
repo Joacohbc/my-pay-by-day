@@ -28,11 +28,11 @@ export function AiSettingsPage() {
     const defaultPrompts: AiPrompts = {
       generateName: '',
       generateDescription: '',
-      fixNameSpelling: '',
-      fixDescriptionSpelling: '',
       mergeDescription: '',
       suggestNameFromSimilar: '',
       suggestDescriptionFromSimilar: '',
+      improveText: '',
+      applyInstructions: '',
     };
     setPrompts(defaultPrompts);
     alert.success(t('ai.settings.saved'));
@@ -81,20 +81,6 @@ export function AiSettingsPage() {
             rows={4}
           />
           <Textarea
-            label={t('ai.settings.fixNameSpellingLabel')}
-            placeholder={t('ai.settings.fixNameSpellingPlaceholder')}
-            value={prompts.fixNameSpelling}
-            onChange={(e) => setPromptForAction('fixNameSpelling', e.target.value)}
-            rows={4}
-          />
-          <Textarea
-            label={t('ai.settings.fixDescriptionSpellingLabel')}
-            placeholder={t('ai.settings.fixDescriptionSpellingPlaceholder')}
-            value={prompts.fixDescriptionSpelling}
-            onChange={(e) => setPromptForAction('fixDescriptionSpelling', e.target.value)}
-            rows={4}
-          />
-          <Textarea
             label={t('ai.settings.mergeDescriptionLabel')}
             placeholder={t('ai.settings.mergeDescriptionPlaceholder')}
             value={prompts.mergeDescription}
@@ -113,6 +99,20 @@ export function AiSettingsPage() {
             placeholder={t('ai.settings.suggestDescriptionFromSimilarPlaceholder')}
             value={prompts.suggestDescriptionFromSimilar}
             onChange={(e) => setPromptForAction('suggestDescriptionFromSimilar', e.target.value)}
+            rows={4}
+          />
+          <Textarea
+            label={t('ai.settings.improveTextLabel')}
+            placeholder={t('ai.settings.improveTextPlaceholder')}
+            value={prompts.improveText}
+            onChange={(e) => setPromptForAction('improveText', e.target.value)}
+            rows={4}
+          />
+          <Textarea
+            label={t('ai.settings.applyInstructionsLabel')}
+            placeholder={t('ai.settings.applyInstructionsPlaceholder')}
+            value={prompts.applyInstructions}
+            onChange={(e) => setPromptForAction('applyInstructions', e.target.value)}
             rows={4}
           />
         </Card>

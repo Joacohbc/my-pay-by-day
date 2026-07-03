@@ -11,14 +11,15 @@ import { logger } from '@/logging/logger.js';
 
 const extractionLog = logger.child('extraction');
 
-export interface ImageInput {
+export interface FileInput {
   data: string;
   mediaType: string;
+  filename?: string;
 }
 
 export interface ExtractInput {
   text?: string;
-  images?: ImageInput[];
+  files?: FileInput[];
   templateId?: number;
 }
 
@@ -76,7 +77,7 @@ function normalizeDate(value: string | null, timezone: string): ServerDateTime |
   return toServerDateTime(local, timezone);
 }
 
-/** Extracts a structured finance event from free text and/or images, grounded by domain data. */
+/** Extracts a structured finance event from free text and/or files (images, PDFs, etc.), grounded by domain data. */
 export async function extractFinanceEvent(ctx: RequestContext, input: ExtractInput): Promise<ExtractedEvent> {
   const client = createApiClient(ctx);
   const context = await buildContext(client, input.templateId);
@@ -86,10 +87,18 @@ export async function extractFinanceEvent(ctx: RequestContext, input: ExtractInp
     `Resolve nodes, category and tags to IDs using ONLY the lists below. If something is missing, use null.\n` +
     `Respond grounded in ${languageName(ctx.lang)}.\n\n${context}`;
 
-  const userContent: Array<{ type: 'text'; text: string } | { type: 'image'; image: string; mediaType: string }> = [];
+  const userContent: Array<
+    | { type: 'text'; text: string }
+    | { type: 'image'; image: string; mediaType: string }
+    | { type: 'file'; data: string; mediaType: string; filename?: string }
+  > = [];
   if (input.text) userContent.push({ type: 'text', text: input.text });
-  for (const img of input.images ?? []) {
-    userContent.push({ type: 'image', image: img.data, mediaType: img.mediaType });
+  for (const file of input.files ?? []) {
+    if (file.mediaType.startsWith('image/')) {
+      userContent.push({ type: 'image', image: file.data, mediaType: file.mediaType });
+    } else {
+      userContent.push({ type: 'file', data: file.data, mediaType: file.mediaType, filename: file.filename });
+    }
   }
   if (userContent.length === 0) userContent.push({ type: 'text', text: 'Extract the event.' });
 

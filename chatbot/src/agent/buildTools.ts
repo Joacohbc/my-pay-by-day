@@ -98,3 +98,23 @@ export function buildAllTools(ctx: RequestContext, extra: KindedToolSet = {}): K
 export function toolsForMode(toolSet: KindedToolSet, mode: ExecutionMode): Record<string, Tool> {
   return selectTools(toolSet, ALLOWED_KINDS[mode]);
 }
+
+/**
+ * Same mode-based filtering as toolsForMode, but additionally requires human approval
+ * (via the AI SDK's needsApproval) before executing tools whose kind is in kindsRequiringApproval.
+ * Used only by the interactive chat route — background tasks and delegated sub-agents already
+ * have their own mode-based gating and must not be double-gated.
+ */
+export function toolsForModeWithApproval(
+  toolSet: KindedToolSet,
+  mode: ExecutionMode,
+  kindsRequiringApproval: ReadonlySet<ToolKind>,
+): Record<string, Tool> {
+  const selected = selectTools(toolSet, ALLOWED_KINDS[mode]);
+  const withApproval: Record<string, Tool> = {};
+  for (const [name, plainTool] of Object.entries(selected)) {
+    const kind = toolSet[name]?.kind;
+    withApproval[name] = kind && kindsRequiringApproval.has(kind) ? { ...plainTool, needsApproval: true } : plainTool;
+  }
+  return withApproval;
+}

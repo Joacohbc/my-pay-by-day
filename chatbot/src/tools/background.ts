@@ -13,8 +13,9 @@ export function buildBackgroundTools(ctx: RequestContext): KindedToolSet {
       kind: 'READ',
       tool: tool({
         description:
-          'Delegate a longer, multi-step job to an autonomous background agent that works on its own and reports progress. ' +
+          'Delegate a longer, multi-step job to a background agent that works on its own and reports progress. ' +
           'Use this when the user asks for something that needs many steps or will take a while (e.g. "categorize all my uncategorized events"). ' +
+          'Defaults to DRAFT_ONLY (stages drafts for the user to confirm, does not write directly) unless the user clearly asked for unattended end-to-end execution, in which case pass executionMode: "AUTONOMOUS". ' +
           'Returns the background task id the user can follow.',
         inputSchema: z.object({
           title: z
@@ -25,7 +26,7 @@ export function buildBackgroundTools(ctx: RequestContext): KindedToolSet {
           instruction: z.string().describe('A clear, self-contained instruction for the background agent.'),
           executionMode: z
             .enum(['AUTONOMOUS', 'DRAFT_ONLY', 'READ_ONLY', 'DRAFT_CONFIRMATION'])
-            .default('AUTONOMOUS'),
+            .default('DRAFT_ONLY'),
         }),
         execute: async ({ title, instruction, executionMode }) => {
           const task = agentStore.create({

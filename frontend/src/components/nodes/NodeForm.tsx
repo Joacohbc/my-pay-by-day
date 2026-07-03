@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
@@ -6,9 +5,8 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { IconPicker } from '@/components/ui/IconPicker';
-import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { useCreateNode, useUpdateNode } from '@/hooks/useNodes';
-import { useAiFormController } from '@/hooks/useAiFormController';
+import { useAiFieldController } from '@/hooks/useAiFieldController';
 import type { FinanceNode, FinanceNodeType } from '@/models';
 
 interface NodeFormValues {
@@ -47,16 +45,22 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
     return parts.join('\n');
   };
 
-  const aiFields = useMemo(() => [
-    { key: 'name', name: 'name' as const, label: t('common.name'), semantic: 'name' as const, allowVoice: true },
-    { key: 'description', name: 'description' as const, label: t('common.description'), semantic: 'description' as const, allowVoice: true },
-  ], [t]);
-
-  const aiController = useAiFormController<NodeFormValues>({
-    fields: aiFields,
+  const nameAi = useAiFieldController<NodeFormValues>({
+    name: 'name',
+    semantic: 'name',
     getValues,
     setValue,
     buildContext,
+    allowVoice: true,
+  });
+
+  const descriptionAi = useAiFieldController<NodeFormValues>({
+    name: 'description',
+    semantic: 'description',
+    getValues,
+    setValue,
+    buildContext,
+    allowVoice: true,
   });
 
   const nodeTypeOptions = [
@@ -83,7 +87,6 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
   const isSubmitting = createNode.isPending || updateNode.isPending;
 
   return (
-    <>
     <form
       onSubmit={(e) => {
         e.stopPropagation();
@@ -96,13 +99,13 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
         placeholder={t('nodes.nodeNamePlaceholder')}
         error={errors.name?.message}
         {...register('name', { required: t('common.nameRequired') })}
-        onFocus={() => aiController.markFieldAsActive('name')}
+        ai={nameAi}
       />
       <Textarea
         label={t('common.description')}
         placeholder={t('nodes.descriptionPlaceholder')}
         {...register('description')}
-        onFocus={() => aiController.markFieldAsActive('description')}
+        ai={descriptionAi}
       />
       <Controller
         name="icon"
@@ -143,7 +146,5 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
         </Button>
       </div>
     </form>
-    <AiFormActionsFab controller={aiController} />
-    </>
   );
 }

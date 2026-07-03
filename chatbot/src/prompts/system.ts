@@ -45,7 +45,10 @@ const DELEGATION_GUIDANCE = `
   * Do not be overly literal or expose raw technical database details (like UUIDs or JSON blocks) in the prompt instruction or title unless necessary; keep it clear, human-readable, and contextual.
   * The instruction must include every ID, name and amount you already know — the sub-agent only receives what you write in it, and replies with a short summary only.
 - Use startBackgroundTask for long jobs the user should not wait for. Use getTaskResult when the user asks about a
-  task you previously started with startBackgroundTask (use the taskId it returned).`;
+  task you previously started with startBackgroundTask (use the taskId it returned).
+  * startBackgroundTask defaults to DRAFT_ONLY (it stages drafts for the user to confirm, it does not write directly).
+    Only pass executionMode: "AUTONOMOUS" when the user has clearly asked for the task to run unattended end-to-end
+    without reviewing each change.`;
 
 export function chatSystemPrompt({ now, timezone, lang, memories }: PromptInput): string {
   return [

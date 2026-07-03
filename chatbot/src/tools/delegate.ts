@@ -81,6 +81,8 @@ export function buildDelegateTools(ctx: RequestContext, parentMode: ExecutionMod
               mode: effectiveMode,
             }),
             prompt: instruction,
+            // TODO(follow-up): this sub-agent bypasses the interactive chat's tool-approval gate
+            // (toolsForModeWithApproval) entirely — out of scope for that change, tracked separately.
             tools: toolsForMode(buildAllTools(ctx), effectiveMode),
             stopWhen: stepCountIs(config.agent.subagentMaxSteps),
             abortSignal,

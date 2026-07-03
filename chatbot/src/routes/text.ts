@@ -10,11 +10,11 @@ const textLog = logger.child('text');
 export const TEXT_ACTIONS = [
   'GENERATE_NAME',
   'GENERATE_DESCRIPTION',
-  'FIX_NAME_SPELLING',
-  'FIX_DESCRIPTION_SPELLING',
   'MERGE_DESCRIPTION',
   'SUGGEST_NAME_FROM_SIMILAR',
   'SUGGEST_DESCRIPTION_FROM_SIMILAR',
+  'IMPROVE_TEXT',
+  'APPLY_INSTRUCTIONS',
 ] as const;
 
 export type TextAction = (typeof TEXT_ACTIONS)[number];
@@ -26,6 +26,7 @@ interface TextRequest {
   customPrompt?: string;
   categoryId?: number;
   amount?: number;
+  instruction?: string;
 }
 
 const BASE_PROMPT: Record<TextAction, string> = {
@@ -33,20 +34,20 @@ const BASE_PROMPT: Record<TextAction, string> = {
     'Generate a concise, descriptive name (2-6 words) for a personal-finance entity based on the context.',
   GENERATE_DESCRIPTION:
     'Generate a single short, clear sentence describing a personal-finance entity based on the context. Never write more than one sentence.',
-  FIX_NAME_SPELLING:
-    'Fix spelling and grammar mistakes in the provided name. Keep the same meaning and length.',
-  FIX_DESCRIPTION_SPELLING:
-    'Fix spelling and grammar mistakes in the provided description. Keep the same meaning. Keep it short.',
   MERGE_DESCRIPTION:
     'You are given several descriptions from finance events being merged. Blend them into ONE short, coherent sentence. Do not list them.',
   SUGGEST_NAME_FROM_SIMILAR:
     'Suggest a concise name (2-6 words) for a new finance event. Follow the naming style of the user\'s SIMILAR PAST EVENTS shown below.',
   SUGGEST_DESCRIPTION_FROM_SIMILAR:
     'Suggest a single short sentence describing a new finance event. Match the wording and brevity of the user\'s SIMILAR PAST EVENTS shown below.',
+  IMPROVE_TEXT:
+    'Improve the provided text: fix spelling and grammar and lightly improve wording and clarity. Preserve the meaning, tone and approximate length. Use the context to disambiguate, and if SIMILAR PAST EVENTS are shown below, match their wording style.',
+  APPLY_INSTRUCTIONS:
+    "Rewrite the provided text following the user's INSTRUCTION exactly. Preserve everything the instruction does not ask to change.",
 };
 
 function needsSimilar(action: TextAction): boolean {
-  return action === 'SUGGEST_NAME_FROM_SIMILAR' || action === 'SUGGEST_DESCRIPTION_FROM_SIMILAR';
+  return action === 'SUGGEST_NAME_FROM_SIMILAR' || action === 'SUGGEST_DESCRIPTION_FROM_SIMILAR' || action === 'IMPROVE_TEXT';
 }
 
 async function similarExamples(ctx: RequestContext, req: TextRequest): Promise<string> {
@@ -88,6 +89,9 @@ textRoute.post('/', async (c) => {
   if (!req.action || !TEXT_ACTIONS.includes(req.action)) {
     return c.json({ error: 'invalid action' }, 400);
   }
+  if (req.action === 'APPLY_INSTRUCTIONS' && !req.instruction?.trim()) {
+    return c.json({ error: 'instruction is required' }, 400);
+  }
 
   const base = req.customPrompt?.trim() || BASE_PROMPT[req.action];
   const system =
@@ -99,6 +103,7 @@ textRoute.post('/', async (c) => {
   const userParts: string[] = [];
   if (req.context) userParts.push(`CONTEXT:\n${req.context}`);
   if (req.currentValue) userParts.push(`CURRENT VALUE:\n${req.currentValue}`);
+  if (req.instruction) userParts.push(`INSTRUCTION:\n${req.instruction}`);
   userParts.push(examples.trim() || '');
   userParts.push('Produce the result now.');
 

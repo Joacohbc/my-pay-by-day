@@ -9,11 +9,10 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Button } from '@/components/ui/Button';
-import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { LineItemsEditor } from '@/components/events/LineItemsEditor';
-import { useAiFormController } from '@/hooks/useAiFormController';
+import { useAiFieldController } from '@/hooks/useAiFieldController';
 import { prependMissingArchived } from '@/lib/prependMissingArchived';
 import {
   buildSchema,
@@ -88,22 +87,22 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
     return parts.join('\n');
   };
 
-  const aiFields = useMemo(() => [
-    { key: 'name', name: 'name' as const, label: t('common.name'), semantic: 'name' as const, allowVoice: true },
-    {
-      key: 'description',
-      name: 'description' as const,
-      label: t('common.description'),
-      semantic: 'description' as const,
-      allowVoice: true,
-    },
-  ], [t]);
-
-  const aiController = useAiFormController<FormValues>({
-    fields: aiFields,
+  const nameAi = useAiFieldController<FormValues>({
+    name: 'name',
+    semantic: 'name',
     getValues,
     setValue,
     buildContext,
+    allowVoice: true,
+  });
+
+  const descriptionAi = useAiFieldController<FormValues>({
+    name: 'description',
+    semantic: 'description',
+    getValues,
+    setValue,
+    buildContext,
+    allowVoice: true,
   });
 
   const handleFormSubmit = async (values: FormValues) => {
@@ -124,7 +123,7 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
           placeholder={t('templates.namePlaceholder')}
           error={errors.name?.message}
           {...register('name')}
-          onFocus={() => aiController.markFieldAsActive('name')}
+          ai={nameAi}
         />
 
         <Textarea
@@ -132,7 +131,7 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
           placeholder={t('templates.descriptionPlaceholder')}
           error={errors.description?.message}
           {...register('description')}
-          onFocus={() => aiController.markFieldAsActive('description')}
+          ai={descriptionAi}
         />
 
         <Controller
@@ -233,7 +232,6 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
         </div>
 
       </form>
-      <AiFormActionsFab controller={aiController} />
     </FormProvider>
   );
 }

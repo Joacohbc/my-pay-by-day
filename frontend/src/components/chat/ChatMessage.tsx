@@ -7,6 +7,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { AudioMessagePlayer } from '@/components/chat/AudioMessagePlayer';
 import { InlineTaskCard } from '@/components/agent-tasks/InlineTaskCard';
 import { InlineEventCard, InlineDraftCard, InlineTagCard, InlineCategoryCard } from '@/components/chat/InlineEntityCard';
+import { InlineToolApprovalCard } from '@/components/chat/InlineToolApprovalCard';
 import { extractEntityRefs } from '@/components/chat/chatEntityRefs';
 import { getFileIcon } from '@/lib/fileUtils';
 import type { ChatMessage as ChatMessageType } from '@/store/chatStore';
@@ -14,9 +15,10 @@ import type { ChatMessage as ChatMessageType } from '@/store/chatStore';
 interface ChatMessageProps {
   message: ChatMessageType;
   onEdit?: (msg: ChatMessageType) => void;
+  onApprove?: (approvalId: string, approved: boolean) => void;
 }
 
-export function ChatMessage({ message, onEdit }: ChatMessageProps) {
+export function ChatMessage({ message, onEdit, onApprove }: ChatMessageProps) {
   const { t } = useTranslation();
   const toolFriendlyNames: Record<string, string> = {
     listCategories: t('chat.tools.listCategories'),
@@ -51,6 +53,9 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
         .filter((id): id is string => Boolean(id)),
     ),
   ];
+  const pendingApprovals = (message.toolCalls ?? []).filter(
+    (tc) => tc.state === 'approval-requested' && tc.approval?.id,
+  );
   const entityRefs = extractEntityRefs(message.toolCalls);
   const allToolsDone = message.toolCalls?.every((tc) => tc.state === 'result') ?? true;
   const toolStepGroups = (message.toolCalls ?? []).reduce<{ name: string; count: number; isDone: boolean; args?: any; output?: any }[]>(
@@ -349,6 +354,16 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
                       </ReactMarkdown>
                     </div>
                   )}
+
+                  {pendingApprovals.map((tc) => (
+                    <InlineToolApprovalCard
+                      key={tc.approval!.id}
+                      toolLabel={toolFriendlyNames[tc.name] || tc.name}
+                      approvalId={tc.approval!.id}
+                      onApprove={(id) => onApprove?.(id, true)}
+                      onReject={(id) => onApprove?.(id, false)}
+                    />
+                  ))}
 
                   {backgroundTaskIds.map((taskId) => (
                     <InlineTaskCard key={taskId} taskId={taskId} />

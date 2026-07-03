@@ -21,6 +21,8 @@ interface ChatInputProps {
   countdown?: number | null;
   onSendNow?: () => void;
   onStop?: () => void;
+  instantDraftMode?: boolean;
+  onToggleInstantDraft?: () => void;
 }
 
 export function ChatInput({
@@ -37,6 +39,8 @@ export function ChatInput({
   countdown = null,
   onSendNow,
   onStop,
+  instantDraftMode = false,
+  onToggleInstantDraft,
 }: ChatInputProps) {
   const { t } = useTranslation();
   const { error: showError } = useAlert();
@@ -110,7 +114,7 @@ export function ChatInput({
         <Textarea
           containerClassName="w-full"
           className="px-4! py-3! text-sm bg-transparent! border-none! ring-0! focus:ring-0! rounded-none! min-h-13! max-h-45! overflow-y-auto resize-none"
-          placeholder={placeholder || t('chat.placeholderAgent')}
+          placeholder={placeholder || (instantDraftMode ? t('chat.instantDraft.placeholder') : t('chat.placeholderAgent'))}
           value={inputContent}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputContent(e.target.value)}
           onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -168,6 +172,23 @@ export function ChatInput({
                 title={micTitle}
               >
                 <Icon name={isRecording ? 'mic_off' : 'mic'} className="text-[20px]" />
+              </button>
+            )}
+
+            {onToggleInstantDraft && (
+              <button
+                type="button"
+                onClick={onToggleInstantDraft}
+                disabled={isPending}
+                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${
+                  instantDraftMode
+                    ? 'text-dn-primary bg-dn-primary/10'
+                    : 'text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10'
+                }`}
+                aria-label={t('chat.instantDraft.toggle')}
+                title={t('chat.instantDraft.toggle')}
+              >
+                <Icon name="flash_on" className="text-[20px]" />
               </button>
             )}
           </div>

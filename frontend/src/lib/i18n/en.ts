@@ -103,10 +103,24 @@ const en = {
     messagesCount: '{{count}} messages',
     backToList: 'Back to conversations',
     subtask: 'Subtask',
+    instantDraft: {
+      toggle: 'Instant draft',
+      placeholder: 'Describe a transaction to create a draft instantly...',
+      active: 'Instant draft mode is on — your next message creates a draft directly.',
+      creating: 'Creating draft...',
+      failed: 'Failed to create draft. Please try again.',
+    },
     stepLimit: {
       title: 'The assistant reached the step limit',
       continue: 'Continue',
       continueMessage: 'Continue where you left off.',
+    },
+    approval: {
+      title: 'Approval required',
+      approve: 'Approve',
+      reject: 'Reject',
+      approved: 'Approved',
+      rejected: 'Rejected',
     },
     tools: {
       steps: 'Agent steps',
@@ -275,8 +289,8 @@ const en = {
 
   // ─── Event Form ──────────────────────────────────────────────────────────
   eventForm: {
-    extractFromImage: 'Fill from image with AI',
-    extractFromImageDone: 'Form pre-filled from the image',
+    extractFromFile: 'Fill from file with AI',
+    extractFromFileDone: 'Form pre-filled from the file',
     eventName: 'Event Name',
     eventNamePlaceholder: 'e.g. Dinner with friends',
     description: 'Description',
@@ -546,14 +560,13 @@ const en = {
   // ─── AI ──────────────────────────────────────────────────────────────────
   ai: {
     actions: {
-      title: 'AI actions',
-      targetField: 'Target field',
       generate: 'Generate with AI',
-      suggestFromSimilar: 'Suggest from similar',
-      fixSpelling: 'Fix spelling',
       voiceInput: 'Dictate by voice',
       stopVoiceInput: 'Stop voice recording',
       enableMic: 'Enable microphone',
+      improve: 'Improve with AI',
+      voiceInstruct: 'Improve by voice instruction',
+      stopVoiceInstruct: 'Stop voice instruction recording',
     },
     settings: {
       title: 'AI Prompts',
@@ -563,16 +576,16 @@ const en = {
       generateNamePlaceholder: 'Leave empty to use the default prompt...',
       generateDescriptionLabel: 'Generate Description prompt',
       generateDescriptionPlaceholder: 'Leave empty to use the default prompt...',
-      fixNameSpellingLabel: 'Fix Name Spelling prompt',
-      fixNameSpellingPlaceholder: 'Leave empty to use the default prompt...',
-      fixDescriptionSpellingLabel: 'Fix Description Spelling prompt',
-      fixDescriptionSpellingPlaceholder: 'Leave empty to use the default prompt...',
       mergeDescriptionLabel: 'Merge Description prompt',
       mergeDescriptionPlaceholder: 'Leave empty to use the default prompt...',
       suggestNameFromSimilarLabel: 'Suggest Name (from similar events) prompt',
       suggestNameFromSimilarPlaceholder: 'Leave empty to use the default prompt...',
       suggestDescriptionFromSimilarLabel: 'Suggest Description (from similar events) prompt',
       suggestDescriptionFromSimilarPlaceholder: 'Leave empty to use the default prompt...',
+      improveTextLabel: 'Improve Text prompt',
+      improveTextPlaceholder: 'Leave empty to use the default prompt...',
+      applyInstructionsLabel: 'Apply Voice Instruction prompt',
+      applyInstructionsPlaceholder: 'Leave empty to use the default prompt...',
       saved: 'AI prompts saved',
       reset: 'Reset to defaults',
     },

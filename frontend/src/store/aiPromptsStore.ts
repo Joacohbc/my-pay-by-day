@@ -5,11 +5,11 @@ import { zustandStorage } from '@/lib/idbStorage';
 export interface AiPrompts {
   generateName: string;
   generateDescription: string;
-  fixNameSpelling: string;
-  fixDescriptionSpelling: string;
   mergeDescription: string;
   suggestNameFromSimilar: string;
   suggestDescriptionFromSimilar: string;
+  improveText: string;
+  applyInstructions: string;
 }
 
 interface AiPromptsState {
@@ -22,11 +22,11 @@ interface AiPromptsState {
 const DEFAULT_PROMPTS: AiPrompts = {
   generateName: '',
   generateDescription: '',
-  fixNameSpelling: '',
-  fixDescriptionSpelling: '',
   mergeDescription: '',
   suggestNameFromSimilar: '',
   suggestDescriptionFromSimilar: '',
+  improveText: '',
+  applyInstructions: '',
 };
 
 export const useAiPromptsStore = create<AiPromptsState>()(

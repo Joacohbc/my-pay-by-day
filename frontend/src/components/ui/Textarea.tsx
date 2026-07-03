@@ -1,28 +1,37 @@
 import type { TextareaHTMLAttributes, ReactNode } from 'react';
 import { forwardRef, useRef } from 'react';
+import { AiFieldControls } from '@/components/ui/AiFieldControls';
+import type { AiFieldController } from '@/hooks/useAiFieldController';
 
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   labelRight?: ReactNode;
   error?: string;
   containerClassName?: string;
+  ai?: AiFieldController;
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ label, labelRight, error, className = '', containerClassName = '', id, ...props }, ref) => {
+  ({ label, labelRight, error, ai, className = '', containerClassName = '', id, ...props }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
     const innerRef = useRef<HTMLTextAreaElement>(null);
+    const labelRightContent = ai ? (
+      <div className="flex items-center gap-1">
+        <AiFieldControls controller={ai} />
+        {labelRight}
+      </div>
+    ) : labelRight;
 
     return (
       <div className={['flex flex-col gap-1.5', containerClassName].filter(Boolean).join(' ')}>
-        {(label || labelRight) && (
+        {(label || labelRightContent) && (
           <div className="flex items-center justify-between">
             {label && (
               <label htmlFor={inputId} className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">
                 {label}
               </label>
             )}
-            {labelRight}
+            {labelRightContent}
           </div>
         )}
         <textarea

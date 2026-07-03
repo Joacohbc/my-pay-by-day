@@ -12,7 +12,14 @@ export interface ChatMessage {
   audioUrl?: string;
   audioTranscriptionStatus?: 'pending' | 'ready' | 'failed';
   timestamp: string;
-  toolCalls?: { name: string; state: string; output?: unknown; args?: any }[];
+  toolCalls?: {
+    name: string;
+    state: string;
+    output?: unknown;
+    args?: any;
+    toolCallId?: string;
+    approval?: { id: string; approved?: boolean };
+  }[];
   stoppedByStepLimit?: boolean;
 }
 
@@ -21,6 +28,7 @@ interface ChatStoreState {
   isClearing: boolean;
   draftFiles: FileDto[];
   showChatList: boolean;
+  instantDraftMode: boolean;
 
   newChat: () => void;
   selectChat: (chatId: string) => void;
@@ -28,6 +36,7 @@ interface ChatStoreState {
   closeChatList: () => void;
   setDraftFiles: (files: FileDto[]) => void;
   setIsClearing: (isClearing: boolean) => void;
+  toggleInstantDraftMode: () => void;
 }
 
 export const useChatStore = create<ChatStoreState>()(
@@ -37,6 +46,7 @@ export const useChatStore = create<ChatStoreState>()(
       isClearing: false,
       draftFiles: [],
       showChatList: true,
+      instantDraftMode: false,
 
       newChat: () =>
         set({
@@ -56,6 +66,7 @@ export const useChatStore = create<ChatStoreState>()(
       closeChatList: () => set({ showChatList: false }),
       setDraftFiles: (files) => set({ draftFiles: files }),
       setIsClearing: (isClearing) => set({ isClearing }),
+      toggleInstantDraftMode: () => set((state) => ({ instantDraftMode: !state.instantDraftMode })),
     }),
     {
       name: 'mpbd-chat',
@@ -63,6 +74,7 @@ export const useChatStore = create<ChatStoreState>()(
       partialize: (state) => ({
         chatId: state.chatId,
         showChatList: state.showChatList,
+        instantDraftMode: state.instantDraftMode,
       }),
     },
   ),

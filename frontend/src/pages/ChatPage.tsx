@@ -18,6 +18,8 @@ export function ChatPage() {
     setInput,
     isPending,
     isClearing,
+    instantDraftMode,
+    toggleInstantDraftMode,
     draftFiles,
     imagePreviewUrls,
     messagesEndRef,
@@ -26,6 +28,7 @@ export function ChatPage() {
     stop,
     handleSend,
     handleContinue,
+    handleToolApproval,
     handleNewChat,
     handleClearMemory,
     handleEditMessage,
@@ -39,7 +42,9 @@ export function ChatPage() {
   const isChatListVisible = showChatList;
 
   const lastMessage = messages.at(-1);
-  const showContinueCard = !isPending && lastMessage?.role === 'assistant' && lastMessage.stoppedByStepLimit;
+  const hasPendingApproval = lastMessage?.toolCalls?.some((tc) => tc.state === 'approval-requested') ?? false;
+  const showContinueCard =
+    !isPending && lastMessage?.role === 'assistant' && lastMessage.stoppedByStepLimit && !hasPendingApproval;
 
   return (
     <div className="flex flex-col h-[calc(100dvh-80px)] bg-dn-bg overflow-hidden">
@@ -93,7 +98,7 @@ export function ChatPage() {
                   <ChatEmptyState />
                 ) : (
                   messages.map((msg) => (
-                    <ChatMessage key={msg.id} message={msg} onEdit={handleEditMessage} />
+                    <ChatMessage key={msg.id} message={msg} onEdit={handleEditMessage} onApprove={handleToolApproval} />
                   ))
                 )}
 
@@ -142,6 +147,12 @@ export function ChatPage() {
                 onRemove={(idx) => handleRemoveFile(draftFiles[idx].id)}
               />
 
+              {instantDraftMode && (
+                <p className="text-[10px] text-dn-primary uppercase tracking-[0.2em] font-black px-4 pb-1">
+                  {t('chat.instantDraft.active')}
+                </p>
+              )}
+
               <ChatInput
                 inputContent={input}
                 setInputContent={setInput}
@@ -155,6 +166,8 @@ export function ChatPage() {
                 countdown={countdown}
                 onSendNow={triggerSendNow}
                 onStop={stop}
+                instantDraftMode={instantDraftMode}
+                onToggleInstantDraft={toggleInstantDraftMode}
               />
             </>
           )}
