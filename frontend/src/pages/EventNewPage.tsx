@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Routes, eventsRoute } from '@/lib/routes';
 import { EventForm } from '@/components/events/EventForm';
@@ -7,7 +7,7 @@ import { DraftBadge } from '@/components/ui/DraftBadge';
 import { useCreateEvent, useAddEventRelations } from '@/hooks/useEvents';
 import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft } from '@/hooks/useDrafts';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
-import type { CreateEventDto, PatchEventDto, Template, FinanceEvent, FinanceLineItem } from '@/models';
+import type { CreateEventDto, PatchEventDto, Template, FinanceEvent, FinanceLineItem, FinanceEventDraftInputDto } from '@/models';
 import { useDebounceCallback } from '@/hooks/useDebounce';
 import { Icon } from '@/components/ui/Icon';
 
@@ -40,15 +40,35 @@ export function EventNewPage() {
   const templateValues = template ? mapTemplateToEventValues(template) : undefined;
 
   const [currentDraftId, setCurrentDraftId] = useState<number | undefined>(draft?.draftId);
+  const currentDraftIdRef = useRef<number | undefined>(draft?.draftId);
+  const creationPromiseRef = useRef<Promise<number> | null>(null);
 
-  const handleSaveDraft = useCallback(async (dto: Partial<FinanceEvent>) => {
-    if (currentDraftId) {
-      await updateDraft.mutateAsync({ id: currentDraftId, dto });
-    } else {
-      const created = await createDraft.mutateAsync(dto);
-      setCurrentDraftId(created.id);
+  const handleSaveDraft = useCallback(async (dto: FinanceEventDraftInputDto) => {
+    let activeDraftId = currentDraftIdRef.current;
+    
+    if (!activeDraftId && creationPromiseRef.current) {
+      activeDraftId = await creationPromiseRef.current;
     }
-  }, [currentDraftId, createDraft, updateDraft])
+
+    if (activeDraftId) {
+      await updateDraft.mutateAsync({ id: activeDraftId, dto });
+      return;
+    }
+
+    const promise = createDraft.mutateAsync(dto).then(created => {
+      currentDraftIdRef.current = created.id;
+      setCurrentDraftId(created.id);
+      return created.id;
+    });
+
+    creationPromiseRef.current = promise;
+    try {
+      await promise;
+    } finally {
+      creationPromiseRef.current = null;
+    }
+  }, [createDraft, updateDraft]);
+
 
   const debouncedSaveDraft = useDebounceCallback(handleSaveDraft, 500)
   const handleSubmit = async (dto: CreateEventDto | PatchEventDto) => {

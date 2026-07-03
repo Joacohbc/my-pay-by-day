@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { draftsService } from '@/services/drafts.service';
 import { useAlert } from '@/contexts/AlertContext';
 import { useTranslation } from 'react-i18next';
-import type { FinanceEvent } from '@/models';
+import type { FinanceEventDraftInputDto } from '@/models';
 
 export const DRAFTS_KEY = ['drafts'] as const;
 
@@ -44,7 +44,7 @@ export function useCreateFinanceEventDraft() {
   const { t } = useTranslation();
 
   return useMutation({
-    mutationFn: (dto: Partial<FinanceEvent>) => draftsService.createFinanceEventDraft(dto),
+    mutationFn: (dto: FinanceEventDraftInputDto) => draftsService.createFinanceEventDraft(dto),
     onSuccess: () => qc.invalidateQueries({ queryKey: DRAFTS_KEY }),
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
   });
@@ -56,7 +56,7 @@ export function useUpdateFinanceEventDraft() {
   const { t } = useTranslation();
 
   return useMutation({
-    mutationFn: ({ id, dto }: { id: number; dto: Partial<FinanceEvent> }) =>
+    mutationFn: ({ id, dto }: { id: number; dto: FinanceEventDraftInputDto }) =>
       draftsService.updateFinanceEventDraft(id, dto),
     onSuccess: () => qc.invalidateQueries({ queryKey: DRAFTS_KEY }),
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),

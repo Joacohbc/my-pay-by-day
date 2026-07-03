@@ -8,12 +8,14 @@ import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import com.mypaybyday.dto.FinanceEventDraftInputDto;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.entity.DraftEntity;
 import com.mypaybyday.enums.EntityType;
@@ -96,21 +98,21 @@ public class DraftResource {
 
 	@POST
 	@Path("/finance-events")
-	@Operation(summary = "Create a new finance event draft from FinanceEventDto")
+	@Operation(summary = "Create a new finance event draft from FinanceEventDraftInputDto")
 	@APIResponse(responseCode = "201", description = "Finance event draft created successfully",
 		content = @Content(schema = @Schema(implementation = DraftEntity.class)))
-	public Response createFinanceEventDraft(FinanceEventDto dto) {
-		DraftEntity draft = draftService.create(EntityType.FINANCE_EVENT, dto);
+	public Response createFinanceEventDraft(FinanceEventDraftInputDto dto) {
+		DraftEntity draft = draftService.createFinanceEventDraft(dto);
 		return Response.status(Response.Status.CREATED).entity(draft).build();
 	}
 
-	@PUT
+	@PATCH
 	@Path("/finance-events/{id}")
-	@Operation(summary = "Update an existing finance event draft with a new FinanceEventDto payload")
+	@Operation(summary = "Update an existing finance event draft with a new FinanceEventDraftInputDto patch payload")
 	@APIResponse(responseCode = "200", description = "Finance event draft updated successfully")
 	@APIResponse(responseCode = "400", description = "Draft not found (Business Exception)")
-	public DraftEntity updateFinanceEventDraft(@PathParam("id") Long draftId, FinanceEventDto dto) {
-		return draftService.update(draftId, dto);
+	public DraftEntity updateFinanceEventDraft(@PathParam("id") Long draftId, FinanceEventDraftInputDto dto) {
+		return draftService.patchFinanceEventDraft(draftId, dto);
 	}
 
 	@POST

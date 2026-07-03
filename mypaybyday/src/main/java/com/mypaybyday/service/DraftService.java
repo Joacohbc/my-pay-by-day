@@ -13,6 +13,7 @@ import jakarta.transaction.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mypaybyday.dto.FinanceEventDraftInputDto;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.DraftEntity;
@@ -109,6 +110,85 @@ public class DraftService {
 		}
 
 		return entity;
+	}
+
+	@Transactional
+	public DraftEntity createFinanceEventDraft(FinanceEventDraftInputDto input) throws BusinessException {
+		FinanceEventDto dto = buildFinanceEventDto(input, null);
+		return create(EntityType.FINANCE_EVENT, dto);
+	}
+
+	@Transactional
+	public DraftEntity patchFinanceEventDraft(Long id, FinanceEventDraftInputDto patch) throws BusinessException {
+		DraftEntity entity = findEntityById(id);
+		FinanceEventDto current = mapToFinanceEventDto(entity);
+		FinanceEventDto updated = buildFinanceEventDto(patch, current);
+		try {
+			entity.setRawPayloadJson(objectMapper.writeValueAsString(updated));
+			if (updated.id() != null) {
+				entity.setOriginalEntityId(updated.id());
+			}
+			draftRepository.persist(entity);
+		} catch (JsonProcessingException e) {
+			throw new BusinessException(messages.get(MsgKey.DRAFT_INVALID_PAYLOAD));
+		}
+		return entity;
+	}
+
+	private FinanceEventDto buildFinanceEventDto(FinanceEventDraftInputDto input, FinanceEventDto current) {
+		String name = input.name() != null ? input.name() : (current != null ? current.name() : null);
+		String desc = input.description() != null ? input.description() : (current != null ? current.description() : null);
+		EventType type = input.type() != null ? input.type() : (current != null ? current.type() : null);
+		java.time.LocalDateTime date = input.transactionDate() != null ? input.transactionDate() : (current != null ? current.transactionDate() : null);
+		
+		com.mypaybyday.dto.CategoryDto category = current != null ? current.category() : null;
+		if (input.categoryId() != null) {
+			category = new com.mypaybyday.dto.CategoryDto(input.categoryId(), null, null, null, false);
+		}
+		
+		List<com.mypaybyday.dto.TagDto> tags = current != null ? current.tags() : List.of();
+		if (input.tagIds() != null) {
+			tags = input.tagIds().stream().map(com.mypaybyday.dto.TagDto::ofId).toList();
+		}
+
+		List<com.mypaybyday.dto.FinanceLineItemDto> lineItems = current != null ? current.lineItems() : List.of();
+		java.math.BigDecimal amount = current != null ? current.amount() : java.math.BigDecimal.ZERO;
+		
+		if (input.lineItems() != null && !input.lineItems().isEmpty()) {
+			lineItems = input.lineItems();
+		} else if (Boolean.TRUE.equals(input.isSimplifiedMode()) || input.amount() != null || input.sourceNodeId() != null || input.destNodeId() != null) {
+			Long sourceNodeId = input.sourceNodeId();
+			Long destNodeId = input.destNodeId();
+			java.math.BigDecimal inputAmount = input.amount();
+			
+			if (current != null && current.lineItems() != null && !current.lineItems().isEmpty()) {
+				if (sourceNodeId == null) {
+					sourceNodeId = current.lineItems().stream()
+						.filter(li -> li.amount() != null && li.amount().compareTo(java.math.BigDecimal.ZERO) < 0)
+						.map(com.mypaybyday.dto.FinanceLineItemDto::financeNodeId)
+						.findFirst().orElse(null);
+				}
+				if (destNodeId == null) {
+					destNodeId = current.lineItems().stream()
+						.filter(li -> li.amount() != null && li.amount().compareTo(java.math.BigDecimal.ZERO) > 0)
+						.map(com.mypaybyday.dto.FinanceLineItemDto::financeNodeId)
+						.findFirst().orElse(null);
+				}
+				if (inputAmount == null) {
+					inputAmount = current.amount();
+				}
+			}
+			
+			if (inputAmount == null) inputAmount = java.math.BigDecimal.ZERO;
+			
+			com.mypaybyday.dto.FinanceLineItemDto sourceItem = new com.mypaybyday.dto.FinanceLineItemDto(sourceNodeId, null, null, inputAmount.abs().negate());
+			com.mypaybyday.dto.FinanceLineItemDto destItem = new com.mypaybyday.dto.FinanceLineItemDto(destNodeId, null, null, inputAmount.abs());
+			lineItems = List.of(sourceItem, destItem);
+		}
+		
+		Long origId = input.id() != null ? input.id() : (current != null ? current.id() : null);
+
+		return new FinanceEventDto(origId, name, desc, type, amount, current != null ? current.transactionId() : null, date, lineItems, category, tags, current != null ? current.relatedEvents() : null, current != null ? current.subscriptionId() : null, current != null ? current.draftId() : null, current != null ? current.files() : null);
 	}
 
 	@Transactional

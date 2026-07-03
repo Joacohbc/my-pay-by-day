@@ -195,15 +195,12 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
         inputSchema: botDraftPatchSchema,
         execute: (patch) =>
           safe(async () => {
-            const drafts = await unwrap(client.GET('/drafts/finance-events'));
-            const current = drafts.find((d) => d.draftId === patch.draftId);
-            if (!current) return { error: `Draft not found: ${patch.draftId}` };
             const updated = await unwrap(
-              client.PUT('/drafts/finance-events/{id}', {
+              client.PATCH('/drafts/finance-events/{id}' as any, {
                 params: { path: { id: patch.draftId } },
-                body: toDraftPatchPayload(patch, current, ctx.timezone),
+                body: toDraftPatchPayload(patch, ctx.timezone),
               }),
-            );
+            ) as any;
             return { ok: true, draftId: updated.id, originalEventId: updated.originalEntityId ?? undefined };
           }),
       }),

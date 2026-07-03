@@ -15,7 +15,7 @@ import { useTags } from '@/hooks/useTags';
 import { useTagGroups } from '@/hooks/useTagGroups';
 import { useNodes } from '@/hooks/useNodes';
 import { useAiFormController } from '@/hooks/useAiFormController';
-import type { CreateEventDto, PatchEventDto, FinanceEvent } from '@/models';
+import type { CreateEventDto, PatchEventDto, FinanceEvent, FinanceEventDraftInputDto } from '@/models';
 import { buildSchema, buildFormDefaults, MIN_LINE_ITEMS, toDraftDto } from '@/components/events/EventFormMapper';
 import { prependMissingArchived } from '@/lib/prependMissingArchived';
 
@@ -58,7 +58,7 @@ interface EventFormProps {
    * Fires on every form field change with the current values. Parents can read
    * `draftId` from the payload to drive UI like the DraftBadge.
    */
-  onChange?: (dto: Partial<FinanceEvent>, values: FormValues) => void;
+  onChange?: (dto: FinanceEventDraftInputDto, values: FormValues) => void;
 
   submitLabel?: string;
   loading?: boolean;

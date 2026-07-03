@@ -41,59 +41,39 @@ export function toServerDateBoundary(
   return toServerDateTime(`${day}${time}`, timezone);
 }
 
-/**
- * Builds the raw `FinanceEventDto` a draft endpoint expects from the flat bot input.
- * When `targetEventId` is set, the payload carries it as `id`, which the backend records as the
- * draft's `originalEntityId` (edit-as-draft).
- */
-export function toDraftPayload(input: DraftInput, timezone: string, targetEventId?: number): FinanceEventDto {
+export function toDraftPayload(input: DraftInput, timezone: string, targetEventId?: number): any {
   return {
     id: targetEventId,
     name: input.name,
     description: input.description ?? undefined,
     type: input.type,
     transactionDate: normalizeDate(input.date, timezone),
-    category: input.categoryId != null ? { id: input.categoryId } : undefined,
-    tags: (input.tagIds ?? []).map((id) => ({ id })),
-    lineItems: [
-      { financeNodeId: input.sourceNodeId ?? undefined, amount: -input.amount },
-      { financeNodeId: input.destNodeId ?? undefined, amount: input.amount },
-    ],
+    categoryId: input.categoryId ?? undefined,
+    tagIds: input.tagIds ?? undefined,
+    isSimplifiedMode: true,
+    amount: input.amount,
+    sourceNodeId: input.sourceNodeId ?? undefined,
+    destNodeId: input.destNodeId ?? undefined,
   };
 }
 
 /**
- * Folds a partial bot edit into the full `FinanceEventDto` a draft PUT expects, filling every field
- * the caller left unset from the draft's current value, so editing one field never wipes the rest.
- * Mirrors `toEventPatch`, including carrying the current `transactionDate` as-is (no timezone shift)
- * when the caller does not supply a new date.
+ * Maps a partial bot edit into the FinanceEventDraftInputDto shape expected by PATCH /drafts.
+ * Only mapped fields are included; the backend will apply the patch to the existing draft.
  */
-export function toDraftPatchPayload(patch: BotDraftPatch, current: FinanceEventDto, timezone: string): FinanceEventDto {
-  const items = current.lineItems ?? [];
-  const source = items.find((li) => (li.amount ?? 0) < 0);
-  const dest = items.find((li) => (li.amount ?? 0) >= 0);
-  const currentAmount = current.amount ?? (dest?.amount != null ? Math.abs(dest.amount) : 0);
-
-  const amount = patch.amount ?? currentAmount;
-  const sourceNodeId = patch.sourceNodeId ?? source?.financeNodeId ?? undefined;
-  const destNodeId = patch.destNodeId ?? dest?.financeNodeId ?? undefined;
-  const categoryId = patch.categoryId ?? current.category?.id;
-  const tagIds = patch.tagIds ?? (current.tags ?? []).map((t) => t.id).filter((id): id is number => id != null);
-
+export function toDraftPatchPayload(patch: BotDraftPatch, timezone: string): any {
   return {
-    id: patch.targetEventId ?? current.id ?? undefined,
-    name: patch.name ?? current.name ?? '',
-    description: patch.description ?? current.description ?? undefined,
-    type: patch.type ?? current.type ?? 'OUTBOUND',
-    transactionDate:
-      normalizeDate(patch.date, timezone) ??
-      (current.transactionDate ? asServerDateTime(current.transactionDate) : undefined),
-    category: categoryId != null ? { id: categoryId } : undefined,
-    tags: tagIds.map((id) => ({ id })),
-    lineItems: [
-      { financeNodeId: sourceNodeId, amount: -Math.abs(amount) },
-      { financeNodeId: destNodeId, amount: Math.abs(amount) },
-    ],
+    id: patch.targetEventId ?? undefined,
+    name: patch.name ?? undefined,
+    description: patch.description ?? undefined,
+    type: patch.type ?? undefined,
+    transactionDate: normalizeDate(patch.date, timezone),
+    categoryId: patch.categoryId ?? undefined,
+    tagIds: patch.tagIds ?? undefined,
+    isSimplifiedMode: patch.amount != null || patch.sourceNodeId != null || patch.destNodeId != null ? true : undefined,
+    amount: patch.amount ?? undefined,
+    sourceNodeId: patch.sourceNodeId ?? undefined,
+    destNodeId: patch.destNodeId ?? undefined,
   };
 }
 

@@ -1,5 +1,5 @@
 import { z } from 'zod/v4';
-import type { CreateEventDto, PatchEventDto, FinanceEvent, Category, Tag, FinanceLineItem, CreateTransactionDto, EventType } from '@/models';
+import type { CreateEventDto, PatchEventDto, FinanceEvent, CreateTransactionDto, EventType, FinanceEventDraftInputDto } from '@/models';
 import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
 import { nameField, descriptionField } from '@/lib/validation';
 
@@ -185,38 +185,34 @@ function hasTransactionChanged(base: Partial<FinanceEvent>, values: FormValues):
   return false;
 }
 
-export function toDraftDto(values: FormValues, t: (key: string) => string): Partial<FinanceEvent> {
+export function toDraftDto(values: FormValues, t: (key: string) => string): FinanceEventDraftInputDto {
   const isSimplifiedMode = values.isSimplifiedMode ?? false;
-  const draftDto: Partial<FinanceEvent> = {
-    name: values.name || t('drafts.untitledDraft'),
-    description: values.description || undefined,
-    type: values.type,
-  };
-
+  
   const transactionDate = values.transactionDate
     ? (values.transactionDate.includes(':00.000') ? values.transactionDate : `${values.transactionDate}:00.000`)
     : undefined;
 
-  draftDto.transactionDate = transactionDate || `${toLocalDateTimeString(getLocalizedNow())}:00.000`;
-  
-  draftDto.lineItems = values.lineItems.map((li, i) => {
-      const amountStr = li.amount;
-      let amount = amountStr ? Number(amountStr) : 0;
-      if (isSimplifiedMode) {
-        amount = i === 0 ? -Math.abs(amount) : Math.abs(amount);
-      }
-      return {
-        id: 0,
-        financeNodeId: li.nodeId ? Number(li.nodeId) : 0,
-        financeNodeName: '',
-        amount,
-      } as FinanceLineItem;
-    }).filter((li) => li.financeNodeId || li.amount !== 0);
+  const draftDto: FinanceEventDraftInputDto = {
+    name: values.name || t('drafts.untitledDraft'),
+    description: values.description || undefined,
+    type: values.type,
+    transactionDate: transactionDate || `${toLocalDateTimeString(getLocalizedNow())}:00.000`,
+    categoryId: values.categoryId ? Number(values.categoryId) : undefined,
+    tagIds: values.tagIds?.map((id: string) => Number(id)),
+    isSimplifiedMode,
+  };
 
-  if (values.categoryId) draftDto.category = { id: Number(values.categoryId) } as Category;
-  if (values.tagIds?.length) draftDto.tags = values.tagIds.map((id: string) => ({ id: Number(id) } as Tag));
-
-  draftDto.draftId = values.draftId ?? undefined;
+  if (isSimplifiedMode) {
+    const amountStr = values.lineItems[0]?.amount;
+    draftDto.amount = amountStr ? Number(amountStr) : 0;
+    draftDto.sourceNodeId = values.lineItems[0]?.nodeId ? Number(values.lineItems[0].nodeId) : undefined;
+    draftDto.destNodeId = values.lineItems[1]?.nodeId ? Number(values.lineItems[1].nodeId) : undefined;
+  } else {
+    draftDto.lineItems = values.lineItems.map((li) => ({
+      financeNodeId: li.nodeId ? Number(li.nodeId) : 0,
+      amount: li.amount ? Number(li.amount) : 0,
+    })).filter((li) => li.financeNodeId || li.amount !== 0);
+  }
 
   return draftDto;
 }

@@ -172,6 +172,21 @@ export interface BulkPatchEventDto {
   tags?: { id: number }[] | null;
 }
 
+export interface FinanceEventDraftInputDto {
+  id?: number;
+  name?: string;
+  description?: string;
+  type?: EventType;
+  transactionDate?: string;
+  categoryId?: number;
+  tagIds?: number[];
+  isSimplifiedMode?: boolean;
+  amount?: number;
+  sourceNodeId?: number;
+  destNodeId?: number;
+  lineItems?: { financeNodeId: number; amount: number }[];
+}
+
 // ─── Template ─────────────────────────────────────────────────────────────────
 
 export interface Template extends Identifiable {

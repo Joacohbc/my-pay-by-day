@@ -587,7 +587,7 @@ export interface paths {
         };
         get?: never;
         /** Update an existing finance event draft with a new FinanceEventDto payload */
-        put: {
+        patch: {
             parameters: {
                 query?: never;
                 header?: never;
