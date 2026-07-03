@@ -9,7 +9,7 @@
 * **Double-entry accounting** with automatic integrity validation (Origins = Destinations on every Transaction).
 * **Budget management** via flexible Time Periods with per-category limits and savings goals.
 * **Recurring agreements** through Subscriptions backed by Templates, which auto-generate Events on each billing cycle.
-* **AI integration** (LangChain4j + OpenRouter) for chat-based event creation, receipt/invoice image parsing, and voice transcription.
+* **AI integration** (Vercel AI SDK + OpenRouter) for chat-based event creation, receipt/invoice image parsing, and voice transcription.
 * **Internationalisation** in English and Spanish across both frontend and backend.
 * **Timezone Detection**: The system automatically detects the user's timezone via the `X-Timezone` header (managed by `TimezoneFilter` in the backend) to ensure AI agents and date processing align with the user's local time.
 
@@ -22,7 +22,7 @@
 | Forms | React Hook Form + Zod |
 | Backend | Java 17 + Quarkus 3.x + Hibernate ORM (Panache) |
 | Database | SQLite |
-| AI | LangChain4j 1.x via OpenRouter (chat + vision models) |
+| AI | Vercel AI SDK via OpenRouter (chat + vision models) |
 
 ### Design philosophy
 
@@ -271,7 +271,6 @@ function process(data) {
 
 The backend source code lives under `mypaybyday/src/main/java/com/mypaybyday/` and is split into the following packages:
 
-* **`ai/`** — LangChain4j AI integration: agent definitions, finance tool declarations, chat memory, and audio transcription.
 * **`config/`** — Application-level configuration beans (Jackson, timezone, startup diagnostics).
 * **`crypto/`** — Field-level encryption utilities and JPA attribute converters for encrypted strings and decimals.
 * **`dto/`** — Data Transfer Objects used as the public contract between the resource and service layers. Every public service method must receive and return DTOs, never raw JPA entities.
@@ -517,6 +516,6 @@ Both the frontend and backend require English (`en`) and Spanish (`es`) translat
 
 ### AI Actions Synchronization
 
-Whenever an AI text action (`AiTextAction`) is added, removed, or modified in the backend or frontend (e.g., in `AiTextAction.java`, `ai.service.ts`, or anywhere AI text actions are defined), the Custom Prompts configuration component (`AiSettingsPage.tsx` and the store `aiPromptsStore.ts`) **must** be updated to reflect exactly all available actions.
+Whenever an AI text action (`TextAction`) is added, removed, or modified in the chatbot service or frontend (e.g., in `chatbot/src/routes/text.ts`, `ai.service.ts`), the Custom Prompts configuration component (`AiSettingsPage.tsx` and the store `aiPromptsStore.ts`) **must** be updated to reflect exactly all available actions.
 
 This ensures that every AI action has a user-configurable prompt and prevents inconsistencies between what the system offers and what the user can customize.

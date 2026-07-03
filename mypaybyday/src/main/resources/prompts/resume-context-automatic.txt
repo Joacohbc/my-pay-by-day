@@ -1,1 +1,0 @@
-[RESUME_CONTEXT: The user has reactivated the chat. Please analyze the history and resume the task automatically.]
