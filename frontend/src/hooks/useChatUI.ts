@@ -14,6 +14,7 @@ import { eventKeys } from '@/hooks/useEvents';
 import { tagKeys } from '@/hooks/useTags';
 import { categoryKeys } from '@/hooks/useCategories';
 import { getUserTimezone } from '@/lib/utils/dateUtils';
+import { useSendCountdown } from '@/hooks/useSendCountdown';
 import i18n from '@/lib/i18n';
 import type { FileDto } from '@/models';
 
@@ -200,9 +201,6 @@ export function useChatUI() {
     [chatId],
   );
 
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const { messages: uiMessages, status, setMessages, sendMessage, stop, addToolApprovalResponse } = useChat({
     id: chatId,
     transport,
@@ -210,32 +208,11 @@ export function useChatUI() {
     onFinish: invalidateFinanceCaches,
   });
 
-  const triggerSendNow = useCallback(() => {
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
-    }
-    setCountdown(null);
-    sendMessage();
-  }, [sendMessage]);
+  const { countdown, schedule: scheduleSend, sendNow: triggerSendNow, cancel: cancelScheduledSend } = useSendCountdown();
 
   useEffect(() => {
-    return () => {
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
-    }
-    setTimeout(() => {
-      setCountdown(null);
-    }, 0);
-  }, [chatId]);
+    cancelScheduledSend();
+  }, [chatId, cancelScheduledSend]);
 
   const [isBackendGenerating, setIsBackendGenerating] = useState(false);
 
@@ -384,28 +361,8 @@ export function useChatUI() {
     };
 
     setMessages((prev) => [...prev, newMessage]);
-
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-    }
-    
-    let timeLeft = 5;
-    setCountdown(timeLeft);
-
-    countdownIntervalRef.current = setInterval(() => {
-      timeLeft -= 1;
-      if (timeLeft <= 0) {
-        if (countdownIntervalRef.current) {
-          clearInterval(countdownIntervalRef.current);
-          countdownIntervalRef.current = null;
-        }
-        setCountdown(null);
-        sendMessage();
-      } else {
-        setCountdown(timeLeft);
-      }
-    }, 1000);
-  }, [input, draftFiles, setDraftFiles, setMessages, sendMessage, instantDraftMode, handleInstantDraft]);
+    scheduleSend(() => sendMessage());
+  }, [input, draftFiles, setDraftFiles, setMessages, sendMessage, scheduleSend, instantDraftMode, handleInstantDraft]);
 
   const applyTranscribedText = useCallback(
     (transcription: string) => {

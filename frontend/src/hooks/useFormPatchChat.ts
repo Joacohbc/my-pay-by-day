@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/contexts/AlertContext';
 import { formChatService, type FormPatchEntityType, type FormPatchTurn } from '@/services/formChat.service';
 import { filesService } from '@/services/files.service';
 import { audioService } from '@/services/audio.service';
+import { useSendCountdown } from '@/hooks/useSendCountdown';
 import type { FileDto } from '@/models';
 import type { FilePayload } from '@/services/extract.service';
 
@@ -44,8 +45,46 @@ export function useFormPatchChat({ entityType, getCurrentValues, onPatch }: UseF
   const [input, setInput] = useState('');
   const [draftFiles, setDraftFiles] = useState<FileDto[]>([]);
   const [isPending, setIsPending] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const handleSend = useCallback(async () => {
+  const { countdown, schedule: scheduleSend, sendNow: triggerSendNow } = useSendCountdown();
+
+  const performSend = useCallback(
+    async (text: string, files: FileDto[], userMessage: FormChatMessage) => {
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      setIsPending(true);
+      try {
+        const conversation: FormPatchTurn[] = messages.map((m) => ({ role: m.role, text: m.text }));
+        const filePayloads = await Promise.all(files.map(toFilePayload));
+        const { patch, reply } = await formChatService.send(
+          {
+            entityType,
+            currentValues: getCurrentValues(),
+            conversation,
+            message: text,
+            files: filePayloads.length ? filePayloads : undefined,
+          },
+          controller.signal,
+        );
+        if (Object.keys(patch).length > 0) onPatch(patch);
+        setMessages((prev) => [...prev, { id: `msg-${Date.now()}-a`, role: 'assistant', text: reply }]);
+      } catch (error) {
+        setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
+        setInput(text);
+        setDraftFiles(files);
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          alert.error(error instanceof Error ? error.message : t('common.error'));
+        }
+      } finally {
+        abortControllerRef.current = null;
+        setIsPending(false);
+      }
+    },
+    [messages, entityType, getCurrentValues, onPatch, alert, t],
+  );
+
+  const handleSend = useCallback(() => {
     const text = input.trim();
     if (!text && draftFiles.length === 0) return;
 
@@ -59,29 +98,14 @@ export function useFormPatchChat({ entityType, getCurrentValues, onPatch }: UseF
       text: text || t('ai.chatWidget.attachedFile'),
     };
     setMessages((prev) => [...prev, userMessage]);
-    setIsPending(true);
+    scheduleSend(() => {
+      void performSend(text, files, userMessage);
+    });
+  }, [input, draftFiles, t, scheduleSend, performSend]);
 
-    try {
-      const conversation: FormPatchTurn[] = messages.map((m) => ({ role: m.role, text: m.text }));
-      const filePayloads = await Promise.all(files.map(toFilePayload));
-      const { patch, reply } = await formChatService.send({
-        entityType,
-        currentValues: getCurrentValues(),
-        conversation,
-        message: text,
-        files: filePayloads.length ? filePayloads : undefined,
-      });
-      if (Object.keys(patch).length > 0) onPatch(patch);
-      setMessages((prev) => [...prev, { id: `msg-${Date.now()}-a`, role: 'assistant', text: reply }]);
-    } catch (error) {
-      setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
-      setInput(text);
-      setDraftFiles(files);
-      alert.error(error instanceof Error ? error.message : t('common.error'));
-    } finally {
-      setIsPending(false);
-    }
-  }, [input, draftFiles, messages, entityType, getCurrentValues, onPatch, alert, t]);
+  const handleStop = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
 
   const applyTranscribedText = useCallback((transcription: string) => {
     const text = transcription.trim();
@@ -119,5 +143,8 @@ export function useFormPatchChat({ entityType, getCurrentValues, onPatch }: UseF
     handleAudioFileSelected,
     handleAddFile,
     handleRemoveFile,
+    countdown,
+    triggerSendNow,
+    handleStop,
   };
 }

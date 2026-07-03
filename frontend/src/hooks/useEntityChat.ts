@@ -10,6 +10,7 @@ import { eventKeys } from '@/hooks/useEvents';
 import { tagKeys } from '@/hooks/useTags';
 import { categoryKeys } from '@/hooks/useCategories';
 import { getUserTimezone } from '@/lib/utils/dateUtils';
+import { useSendCountdown } from '@/hooks/useSendCountdown';
 import i18n from '@/lib/i18n';
 import type { ChatMessage } from '@/store/chatStore';
 import type { FileDto } from '@/models';
@@ -172,6 +173,7 @@ export function useEntityChat({
     status,
     setMessages,
     sendMessage,
+    stop,
     addToolApprovalResponse,
   } = useChat({
     id: chatId,
@@ -181,6 +183,8 @@ export function useEntityChat({
   });
 
   const isPending = status === 'submitted' || status === 'streaming';
+
+  const { countdown, schedule: scheduleSend, sendNow: triggerSendNow } = useSendCountdown();
 
   const messages = useMemo(() => {
     return uiMessages
@@ -237,8 +241,8 @@ export function useEntityChat({
       parts: [...(text ? [{ type: 'text' as const, text }] : []), ...fileParts],
     };
     setMessages((prev) => [...prev, newMessage]);
-    sendMessage();
-  }, [input, draftFiles, ensureScopeId, setMessages, sendMessage]);
+    scheduleSend(() => sendMessage());
+  }, [input, draftFiles, ensureScopeId, setMessages, sendMessage, scheduleSend]);
 
   const applyTranscribedText = useCallback((transcription: string) => {
     const text = transcription.trim();
@@ -284,5 +288,8 @@ export function useEntityChat({
     handleAddFile,
     handleRemoveFile,
     handleToolApproval,
+    countdown,
+    triggerSendNow,
+    handleStop: stop,
   };
 }

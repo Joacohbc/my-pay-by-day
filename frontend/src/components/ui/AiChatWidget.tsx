@@ -20,6 +20,12 @@ interface AiChatWidgetProps {
   onAddFile?: (file: FileDto) => void;
   onRemoveFile?: (fileId: number) => void;
   placeholder?: string;
+  /** Seconds left before a debounced send actually fires; null when nothing is queued. */
+  countdown?: number | null;
+  /** Skips the debounce wait and sends immediately. */
+  onSendNow?: () => void;
+  /** Cancels an in-flight (already-sent) request. */
+  onStop?: () => void;
 }
 
 export function AiChatWidget({
@@ -36,6 +42,9 @@ export function AiChatWidget({
   onAddFile,
   onRemoveFile,
   placeholder,
+  countdown,
+  onSendNow,
+  onStop,
 }: AiChatWidgetProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -48,9 +57,7 @@ export function AiChatWidget({
   // 'sticky' (not absolute/fixed) keeps the launcher anchored to the bottom of the modal's own
   // scrollable body, instead of escaping its rounded corners or floating over the backdrop.
   const wrapperClass =
-    // bottom-20 clears the 80px fixed bottom nav bar (see BottomNav.tsx); left side avoids colliding with
-    // DraftBadge, which floats bottom-20 right-3 on the same event pages.
-    variant === 'page' ? 'fixed bottom-20 left-3 z-50' : 'sticky bottom-3 z-20 flex justify-end pointer-events-none';
+    variant === 'page' ? 'fixed bottom-25 left-5 z-50' : 'sticky bottom-3 z-20 flex justify-end pointer-events-none';
   const surfaceClass = variant === 'modal' ? 'pointer-events-auto' : '';
 
   if (!open) {
@@ -59,10 +66,11 @@ export function AiChatWidget({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className={`${surfaceClass} inline-flex items-center gap-1.5 px-3 py-2 rounded-pill bg-dn-primary text-white shadow-lg hover:bg-dn-primary/90 transition-colors text-xs font-medium`}
+          aria-label={t('ai.chatWidget.launcher')}
+          title={t('ai.chatWidget.launcher')}
+          className={`${surfaceClass} w-11 h-11 flex items-center justify-center rounded-full bg-dn-primary text-white shadow-lg hover:bg-dn-primary/90 transition-colors`}
         >
-          <Icon name="auto_awesome" className="text-[16px]" />
-          {t('ai.chatWidget.launcher')}
+          <Icon name="auto_awesome" className="text-[20px]" />
         </button>
       </div>
     );
@@ -109,6 +117,9 @@ export function AiChatWidget({
           onAddFile={onAddFile}
           onRemoveFile={onRemoveFile}
           placeholder={placeholder ?? t('ai.chatWidget.placeholder')}
+          countdown={countdown}
+          onSendNow={onSendNow}
+          onStop={onStop}
         />
       </div>
     </div>

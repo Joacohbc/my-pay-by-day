@@ -25,6 +25,9 @@ export function EventAiChatWidget({ draftId, onEnsureDraft, onDraftIdResolved, o
     handleAddFile,
     handleRemoveFile,
     handleToolApproval,
+    countdown,
+    triggerSendNow,
+    handleStop,
   } = useEntityChat({
     scopeType: 'draft',
     scopeId: draftId,
@@ -48,6 +51,9 @@ export function EventAiChatWidget({ draftId, onEnsureDraft, onDraftIdResolved, o
       onAddFile={handleAddFile}
       onRemoveFile={handleRemoveFile}
       placeholder={t('ai.chatWidget.placeholderEvent')}
+      countdown={countdown}
+      onSendNow={triggerSendNow}
+      onStop={handleStop}
     >
       {messages.map((message) => (
         <ChatMessage key={message.id} message={message} onApprove={handleToolApproval} />

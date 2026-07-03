@@ -23,6 +23,9 @@ export function FormPatchAiChatWidget({ entityType, getCurrentValues, onPatch }:
     handleAudioFileSelected,
     handleAddFile,
     handleRemoveFile,
+    countdown,
+    triggerSendNow,
+    handleStop,
   } = useFormPatchChat({ entityType, getCurrentValues, onPatch });
 
   return (
@@ -39,6 +42,9 @@ export function FormPatchAiChatWidget({ entityType, getCurrentValues, onPatch }:
       onAddFile={handleAddFile}
       onRemoveFile={handleRemoveFile}
       placeholder={t('ai.chatWidget.placeholderForm')}
+      countdown={countdown}
+      onSendNow={triggerSendNow}
+      onStop={handleStop}
     >
       {messages.map((message) => (
         <AiChatBubble key={message.id} role={message.role} text={message.text} />

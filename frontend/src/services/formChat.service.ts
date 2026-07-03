@@ -22,5 +22,6 @@ export interface FormChatResponse {
 }
 
 export const formChatService = {
-  send: (request: FormChatRequest): Promise<FormChatResponse> => api.post<FormChatResponse>('/ai/form-chat', request),
+  send: (request: FormChatRequest, signal?: AbortSignal): Promise<FormChatResponse> =>
+    api.post<FormChatResponse>('/ai/form-chat', request, { signal }),
 };

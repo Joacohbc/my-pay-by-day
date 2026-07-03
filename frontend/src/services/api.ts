@@ -55,7 +55,7 @@ export const api = {
       }
     }).then((r) => handleResponse<T>(r)),
 
-  post: <T>(path: string, body?: unknown): Promise<T> => {
+  post: <T>(path: string, body?: unknown, options?: { signal?: AbortSignal }): Promise<T> => {
     // Transform all local date strings to server timezone before sending to the server
     const transformedBody = body !== undefined ? transformDates(body, toServerDate) : undefined;
     return fetch(`${BASE_URL}${path}`, {
@@ -67,6 +67,7 @@ export const api = {
         'X-Language': getLang(),
       },
       body: transformedBody !== undefined ? JSON.stringify(transformedBody) : undefined,
+      signal: options?.signal,
     }).then((r) => handleResponse<T>(r));
   },
 
