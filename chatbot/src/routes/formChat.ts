@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requestContextFrom } from '@/context.js';
+import { replaceDocumentPartsWithMarkdown } from '@/files/markitdown.js';
 import {
   FORM_PATCH_ENTITY_TYPES,
   streamFormPatch,
@@ -33,7 +34,7 @@ formChatRoute.post('/', async (c) => {
   }
 
   try {
-    const modelMessages = await convertToModelMessages(incoming);
+    const modelMessages = await replaceDocumentPartsWithMarkdown(await convertToModelMessages(incoming));
     // Remove the last message from modelMessages, we handle it inside streamFormPatch? No, just pass all modelMessages!
     
     const result = await streamFormPatch(ctx, {

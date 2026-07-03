@@ -6,6 +6,7 @@ import { toDraftPayload as buildDraftPayload } from '@/bot/mappers.js';
 import type { components } from '@/backend/schema.js';
 import { languageName, type RequestContext } from '@/context.js';
 import { groundingNow, toServerDateTime, type ServerDateTime } from '@/dates.js';
+import { convertFileToMarkdown, markdownAttachmentText, needsMarkdownConversion } from '@/files/markitdown.js';
 import { largeModel, fastModel } from '@/models.js';
 import { logger } from '@/logging/logger.js';
 
@@ -96,6 +97,11 @@ export async function extractFinanceEvent(ctx: RequestContext, input: ExtractInp
   for (const file of input.files ?? []) {
     if (file.mediaType.startsWith('image/')) {
       userContent.push({ type: 'image', image: file.data, mediaType: file.mediaType });
+      continue;
+    }
+    const markdown = needsMarkdownConversion(file.mediaType) ? await convertFileToMarkdown(file) : null;
+    if (markdown != null) {
+      userContent.push({ type: 'text', text: markdownAttachmentText(file.filename, markdown) });
     } else {
       userContent.push({ type: 'file', data: file.data, mediaType: file.mediaType, filename: file.filename });
     }

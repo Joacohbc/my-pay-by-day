@@ -6,6 +6,7 @@ import { buildBackgroundTools } from '@/tools/background.js';
 import { buildDelegateTools } from '@/tools/delegate.js';
 import { config } from '@/config.js';
 import { requestContextFrom, type ChatScope } from '@/context.js';
+import { replaceDocumentPartsWithMarkdown } from '@/files/markitdown.js';
 import { groundingNow } from '@/dates.js';
 import { buildModelContext, compactIfNeeded } from '@/memory/compaction.js';
 import { conversationMemory } from '@/memory/conversation.js';
@@ -119,7 +120,7 @@ chatRoute.post('/', async (c) => {
   }
 
   await compactIfNeeded(chatId, ctx.lang);
-  const modelMessages = buildModelContext(chatId);
+  const modelMessages = await replaceDocumentPartsWithMarkdown(buildModelContext(chatId));
 
   chatGenerationTracker.markGenerationActive(chatId);
 

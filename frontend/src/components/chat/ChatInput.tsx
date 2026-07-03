@@ -133,7 +133,7 @@ export function ChatInput({
               files={draftFiles}
               onAddFile={onAddFile}
               onRemoveFile={onRemoveFile}
-              accept={onAudioFileSelected ? 'image/*,video/*,.pdf,.csv,.json,text/*,audio/*' : undefined}
+              accept={onAudioFileSelected ? 'image/*,video/*,.pdf,.csv,.json,text/*,audio/*,.docx,.xlsx,.xls,.pptx,.epub,.html,.htm,.xml,.md,.msg' : undefined}
               onAudioFile={onAudioFileSelected ? handleAudioFile : undefined}
             />
           </div>

@@ -55,7 +55,7 @@ export function FileExtractButton({ templateId, onExtracted }: FileExtractButton
       <input
         ref={inputRef}
         type="file"
-        accept="image/*,application/pdf,.pdf"
+        accept="image/*,application/pdf,.pdf,.docx,.xlsx,.xls,.pptx,.csv,.txt,.md,.html,.htm,.xml,.epub,.msg"
         className="hidden"
         onChange={handleFile}
       />
