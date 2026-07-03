@@ -312,57 +312,29 @@ export function useChatUI() {
     }, 1000);
   }, [input, draftFiles, setDraftFiles, setMessages, sendMessage]);
 
-  const sendTranscribedText = useCallback(
+  const applyTranscribedText = useCallback(
     (transcription: string) => {
       const text = transcription.trim();
       if (!text) throw new Error('transcription_failed');
-
-      const newMessage: UIMessage = {
-        id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        role: 'user',
-        parts: [{ type: 'text', text }],
-      };
-
-      setMessages((prev) => [...prev, newMessage]);
-
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-      }
-
-      let timeLeft = 5;
-      setCountdown(timeLeft);
-
-      countdownIntervalRef.current = setInterval(() => {
-        timeLeft -= 1;
-        if (timeLeft <= 0) {
-          if (countdownIntervalRef.current) {
-            clearInterval(countdownIntervalRef.current);
-            countdownIntervalRef.current = null;
-          }
-          setCountdown(null);
-          sendMessage();
-        } else {
-          setCountdown(timeLeft);
-        }
-      }, 1000);
+      setInput((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
     },
-    [setMessages, sendMessage],
+    [setInput],
   );
 
   const handleAudioRecorded = useCallback(
     async (audioBlob: Blob) => {
       const { transcription } = await audioService.transcribeRecordedAudio(audioBlob);
-      sendTranscribedText(transcription);
+      applyTranscribedText(transcription);
     },
-    [sendTranscribedText],
+    [applyTranscribedText],
   );
 
   const handleAudioFileSelected = useCallback(
     async (file: File) => {
       const { transcription } = await audioService.transcribeAudio(file);
-      sendTranscribedText(transcription);
+      applyTranscribedText(transcription);
     },
-    [sendTranscribedText],
+    [applyTranscribedText],
   );
 
   const handleNewChat = useCallback(() => {
