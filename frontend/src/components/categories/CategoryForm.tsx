@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { IconPicker } from '@/components/ui/IconPicker';
 import { useCreateCategory, useUpdateCategory } from '@/hooks/useCategories';
 import { useAiFieldController } from '@/hooks/useAiFieldController';
+import { FormPatchAiChatWidget } from '@/components/ui/FormPatchAiChatWidget';
 import type { Category } from '@/models';
 
 interface CategoryFormValues {
@@ -76,7 +77,14 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
 
   const isSubmitting = createCategory.isPending || updateCategory.isPending;
 
+  const applyPatch = (patch: Record<string, unknown>) => {
+    if (typeof patch.name === 'string') setValue('name', patch.name, { shouldDirty: true });
+    if (typeof patch.description === 'string') setValue('description', patch.description, { shouldDirty: true });
+    if (typeof patch.icon === 'string') setValue('icon', patch.icon, { shouldDirty: true });
+  };
+
   return (
+    <>
     <form
       onSubmit={(e) => {
         e.stopPropagation();
@@ -121,5 +129,11 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
       </div>
 
     </form>
+    <FormPatchAiChatWidget
+      entityType="category"
+      getCurrentValues={() => getValues() as unknown as Record<string, unknown>}
+      onPatch={applyPatch}
+    />
+    </>
   );
 }

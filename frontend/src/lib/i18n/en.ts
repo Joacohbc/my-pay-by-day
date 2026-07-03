@@ -598,6 +598,16 @@ const en = {
       deleted: 'Memory deleted',
       saved: 'Memory saved',
     },
+    chatWidget: {
+      launcher: 'Ask AI',
+      title: 'AI Assistant',
+      emptyHint: 'Ask for a change or attach a photo/file, and I\'ll fill it in for you.',
+      thinking: 'Thinking...',
+      placeholder: 'Ask the assistant...',
+      placeholderEvent: 'e.g. "set the category to Groceries" or attach a receipt',
+      placeholderForm: 'e.g. "make the description more formal"',
+      attachedFile: '(attached file)',
+    },
   },
 
   // ─── Duplicates ──────────────────────────────────────────────────────────

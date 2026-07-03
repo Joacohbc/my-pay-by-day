@@ -13,6 +13,7 @@ import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { LineItemsEditor } from '@/components/events/LineItemsEditor';
 import { useAiFieldController } from '@/hooks/useAiFieldController';
+import { FormPatchAiChatWidget } from '@/components/ui/FormPatchAiChatWidget';
 import { prependMissingArchived } from '@/lib/prependMissingArchived';
 import {
   buildSchema,
@@ -107,6 +108,18 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
 
   const handleFormSubmit = async (values: FormValues) => {
     await onSubmit(toCreateDto(values));
+  };
+
+  const applyPatch = (patch: Record<string, unknown>) => {
+    if (typeof patch.name === 'string') setValue('name', patch.name, { shouldDirty: true });
+    if (typeof patch.description === 'string') setValue('description', patch.description, { shouldDirty: true });
+    if (typeof patch.eventType === 'string') setValue('eventType', patch.eventType as FormValues['eventType'], { shouldDirty: true });
+    if (typeof patch.categoryId === 'number') setValue('categoryId', String(patch.categoryId), { shouldDirty: true });
+    if (Array.isArray(patch.tagIds)) setValue('tagIds', patch.tagIds.map(String), { shouldDirty: true });
+    if (typeof patch.modifierType === 'string') {
+      setValue('modifierType', patch.modifierType as FormValues['modifierType'], { shouldDirty: true });
+    }
+    if (typeof patch.modifierValue === 'number') setValue('modifierValue', String(patch.modifierValue), { shouldDirty: true });
   };
 
   return (
@@ -232,6 +245,11 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
         </div>
 
       </form>
+      <FormPatchAiChatWidget
+        entityType="template"
+        getCurrentValues={() => getValues() as unknown as Record<string, unknown>}
+        onPatch={applyPatch}
+      />
     </FormProvider>
   );
 }

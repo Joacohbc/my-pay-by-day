@@ -3,17 +3,27 @@ import { EVENT_TYPES } from '@/backend/enums.js';
 
 export type BotEventType = (typeof EVENT_TYPES)[number];
 
+/** One movement in a transaction: positive amount = inflow to the node, negative = outflow. A transaction is a
+ * list of these (2 for a simple purchase, 3+ for a split bill or multi-party settlement) that must sum to zero. */
+export const botLineItemSchema = z.object({
+  nodeId: z.number().nullable(),
+  amount: z.number(),
+});
+export type BotLineItem = z.infer<typeof botLineItemSchema>;
+const botLineItemsField = z
+  .array(botLineItemSchema)
+  .describe(
+    'The full list of line items for this transaction. Positive amount = inflow to that node, negative = outflow. ' +
+      'The amounts MUST sum to exactly zero. A simple purchase is 2 items (one negative, one positive); a bill ' +
+      'split three ways or a multi-party settlement can have 3 or more.',
+  );
+
 /** Flat, LLM-friendly finance-event fields shared by real events and drafts. */
 export interface BotEventCore {
   name: string;
   description?: string;
   type: BotEventType;
-  /** Absolute amount (backend-computed sum of positive line items). */
-  amount: number;
-  /** Node the money left (negative line item), if known. */
-  sourceNodeId?: number;
-  /** Node the money entered (positive line item), if known. */
-  destNodeId?: number;
+  lineItems: BotLineItem[];
   categoryId?: number;
   tagIds: number[];
   /** Wall-clock transaction date in the user's timezone. */
@@ -36,9 +46,7 @@ export interface BotEventInput {
   name: string;
   description?: string;
   type: BotEventType;
-  amount: number;
-  sourceNodeId?: number;
-  destNodeId?: number;
+  lineItems: BotLineItem[];
   categoryId?: number;
   tagIds?: number[];
   date?: string;
@@ -48,9 +56,7 @@ export const botEventInputSchema = z.object({
   name: z.string(),
   description: z.string().nullish(),
   type: z.enum(EVENT_TYPES).default('OUTBOUND'),
-  amount: z.number().positive(),
-  sourceNodeId: z.number().nullish(),
-  destNodeId: z.number().nullish(),
+  lineItems: botLineItemsField,
   categoryId: z.number().nullish(),
   tagIds: z.array(z.number()).nullish(),
   date: z.string().nullish().describe('YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss in the user timezone.'),
@@ -62,9 +68,7 @@ export const botEventPatchSchema = z.object({
   name: z.string().nullish(),
   description: z.string().nullish(),
   type: z.enum(EVENT_TYPES).nullish(),
-  amount: z.number().positive().nullish(),
-  sourceNodeId: z.number().nullish(),
-  destNodeId: z.number().nullish(),
+  lineItems: botLineItemsField.nullish(),
   categoryId: z.number().nullish(),
   tagIds: z.array(z.number()).nullish(),
   date: z.string().nullish(),
@@ -77,9 +81,7 @@ export const botDraftPatchSchema = z.object({
   name: z.string().nullish(),
   description: z.string().nullish(),
   type: z.enum(EVENT_TYPES).nullish(),
-  amount: z.number().positive().nullish(),
-  sourceNodeId: z.number().nullish(),
-  destNodeId: z.number().nullish(),
+  lineItems: botLineItemsField.nullish(),
   categoryId: z.number().nullish(),
   tagIds: z.array(z.number()).nullish(),
   date: z.string().nullish(),

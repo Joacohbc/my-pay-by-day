@@ -15,8 +15,28 @@ async function safe<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
   }
 }
 
+async function patchDraftById(
+  client: ReturnType<typeof createApiClient>,
+  draftId: number,
+  patch: Omit<z.infer<typeof botDraftPatchSchema>, 'draftId'>,
+  timezone: string,
+) {
+  const updated = await unwrap(
+    client.PATCH('/drafts/finance-events/{id}' as any, {
+      params: { path: { id: draftId } },
+      body: toDraftPatchPayload({ ...patch, draftId }, timezone),
+    }),
+  ) as any;
+  return { ok: true, draftId: updated.id, originalEventId: updated.originalEntityId ?? undefined };
+}
+
 export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
   const client = createApiClient(ctx);
+  // When the chat is scoped to a draft/event open in a form (ctx.scope), the write tools below are
+  // hard-clamped to that id regardless of what the model passes — the model can request a change, but it
+  // can never target or create a different entity than the one on screen. This makes form edits deterministic
+  // instead of relying on the model reliably choosing the right id/tool from prompt guidance alone.
+  const scope = ctx.scope;
 
   return {
     // ===================== READ: reference data =====================
@@ -171,14 +191,19 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       kind: 'DRAFT_WRITE',
       tool: tool({
         description:
-          'Create a DRAFT finance event from flat data (the user confirms it later; it does NOT post a real event). ' +
+          'Create a DRAFT finance event (the user confirms it later; it does NOT post a real event). ' +
           'Set targetEventId to propose an EDIT to an existing event as a draft (left pending). ' +
-          'Provide amount, source node (money out), destination node (money in), category, tags and date. One draft per transaction.',
+          'Provide the full lineItems list (2 for a simple purchase, 3+ for a split), category, tags and date.',
         inputSchema: botEventInputSchema.extend({ targetEventId: z.number().nullish() }),
         execute: ({ targetEventId, ...input }) =>
           safe(async () => {
+            // A draft is already open in the form: never spawn a second one, always fold the request into it.
+            if (scope?.type === 'draft') {
+              return patchDraftById(client, scope.id, { targetEventId, ...input }, ctx.timezone);
+            }
+            const resolvedTargetEventId = scope?.type === 'event' ? scope.id : (targetEventId ?? undefined);
             const created = await unwrap(
-              client.POST('/drafts/finance-events', { body: toDraftPayload(input, ctx.timezone, targetEventId ?? undefined) }),
+              client.POST('/drafts/finance-events', { body: toDraftPayload(input, ctx.timezone, resolvedTargetEventId) }),
             );
             return { ok: true, draftId: created.id, originalEventId: created.originalEntityId ?? undefined };
           }),
@@ -190,19 +215,15 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       tool: tool({
         description:
           'Edit an existing draft (by draftId). Only the fields you provide change; every field you omit keeps its ' +
-          'current value (send just the tag, amount, date, etc. you want to change, not the whole draft). ' +
+          'current value (send just the tag, date, etc. you want to change, not the whole draft). To change the ' +
+          'amount or a node, send the FULL lineItems list (fetch it with getDraft first if you only need to tweak ' +
+          'one item) — it always replaces the current list wholesale, it does not merge item-by-item. ' +
           'Set targetEventId to (re)link the draft as an edit of an existing event.',
         inputSchema: botDraftPatchSchema,
-        execute: (patch) =>
-          safe(async () => {
-            const updated = await unwrap(
-              client.PATCH('/drafts/finance-events/{id}' as any, {
-                params: { path: { id: patch.draftId } },
-                body: toDraftPatchPayload(patch, ctx.timezone),
-              }),
-            ) as any;
-            return { ok: true, draftId: updated.id, originalEventId: updated.originalEntityId ?? undefined };
-          }),
+        execute: ({ draftId, ...patch }) =>
+          // The scoped draft id always wins over whatever draftId the model picked, so an open form can
+          // never be silently patched onto the wrong draft.
+          safe(() => patchDraftById(client, scope?.type === 'draft' ? scope.id : draftId, patch, ctx.timezone)),
       }),
     },
 
@@ -241,17 +262,22 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       kind: 'WRITE',
       tool: tool({
         description:
-          'Edit an existing finance event in place. Only the provided fields change; supports name, description, type, category, tags, date, amount and source/destination nodes.',
+          'Edit an existing finance event in place. Only the provided fields change; supports name, description, ' +
+          'type, category, tags, date and lineItems. To change the amount or a node, send the FULL lineItems list ' +
+          '(fetch it with getEvent first if you only need to tweak one item) — it always replaces the current list ' +
+          'wholesale, it does not merge item-by-item.',
         inputSchema: botEventPatchSchema,
-        execute: (patch) =>
+        execute: ({ eventId, ...patch }) =>
           safe(async () => {
-            const wantsTransaction =
-              patch.date != null || patch.amount != null || patch.sourceNodeId != null || patch.destNodeId != null;
+            // The scoped event id always wins over whatever eventId the model picked, so an open form can
+            // never be silently patched onto the wrong event.
+            const resolvedEventId = scope?.type === 'event' ? scope.id : eventId;
+            const wantsTransaction = patch.date != null || patch.lineItems != null;
             const current = wantsTransaction
-              ? await unwrap(client.GET('/events/{id}', { params: { path: { id: patch.eventId } } }))
+              ? await unwrap(client.GET('/events/{id}', { params: { path: { id: resolvedEventId } } }))
               : ({} as FinanceEventDto);
-            const body = toEventPatch(patch, current, ctx.timezone);
-            return toBotEvent(await unwrap(patchEvent(client, patch.eventId, body)));
+            const body = toEventPatch({ eventId: resolvedEventId, ...patch }, current, ctx.timezone);
+            return toBotEvent(await unwrap(patchEvent(client, resolvedEventId, body)));
           }),
       }),
     },

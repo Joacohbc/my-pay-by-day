@@ -1,4 +1,4 @@
-import { languageName } from '@/context.js';
+import { languageName, type ChatScope } from '@/context.js';
 
 export type ExecutionMode = 'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY' | 'DRAFT_CONFIRMATION';
 
@@ -13,7 +13,8 @@ const DOMAIN = `
 My Pay By Day is a personal finance app built on double-entry accounting hidden behind friendly "Events".
 - Event: a human action ("Dinner", "Paid rent") wrapping exactly one balanced Transaction with line items.
 - Finance node: any account/wallet/card (OWN), external entity (EXTERNAL) or contact (CONTACT) that holds or moves money.
-- A purchase moves money OUT of a source node and IN to a destination node (source amount negative, destination positive).
+- A Transaction is a list of line items, each {nodeId, amount}, that must sum to zero: negative = money OUT of that
+  node, positive = money IN. A simple purchase is 2 items; a bill split three ways or a multi-party settlement is 3+.
 - Category: a budgeting bucket. Tags: transversal labels. Both live on the Event, never on line items.
 - Draft: an incomplete/pending event the user must review before it becomes real.`;
 
@@ -36,6 +37,18 @@ function memoriesBlock(memories: string[]): string {
     `Use saveMemory to remember new durable facts/preferences the user shares (e.g. their main account).`;
 }
 
+function scopeBlock(scope: ChatScope | undefined, currentValues: string | undefined): string {
+  if (!scope) return '';
+  const tool = scope.type === 'draft' ? 'updateDraft' : 'updateEvent';
+  const idField = scope.type === 'draft' ? 'draftId' : 'eventId';
+  return [
+    `\nFORM CONTEXT: the user has ${scope.type} #${scope.id} open right now in a form on screen, with these current values:`,
+    currentValues || '(no fields filled in yet)',
+    `Prefer ${tool} with ${idField}: ${scope.id} to apply changes here instead of creating something new, unless the`,
+    `user clearly asks for something unrelated to what's open. Only send the fields that change.`,
+  ].join('\n');
+}
+
 const DELEGATION_GUIDANCE = `
 \nDELEGATION:
 - Use tools directly for simple lookups and one-shot actions.
@@ -50,21 +63,29 @@ const DELEGATION_GUIDANCE = `
     Only pass executionMode: "AUTONOMOUS" when the user has clearly asked for the task to run unattended end-to-end
     without reviewing each change.`;
 
-export function chatSystemPrompt({ now, timezone, lang, memories }: PromptInput): string {
+export function chatSystemPrompt(
+  { now, timezone, lang, memories }: PromptInput,
+  scope?: ChatScope,
+  scopeCurrentValues?: string,
+): string {
   return [
     `You are the My Pay By Day finance assistant. The current date/time is ${now} (${timezone}).`,
     DOMAIN,
-    `\nYou can read and write data through tools. Before creating a draft event, gather amount, source and destination`,
-    `nodes, category, date and tags — call read tools (listNodes, listCategories, listTags) to resolve names to IDs,`,
-    `and ask the user only for what you cannot infer. Create drafts with createDraft (one per transaction); the user`,
-    `confirms them later with confirmDraft (which creates a NEW event). To edit an existing event, use updateEvent to`,
-    `apply changes in place — do NOT confirm an edit-as-draft expecting an update, as confirming always creates a new`,
-    `event. When you edit a draft with updateDraft, pass ONLY the fields that change — every field you omit keeps its`,
-    `current value, so never resend the whole draft just to add a tag or tweak the amount.`,
+    `\nYou can read and write data through tools. Before creating a draft event, gather the lineItems (each node and`,
+    `its signed amount, summing to zero), category, date and tags — call read tools (listNodes, listCategories,`,
+    `listTags) to resolve names to IDs, and ask the user only for what you cannot infer. Create drafts with`,
+    `createDraft (one per transaction); the user confirms them later with confirmDraft (which creates a NEW event).`,
+    `To edit an existing event, use updateEvent to apply changes in place — do NOT confirm an edit-as-draft expecting`,
+    `an update, as confirming always creates a new event. When you edit a draft with updateDraft, pass ONLY the`,
+    `fields that change — every field you omit keeps its current value, so never resend the whole draft just to add a`,
+    `tag. lineItems is the one exception: it is never merged, so to change an amount or a node you must resend the`,
+    `FULL current lineItems list with just that one value changed (use getDraft/getEvent first if you don't already`,
+    `have it from context).`,
     `Never invent IDs. Always use the calculate tool for ANY calculations (sums, splits, etc.) instead of computing them in text.`,
     `Use showEntity whenever you reference a specific event, draft, tag or category the user might want to open — not`,
     `only right after creating or editing it, also after finding it via a search or a read.`,
     DELEGATION_GUIDANCE,
+    scopeBlock(scope, scopeCurrentValues),
     memoriesBlock(memories),
     STYLE.replace('{{LANGUAGE}}', languageName(lang)),
   ].join('\n');

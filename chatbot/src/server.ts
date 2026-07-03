@@ -9,6 +9,7 @@ import { agentTasksRoute } from '@/routes/agent-tasks.js';
 import { audioRoute } from '@/routes/audio.js';
 import { chatRoute } from '@/routes/chat.js';
 import { eventsRoute, extractRoute } from '@/routes/extract.js';
+import { formChatRoute } from '@/routes/formChat.js';
 import { memoryRoute } from '@/routes/memory.js';
 import { textRoute } from '@/routes/text.js';
 import { logger } from '@/logging/logger.js';
@@ -32,6 +33,7 @@ app.get('/health', (c) => c.json({ status: 'ok', service: 'mypaybyday-chatbot' }
 app.route('/ai/chat', chatRoute);
 app.route('/ai/memory', memoryRoute);
 app.route('/ai/text', textRoute);
+app.route('/ai/form-chat', formChatRoute);
 app.route('/ai/extract', extractRoute);
 app.route('/ai/events', eventsRoute);
 app.route('/ai/audio', audioRoute);

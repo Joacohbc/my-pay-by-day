@@ -1,10 +1,17 @@
 import type { Context } from 'hono';
 
+export interface ChatScope {
+  type: 'draft' | 'event';
+  id: number;
+}
+
 /** Per-request user context propagated to the Java backend and used to ground the LLM. */
 export interface RequestContext {
   timezone: string;
   lang: string;
   chatId?: string;
+  /** When the chat is opened from a form's mini-chat widget, the draft/event currently being edited. */
+  scope?: ChatScope;
 }
 
 const DEFAULT_TIMEZONE = 'UTC';

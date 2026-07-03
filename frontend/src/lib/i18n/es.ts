@@ -597,6 +597,16 @@ const es = {
       deleted: 'Memoria eliminada',
       saved: 'Memoria guardada',
     },
+    chatWidget: {
+      launcher: 'Preguntar a la IA',
+      title: 'Asistente IA',
+      emptyHint: 'Pedile un cambio o adjuntá una foto/archivo, y lo completo por vos.',
+      thinking: 'Pensando...',
+      placeholder: 'Preguntale al asistente...',
+      placeholderEvent: 'ej. "poné la categoría en Supermercado" o adjuntá un recibo',
+      placeholderForm: 'ej. "hacé la descripción más formal"',
+      attachedFile: '(archivo adjunto)',
+    },
   },
 
   // ─── Duplicates ──────────────────────────────────────────────────────────

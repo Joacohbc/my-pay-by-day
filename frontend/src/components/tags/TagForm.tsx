@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { useCreateTag, useUpdateTag } from '@/hooks/useTags';
 import { useAiFieldController } from '@/hooks/useAiFieldController';
+import { FormPatchAiChatWidget } from '@/components/ui/FormPatchAiChatWidget';
 import type { Tag } from '@/models';
 
 interface TagFormValues {
@@ -73,7 +74,13 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
 
   const isSubmitting = createTag.isPending || updateTag.isPending;
 
+  const applyPatch = (patch: Record<string, unknown>) => {
+    if (typeof patch.name === 'string') setValue('name', patch.name, { shouldDirty: true });
+    if (typeof patch.description === 'string') setValue('description', patch.description, { shouldDirty: true });
+  };
+
   return (
+    <>
     <form
       onSubmit={(e) => {
         e.stopPropagation();
@@ -106,5 +113,11 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
         </Button>
       </div>
     </form>
+    <FormPatchAiChatWidget
+      entityType="tag"
+      getCurrentValues={() => getValues() as unknown as Record<string, unknown>}
+      onPatch={applyPatch}
+    />
+    </>
   );
 }

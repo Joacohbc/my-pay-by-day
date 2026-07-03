@@ -8,6 +8,7 @@ import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { TagGroupSelector } from '@/components/ui/TagGroupSelector';
 import { FileExtractButton } from '@/components/events/FileExtractButton';
+import { EventAiChatWidget } from '@/components/events/EventAiChatWidget';
 import type { ExtractedEvent } from '@/services/extract.service';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
@@ -59,6 +60,14 @@ interface EventFormProps {
    */
   onChange?: (dto: FinanceEventDraftInputDto, values: FormValues) => void;
 
+  /** Current draft id known by the parent page, used to scope the AI mini-chat widget. */
+  aiChatDraftId?: number;
+  /** Creates/updates the draft on demand from the parent page and resolves its id — used to bootstrap the
+   * mini-chat when the user chats before touching any field. */
+  onEnsureDraft?: (dto: FinanceEventDraftInputDto) => Promise<number>;
+  /** Called when the mini-chat's agent creates/targets a draft id the parent page didn't know about yet. */
+  onDraftIdResolved?: (id: number) => void;
+
   submitLabel?: string;
   loading?: boolean;
 }
@@ -69,6 +78,9 @@ export function EventForm({
   draftValues,
   onSubmit,
   onChange,
+  aiChatDraftId,
+  onEnsureDraft,
+  onDraftIdResolved,
   submitLabel,
   loading = false,
 }: EventFormProps) {
@@ -263,6 +275,40 @@ export function EventForm({
     if (event.transactionDate) setValue('transactionDate', event.transactionDate, { shouldDirty: true });
   };
 
+  const applyDraftPatch = (patch: Record<string, unknown>) => {
+    if (typeof patch.name === 'string') setValue('name', patch.name, { shouldDirty: true });
+    if (typeof patch.description === 'string') setValue('description', patch.description, { shouldDirty: true });
+    if (typeof patch.type === 'string') setValue('type', patch.type as FormValues['type'], { shouldDirty: true });
+    if (typeof patch.categoryId === 'number') setValue('categoryId', String(patch.categoryId), { shouldDirty: true });
+    if (Array.isArray(patch.tagIds)) setValue('tagIds', patch.tagIds.map(String), { shouldDirty: true });
+    if (typeof patch.date === 'string') setValue('transactionDate', patch.date, { shouldDirty: true });
+    if (Array.isArray(patch.lineItems) && patch.lineItems.length > 0) {
+      const items = patch.lineItems as Array<{ nodeId: number | null; amount: number }>;
+      // The agent always sends the FULL line item list (never a per-item merge), and it isn't limited to the
+      // simplified 2-node shape — turn simplified mode off first so the "force exactly 2, mirror item 0's
+      // amount into the rest" effects in LineItemsEditor don't clobber an N-way split right after we set it.
+      setValue('isSimplifiedMode', false, { shouldDirty: true });
+      setValue(
+        'lineItems',
+        items.map((li) => ({ nodeId: li.nodeId != null ? String(li.nodeId) : '', amount: String(li.amount) })),
+        { shouldDirty: true },
+      );
+    }
+  };
+
+  const handleEnsureDraft = async () => {
+    const existing = getValues('draftId');
+    if (existing) return Number(existing);
+    const newId = await onEnsureDraft!(toDraftDto(getValues(), t));
+    setValue('draftId', newId, { shouldDirty: false });
+    return newId;
+  };
+
+  const handleDraftIdResolved = (id: number) => {
+    onDraftIdResolved?.(id);
+    setValue('draftId', id, { shouldDirty: false });
+  };
+
   if (!formReady) return <FullPageSpinner />
 
   return (
@@ -322,6 +368,16 @@ export function EventForm({
         </Button>
 
       </form>
+
+      {onEnsureDraft && (
+        <EventAiChatWidget
+          draftId={aiChatDraftId}
+          onEnsureDraft={handleEnsureDraft}
+          onDraftIdResolved={handleDraftIdResolved}
+          onFieldsPatch={applyDraftPatch}
+          buildContext={buildAiContext}
+        />
+      )}
     </FormProvider>
   );
 }

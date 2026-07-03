@@ -7,7 +7,10 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { IconPicker } from '@/components/ui/IconPicker';
 import { useCreateNode, useUpdateNode } from '@/hooks/useNodes';
 import { useAiFieldController } from '@/hooks/useAiFieldController';
+import { FormPatchAiChatWidget } from '@/components/ui/FormPatchAiChatWidget';
 import type { FinanceNode, FinanceNodeType } from '@/models';
+
+const NODE_TYPES: FinanceNodeType[] = ['OWN', 'EXTERNAL', 'CONTACT'];
 
 interface NodeFormValues {
   name: string;
@@ -86,7 +89,17 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
 
   const isSubmitting = createNode.isPending || updateNode.isPending;
 
+  const applyPatch = (patch: Record<string, unknown>) => {
+    if (typeof patch.name === 'string') setValue('name', patch.name, { shouldDirty: true });
+    if (typeof patch.description === 'string') setValue('description', patch.description, { shouldDirty: true });
+    if (typeof patch.icon === 'string') setValue('icon', patch.icon, { shouldDirty: true });
+    if (typeof patch.type === 'string' && NODE_TYPES.includes(patch.type as FinanceNodeType)) {
+      setValue('type', patch.type as FinanceNodeType, { shouldDirty: true });
+    }
+  };
+
   return (
+    <>
     <form
       onSubmit={(e) => {
         e.stopPropagation();
@@ -146,5 +159,11 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
         </Button>
       </div>
     </form>
+    <FormPatchAiChatWidget
+      entityType="node"
+      getCurrentValues={() => getValues() as unknown as Record<string, unknown>}
+      onPatch={applyPatch}
+    />
+    </>
   );
 }

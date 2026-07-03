@@ -20,7 +20,6 @@ export function EventEditPage() {
   const { navigateBack } = useAppNavigation();
   const { data: event, refetch: refetchEvent, isLoading } = useEvent(Number(id));
   const { data: fetchedDraft, isLoading: isLoadingDraft, isFetching: isFetchingDraft } = useFinanceEventDraftByEntityId(Number(id));
-  const [currentDraftId, setCurrentDraftId] = useState<number | undefined>();
   const currentDraftIdRef = useRef<number | undefined>(undefined);
   const creationPromiseRef = useRef<Promise<number> | null>(null);
 
@@ -29,47 +28,56 @@ export function EventEditPage() {
   const updateDraft = useUpdateFinanceEventDraft();
   const deleteDraft = useDeleteDraft();
 
-  const draftInitial = useRef<{ data: typeof fetchedDraft | undefined; captured: boolean }>({ data: undefined, captured: false });
-  const [draftToForm, setDraftToForm] = useState<typeof fetchedDraft | undefined>(undefined);
+  // Bundled into one state object (rather than separate useState calls) so the capture effect below fires a
+  // single setState — the draft is only ever captured once from the server, then edited imperatively.
+  const [draftState, setDraftState] = useState<{ toForm: typeof fetchedDraft | undefined; draftId: number | undefined; captured: boolean }>({
+    toForm: undefined,
+    draftId: undefined,
+    captured: false,
+  });
+  const { toForm: draftToForm, draftId: currentDraftId, captured: isDraftCaptured } = draftState;
 
   useEffect(() => {
     const isDraftReadyToCapture = !isLoadingDraft && (!isFetchingDraft || fetchedDraft != null);
-    if (isDraftReadyToCapture && !draftInitial.current.captured) {
-      draftInitial.current = { data: fetchedDraft ?? undefined, captured: true };
-      setDraftToForm(fetchedDraft ?? undefined);
-      if (fetchedDraft?.draftId) {
-        currentDraftIdRef.current = fetchedDraft.draftId;
-        setCurrentDraftId(fetchedDraft.draftId);
-      }
-    }
-  }, [isLoadingDraft, isFetchingDraft, fetchedDraft]);
+    if (!isDraftReadyToCapture || isDraftCaptured) return;
+    currentDraftIdRef.current = fetchedDraft?.draftId;
+    // One-time capture from the draft query, guarded by isDraftCaptured above — deliberately NOT a live sync,
+    // since re-syncing on every background refetch would blow away in-progress edits/AI patches in the form.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDraftState({ toForm: fetchedDraft ?? undefined, draftId: fetchedDraft?.draftId, captured: true });
+  }, [isLoadingDraft, isFetchingDraft, fetchedDraft, isDraftCaptured]);
 
-  const handleSaveDraft = useCallback(async (dto: FinanceEventDraftInputDto) => {
+  const handleSaveDraft = useCallback(async (dto: FinanceEventDraftInputDto): Promise<number> => {
     let activeDraftId = currentDraftIdRef.current;
-    
+
     if (!activeDraftId && creationPromiseRef.current) {
       activeDraftId = await creationPromiseRef.current;
     }
 
     if (activeDraftId) {
       await updateDraft.mutateAsync({ id: activeDraftId, dto });
-      return;
+      return activeDraftId;
     }
 
     const payload = { ...dto, id: Number(id) };
     const promise = createDraft.mutateAsync(payload).then(created => {
       currentDraftIdRef.current = created.id;
-      setCurrentDraftId(created.id);
+      setDraftState((prev) => ({ ...prev, draftId: created.id }));
       return created.id;
     });
 
     creationPromiseRef.current = promise;
     try {
-      await promise;
+      return await promise;
     } finally {
       creationPromiseRef.current = null;
     }
   }, [id, createDraft, updateDraft]);
+
+  const handleDraftIdResolved = useCallback((draftId: number) => {
+    currentDraftIdRef.current = draftId;
+    setDraftState((prev) => ({ ...prev, draftId }));
+  }, []);
 
   const debouncedSaveDraft = useDebounceCallback(handleSaveDraft, 500);
 
@@ -83,15 +91,15 @@ export function EventEditPage() {
   const handleResetDraft = async () => {
     if (currentDraftId) {
       await deleteDraft.mutateAsync(currentDraftId);
-      // Mark as captured with undefined to prevent re-capturing the stale draft from cache
-      draftInitial.current = { data: undefined, captured: true };
-      setCurrentDraftId(undefined);
+      // Stays captured=true so the effect above never re-captures the now-deleted, stale draft from cache.
+      currentDraftIdRef.current = undefined;
+      setDraftState({ toForm: undefined, draftId: undefined, captured: true });
       setResetVersion(v => v + 1);
       refetchEvent();
     }
   };
 
-  if (isLoading || isLoadingDraft || !draftInitial.current.captured) return <FullPageSpinner />;
+  if (isLoading || isLoadingDraft || !isDraftCaptured) return <FullPageSpinner />;
   if (!event) return null;
 
   const handleSubmit = async (dto: CreateEventDto | PatchEventDto) => {
@@ -142,6 +150,9 @@ export function EventEditPage() {
           draftValues={draftToForm ?? undefined}
           onSubmit={handleSubmit}
           onChange={debouncedSaveDraft}
+          aiChatDraftId={currentDraftId}
+          onEnsureDraft={handleSaveDraft}
+          onDraftIdResolved={handleDraftIdResolved}
           submitLabel={t('events.updateEvent')}
           loading={updateEvent.isPending || deleteDraft.isPending}
         />

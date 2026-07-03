@@ -1,0 +1,288 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useChat } from '@ai-sdk/react';
+import { useQueryClient } from '@tanstack/react-query';
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses, type FileUIPart, type UIMessage } from 'ai';
+import { BASE_URL } from '@/services/api';
+import { audioService } from '@/services/audio.service';
+import { filesService } from '@/services/files.service';
+import { DRAFTS_KEY } from '@/hooks/useDrafts';
+import { eventKeys } from '@/hooks/useEvents';
+import { tagKeys } from '@/hooks/useTags';
+import { categoryKeys } from '@/hooks/useCategories';
+import { getUserTimezone } from '@/lib/utils/dateUtils';
+import i18n from '@/lib/i18n';
+import type { ChatMessage } from '@/store/chatStore';
+import type { FileDto } from '@/models';
+
+export type EntityChatScopeType = 'draft' | 'event';
+
+interface UseEntityChatParams {
+  scopeType: EntityChatScopeType;
+  /** The draft/event currently open in the form, if one already exists. */
+  scopeId: number | undefined;
+  /** Text summary of the form's current field values, sent as grounding on every turn. */
+  buildContext: () => string;
+  /** Creates the scope entity on demand (e.g. bootstraps a draft) when the user chats before touching any field. */
+  ensureScopeId?: () => Promise<number>;
+  /** Called when the agent creates/targets a scope id the caller didn't know about yet, so it can sync back to the form. */
+  onScopeIdResolved?: (id: number) => void;
+  /** Called once per createDraft/updateDraft/updateEvent tool call with its raw input fields (name, description,
+   * categoryId, tagIds, lineItems, date, ...) so the caller can patch the open form directly —
+   * the form does NOT otherwise re-read the draft/event while the page is open, so this is the only way an
+   * agent-made edit reaches the on-screen fields. */
+  onFieldsPatch?: (patch: Record<string, unknown>) => void;
+}
+
+const PATCH_TOOL_NAMES = new Set(['createDraft', 'updateDraft', 'updateEvent']);
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('data_url_failed'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function toFilePart(file: FileDto): Promise<FileUIPart> {
+  const response = await fetch(filesService.getContentUrl(file.id));
+  const blob = await response.blob();
+  return {
+    type: 'file',
+    mediaType: file.mimeType || blob.type || 'image/jpeg',
+    url: await blobToDataUrl(blob),
+    filename: file.fileName,
+  };
+}
+
+function textOf(message: UIMessage): string {
+  return message.parts
+    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+    .map((part) => part.text)
+    .join('');
+}
+
+const PRESERVED_STATES = new Set(['approval-requested', 'approval-responded']);
+
+function toolCallsOf(message: UIMessage, isFinished: boolean): NonNullable<ChatMessage['toolCalls']> {
+  return message.parts
+    .filter(
+      (
+        part,
+      ): part is UIMessage['parts'][number] & {
+        toolName?: string;
+        state: string;
+        output?: unknown;
+        input?: unknown;
+        toolCallId?: string;
+        approval?: { id: string; approved?: boolean };
+      } => part.type.startsWith('tool-') || part.type === 'dynamic-tool',
+    )
+    .map((part) => {
+      const name = part.toolName || part.type.replace(/^tool-/, '');
+      return {
+        name,
+        state: isFinished && !PRESERVED_STATES.has(part.state) ? 'result' : part.state,
+        output: part.output,
+        // AI SDK v5 UIMessage tool parts carry the tool call's arguments as `input`, not `args`
+        // (see chatbot/src/routes/chat.ts's GET /:chatId, which rebuilds parts with `input: part.input`).
+        args: part.input,
+        toolCallId: part.toolCallId,
+        approval: part.approval,
+      };
+    });
+}
+
+function toDisplayMessage(message: UIMessage, isFinished: boolean): ChatMessage {
+  return {
+    id: message.id,
+    role: message.role === 'assistant' ? 'assistant' : 'user',
+    content: textOf(message),
+    toolCalls: toolCallsOf(message, isFinished),
+    timestamp: new Date().toISOString(),
+  };
+}
+
+/** Scoped agentic chat for a form's mini-chat widget: same /ai/chat agent as ChatPage, but with its own
+ * ephemeral chatId (never the global chatStore singleton) and a scope pointing at the draft/event open on screen. */
+export function useEntityChat({
+  scopeType,
+  scopeId,
+  buildContext,
+  ensureScopeId,
+  onScopeIdResolved,
+  onFieldsPatch,
+}: UseEntityChatParams) {
+  const queryClient = useQueryClient();
+  const [chatId] = useState(() => crypto.randomUUID());
+  const [input, setInput] = useState('');
+  const [draftFiles, setDraftFiles] = useState<FileDto[]>([]);
+  const resolvedScopeId = useRef(scopeId);
+  // prepareSendMessagesRequest below is created once (see the lazy transport ref) and must never go stale,
+  // so it reads the latest scope id / context through refs instead of closing over the reactive props directly.
+  const buildContextRef = useRef(buildContext);
+
+  useEffect(() => {
+    if (scopeId != null) resolvedScopeId.current = scopeId;
+  }, [scopeId]);
+
+  useEffect(() => {
+    buildContextRef.current = buildContext;
+  }, [buildContext]);
+
+  const prepareSendMessagesRequest = useCallback(
+    ({ messages }: { messages: UIMessage[] }) => {
+      const lastMessage = messages[messages.length - 1];
+      let newMessages: UIMessage[];
+      if (lastMessage?.role === 'assistant') {
+        newMessages = [lastMessage];
+      } else {
+        const lastAssistantIndex = [...messages].reverse().findIndex((m) => m.role === 'assistant');
+        newMessages = lastAssistantIndex === -1 ? messages : messages.slice(messages.length - lastAssistantIndex);
+      }
+      return {
+        headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language },
+        body: {
+          chatId,
+          messages: newMessages,
+          scope: resolvedScopeId.current ? { type: scopeType, id: resolvedScopeId.current } : undefined,
+          scopeCurrentValues: buildContextRef.current(),
+        },
+      };
+    },
+    [chatId, scopeType],
+  );
+
+  // prepareSendMessagesRequest reads resolvedScopeId/buildContextRef through refs so it can stay referentially
+  // stable for the widget's whole lifetime (deps [chatId, scopeType] only) — those refs are only ever written
+  // from effects/handleSend, never during render, so this is safe despite the lint rule's static false positive.
+  // eslint-disable-next-line react-hooks/refs
+  const transport = useMemo(() => new DefaultChatTransport({ api: `${BASE_URL}/ai/chat`, prepareSendMessagesRequest }), [prepareSendMessagesRequest]);
+
+  // Without this, updateDraft/updateEvent tool results never reach the open form: it reads the draft/event
+  // through react-query, and that cache is only ever refreshed by an explicit invalidation like this one.
+  const invalidateFinanceCaches = useCallback(() => {
+    for (const queryKey of [DRAFTS_KEY, eventKeys.all, tagKeys.all, categoryKeys.all]) {
+      queryClient.invalidateQueries({ queryKey });
+    }
+  }, [queryClient]);
+
+  const {
+    messages: uiMessages,
+    status,
+    setMessages,
+    sendMessage,
+    addToolApprovalResponse,
+  } = useChat({
+    id: chatId,
+    transport,
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+    onFinish: invalidateFinanceCaches,
+  });
+
+  const isPending = status === 'submitted' || status === 'streaming';
+
+  const messages = useMemo(() => {
+    return uiMessages
+      .map((msg, idx) => {
+        const isLast = idx === uiMessages.length - 1;
+        const isFinished = !isPending || !isLast || textOf(msg).trim().length > 0;
+        return toDisplayMessage(msg, isFinished);
+      })
+      .filter((msg) => msg.content.trim().length > 0 || (msg.toolCalls && msg.toolCalls.length > 0));
+  }, [uiMessages, isPending]);
+
+  const appliedPatchToolCallIds = useRef(new Set<string>());
+
+  useEffect(() => {
+    for (const message of messages) {
+      for (const call of message.toolCalls ?? []) {
+        if (!PATCH_TOOL_NAMES.has(call.name) || call.state !== 'result') continue;
+
+        if (onScopeIdResolved && (call.name === 'createDraft' || call.name === 'updateDraft')) {
+          const output = call.output as { draftId?: number } | undefined;
+          if (output?.draftId && output.draftId !== resolvedScopeId.current) {
+            resolvedScopeId.current = output.draftId;
+            onScopeIdResolved(output.draftId);
+          }
+        }
+
+        if (call.toolCallId && !appliedPatchToolCallIds.current.has(call.toolCallId)) {
+          appliedPatchToolCallIds.current.add(call.toolCallId);
+          onFieldsPatch?.((call.args ?? {}) as Record<string, unknown>);
+          // Invalidate right as the write lands, not only once the whole assistant turn finishes — other
+          // views (draft list, badges) shouldn't wait on a possibly-longer multi-step turn to catch up.
+          invalidateFinanceCaches();
+        }
+      }
+    }
+  }, [messages, onScopeIdResolved, onFieldsPatch, invalidateFinanceCaches]);
+
+  const handleSend = useCallback(async () => {
+    const text = input.trim();
+    if (!text && draftFiles.length === 0) return;
+
+    if (!resolvedScopeId.current && ensureScopeId) {
+      resolvedScopeId.current = await ensureScopeId();
+    }
+
+    const files = [...draftFiles];
+    setInput('');
+    setDraftFiles([]);
+
+    const fileParts = await Promise.all(files.map(toFilePart));
+    const newMessage: UIMessage = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      role: 'user',
+      parts: [...(text ? [{ type: 'text' as const, text }] : []), ...fileParts],
+    };
+    setMessages((prev) => [...prev, newMessage]);
+    sendMessage();
+  }, [input, draftFiles, ensureScopeId, setMessages, sendMessage]);
+
+  const applyTranscribedText = useCallback((transcription: string) => {
+    const text = transcription.trim();
+    if (!text) throw new Error('transcription_failed');
+    setInput((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+  }, []);
+
+  const handleAudioRecorded = useCallback(
+    async (audioBlob: Blob) => {
+      const { transcription } = await audioService.transcribeRecordedAudio(audioBlob);
+      applyTranscribedText(transcription);
+    },
+    [applyTranscribedText],
+  );
+
+  const handleAudioFileSelected = useCallback(
+    async (file: File) => {
+      const { transcription } = await audioService.transcribeAudio(file);
+      applyTranscribedText(transcription);
+    },
+    [applyTranscribedText],
+  );
+
+  const handleToolApproval = useCallback(
+    (approvalId: string, approved: boolean) => {
+      addToolApprovalResponse({ id: approvalId, approved });
+    },
+    [addToolApprovalResponse],
+  );
+
+  const handleAddFile = (file: FileDto) => setDraftFiles((prev) => [...prev, file]);
+  const handleRemoveFile = (fileId: number) => setDraftFiles((prev) => prev.filter((f) => f.id !== fileId));
+
+  return {
+    messages,
+    input,
+    setInput,
+    isPending,
+    draftFiles,
+    handleSend,
+    handleAudioRecorded,
+    handleAudioFileSelected,
+    handleAddFile,
+    handleRemoveFile,
+    handleToolApproval,
+  };
+}

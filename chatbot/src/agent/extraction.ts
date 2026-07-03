@@ -160,16 +160,18 @@ async function generateDescription(ctx: RequestContext, source: string, object: 
   return text.trim().replace(/^["']|["']$/g, '');
 }
 
-/** Builds the FinanceEventDto draft payload from an extraction, via the shared bot mapper. */
+/** Builds the FinanceEventDto draft payload from an extraction, via the shared bot mapper. A receipt/invoice
+ * extraction is always a single source -> destination movement, so it maps to exactly 2 line items. */
 export function toDraftPayload(event: ExtractedEvent, timezone: string): FinanceEventDto {
   return buildDraftPayload(
     {
       name: event.name,
       description: event.description,
       type: event.type,
-      amount: event.amount,
-      sourceNodeId: event.sourceNodeId ?? undefined,
-      destNodeId: event.destinationNodeId ?? undefined,
+      lineItems: [
+        { nodeId: event.sourceNodeId ?? null, amount: -Math.abs(event.amount) },
+        { nodeId: event.destinationNodeId ?? null, amount: Math.abs(event.amount) },
+      ],
       categoryId: event.categoryId ?? undefined,
       tagIds: event.tagIds,
       date: event.transactionDate ?? undefined,

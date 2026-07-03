@@ -5,7 +5,7 @@ import { buildAllTools, toolsForModeWithApproval } from '@/agent/buildTools.js';
 import { buildBackgroundTools } from '@/tools/background.js';
 import { buildDelegateTools } from '@/tools/delegate.js';
 import { config } from '@/config.js';
-import { requestContextFrom } from '@/context.js';
+import { requestContextFrom, type ChatScope } from '@/context.js';
 import { groundingNow } from '@/dates.js';
 import { buildModelContext, compactIfNeeded } from '@/memory/compaction.js';
 import { conversationMemory } from '@/memory/conversation.js';
@@ -52,6 +52,8 @@ interface ChatBody {
   chatId?: string;
   id?: string;
   messages?: UIMessage[];
+  scope?: ChatScope;
+  scopeCurrentValues?: string;
 }
 
 export const chatRoute = new Hono();
@@ -65,7 +67,7 @@ chatRoute.post('/', async (c) => {
   const body = (await c.req.json()) as ChatBody;
   const chatId = body.chatId ?? body.id;
   if (!chatId) return c.json({ error: 'chatId is required' }, 400);
-  const ctx = { ...requestContextFrom(c), chatId };
+  const ctx = { ...requestContextFrom(c), chatId, scope: body.scope };
 
   const chatTools = toolsForModeWithApproval(
     buildAllTools(ctx, { ...buildBackgroundTools(ctx), ...buildDelegateTools(ctx, CHAT_EXECUTION_MODE) }),
@@ -123,12 +125,16 @@ chatRoute.post('/', async (c) => {
 
   const result = streamText({
     model: largeModel(),
-    system: chatSystemPrompt({
-      now: groundingNow(ctx.timezone),
-      timezone: ctx.timezone,
-      lang: ctx.lang,
-      memories: longTermMemory.contents(),
-    }),
+    system: chatSystemPrompt(
+      {
+        now: groundingNow(ctx.timezone),
+        timezone: ctx.timezone,
+        lang: ctx.lang,
+        memories: longTermMemory.contents(),
+      },
+      ctx.scope,
+      body.scopeCurrentValues,
+    ),
     messages: modelMessages,
     tools: chatTools,
     stopWhen: stepCountIs(config.agent.maxSteps),

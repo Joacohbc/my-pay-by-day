@@ -43,16 +43,16 @@ export function EventNewPage() {
   const currentDraftIdRef = useRef<number | undefined>(draft?.draftId);
   const creationPromiseRef = useRef<Promise<number> | null>(null);
 
-  const handleSaveDraft = useCallback(async (dto: FinanceEventDraftInputDto) => {
+  const handleSaveDraft = useCallback(async (dto: FinanceEventDraftInputDto): Promise<number> => {
     let activeDraftId = currentDraftIdRef.current;
-    
+
     if (!activeDraftId && creationPromiseRef.current) {
       activeDraftId = await creationPromiseRef.current;
     }
 
     if (activeDraftId) {
       await updateDraft.mutateAsync({ id: activeDraftId, dto });
-      return;
+      return activeDraftId;
     }
 
     const promise = createDraft.mutateAsync(dto).then(created => {
@@ -63,11 +63,16 @@ export function EventNewPage() {
 
     creationPromiseRef.current = promise;
     try {
-      await promise;
+      return await promise;
     } finally {
       creationPromiseRef.current = null;
     }
   }, [createDraft, updateDraft]);
+
+  const handleDraftIdResolved = useCallback((draftId: number) => {
+    currentDraftIdRef.current = draftId;
+    setCurrentDraftId(draftId);
+  }, []);
 
 
   const debouncedSaveDraft = useDebounceCallback(handleSaveDraft, 500)
@@ -135,6 +140,9 @@ export function EventNewPage() {
           draftValues={draft}
           onSubmit={handleSubmit}
           onChange={debouncedSaveDraft}
+          aiChatDraftId={currentDraftId}
+          onEnsureDraft={handleSaveDraft}
+          onDraftIdResolved={handleDraftIdResolved}
           submitLabel={t('events.createEvent')}
           loading={createEvent.isPending || deleteDraft.isPending}
         />
