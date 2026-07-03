@@ -23,6 +23,8 @@ export const Routes = {
   SETTINGS: '/settings',
   SETTINGS_CATEGORIES: '/settings/categories',
   SETTINGS_TAGS: '/settings/tags',
+  CATEGORY_DETAIL: (id: number | string) => `/settings/categories?highlight=${id}`,
+  TAG_DETAIL: (id: number | string) => `/settings/tags?highlight=${id}`,
   SETTINGS_TAG_GROUPS: '/settings/tag-groups',
   SETTINGS_TEMPLATES: '/settings/templates',
   SETTINGS_NODES: '/settings/nodes',

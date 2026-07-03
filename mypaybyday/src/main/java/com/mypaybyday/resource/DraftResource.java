@@ -20,6 +20,8 @@ import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.DraftService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
@@ -95,7 +97,8 @@ public class DraftResource {
 	@POST
 	@Path("/finance-events")
 	@Operation(summary = "Create a new finance event draft from FinanceEventDto")
-	@APIResponse(responseCode = "201", description = "Finance event draft created successfully")
+	@APIResponse(responseCode = "201", description = "Finance event draft created successfully",
+		content = @Content(schema = @Schema(implementation = DraftEntity.class)))
 	public Response createFinanceEventDraft(FinanceEventDto dto) {
 		DraftEntity draft = draftService.create(EntityType.FINANCE_EVENT, dto);
 		return Response.status(Response.Status.CREATED).entity(draft).build();

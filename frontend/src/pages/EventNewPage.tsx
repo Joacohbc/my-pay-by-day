@@ -80,7 +80,7 @@ export function EventNewPage() {
     <div className="space-y-4">
       <PageHeader
         title={t('events.newEventTitle')}
-        back={() => navigate(relatedToEventId ? Routes.EVENT_DETAIL(relatedToEventId) : eventsRoute(), { state: { from: fromRoute } })}
+        back={() => navigate(relatedToEventId ? Routes.EVENT_DETAIL(relatedToEventId) : (fromRoute ?? eventsRoute()), { state: { from: fromRoute } })}
         action={
           !!currentDraftId && (
             <div className="flex items-center gap-1">

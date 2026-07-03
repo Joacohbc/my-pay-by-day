@@ -6,6 +6,8 @@ import { Icon } from '@/components/ui/Icon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { AudioMessagePlayer } from '@/components/chat/AudioMessagePlayer';
 import { InlineTaskCard } from '@/components/agent-tasks/InlineTaskCard';
+import { InlineEventCard, InlineDraftCard, InlineTagCard, InlineCategoryCard } from '@/components/chat/InlineEntityCard';
+import { extractEntityRefs } from '@/components/chat/chatEntityRefs';
 import { getFileIcon } from '@/lib/fileUtils';
 import type { ChatMessage as ChatMessageType } from '@/store/chatStore';
 
@@ -25,6 +27,7 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
     getEvent: t('chat.tools.getEvent'),
     listDrafts: t('chat.tools.listDrafts'),
     getDraft: t('chat.tools.getDraft'),
+    showEntity: t('chat.tools.showEntity'),
     createDraft: t('chat.tools.createDraft'),
     updateDraft: t('chat.tools.updateDraft'),
     deleteDraft: t('chat.tools.deleteDraft'),
@@ -48,6 +51,7 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
         .filter((id): id is string => Boolean(id)),
     ),
   ];
+  const entityRefs = extractEntityRefs(message.toolCalls);
   const allToolsDone = message.toolCalls?.every((tc) => tc.state === 'result') ?? true;
   const toolStepGroups = (message.toolCalls ?? []).reduce<{ name: string; count: number; isDone: boolean; args?: any; output?: any }[]>(
     (groups, tc) => {
@@ -349,6 +353,21 @@ export function ChatMessage({ message, onEdit }: ChatMessageProps) {
                   {backgroundTaskIds.map((taskId) => (
                     <InlineTaskCard key={taskId} taskId={taskId} />
                   ))}
+
+                  {entityRefs.map((ref) => {
+                    switch (ref.kind) {
+                      case 'event':
+                        return <InlineEventCard key={`event-${ref.id}`} eventId={ref.id} action={ref.action} />;
+                      case 'draft':
+                        return <InlineDraftCard key={`draft-${ref.id}`} draftId={ref.id} action={ref.action} />;
+                      case 'tag':
+                        return <InlineTagCard key={`tag-${ref.id}`} tagId={ref.id} />;
+                      case 'category':
+                        return <InlineCategoryCard key={`category-${ref.id}`} categoryId={ref.id} />;
+                      default:
+                        return null;
+                    }
+                  })}
                 </div>
               )}
             </div>

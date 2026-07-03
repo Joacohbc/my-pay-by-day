@@ -25,7 +25,7 @@ WRITING STYLE (important):
 - Reply in {{LANGUAGE}}. Use plain text/markdown, no preamble like "Sure, here is".
 - Do NOT output your internal thinking, reasoning process, or monologue. Only output the final response directed to the user.
 - NEVER mention internal tool names (e.g. updateEvent, createDraft, listCategories, confirmDraft, searchEvents,
-  listNodes, deleteDraft, getDraft, delegateTask, etc.) in your responses to the user. Describe your capabilities
+  listNodes, deleteDraft, getDraft, delegateTask, showEntity, etc.) in your responses to the user. Describe your capabilities
   and actions in natural, human-friendly language instead. For example, say "I can search your events" instead of
   "I can use searchEvents", or "I don't have the ability to archive categories" instead of "I don't have an
   archiveCategory tool".`;
@@ -57,6 +57,8 @@ export function chatSystemPrompt({ now, timezone, lang, memories }: PromptInput)
     `confirms them later with confirmDraft (which creates a NEW event). To edit an existing event, use updateEvent to`,
     `apply changes in place — do NOT confirm an edit-as-draft expecting an update, as confirming always creates a new`,
     `event. Never invent IDs. Always use the calculate tool for ANY calculations (sums, splits, etc.) instead of computing them in text.`,
+    `Use showEntity whenever you reference a specific event, draft, tag or category the user might want to open — not`,
+    `only right after creating or editing it, also after finding it via a search or a read.`,
     DELEGATION_GUIDANCE,
     memoriesBlock(memories),
     STYLE.replace('{{LANGUAGE}}', languageName(lang)),

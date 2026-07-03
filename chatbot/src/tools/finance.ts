@@ -135,6 +135,37 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       }),
     },
 
+    // ===================== SHOW (UI signal) =====================
+    showEntity: {
+      kind: 'READ',
+      tool: tool({
+        description:
+          'Show an event, draft, tag or category to the user as a clickable card in the chat, so they can open it directly. ' +
+          'Call this any time you mention a specific entity the user might want to view — after searching, reading, creating or ' +
+          'editing it — not only right after a write. For drafts, id is the draftId (not the original event id).',
+        inputSchema: z.object({ entityType: z.enum(['event', 'draft', 'tag', 'category']), id: z.number() }),
+        execute: ({ entityType, id }) =>
+          safe(async () => {
+            if (entityType === 'event') {
+              const event = toBotEvent(await unwrap(client.GET('/events/{id}', { params: { path: { id } } })));
+              return { entityType, id: event.id, name: event.name };
+            }
+            if (entityType === 'draft') {
+              const drafts = await unwrap(client.GET('/drafts/finance-events'));
+              const draft = drafts.find((d) => d.draftId === id);
+              if (!draft) return { error: `Draft not found: ${id}` };
+              return { entityType, id, name: draft.name };
+            }
+            if (entityType === 'tag') {
+              const tag = await unwrap(client.GET('/tags/{id}', { params: { path: { id } } }));
+              return { entityType, id: tag.id, name: tag.name };
+            }
+            const category = await unwrap(client.GET('/categories/{id}', { params: { path: { id } } }));
+            return { entityType, id: category.id, name: category.name };
+          }),
+      }),
+    },
+
     // ===================== DRAFT WRITE =====================
     createDraft: {
       kind: 'DRAFT_WRITE',
@@ -146,10 +177,10 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
         inputSchema: botEventInputSchema.extend({ targetEventId: z.number().nullish() }),
         execute: ({ targetEventId, ...input }) =>
           safe(async () => {
-            await unwrap(
+            const created = await unwrap(
               client.POST('/drafts/finance-events', { body: toDraftPayload(input, ctx.timezone, targetEventId ?? undefined) }),
             );
-            return { ok: true };
+            return { ok: true, draftId: created.id, originalEventId: created.originalEntityId ?? undefined };
           }),
       }),
     },
@@ -161,13 +192,13 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
         inputSchema: botEventInputSchema.extend({ draftId: z.number(), targetEventId: z.number().nullish() }),
         execute: ({ draftId, targetEventId, ...input }) =>
           safe(async () => {
-            const draft = await unwrap(
+            const updated = await unwrap(
               client.PUT('/drafts/finance-events/{id}', {
                 params: { path: { id: draftId } },
                 body: toDraftPayload(input, ctx.timezone, targetEventId ?? undefined),
               }),
             );
-            return draft;
+            return { ok: true, draftId: updated.id, originalEventId: updated.originalEntityId ?? undefined };
           }),
       }),
     },
@@ -180,7 +211,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
         execute: ({ draftId }) =>
           safe(async () => {
             await unwrap(client.DELETE('/drafts/{id}', { params: { path: { id: draftId } } }));
-            return { ok: true };
+            return { ok: true, deletedDraftId: draftId };
           }),
       }),
     },
@@ -193,11 +224,12 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
           'Confirm a draft, creating a NEW real finance event from it. Note: this always CREATES a new event — to apply an edit to an existing event use updateEvent, not confirm.',
         inputSchema: z.object({ draftId: z.number() }),
         execute: ({ draftId }) =>
-          safe(async () =>
-            toBotEvent(
+          safe(async () => ({
+            ...toBotEvent(
               await unwrap(client.POST('/drafts/finance-events/{id}/confirm', { params: { path: { id: draftId } } })),
             ),
-          ),
+            confirmedDraftId: draftId,
+          })),
       }),
     },
 
