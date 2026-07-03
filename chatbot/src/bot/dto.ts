@@ -70,6 +70,21 @@ export const botEventPatchSchema = z.object({
   date: z.string().nullish(),
 });
 
+/** Partial edit of an existing draft. Every field except `draftId` is optional; omitted fields are preserved. */
+export const botDraftPatchSchema = z.object({
+  draftId: z.number(),
+  targetEventId: z.number().nullish(),
+  name: z.string().nullish(),
+  description: z.string().nullish(),
+  type: z.enum(EVENT_TYPES).nullish(),
+  amount: z.number().positive().nullish(),
+  sourceNodeId: z.number().nullish(),
+  destNodeId: z.number().nullish(),
+  categoryId: z.number().nullish(),
+  tagIds: z.array(z.number()).nullish(),
+  date: z.string().nullish(),
+});
+
 export const botEventFilterSchema = z.object({
   search: z.string().nullish(),
   startDate: z.string().nullish(),
@@ -84,3 +99,4 @@ export const botEventFilterSchema = z.object({
 });
 
 export type BotEventPatch = z.infer<typeof botEventPatchSchema>;
+export type BotDraftPatch = z.infer<typeof botDraftPatchSchema>;

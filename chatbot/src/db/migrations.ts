@@ -98,4 +98,6 @@ export function runMigrations(database: DatabaseSync): void {
   database.exec(SCHEMA);
   database.exec(BACKFILL_CONVERSATION_FROM_MESSAGES);
   ensureColumn(database, 'agent_task', 'step_budget', 'step_budget INTEGER');
+  ensureColumn(database, 'conversation', 'summary', 'summary TEXT');
+  ensureColumn(database, 'conversation', 'summary_up_to_sequence', 'summary_up_to_sequence INTEGER');
 }

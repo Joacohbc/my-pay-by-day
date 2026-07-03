@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type FileUIPart, type UIMessage } from 'ai';
 import { api, BASE_URL } from '@/services/api';
@@ -7,6 +8,10 @@ import { chatService } from '@/services/chat.service';
 import { audioService } from '@/services/audio.service';
 import { filesService } from '@/services/files.service';
 import { useChatStore, type ChatMessage } from '@/store/chatStore';
+import { DRAFTS_KEY } from '@/hooks/useDrafts';
+import { eventKeys } from '@/hooks/useEvents';
+import { tagKeys } from '@/hooks/useTags';
+import { categoryKeys } from '@/hooks/useCategories';
 import { getUserTimezone } from '@/lib/utils/dateUtils';
 import i18n from '@/lib/i18n';
 import type { FileDto } from '@/models';
@@ -135,6 +140,13 @@ function groupMessages(msgs: ChatMessage[]): ChatMessage[] {
 export function useChatUI() {
   const { t } = useTranslation();
   const { chatId, draftFiles, setDraftFiles, newChat } = useChatStore();
+  const queryClient = useQueryClient();
+
+  const invalidateFinanceCaches = useCallback(() => {
+    for (const queryKey of [DRAFTS_KEY, eventKeys.all, tagKeys.all, categoryKeys.all]) {
+      queryClient.invalidateQueries({ queryKey });
+    }
+  }, [queryClient]);
 
   const transport = useMemo(
     () =>
@@ -160,6 +172,7 @@ export function useChatUI() {
   const { messages: uiMessages, status, setMessages, sendMessage, stop } = useChat({
     id: chatId,
     transport,
+    onFinish: invalidateFinanceCaches,
   });
 
   const triggerSendNow = useCallback(() => {
@@ -212,6 +225,7 @@ export function useChatUI() {
         setIsBackendGenerating(generating);
         if (!generating) {
           await reloadHistory();
+          invalidateFinanceCaches();
           return;
         }
         pollingTimer = setTimeout(pollUntilComplete, 2000);
@@ -232,7 +246,7 @@ export function useChatUI() {
       active = false;
       if (pollingTimer) clearTimeout(pollingTimer);
     };
-  }, [chatId, setMessages]);
+  }, [chatId, setMessages, invalidateFinanceCaches]);
 
   const [input, setInput] = useState('');
   const [isClearing, setIsClearing] = useState(false);

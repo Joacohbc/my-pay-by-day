@@ -6,6 +6,16 @@ interface Row {
   message_json: string;
 }
 
+export interface SequencedMessage {
+  sequence: number;
+  message: ModelMessage;
+}
+
+export interface ConversationSummary {
+  summary: string;
+  upToSequence: number;
+}
+
 export interface ChatSummary {
   chatId: string;
   title: string | null;
@@ -33,6 +43,34 @@ export const conversationMemory = {
     return rows.map((row) => JSON.parse(row.message_json) as ModelMessage);
   },
 
+  /** Loads messages with a sequence strictly greater than `afterSequence`, keeping their sequence. */
+  loadAfterSequence(chatId: string, afterSequence: number): SequencedMessage[] {
+    const rows = db()
+      .prepare(
+        'SELECT sequence, message_json FROM conversation_message WHERE chat_id = ? AND sequence > ? ORDER BY sequence ASC',
+      )
+      .all(chatId, afterSequence) as unknown as { sequence: number; message_json: string }[];
+    return rows.map((row) => ({ sequence: row.sequence, message: JSON.parse(row.message_json) as ModelMessage }));
+  },
+
+  getSummary(chatId: string): ConversationSummary | null {
+    const row = db()
+      .prepare('SELECT summary, summary_up_to_sequence AS upTo FROM conversation WHERE chat_id = ?')
+      .get(chatId) as { summary: string | null; upTo: number | null } | undefined;
+    if (!row || row.summary == null || row.upTo == null) return null;
+    return { summary: row.summary, upToSequence: row.upTo };
+  },
+
+  setSummary(chatId: string, summary: string, upToSequence: number): void {
+    db()
+      .prepare('UPDATE conversation SET summary = ?, summary_up_to_sequence = ? WHERE chat_id = ?')
+      .run(summary, upToSequence, chatId);
+  },
+
+  clearSummary(chatId: string): void {
+    db().prepare('UPDATE conversation SET summary = NULL, summary_up_to_sequence = NULL WHERE chat_id = ?').run(chatId);
+  },
+
   append(chatId: string, messages: ModelMessage[]): void {
     if (messages.length === 0) return;
     db()
@@ -57,9 +95,10 @@ export const conversationMemory = {
     this.append(chatId, messages);
   },
 
-  /** Removes every message in the chat but keeps the conversation entity (and its title). Used by compaction/trim/replace. */
+  /** Removes every message in the chat but keeps the conversation entity (and its title). Used by trim/replace. */
   clearMessages(chatId: string): void {
     db().prepare('DELETE FROM conversation_message WHERE chat_id = ?').run(chatId);
+    this.clearSummary(chatId);
   },
 
   /** Deletes the conversation entity along with all of its messages. */

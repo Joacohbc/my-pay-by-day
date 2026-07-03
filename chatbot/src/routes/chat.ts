@@ -7,7 +7,7 @@ import { buildDelegateTools } from '@/tools/delegate.js';
 import { config } from '@/config.js';
 import { requestContextFrom } from '@/context.js';
 import { groundingNow } from '@/dates.js';
-import { compactIfNeeded } from '@/memory/compaction.js';
+import { buildModelContext, compactIfNeeded } from '@/memory/compaction.js';
 import { conversationMemory } from '@/memory/conversation.js';
 import { chatTitles } from '@/memory/titles.js';
 import { longTermMemory } from '@/memory/longTerm.js';
@@ -63,10 +63,9 @@ chatRoute.post('/', async (c) => {
     .join(' ');
   chatLog.info('chat request', { chatId, tz: ctx.timezone, lang: ctx.lang, user: userText });
 
-  await compactIfNeeded(chatId, ctx.lang);
-
-  const history = conversationMemory.load(chatId);
   conversationMemory.append(chatId, userMessages);
+  await compactIfNeeded(chatId, ctx.lang);
+  const modelMessages = buildModelContext(chatId);
 
   chatGenerationTracker.markGenerationActive(chatId);
 
@@ -78,7 +77,7 @@ chatRoute.post('/', async (c) => {
       lang: ctx.lang,
       memories: longTermMemory.contents(),
     }),
-    messages: [...history, ...userMessages],
+    messages: modelMessages,
     tools: toolsForMode(
       buildAllTools(ctx, { ...buildBackgroundTools(ctx), ...buildDelegateTools(ctx, CHAT_EXECUTION_MODE) }),
       CHAT_EXECUTION_MODE,

@@ -1,8 +1,8 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { BackendError, createApiClient, patchEvent, unwrap, type FinanceEventDto } from '@/backend/client.js';
-import { botEventFilterSchema, botEventInputSchema, botEventPatchSchema } from '@/bot/dto.js';
-import { toBotDraft, toBotEvent, toDraftPayload, toEventPatch, toServerDateBoundary } from '@/bot/mappers.js';
+import { botDraftPatchSchema, botEventFilterSchema, botEventInputSchema, botEventPatchSchema } from '@/bot/dto.js';
+import { toBotDraft, toBotEvent, toDraftPatchPayload, toDraftPayload, toEventPatch, toServerDateBoundary } from '@/bot/mappers.js';
 import type { RequestContext } from '@/context.js';
 import type { KindedToolSet } from '@/tools/types.js';
 
@@ -188,14 +188,20 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
     updateDraft: {
       kind: 'DRAFT_WRITE',
       tool: tool({
-        description: 'Replace the contents of an existing draft (by draftId) with new flat data.',
-        inputSchema: botEventInputSchema.extend({ draftId: z.number(), targetEventId: z.number().nullish() }),
-        execute: ({ draftId, targetEventId, ...input }) =>
+        description:
+          'Edit an existing draft (by draftId). Only the fields you provide change; every field you omit keeps its ' +
+          'current value (send just the tag, amount, date, etc. you want to change, not the whole draft). ' +
+          'Set targetEventId to (re)link the draft as an edit of an existing event.',
+        inputSchema: botDraftPatchSchema,
+        execute: (patch) =>
           safe(async () => {
+            const drafts = await unwrap(client.GET('/drafts/finance-events'));
+            const current = drafts.find((d) => d.draftId === patch.draftId);
+            if (!current) return { error: `Draft not found: ${patch.draftId}` };
             const updated = await unwrap(
               client.PUT('/drafts/finance-events/{id}', {
-                params: { path: { id: draftId } },
-                body: toDraftPayload(input, ctx.timezone, targetEventId ?? undefined),
+                params: { path: { id: patch.draftId } },
+                body: toDraftPatchPayload(patch, current, ctx.timezone),
               }),
             );
             return { ok: true, draftId: updated.id, originalEventId: updated.originalEntityId ?? undefined };

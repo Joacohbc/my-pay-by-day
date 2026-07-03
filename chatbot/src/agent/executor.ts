@@ -2,7 +2,7 @@ import { generateText, stepCountIs, type ModelMessage } from 'ai';
 import { config } from '@/config.js';
 import type { RequestContext } from '@/context.js';
 import { groundingNow } from '@/dates.js';
-import { compactIfNeeded } from '@/memory/compaction.js';
+import { buildModelContext, compactIfNeeded } from '@/memory/compaction.js';
 import { conversationMemory } from '@/memory/conversation.js';
 import { longTermMemory } from '@/memory/longTerm.js';
 import { largeModel } from '@/models.js';
@@ -118,7 +118,7 @@ async function run(taskId: string): Promise<void> {
         mode: task.execution_mode,
         isResumed,
       }),
-      messages: conversationMemory.load(taskId),
+      messages: buildModelContext(taskId),
       tools: toolsForMode(toolSet, task.execution_mode),
       stopWhen: stepCountIs(stepBudget),
       abortSignal: controller.signal,

@@ -1,6 +1,6 @@
 import type { EventPatchBody, FinanceEventDto } from '@/backend/client.js';
 import { asServerDateTime, toServerDateTime, type ServerDateTime } from '@/dates.js';
-import type { BotDraft, BotEvent, BotEventType, BotEventPatch } from '@/bot/dto.js';
+import type { BotDraft, BotEvent, BotEventType, BotEventPatch, BotDraftPatch } from '@/bot/dto.js';
 
 /** Draft input as it arrives from a zod tool schema (nullable) or a clean caller (undefined). */
 interface DraftInput {
@@ -58,6 +58,41 @@ export function toDraftPayload(input: DraftInput, timezone: string, targetEventI
     lineItems: [
       { financeNodeId: input.sourceNodeId ?? undefined, amount: -input.amount },
       { financeNodeId: input.destNodeId ?? undefined, amount: input.amount },
+    ],
+  };
+}
+
+/**
+ * Folds a partial bot edit into the full `FinanceEventDto` a draft PUT expects, filling every field
+ * the caller left unset from the draft's current value, so editing one field never wipes the rest.
+ * Mirrors `toEventPatch`, including carrying the current `transactionDate` as-is (no timezone shift)
+ * when the caller does not supply a new date.
+ */
+export function toDraftPatchPayload(patch: BotDraftPatch, current: FinanceEventDto, timezone: string): FinanceEventDto {
+  const items = current.lineItems ?? [];
+  const source = items.find((li) => (li.amount ?? 0) < 0);
+  const dest = items.find((li) => (li.amount ?? 0) >= 0);
+  const currentAmount = current.amount ?? (dest?.amount != null ? Math.abs(dest.amount) : 0);
+
+  const amount = patch.amount ?? currentAmount;
+  const sourceNodeId = patch.sourceNodeId ?? source?.financeNodeId ?? undefined;
+  const destNodeId = patch.destNodeId ?? dest?.financeNodeId ?? undefined;
+  const categoryId = patch.categoryId ?? current.category?.id;
+  const tagIds = patch.tagIds ?? (current.tags ?? []).map((t) => t.id).filter((id): id is number => id != null);
+
+  return {
+    id: patch.targetEventId ?? current.id ?? undefined,
+    name: patch.name ?? current.name ?? '',
+    description: patch.description ?? current.description ?? undefined,
+    type: patch.type ?? current.type ?? 'OUTBOUND',
+    transactionDate:
+      normalizeDate(patch.date, timezone) ??
+      (current.transactionDate ? asServerDateTime(current.transactionDate) : undefined),
+    category: categoryId != null ? { id: categoryId } : undefined,
+    tags: tagIds.map((id) => ({ id })),
+    lineItems: [
+      { financeNodeId: sourceNodeId, amount: -Math.abs(amount) },
+      { financeNodeId: destNodeId, amount: Math.abs(amount) },
     ],
   };
 }
