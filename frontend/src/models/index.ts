@@ -187,6 +187,18 @@ export interface FinanceEventDraftInputDto {
   lineItems?: { financeNodeId: number; amount: number }[];
 }
 
+export type DraftConfirmMode = 'MERGE' | 'CREATE_ONLY';
+
+export interface ConfirmDraftsRequestDto {
+  draftIds: number[];
+  mode: DraftConfirmMode;
+}
+
+export interface ConfirmDraftsResultDto {
+  confirmedEvents: FinanceEvent[];
+  failedDraftIds: number[];
+}
+
 // ─── Template ─────────────────────────────────────────────────────────────────
 
 export interface Template extends Identifiable {

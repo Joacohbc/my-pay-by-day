@@ -5,7 +5,7 @@ import { EventForm } from '@/components/events/EventForm';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { DraftBadge } from '@/components/ui/DraftBadge';
 import { useCreateEvent, useAddEventRelations } from '@/hooks/useEvents';
-import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft } from '@/hooks/useDrafts';
+import { useCreateStandaloneFinanceEventDraft, useUpdateFinanceEventDraftByDraftId, useDeleteDraft } from '@/hooks/useDrafts';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import type { CreateEventDto, PatchEventDto, Template, FinanceEvent, FinanceLineItem, FinanceEventDraftInputDto } from '@/models';
 import { useDebounceCallback } from '@/hooks/useDebounce';
@@ -33,8 +33,8 @@ export function EventNewPage() {
   const { navigate, fromRoute, template, draft, relatedToEventId } = useAppNavigation();
   const createEvent = useCreateEvent();
   const addRelations = useAddEventRelations();
-  const createDraft = useCreateFinanceEventDraft();
-  const updateDraft = useUpdateFinanceEventDraft();
+  const createDraft = useCreateStandaloneFinanceEventDraft();
+  const updateDraft = useUpdateFinanceEventDraftByDraftId();
   const deleteDraft = useDeleteDraft();
 
   const templateValues = template ? mapTemplateToEventValues(template) : undefined;

@@ -82,6 +82,11 @@ public enum MsgKey {
 	// ── Event Draft ──────────────────────────────────────
 	DRAFT_NOT_FOUND("error.draft.not_found"),
 	DRAFT_INVALID_PAYLOAD("error.draft.invalid_payload"),
+	DRAFT_EVENT_ID_REQUIRED("error.draft.event_id_required"),
+	DRAFT_MISSING_NAME("error.draft.missing_name"),
+	DRAFT_MISSING_DATE("error.draft.missing_date"),
+	DRAFT_MISSING_LINE_ITEMS("error.draft.missing_line_items"),
+	DRAFT_CONFIRM_NO_IDS("error.draft.confirm_no_ids"),
 
 	// ── File ─────────────────────────────────────────────
 	FILE_CONTENT_EMPTY("file.content.empty"),

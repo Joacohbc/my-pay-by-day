@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import { Routes } from '@/lib/routes';
@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { DraftBadge } from '@/components/ui/DraftBadge';
 import { useEvent, useUpdateEvent } from '@/hooks/useEvents';
-import { useCreateFinanceEventDraft, useUpdateFinanceEventDraft, useDeleteDraft, useFinanceEventDraftByEntityId } from '@/hooks/useDrafts';
+import { useUpsertFinanceEventDraftByEventId, useDeleteDraft, useFinanceEventDraftByEntityId } from '@/hooks/useDrafts';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import type { CreateEventDto, PatchEventDto, FinanceEventDraftInputDto } from '@/models';
 import { useDebounceCallback } from '@/hooks/useDebounce';
@@ -20,12 +20,9 @@ export function EventEditPage() {
   const { navigateBack } = useAppNavigation();
   const { data: event, refetch: refetchEvent, isLoading } = useEvent(Number(id));
   const { data: fetchedDraft, isLoading: isLoadingDraft, isFetching: isFetchingDraft } = useFinanceEventDraftByEntityId(Number(id));
-  const currentDraftIdRef = useRef<number | undefined>(undefined);
-  const creationPromiseRef = useRef<Promise<number> | null>(null);
 
   const updateEvent = useUpdateEvent();
-  const createDraft = useCreateFinanceEventDraft();
-  const updateDraft = useUpdateFinanceEventDraft();
+  const upsertDraft = useUpsertFinanceEventDraftByEventId();
   const deleteDraft = useDeleteDraft();
 
   // Bundled into one state object (rather than separate useState calls) so the capture effect below fires a
@@ -40,7 +37,6 @@ export function EventEditPage() {
   useEffect(() => {
     const isDraftReadyToCapture = !isLoadingDraft && (!isFetchingDraft || fetchedDraft != null);
     if (!isDraftReadyToCapture || isDraftCaptured) return;
-    currentDraftIdRef.current = fetchedDraft?.draftId;
     // One-time capture from the draft query, guarded by isDraftCaptured above — deliberately NOT a live sync,
     // since re-syncing on every background refetch would blow away in-progress edits/AI patches in the form.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -48,34 +44,13 @@ export function EventEditPage() {
   }, [isLoadingDraft, isFetchingDraft, fetchedDraft, isDraftCaptured]);
 
   const handleSaveDraft = useCallback(async (dto: FinanceEventDraftInputDto): Promise<number> => {
-    let activeDraftId = currentDraftIdRef.current;
-
-    if (!activeDraftId && creationPromiseRef.current) {
-      activeDraftId = await creationPromiseRef.current;
-    }
-
-    if (activeDraftId) {
-      await updateDraft.mutateAsync({ id: activeDraftId, dto });
-      return activeDraftId;
-    }
-
     const payload = { ...dto, id: Number(id) };
-    const promise = createDraft.mutateAsync(payload).then(created => {
-      currentDraftIdRef.current = created.id;
-      setDraftState((prev) => ({ ...prev, draftId: created.id }));
-      return created.id;
-    });
-
-    creationPromiseRef.current = promise;
-    try {
-      return await promise;
-    } finally {
-      creationPromiseRef.current = null;
-    }
-  }, [id, createDraft, updateDraft]);
+    const created = await upsertDraft.mutateAsync({ eventId: Number(id), dto: payload });
+    setDraftState((prev) => ({ ...prev, draftId: created.id }));
+    return created.id;
+  }, [id, upsertDraft]);
 
   const handleDraftIdResolved = useCallback((draftId: number) => {
-    currentDraftIdRef.current = draftId;
     setDraftState((prev) => ({ ...prev, draftId }));
   }, []);
 
@@ -92,7 +67,6 @@ export function EventEditPage() {
     if (currentDraftId) {
       await deleteDraft.mutateAsync(currentDraftId);
       // Stays captured=true so the effect above never re-captures the now-deleted, stale draft from cache.
-      currentDraftIdRef.current = undefined;
       setDraftState({ toForm: undefined, draftId: undefined, captured: true });
       setResetVersion(v => v + 1);
       refetchEvent();
@@ -139,7 +113,7 @@ export function EventEditPage() {
       />
       
       {!!currentDraftId && (
-        <DraftBadge saving={createDraft.isPending || updateDraft.isPending} />
+        <DraftBadge saving={upsertDraft.isPending} />
       )}
 
       <div className="px-5 pb-6">

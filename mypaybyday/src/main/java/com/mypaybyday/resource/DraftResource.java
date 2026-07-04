@@ -15,6 +15,8 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import com.mypaybyday.dto.ConfirmDraftsRequestDto;
+import com.mypaybyday.dto.ConfirmDraftsResultDto;
 import com.mypaybyday.dto.FinanceEventDraftInputDto;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.entity.DraftEntity;
@@ -98,29 +100,44 @@ public class DraftResource {
 
 	@POST
 	@Path("/finance-events")
-	@Operation(summary = "Create a new finance event draft from FinanceEventDraftInputDto")
+	@Operation(summary = "Create a standalone finance event draft (never linked to an event, no dedup — multiple can coexist)")
 	@APIResponse(responseCode = "201", description = "Finance event draft created successfully",
 		content = @Content(schema = @Schema(implementation = DraftEntity.class)))
-	public Response createFinanceEventDraft(FinanceEventDraftInputDto dto) {
-		DraftEntity draft = draftService.createFinanceEventDraft(dto);
+	public Response createStandaloneFinanceEventDraft(FinanceEventDraftInputDto dto) {
+		DraftEntity draft = draftService.createStandaloneFinanceEventDraft(dto);
 		return Response.status(Response.Status.CREATED).entity(draft).build();
 	}
 
 	@PATCH
 	@Path("/finance-events/{id}")
-	@Operation(summary = "Update an existing finance event draft with a new FinanceEventDraftInputDto patch payload")
+	@Operation(summary = "Update an existing finance event draft, addressed by its own draft ID")
 	@APIResponse(responseCode = "200", description = "Finance event draft updated successfully")
 	@APIResponse(responseCode = "400", description = "Draft not found (Business Exception)")
-	public DraftEntity updateFinanceEventDraft(@PathParam("id") Long draftId, FinanceEventDraftInputDto dto) {
-		return draftService.patchFinanceEventDraft(draftId, dto);
+	public DraftEntity updateFinanceEventDraftByDraftId(@PathParam("id") Long draftId, FinanceEventDraftInputDto dto) {
+		return draftService.updateFinanceEventDraftByDraftId(draftId, dto);
+	}
+
+	@PUT
+	@Path("/finance-events/by-entity/{entityId}")
+	@Operation(summary = "Upsert the single finance event draft linked to an already-existing event, reusing it if one already exists")
+	@APIResponse(responseCode = "200", description = "Finance event draft upserted successfully",
+		content = @Content(schema = @Schema(implementation = DraftEntity.class)))
+	@APIResponse(responseCode = "400", description = "Missing/invalid event ID (Business Exception)")
+	public Response upsertFinanceEventDraftByEventId(@PathParam("entityId") Long entityId, FinanceEventDraftInputDto dto) throws BusinessException {
+		DraftEntity draft = draftService.upsertFinanceEventDraftByEventId(entityId, dto);
+		return Response.ok(draft).build();
 	}
 
 	@POST
-	@Path("/finance-events/{id}/confirm")
-	@Operation(summary = "Confirm a finance event draft, converting it into a real finance event")
-	@APIResponse(responseCode = "200", description = "Draft confirmed and published as a finance event")
-	@APIResponse(responseCode = "400", description = "Draft incomplete or not found (Business Exception)")
-	public FinanceEventDto confirmFinanceEventDraft(@PathParam("id") Long draftId) throws BusinessException {
-		return draftService.confirmDraft(draftId);
+	@Path("/finance-events/confirm-batch")
+	@Operation(summary = "Confirm multiple finance event drafts in one call",
+		description = "MERGE updates the linked event when a draft already has one, creating it otherwise. " +
+			"CREATE_ONLY always creates a new event. Drafts that fail validation are skipped and reported " +
+			"in the result instead of aborting the whole batch.")
+	@APIResponse(responseCode = "200", description = "Batch processed (see result for any skipped drafts)",
+		content = @Content(schema = @Schema(implementation = ConfirmDraftsResultDto.class)))
+	@APIResponse(responseCode = "400", description = "No draft IDs supplied (Business Exception)")
+	public ConfirmDraftsResultDto confirmFinanceEventDraftsBatch(ConfirmDraftsRequestDto request) throws BusinessException {
+		return draftService.confirmDraftsBatch(request.draftIds, request.mode);
 	}
 }

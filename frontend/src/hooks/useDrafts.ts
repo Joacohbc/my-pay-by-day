@@ -38,26 +38,39 @@ export function useFinanceEventDraftByEntityId(entityId: number | null) {
   });
 }
 
-export function useCreateFinanceEventDraft() {
+export function useCreateStandaloneFinanceEventDraft() {
   const qc = useQueryClient();
   const alert = useAlert();
   const { t } = useTranslation();
 
   return useMutation({
-    mutationFn: (dto: FinanceEventDraftInputDto) => draftsService.createFinanceEventDraft(dto),
+    mutationFn: (dto: FinanceEventDraftInputDto) => draftsService.createStandaloneFinanceEventDraft(dto),
     onSuccess: () => qc.invalidateQueries({ queryKey: DRAFTS_KEY }),
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
   });
 }
 
-export function useUpdateFinanceEventDraft() {
+export function useUpdateFinanceEventDraftByDraftId() {
   const qc = useQueryClient();
   const alert = useAlert();
   const { t } = useTranslation();
 
   return useMutation({
     mutationFn: ({ id, dto }: { id: number; dto: FinanceEventDraftInputDto }) =>
-      draftsService.updateFinanceEventDraft(id, dto),
+      draftsService.updateFinanceEventDraftByDraftId(id, dto),
+    onSuccess: () => qc.invalidateQueries({ queryKey: DRAFTS_KEY }),
+    onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
+  });
+}
+
+export function useUpsertFinanceEventDraftByEventId() {
+  const qc = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+
+  return useMutation({
+    mutationFn: ({ eventId, dto }: { eventId: number; dto: FinanceEventDraftInputDto }) =>
+      draftsService.upsertFinanceEventDraftByEventId(eventId, dto),
     onSuccess: () => qc.invalidateQueries({ queryKey: DRAFTS_KEY }),
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
   });

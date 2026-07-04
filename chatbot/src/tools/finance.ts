@@ -24,7 +24,26 @@ async function patchDraftById(
   const updated = await unwrap(
     client.PATCH('/drafts/finance-events/{id}' as any, {
       params: { path: { id: draftId } },
-      body: toDraftPatchPayload({ ...patch, draftId }, timezone),
+      body: toDraftPatchPayload(patch, timezone),
+    }),
+  ) as any;
+  return { ok: true, draftId: updated.id, originalEventId: updated.originalEntityId ?? undefined };
+}
+
+/**
+ * Upserts the single draft linked to an already-existing event, mirroring the backend's
+ * one-draft-per-event rule — the model must never spawn a second draft for the same event.
+ */
+async function upsertDraftForEvent(
+  client: ReturnType<typeof createApiClient>,
+  eventId: number,
+  input: Omit<z.infer<typeof botDraftPatchSchema>, 'draftId' | 'targetEventId'>,
+  timezone: string,
+) {
+  const updated = await unwrap(
+    client.PUT('/drafts/finance-events/by-entity/{entityId}' as any, {
+      params: { path: { entityId: eventId } },
+      body: toDraftPatchPayload({ ...input, targetEventId: eventId }, timezone),
     }),
   ) as any;
   return { ok: true, draftId: updated.id, originalEventId: updated.originalEntityId ?? undefined };
@@ -202,8 +221,13 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
               return patchDraftById(client, scope.id, { targetEventId, ...input }, ctx.timezone);
             }
             const resolvedTargetEventId = scope?.type === 'event' ? scope.id : (targetEventId ?? undefined);
+            // Targeting an existing event: upsert its single draft instead of a blind create, so the
+            // model can never end up with two drafts pointing at the same event.
+            if (resolvedTargetEventId) {
+              return upsertDraftForEvent(client, resolvedTargetEventId, input, ctx.timezone);
+            }
             const created = await unwrap(
-              client.POST('/drafts/finance-events', { body: toDraftPayload(input, ctx.timezone, resolvedTargetEventId) }),
+              client.POST('/drafts/finance-events', { body: toDraftPayload(input, ctx.timezone) }),
             );
             return { ok: true, draftId: created.id, originalEventId: created.originalEntityId ?? undefined };
           }),
@@ -245,15 +269,21 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       kind: 'DRAFT_CONFIRM',
       tool: tool({
         description:
-          'Confirm a draft, creating a NEW real finance event from it. Note: this always CREATES a new event — to apply an edit to an existing event use updateEvent, not confirm.',
-        inputSchema: z.object({ draftId: z.number() }),
-        execute: ({ draftId }) =>
-          safe(async () => ({
-            ...toBotEvent(
-              await unwrap(client.POST('/drafts/finance-events/{id}/confirm', { params: { path: { id: draftId } } })),
-            ),
-            confirmedDraftId: draftId,
-          })),
+          'Confirm a draft, publishing it as a real finance event. MERGE (default) updates the linked event in ' +
+          'place when the draft has one (originalEventId set); CREATE_ONLY always creates a brand new event instead.',
+        inputSchema: z.object({ draftId: z.number(), mode: z.enum(['MERGE', 'CREATE_ONLY']).nullish() }),
+        execute: ({ draftId, mode }) =>
+          safe(async () => {
+            const result = await unwrap(
+              client.POST('/drafts/finance-events/confirm-batch' as any, {
+                body: { draftIds: [draftId], mode: mode ?? 'MERGE' },
+              }),
+            ) as any;
+            if (result.failedDraftIds?.includes(draftId)) {
+              return { error: `Draft incomplete or not found: ${draftId}` };
+            }
+            return { ...toBotEvent(result.confirmedEvents[0]), confirmedDraftId: draftId };
+          }),
       }),
     },
 

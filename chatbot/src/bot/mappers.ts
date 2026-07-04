@@ -45,9 +45,8 @@ export function toServerDateBoundary(
   return toServerDateTime(`${day}${time}`, timezone);
 }
 
-export function toDraftPayload(input: DraftInput, timezone: string, targetEventId?: number): any {
+export function toDraftPayload(input: DraftInput, timezone: string): any {
   return {
-    id: targetEventId,
     name: input.name,
     description: input.description ?? undefined,
     type: input.type,
@@ -63,7 +62,7 @@ export function toDraftPayload(input: DraftInput, timezone: string, targetEventI
  * Maps a partial bot edit into the FinanceEventDraftInputDto shape expected by PATCH /drafts.
  * Only mapped fields are included; the backend will apply the patch to the existing draft.
  */
-export function toDraftPatchPayload(patch: BotDraftPatch, timezone: string): any {
+export function toDraftPatchPayload(patch: Omit<BotDraftPatch, 'draftId'>, timezone: string): any {
   return {
     id: patch.targetEventId ?? undefined,
     name: patch.name ?? undefined,
