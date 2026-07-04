@@ -211,8 +211,12 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       tool: tool({
         description:
           'Create a DRAFT finance event (the user confirms it later; it does NOT post a real event). ' +
-          'Set targetEventId to propose an EDIT to an existing event as a draft (left pending). ' +
-          'Provide the full lineItems list (2 for a simple purchase, 3+ for a split), category, tags and date.',
+          'To propose an EDIT to an existing event, you MUST set targetEventId to that event\'s id. ' +
+          'CRITICAL: omitting targetEventId when your intent is to edit an existing event does NOT stage a safe ' +
+          'no-op — confirming that draft creates a brand-new duplicate event instead of updating the original. ' +
+          'If you are unsure whether you are editing or creating, resolve the event id first (searchEvents/getEvent) ' +
+          'and pass targetEventId. Provide the full lineItems list (2 for a simple purchase, 3+ for a split), ' +
+          'category, tags and date.',
         inputSchema: botEventInputSchema.extend({ targetEventId: z.number().nullish() }),
         execute: ({ targetEventId, ...input }) =>
           safe(async () => {
