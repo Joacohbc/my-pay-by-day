@@ -291,8 +291,6 @@ const en = {
 
   // ─── Event Form ──────────────────────────────────────────────────────────
   eventForm: {
-    extractFromFile: 'Fill from file with AI',
-    extractFromFileDone: 'Form pre-filled from the file',
     eventName: 'Event Name',
     eventNamePlaceholder: 'e.g. Dinner with friends',
     description: 'Description',

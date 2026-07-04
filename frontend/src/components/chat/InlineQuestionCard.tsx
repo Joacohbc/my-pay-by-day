@@ -55,10 +55,10 @@ export function InlineQuestionCard({ args, approvalId, answer, onAnswer }: Inlin
 
       {args.mode === 'YES_NO' && (
         <div className="flex gap-2">
-          <Button size="sm" onClick={() => respond('yes')} disabled={isResponding}>
+          <Button size="sm" onClick={() => respond(t('common.yes'))} disabled={isResponding}>
             {t('common.yes')}
           </Button>
-          <Button size="sm" variant="secondary" onClick={() => respond('no')} disabled={isResponding}>
+          <Button size="sm" variant="secondary" onClick={() => respond(t('common.no'))} disabled={isResponding}>
             {t('common.no')}
           </Button>
         </div>

@@ -266,7 +266,7 @@ export function useChatUI() {
     setMessages((prev) => [...prev, optimisticMessage]);
     setIsExtracting(true);
     try {
-      await extractService.fromText(userText, undefined, true, chatId, payloadFiles.length ? payloadFiles : undefined);
+      await extractService.fromText(userText, undefined, chatId, payloadFiles.length ? payloadFiles : undefined);
       await reloadHistory();
       invalidateFinanceCaches();
     } catch {

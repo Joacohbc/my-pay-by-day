@@ -7,9 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { TagGroupSelector } from '@/components/ui/TagGroupSelector';
-import { FileExtractButton } from '@/components/events/FileExtractButton';
 import { EventAiChatWidget } from '@/components/events/EventAiChatWidget';
-import type { ExtractedEvent } from '@/services/extract.service';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useTagGroups } from '@/hooks/useTagGroups';
@@ -266,15 +264,6 @@ export function EventForm({
     shouldDirty: true,
   });
 
-  const applyExtractedEvent = (event: ExtractedEvent) => {
-    if (event.name) setValue('name', event.name, { shouldDirty: true });
-    if (event.description) setValue('description', event.description, { shouldDirty: true });
-    if (event.type) setValue('type', event.type, { shouldDirty: true });
-    if (event.categoryId != null) setValue('categoryId', String(event.categoryId), { shouldDirty: true });
-    if (event.tagIds?.length) setValue('tagIds', event.tagIds.map(String), { shouldDirty: true });
-    if (event.transactionDate) setValue('transactionDate', event.transactionDate, { shouldDirty: true });
-  };
-
   const applyDraftPatch = (patch: Record<string, unknown>) => {
     if (typeof patch.name === 'string') setValue('name', patch.name, { shouldDirty: true });
     if (typeof patch.description === 'string') setValue('description', patch.description, { shouldDirty: true });
@@ -314,8 +303,6 @@ export function EventForm({
   return (
     <FormProvider {...methods}>
       <form onSubmit={handleSubmit(handleFormSubmit, handleInvalidSubmit)} className="space-y-5">
-        <FileExtractButton onExtracted={applyExtractedEvent} />
-
         <BasicInfoFields nameAi={nameAi} descriptionAi={descriptionAi} />
 
         <TypeAndDateFields />

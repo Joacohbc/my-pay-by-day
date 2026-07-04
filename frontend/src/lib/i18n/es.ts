@@ -290,8 +290,6 @@ const es = {
 
   // ─── Event Form ──────────────────────────────────────────────────────────
   eventForm: {
-    extractFromFile: 'Completar desde archivo con IA',
-    extractFromFileDone: 'Formulario precompletado desde el archivo',
     eventName: 'Nombre del Evento',
     eventNamePlaceholder: 'ej. Cena con amigos',
     description: 'Descripción',

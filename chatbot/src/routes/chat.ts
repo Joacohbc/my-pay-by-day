@@ -21,8 +21,10 @@ import type { ToolKind } from '@/tools/types.js';
 
 const chatLog = logger.child('chat');
 const CHAT_EXECUTION_MODE: ExecutionMode = 'AUTONOMOUS';
-/** Tool kinds that require explicit human approval before executing in the interactive chat. */
-const CHAT_APPROVAL_KINDS: ReadonlySet<ToolKind> = new Set(['WRITE', 'DRAFT_CONFIRM', 'ASK_USER']);
+/** Tool kinds that require explicit human approval before executing in the interactive chat. DRAFT_CONFIRM is
+ * intentionally excluded: confirming a draft is exactly the kind of thing the model should check with the user
+ * about via askUser (YES_NO) when it's unsure, not something gated by a separate forced approval step. */
+const CHAT_APPROVAL_KINDS: ReadonlySet<ToolKind> = new Set(['WRITE', 'ASK_USER']);
 
 function toolOutputsByCallId(history: ModelMessage[]): Map<string, unknown> {
   const outputs = new Map<string, unknown>();
