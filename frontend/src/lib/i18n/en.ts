@@ -13,6 +13,8 @@ const en = {
     pause: 'Pause',
     confirm: 'Confirm',
     holdToConfirm: 'Keep holding to confirm...',
+    yes: 'Yes',
+    no: 'No',
     edit: 'Edit',
     archive: 'Archive',
     archived: 'Archived',
@@ -69,6 +71,7 @@ const en = {
   // ─── Chat ────────────────────────────────────────────────────────────────
   chat: {
     title: 'Finance Assistant',
+    messageCount: '{{count}}/{{max}} messages',
     placeholderAgent: 'Describe a transaction or upload a receipt...',
     newChat: 'New Chat',
     emptyState: 'Ask me anything about your categories or periods!',
@@ -115,6 +118,12 @@ const en = {
       approve: 'Approve',
       reject: 'Reject',
     },
+    question: {
+      title: 'Question',
+      submit: 'Send',
+      otherPlaceholder: 'Or type your own answer...',
+      answerAbove: 'Answer the question above to continue',
+    },
     tools: {
       steps: 'Agent steps',
       delegateTask: 'Delegating to a sub-agent...',
@@ -133,7 +142,9 @@ const en = {
       updateDraft: 'Updating draft event...',
       deleteDraft: 'Deleting draft event...',
       confirmDraft: 'Confirming draft event...',
+      validateDraft: 'Checking draft...',
       updateEvent: 'Updating transaction details...',
+      askUser: 'Asking a question...',
       calculate: 'Performing calculations...',
       getCurrentDateTime: 'Checking date and time...',
       saveMemory: 'Saving preference to memory...',

@@ -7,8 +7,8 @@ import { filesService } from '@/services/files.service';
 import { getUserTimezone } from '@/lib/utils/dateUtils';
 import { useSendCountdown } from '@/hooks/useSendCountdown';
 import i18n from '@/lib/i18n';
-import type { ChatMessage } from '@/store/chatStore';
 import type { FileDto } from '@/models';
+import { toDisplayMessage, textOf } from '@/lib/chat/toDisplayMessage';
 
 export type FormPatchEntityType = 'category' | 'tag' | 'node' | 'template';
 
@@ -35,50 +35,6 @@ async function toFilePart(file: FileDto): Promise<FileUIPart> {
     mediaType: file.mimeType || blob.type || 'image/jpeg',
     url: await blobToDataUrl(blob),
     filename: file.fileName,
-  };
-}
-
-function textOf(message: UIMessage): string {
-  return message.parts
-    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
-    .map((part) => part.text)
-    .join('');
-}
-
-function toolCallsOf(message: UIMessage, isFinished: boolean): NonNullable<ChatMessage['toolCalls']> {
-  return message.parts
-    .filter(
-      (
-        part,
-      ): part is UIMessage['parts'][number] & {
-        toolName?: string;
-        state: string;
-        output?: unknown;
-        input?: unknown;
-        toolCallId?: string;
-        approval?: { id: string; approved?: boolean };
-      } => part.type.startsWith('tool-') || part.type === 'dynamic-tool',
-    )
-    .map((part) => {
-      const name = part.toolName || part.type.replace(/^tool-/, '');
-      return {
-        name,
-        state: isFinished ? 'result' : part.state,
-        output: part.output,
-        args: part.input,
-        toolCallId: part.toolCallId,
-        approval: part.approval,
-      };
-    });
-}
-
-function toDisplayMessage(message: UIMessage, isFinished: boolean): ChatMessage {
-  return {
-    id: message.id,
-    role: message.role === 'assistant' ? 'assistant' : 'user',
-    content: textOf(message),
-    toolCalls: toolCallsOf(message, isFinished),
-    timestamp: new Date().toISOString(),
   };
 }
 

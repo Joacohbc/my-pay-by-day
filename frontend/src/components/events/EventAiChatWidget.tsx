@@ -25,6 +25,7 @@ export function EventAiChatWidget({ draftId, onEnsureDraft, onDraftIdResolved, o
     handleAddFile,
     handleRemoveFile,
     handleToolApproval,
+    handleAskUserAnswer,
     countdown,
     triggerSendNow,
     handleStop,
@@ -55,7 +56,7 @@ export function EventAiChatWidget({ draftId, onEnsureDraft, onDraftIdResolved, o
       onStop={handleStop}
     >
       {messages.map((message) => (
-        <ChatMessage key={message.id} message={message} onApprove={handleToolApproval} />
+        <ChatMessage key={message.id} message={message} onApprove={handleToolApproval} onAskUserAnswer={handleAskUserAnswer} />
       ))}
     </AiChatWidget>
   );

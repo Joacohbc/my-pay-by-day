@@ -477,7 +477,7 @@ export interface paths {
             };
         };
         put?: never;
-        /** Create a new finance event draft from FinanceEventDto */
+        /** Create a standalone finance event draft (never linked to an event, no dedup — multiple can coexist) */
         post: {
             parameters: {
                 query?: never;
@@ -487,7 +487,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["FinanceEventDto"];
+                    "application/json": components["schemas"]["FinanceEventDraftInputDto"];
                 };
             };
             responses: {
@@ -570,8 +570,91 @@ export interface paths {
                 };
             };
         };
-        put?: never;
+        /** Upsert the single finance event draft linked to an already-existing event, reusing it if one already exists */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entityId: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["FinanceEventDraftInputDto"];
+                };
+            };
+            responses: {
+                /** @description Finance event draft upserted successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DraftEntity"];
+                    };
+                };
+                /** @description Missing/invalid event ID (Business Exception) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drafts/finance-events/confirm-batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm multiple finance event drafts in one call
+         * @description MERGE updates the linked event when a draft already has one, creating it otherwise. CREATE_ONLY always creates a new event. Drafts that fail validation are skipped and reported in the result instead of aborting the whole batch.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConfirmDraftsRequestDto"];
+                };
+            };
+            responses: {
+                /** @description Batch processed (see result for any skipped drafts) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConfirmDraftsResultDto"];
+                    };
+                };
+                /** @description No draft IDs supplied (Business Exception) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -586,7 +669,12 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Update an existing finance event draft with a new FinanceEventDto payload */
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update an existing finance event draft, addressed by its own draft ID */
         patch: {
             parameters: {
                 query?: never;
@@ -598,7 +686,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["FinanceEventDto"];
+                    "application/json": components["schemas"]["FinanceEventDraftInputDto"];
                 };
             };
             responses: {
@@ -620,14 +708,9 @@ export interface paths {
                 };
             };
         };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
-    "/drafts/finance-events/{id}/confirm": {
+    "/drafts/finance-events/{id}/validate": {
         parameters: {
             query?: never;
             header?: never;
@@ -636,7 +719,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Confirm a finance event draft, converting it into a real finance event */
+        /**
+         * Dry-run validate a finance event draft without persisting anything
+         * @description Runs the same integrity rules confirming a draft would enforce (name, date, zero-sum line items, node existence) and reports every violation found instead of failing on the first one.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -648,16 +734,16 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Draft confirmed and published as a finance event */
+                /** @description Validation result (valid may be true or false; errors lists every violation found) */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["FinanceEventDto"];
+                        "application/json": components["schemas"]["DraftValidationResultDto"];
                     };
                 };
-                /** @description Draft incomplete or not found (Business Exception) */
+                /** @description Draft not found (Business Exception) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -3535,6 +3621,14 @@ export interface components {
         ConfigDto: {
             timezone?: string;
         };
+        ConfirmDraftsRequestDto: {
+            draftIds: number[];
+            mode: components["schemas"]["DraftConfirmMode"];
+        };
+        ConfirmDraftsResultDto: {
+            confirmedEvents?: components["schemas"]["FinanceEventDto"][];
+            failedDraftIds?: number[];
+        };
         DataTransferDto: {
             version?: string;
             exportedAt?: components["schemas"]["LocalDateTime"];
@@ -3571,6 +3665,8 @@ export interface components {
         };
         /** @enum {string} */
         DateField: "TRANSACTION" | "CREATED" | "UPDATED";
+        /** @enum {string} */
+        DraftConfirmMode: "MERGE" | "CREATE_ONLY";
         DraftEntity: {
             /** Format: int64 */
             id?: number;
@@ -3580,6 +3676,10 @@ export interface components {
             originalEntityId?: number;
             entityType?: components["schemas"]["EntityType"];
             rawPayloadJson?: string;
+        };
+        DraftValidationResultDto: {
+            valid?: boolean;
+            errors?: components["schemas"]["ValidationErrorDto"][];
         };
         DuplicateDetectionSettingsDto: {
             /** Format: int64 */
@@ -3646,6 +3746,24 @@ export interface components {
             /** Format: int64 */
             size?: number;
             base64Content?: string;
+        };
+        FinanceEventDraftInputDto: {
+            /** Format: int64 */
+            id?: number;
+            name?: string;
+            description?: string;
+            type?: components["schemas"]["EventType"];
+            transactionDate?: components["schemas"]["LocalDateTime"];
+            /** Format: int64 */
+            categoryId?: number;
+            tagIds?: number[];
+            isSimplifiedMode?: boolean;
+            amount?: number;
+            /** Format: int64 */
+            sourceNodeId?: number;
+            /** Format: int64 */
+            destNodeId?: number;
+            lineItems?: components["schemas"]["FinanceLineItemDto"][];
         };
         FinanceEventDto: {
             /** Format: int64 */
@@ -3991,6 +4109,10 @@ export interface components {
             selectionCount?: number;
             /** @description Timestamp of the last UI selection */
             lastSelectedAt?: components["schemas"]["Instant"];
+        };
+        ValidationErrorDto: {
+            field?: string;
+            message?: string;
         };
     };
     responses: never;

@@ -45,15 +45,7 @@ export function FormPatchAiChatWidget({ entityType, getCurrentValues, onPatch }:
       onStop={handleStop}
     >
       {messages.map((message) => (
-        <ChatMessage
-          key={message.id}
-          message={{
-            id: message.id,
-            role: message.role,
-            content: message.content,
-            timestamp: new Date().toISOString(),
-          }}
-        />
+        <ChatMessage key={message.id} message={message} />
       ))}
     </AiChatWidget>
   );

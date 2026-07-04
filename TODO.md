@@ -1,5 +1,6 @@
-- Con Fable arreglar sistema de Duplicados
-- Integrar un sistema de Docs > .md como markeitdown de Microsoft para que acepte mas tipos de archivos
-- El chatbot tambien debe retornar erroes traducidos correctamente en/es
+- Arreglar sistema de Duplicados
+- Arrglar posicionamiento del icono de IA en forms
+- Arreglar en la vista de eventos el ingreos, gastos y transferencia que en mobile hay overlfow
+- El boton de enviar ya del chat debe estar en el boton de enviar normal, y que cuando se este esperando indique abajo del mensaje para que el usuario sepa que el sistema esta esperando que termine de escribir
 
-- Ademas a nivel de backend haz que solo se pueda tener un draft por evento y que siempre se use el mismo event id a un endpoint draft para que sea mas facil.
+- Al ir desde el chat a un event/draft no vuelve al chat. Un sistema de from y to mas robusto

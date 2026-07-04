@@ -45,12 +45,12 @@ export const config = {
     /** Maximum tool-calling steps per in-turn sub-agent delegation before it stops. */
     subagentMaxSteps: intEnv('SUBAGENT_MAX_STEPS', 12),
     /** Maximum conversation messages kept before compaction kicks in. */
-    maxChatMessages: intEnv('AGENT_MAX_CHAT_MESSAGES', 50),
+    maxChatMessages: intEnv('AGENT_MAX_CHAT_MESSAGES', 150),
   },
 
   log: {
     /** Verbosity threshold: silent | error | warn | info | debug | trace. */
-    level: env('LOG_LEVEL', 'info'),
+    level: env('LOG_LEVEL', 'debug'),
     /** Output format: 'text' (human-readable) or 'json' (structured, one object per line). */
     format: env('LOG_FORMAT', 'text'),
     /** Max characters per logged field value before truncation. */

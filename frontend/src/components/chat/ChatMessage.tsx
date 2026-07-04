@@ -8,17 +8,67 @@ import { AudioMessagePlayer } from '@/components/chat/AudioMessagePlayer';
 import { InlineTaskCard } from '@/components/agent-tasks/InlineTaskCard';
 import { InlineEventCard, InlineDraftCard, InlineTagCard, InlineCategoryCard } from '@/components/chat/InlineEntityCard';
 import { InlineToolApprovalCard } from '@/components/chat/InlineToolApprovalCard';
-import { extractEntityRefs } from '@/components/chat/chatEntityRefs';
+import { InlineQuestionCard, type AskUserArgs as AskUserQuestionArgs } from '@/components/chat/InlineQuestionCard';
+import { extractEntityRefs, toolCallEntityKey } from '@/components/chat/chatEntityRefs';
 import { getFileIcon, getFileTypeLabel } from '@/lib/fileUtils';
-import type { ChatMessage as ChatMessageType } from '@/store/chatStore';
+import type { ChatMessage as ChatMessageType, ChatMessagePart, ChatToolCall } from '@/store/chatStore';
 
 interface ChatMessageProps {
   message: ChatMessageType;
   onEdit?: (msg: ChatMessageType) => void;
   onApprove?: (approvalId: string, approved: boolean) => void;
+  onAskUserAnswer?: (approvalId: string, answer: string) => void;
 }
 
-export function ChatMessage({ message, onEdit, onApprove }: ChatMessageProps) {
+// Tool calls whose result is worth anchoring in the reading flow (a draft/event/approval/task card).
+// Everything else (read-only lookups like listCategories, searchEvents, ...) collapses into the
+// "Steps" accordion instead of cluttering the narration with low-signal noise.
+const INLINE_TOOL_NAMES = new Set([
+  'createDraft',
+  'updateDraft',
+  'confirmDraft',
+  'deleteDraft',
+  'updateEvent',
+  'showEntity',
+  'startBackgroundTask',
+  'askUser',
+]);
+
+function isInlineToolCall(call: ChatToolCall): boolean {
+  return INLINE_TOOL_NAMES.has(call.name) || call.state === 'approval-requested';
+}
+
+const MarkdownSpan = ({ text }: { text: string }) => (
+  <div className="prose prose-sm prose-invert max-w-none prose-table:my-0 prose-p:leading-relaxed selection:bg-dn-primary/20">
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        table: ({ ...props }) => (
+          <div className="overflow-x-auto my-8 -mx-1 px-1">
+            <table {...props} className="min-w-full border-collapse border border-dn-border/20 rounded-xl overflow-hidden shadow-sm bg-dn-surface-low/20" />
+          </div>
+        ),
+        thead: ({ ...props }) => <thead {...props} className="bg-dn-surface-low/50" />,
+        th: ({ ...props }) => (
+          <th
+            {...props}
+            className="px-5 py-3.5 text-left text-[11px] font-bold text-dn-text-main/50 uppercase tracking-widest border-b border-dn-border/30 whitespace-nowrap"
+          />
+        ),
+        td: ({ ...props }) => (
+          <td
+            {...props}
+            className="px-5 py-3.5 text-sm text-dn-text-main/80 border-b border-dn-border/10 whitespace-nowrap"
+          />
+        ),
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  </div>
+);
+
+export function ChatMessage({ message, onEdit, onApprove, onAskUserAnswer }: ChatMessageProps) {
   const { t } = useTranslation();
   const toolFriendlyNames: Record<string, string> = {
     listCategories: t('chat.tools.listCategories'),
@@ -34,7 +84,9 @@ export function ChatMessage({ message, onEdit, onApprove }: ChatMessageProps) {
     updateDraft: t('chat.tools.updateDraft'),
     deleteDraft: t('chat.tools.deleteDraft'),
     confirmDraft: t('chat.tools.confirmDraft'),
+    validateDraft: t('chat.tools.validateDraft'),
     updateEvent: t('chat.tools.updateEvent'),
+    askUser: t('chat.tools.askUser'),
     calculate: t('chat.tools.calculate'),
     getCurrentDateTime: t('chat.tools.getCurrentDateTime'),
     saveMemory: t('chat.tools.saveMemory'),
@@ -45,20 +97,10 @@ export function ChatMessage({ message, onEdit, onApprove }: ChatMessageProps) {
     startBackgroundTask: t('chat.tools.startBackgroundTask'),
   };
   const isUser = message.role === 'user';
-  const backgroundTaskIds = [
-    ...new Set(
-      (message.toolCalls ?? [])
-        .filter((tc) => tc.name === 'startBackgroundTask')
-        .map((tc) => (tc.output as { taskId?: string } | undefined)?.taskId)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ];
-  const pendingApprovals = (message.toolCalls ?? []).filter(
-    (tc) => tc.state === 'approval-requested' && tc.approval?.id,
-  );
-  const entityRefs = extractEntityRefs(message.toolCalls);
-  const allToolsDone = message.toolCalls?.every((tc) => tc.state === 'result') ?? true;
-  const toolStepGroups = (message.toolCalls ?? []).reduce<{ name: string; count: number; isDone: boolean; args?: unknown; output?: unknown }[]>(
+  const allToolsDone = message.toolCalls.every((tc) => tc.state === 'result');
+
+  const lowSignalCalls = message.toolCalls.filter((tc) => !isInlineToolCall(tc));
+  const toolStepGroups = lowSignalCalls.reduce<{ name: string; count: number; isDone: boolean; args?: unknown; output?: unknown }[]>(
     (groups, tc) => {
       const isDone = tc.state === 'result';
       if (tc.name === 'delegateTask') {
@@ -78,6 +120,19 @@ export function ChatMessage({ message, onEdit, onApprove }: ChatMessageProps) {
     },
     [],
   );
+
+  // Entity refs are computed across the whole message (createDraft -> showEntity -> confirmDraft can all
+  // point at the same draft/event) so the "winning" ref per entity is resolved once, then anchored to the
+  // last part in the ordered sequence that produced it — avoiding duplicate cards for the same entity.
+  const winningRefs = extractEntityRefs(message.toolCalls);
+  const refByKey = new Map(winningRefs.map((ref) => [`${ref.kind}:${ref.id}`, ref] as const));
+  const lastIndexForKey = new Map<string, number>();
+  message.parts.forEach((part, idx) => {
+    if (part.type !== 'tool') return;
+    const key = toolCallEntityKey(part.call);
+    if (key && refByKey.has(key)) lastIndexForKey.set(key, idx);
+  });
+
   const [isCollapsedByUser, setIsCollapsedByUser] = useState<boolean | null>(null);
   const isStepsExpanded = isCollapsedByUser === null ? false : !isCollapsedByUser;
   const audioMessageUrl = typeof message.audioUrl === 'string' && message.audioUrl.length > 0
@@ -91,7 +146,7 @@ export function ChatMessage({ message, onEdit, onApprove }: ChatMessageProps) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const stepsScrollRef = useRef<HTMLDivElement>(null);
-  const toolCallCount = message.toolCalls?.length ?? 0;
+  const toolCallCount = message.toolCalls.length;
 
   useEffect(() => {
     const container = stepsScrollRef.current;
@@ -104,6 +159,86 @@ export function ChatMessage({ message, onEdit, onApprove }: ChatMessageProps) {
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
+
+  function renderToolPart(call: ChatToolCall, idx: number, seenTaskIds: Set<string>) {
+    if (call.name === 'askUser') {
+      const key = call.toolCallId ?? `question-${idx}`;
+      if (call.state === 'approval-requested') {
+        return (
+          <InlineQuestionCard
+            key={key}
+            args={call.args as AskUserQuestionArgs}
+            approvalId={call.approval!.id}
+            onAnswer={(id, answer) => onAskUserAnswer?.(id, answer)}
+          />
+        );
+      }
+      // Resolved: keep the question and the given answer visible instead of letting the card
+      // disappear — `reason` is where the answer travels (see chat.ts's approval handling).
+      const answer = call.approval?.reason;
+      if (answer == null) return null;
+      return (
+        <InlineQuestionCard
+          key={key}
+          args={call.args as AskUserQuestionArgs}
+          approvalId={call.approval?.id ?? key}
+          answer={answer}
+          onAnswer={(id, ans) => onAskUserAnswer?.(id, ans)}
+        />
+      );
+    }
+
+    if (call.state === 'approval-requested') {
+      const callArgs = call.args as { draftId?: number; eventId?: number } | undefined;
+      return (
+        <InlineToolApprovalCard
+          key={call.toolCallId ?? `approval-${idx}`}
+          toolLabel={toolFriendlyNames[call.name] || call.name}
+          approvalId={call.approval!.id}
+          draftId={callArgs?.draftId}
+          eventId={callArgs?.eventId}
+          onApprove={(id) => onApprove?.(id, true)}
+          onReject={(id) => onApprove?.(id, false)}
+        />
+      );
+    }
+
+    if (call.name === 'startBackgroundTask' && call.state === 'result') {
+      const taskId = (call.output as { taskId?: string } | undefined)?.taskId;
+      if (!taskId || seenTaskIds.has(taskId)) return null;
+      seenTaskIds.add(taskId);
+      return <InlineTaskCard key={taskId} taskId={taskId} />;
+    }
+
+    const key = toolCallEntityKey(call);
+    if (!key || lastIndexForKey.get(key) !== idx) return null;
+    const ref = refByKey.get(key);
+    if (!ref) return null;
+
+    switch (ref.kind) {
+      case 'event':
+        return <InlineEventCard key={`event-${ref.id}`} eventId={ref.id} action={ref.action} />;
+      case 'draft':
+        return <InlineDraftCard key={`draft-${ref.id}`} draftId={ref.id} action={ref.action} />;
+      case 'tag':
+        return <InlineTagCard key={`tag-${ref.id}`} tagId={ref.id} />;
+      case 'category':
+        return <InlineCategoryCard key={`category-${ref.id}`} categoryId={ref.id} />;
+      default:
+        return null;
+    }
+  }
+
+  function renderInlineSequence() {
+    const seenTaskIds = new Set<string>();
+    return message.parts.map((part: ChatMessagePart, idx) => {
+      if (part.type === 'text') {
+        return part.text ? <MarkdownSpan key={`text-${idx}`} text={part.text} /> : null;
+      }
+      if (!isInlineToolCall(part.call)) return null;
+      return renderToolPart(part.call, idx, seenTaskIds);
+    });
+  }
 
   return (
     <>
@@ -234,7 +369,7 @@ export function ChatMessage({ message, onEdit, onApprove }: ChatMessageProps) {
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {message.toolCalls && message.toolCalls.length > 0 && (
+                  {toolStepGroups.length > 0 && (
                     allToolsDone && !isStepsExpanded ? (
                       <button
                         type="button"
@@ -289,10 +424,10 @@ export function ChatMessage({ message, onEdit, onApprove }: ChatMessageProps) {
                             if (group.name === 'delegateTask') {
                               const subtaskTitle = (group.args as { title?: string } | undefined)?.title;
                               const progressOutput = group.output as { type?: string; message?: string } | undefined;
-                              
+
                               if (group.isDone) {
-                                label = subtaskTitle 
-                                  ? `${t('chat.subtask', 'Subtask')}: ${subtaskTitle}` 
+                                label = subtaskTitle
+                                  ? `${t('chat.subtask', 'Subtask')}: ${subtaskTitle}`
                                   : t('chat.tools.delegateTask');
                               } else {
                                 const progressMsg = progressOutput?.type === 'progress' ? progressOutput.message : undefined;
@@ -325,64 +460,7 @@ export function ChatMessage({ message, onEdit, onApprove }: ChatMessageProps) {
                     )
                   )}
 
-                  {hasTextContent && (
-                    <div className="prose prose-sm prose-invert max-w-none prose-table:my-0 prose-p:leading-relaxed selection:bg-dn-primary/20">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          table: ({ ...props }) => (
-                            <div className="overflow-x-auto my-8 -mx-1 px-1">
-                              <table {...props} className="min-w-full border-collapse border border-dn-border/20 rounded-xl overflow-hidden shadow-sm bg-dn-surface-low/20" />
-                            </div>
-                          ),
-                          thead: ({ ...props }) => <thead {...props} className="bg-dn-surface-low/50" />,
-                          th: ({ ...props }) => (
-                            <th
-                              {...props}
-                              className="px-5 py-3.5 text-left text-[11px] font-bold text-dn-text-main/50 uppercase tracking-widest border-b border-dn-border/30 whitespace-nowrap"
-                            />
-                          ),
-                          td: ({ ...props }) => (
-                            <td
-                              {...props}
-                              className="px-5 py-3.5 text-sm text-dn-text-main/80 border-b border-dn-border/10 whitespace-nowrap"
-                            />
-                          ),
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
-                    </div>
-                  )}
-
-                  {pendingApprovals.map((tc) => (
-                    <InlineToolApprovalCard
-                      key={tc.approval!.id}
-                      toolLabel={toolFriendlyNames[tc.name] || tc.name}
-                      approvalId={tc.approval!.id}
-                      onApprove={(id) => onApprove?.(id, true)}
-                      onReject={(id) => onApprove?.(id, false)}
-                    />
-                  ))}
-
-                  {backgroundTaskIds.map((taskId) => (
-                    <InlineTaskCard key={taskId} taskId={taskId} />
-                  ))}
-
-                  {entityRefs.map((ref) => {
-                    switch (ref.kind) {
-                      case 'event':
-                        return <InlineEventCard key={`event-${ref.id}`} eventId={ref.id} action={ref.action} />;
-                      case 'draft':
-                        return <InlineDraftCard key={`draft-${ref.id}`} draftId={ref.id} action={ref.action} />;
-                      case 'tag':
-                        return <InlineTagCard key={`tag-${ref.id}`} tagId={ref.id} />;
-                      case 'category':
-                        return <InlineCategoryCard key={`category-${ref.id}`} categoryId={ref.id} />;
-                      default:
-                        return null;
-                    }
-                  })}
+                  {renderInlineSequence()}
                 </div>
               )}
             </div>

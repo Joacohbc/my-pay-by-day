@@ -13,6 +13,8 @@ const es = {
     pause: 'Pausar',
     confirm: 'Confirmar',
     holdToConfirm: 'Mantén presionado para confirmar...',
+    yes: 'Sí',
+    no: 'No',
     edit: 'Editar',
     archive: 'Archivar',
     archived: 'Archivado',
@@ -68,6 +70,7 @@ const es = {
   // ─── Chat ────────────────────────────────────────────────────────────────
   chat: {
     title: 'Asistente Financiero',
+    messageCount: '{{count}}/{{max}} mensajes',
     placeholderAgent: 'Describe una transacción o sube un recibo...',
     newChat: 'Nuevo Chat',
     emptyState: '¡Pregúntame cualquier cosa sobre tus categorías o períodos!',
@@ -114,6 +117,12 @@ const es = {
       approve: 'Aprobar',
       reject: 'Rechazar',
     },
+    question: {
+      title: 'Pregunta',
+      submit: 'Enviar',
+      otherPlaceholder: 'O escribí tu propia respuesta...',
+      answerAbove: 'Respondé la pregunta de arriba para continuar',
+    },
     tools: {
       steps: 'Pasos del agente',
       delegateTask: 'Delegando a un subagente...',
@@ -132,7 +141,9 @@ const es = {
       updateDraft: 'Actualizando borrador...',
       deleteDraft: 'Eliminando borrador...',
       confirmDraft: 'Confirmando borrador...',
+      validateDraft: 'Revisando borrador...',
       updateEvent: 'Actualizando detalles de la transacción...',
+      askUser: 'Haciendo una pregunta...',
       calculate: 'Realizando cálculos matemáticos...',
       getCurrentDateTime: 'Consultando fecha y hora...',
       saveMemory: 'Guardando datos en la memoria...',

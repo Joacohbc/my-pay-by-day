@@ -17,6 +17,7 @@ import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.ConfirmDraftsRequestDto;
 import com.mypaybyday.dto.ConfirmDraftsResultDto;
+import com.mypaybyday.dto.DraftValidationResultDto;
 import com.mypaybyday.dto.FinanceEventDraftInputDto;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.entity.DraftEntity;
@@ -139,5 +140,17 @@ public class DraftResource {
 	@APIResponse(responseCode = "400", description = "No draft IDs supplied (Business Exception)")
 	public ConfirmDraftsResultDto confirmFinanceEventDraftsBatch(ConfirmDraftsRequestDto request) throws BusinessException {
 		return draftService.confirmDraftsBatch(request.draftIds, request.mode);
+	}
+
+	@POST
+	@Path("/finance-events/{id}/validate")
+	@Operation(summary = "Dry-run validate a finance event draft without persisting anything",
+		description = "Runs the same integrity rules confirming a draft would enforce (name, date, zero-sum " +
+			"line items, node existence) and reports every violation found instead of failing on the first one.")
+	@APIResponse(responseCode = "200", description = "Validation result (valid may be true or false; errors lists every violation found)",
+		content = @Content(schema = @Schema(implementation = DraftValidationResultDto.class)))
+	@APIResponse(responseCode = "400", description = "Draft not found (Business Exception)")
+	public DraftValidationResultDto validateFinanceEventDraft(@PathParam("id") Long draftId) throws BusinessException {
+		return draftService.validateDraft(draftId);
 	}
 }

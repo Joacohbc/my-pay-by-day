@@ -5,6 +5,7 @@ import { Hono } from 'hono';
 import { buildAllTools, toolsForModeWithApproval } from '@/agent/buildTools.js';
 import { buildBackgroundTools } from '@/tools/background.js';
 import { buildDelegateTools } from '@/tools/delegate.js';
+import { buildInteractionTools } from '@/tools/interaction.js';
 import { config } from '@/config.js';
 import { requestContextFrom, type ChatScope } from '@/context.js';
 import { replaceDocumentPartsWithMarkdown } from '@/files/markitdown.js';
@@ -21,7 +22,7 @@ import type { ToolKind } from '@/tools/types.js';
 const chatLog = logger.child('chat');
 const CHAT_EXECUTION_MODE: ExecutionMode = 'AUTONOMOUS';
 /** Tool kinds that require explicit human approval before executing in the interactive chat. */
-const CHAT_APPROVAL_KINDS: ReadonlySet<ToolKind> = new Set(['WRITE', 'DRAFT_CONFIRM']);
+const CHAT_APPROVAL_KINDS: ReadonlySet<ToolKind> = new Set(['WRITE', 'DRAFT_CONFIRM', 'ASK_USER']);
 
 function toolOutputsByCallId(history: ModelMessage[]): Map<string, unknown> {
   const outputs = new Map<string, unknown>();
@@ -44,6 +45,24 @@ function pendingApprovalsByToolCallId(history: ModelMessage[]): Map<string, stri
     }
   }
   return pending;
+}
+
+/**
+ * Maps approvalId -> the client-supplied reason for every resolved tool-approval-response found in
+ * history. Used to keep askUser's question/answer visible after a page reload — the reason is where
+ * the user's answer to an askUser question travels (see prompts/system.ts's ASK_USER_GUIDANCE).
+ */
+function approvalReasonsByApprovalId(history: ModelMessage[]): Map<string, string> {
+  const reasons = new Map<string, string>();
+  for (const message of history) {
+    if (message.role !== 'tool' || !Array.isArray(message.content)) continue;
+    for (const part of message.content) {
+      if (part.type === 'tool-approval-response' && typeof part.reason === 'string') {
+        reasons.set(part.approvalId, part.reason);
+      }
+    }
+  }
+  return reasons;
 }
 
 function isApprovalResponseMessage(message: UIMessage): boolean {
@@ -72,7 +91,11 @@ chatRoute.post('/', async (c) => {
   const ctx = { ...requestContextFrom(c), chatId, scope: body.scope };
 
   const chatTools = toolsForModeWithApproval(
-    buildAllTools(ctx, { ...buildBackgroundTools(ctx), ...buildDelegateTools(ctx, CHAT_EXECUTION_MODE) }),
+    buildAllTools(ctx, {
+      ...buildBackgroundTools(ctx),
+      ...buildDelegateTools(ctx, CHAT_EXECUTION_MODE),
+      ...buildInteractionTools(),
+    }),
     CHAT_EXECUTION_MODE,
     CHAT_APPROVAL_KINDS,
   );
@@ -140,10 +163,12 @@ chatRoute.post('/', async (c) => {
     messages: modelMessages,
     tools: chatTools,
     stopWhen: stepCountIs(config.agent.maxSteps),
-    onFinish: ({ text, steps }) => {
+    onFinish: ({ text, steps, response }) => {
       chatGenerationTracker.markGenerationComplete(chatId);
-      const newMessages = steps.flatMap((s) => s.response.messages);
-      conversationMemory.append(chatId, newMessages);
+      // `response.messages` is already the full, de-duplicated set of new messages for the whole call —
+      // each StepResult's own response.messages is cumulative (includes every prior step's messages too),
+      // so flatMapping over `steps` re-appends earlier steps again and again (quadratic duplication).
+      conversationMemory.append(chatId, response.messages);
       chatLog.info('chat finished', { chatId, steps: steps.length, reply: text });
       void chatTitles.generateIfMissing(chatId, ctx.lang);
     },
@@ -163,6 +188,7 @@ chatRoute.get('/:chatId', (c) => {
   const history = conversationMemory.load(chatId);
   const outputsByCallId = toolOutputsByCallId(history);
   const pendingApprovals = pendingApprovalsByToolCallId(history);
+  const approvalReasons = approvalReasonsByApprovalId(history);
   const uiMessages = history
     .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
     .map((msg, index) => {
@@ -204,6 +230,9 @@ chatRoute.get('/:chatId', (c) => {
                     state: 'result',
                     input: part.input,
                     output: outputsByCallId.get(part.toolCallId),
+                    ...(approvalId != null
+                      ? { approval: { id: approvalId, approved: true, reason: approvalReasons.get(approvalId) } }
+                      : {}),
                   },
             );
           }
@@ -227,7 +256,11 @@ chatRoute.get('/:chatId', (c) => {
 
 chatRoute.get('/:chatId/status', (c) => {
   const chatId = c.req.param('chatId');
-  return c.json({ generating: chatGenerationTracker.isGenerationActive(chatId) });
+  return c.json({
+    generating: chatGenerationTracker.isGenerationActive(chatId),
+    messageCount: conversationMemory.count(chatId),
+    maxMessages: config.agent.maxChatMessages,
+  });
 });
 
 chatRoute.delete('/:chatId', (c) => {

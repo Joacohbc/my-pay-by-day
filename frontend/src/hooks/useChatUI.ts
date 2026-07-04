@@ -17,6 +17,7 @@ import { getUserTimezone } from '@/lib/utils/dateUtils';
 import { useSendCountdown } from '@/hooks/useSendCountdown';
 import i18n from '@/lib/i18n';
 import type { FileDto } from '@/models';
+import { toDisplayMessage, textOf, imageUrlsOf, attachmentsOf } from '@/lib/chat/toDisplayMessage';
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -49,79 +50,11 @@ async function toFilePayload(file: FileDto): Promise<FilePayload> {
   };
 }
 
-function textOf(message: UIMessage): string {
-  return message.parts
-    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
-    .map((part) => part.text)
-    .join('');
-}
-
-function imageUrlsOf(message: UIMessage): string[] {
-  return message.parts
-    .filter((part): part is FileUIPart => part.type === 'file' && (part.mediaType ?? '').startsWith('image/'))
-    .map((part) => part.url);
-}
-
-function attachmentsOf(message: UIMessage): { url: string; name: string; type: string }[] {
-  return message.parts
-    .filter((part): part is FileUIPart => part.type === 'file' && !(part.mediaType ?? '').startsWith('image/'))
-    .map((part) => {
-      // @ts-expect-error - FileUIPart might have name or filename depending on version
-      const name = part.filename || part.name || 'File';
-      return {
-        url: part.url,
-        name,
-        type: part.mediaType ?? 'application/octet-stream',
-      };
-    });
-}
-
-const PRESERVED_STATES = new Set(['approval-requested', 'approval-responded']);
-
-function toolCallsOf(
-  message: UIMessage,
-  isFinished: boolean,
-): { name: string; state: string; output?: unknown; args?: unknown; toolCallId?: string; approval?: { id: string; approved?: boolean } }[] {
-  return message.parts
-    .filter(
-      (
-        part,
-      ): part is UIMessage['parts'][number] & {
-        toolName?: string;
-        state: string;
-        output?: unknown;
-        args?: unknown;
-        toolCallId?: string;
-        approval?: { id: string; approved?: boolean };
-      } => part.type.startsWith('tool-') || part.type === 'dynamic-tool',
-    )
-    .map((part) => {
-      const name = part.toolName || part.type.replace(/^tool-/, '');
-      return {
-        name,
-        state: isFinished && !PRESERVED_STATES.has(part.state) ? 'result' : part.state,
-        output: part.output,
-        args: part.args,
-        toolCallId: part.toolCallId,
-        approval: part.approval,
-      };
-    });
-}
-
-function stoppedByStepLimitOf(message: UIMessage): boolean {
-  return (message.metadata as { stoppedByStepLimit?: boolean } | undefined)?.stoppedByStepLimit ?? false;
-}
-
-function toDisplayMessage(message: UIMessage, isFinished: boolean): ChatMessage {
+function toChatDisplayMessage(message: UIMessage, isFinished: boolean): ChatMessage {
   return {
-    id: message.id,
-    role: message.role === 'assistant' ? 'assistant' : 'user',
-    content: textOf(message),
+    ...toDisplayMessage(message, isFinished),
     imageUrls: imageUrlsOf(message),
     attachments: attachmentsOf(message),
-    toolCalls: toolCallsOf(message, isFinished),
-    stoppedByStepLimit: stoppedByStepLimitOf(message),
-    timestamp: new Date().toISOString(),
   };
 }
 
@@ -131,20 +64,24 @@ function groupMessages(msgs: ChatMessage[]): ChatMessage[] {
     if (grouped.length > 0 && grouped[grouped.length - 1].role === msg.role) {
       const prev = grouped[grouped.length - 1];
       if (msg.role === 'assistant') {
+        prev.parts = [...prev.parts, ...msg.parts];
         if (msg.content.trim()) {
           prev.content = msg.content;
         }
       } else {
+        // User turns keep the historical `\n`-joined content, but `parts` still accumulates every
+        // text/file part in order so downstream consumers relying on `parts` stay consistent.
+        prev.parts = [...prev.parts, ...msg.parts];
         prev.content = [prev.content, msg.content].filter(Boolean).join('\n').trim();
       }
+      prev.toolCalls = prev.parts
+        .filter((part): part is Extract<typeof part, { type: 'tool' }> => part.type === 'tool')
+        .map((part) => part.call);
       if (msg.imageUrls) {
         prev.imageUrls = [...(prev.imageUrls || []), ...msg.imageUrls];
       }
       if (msg.attachments) {
         prev.attachments = [...(prev.attachments || []), ...msg.attachments];
-      }
-      if (msg.toolCalls) {
-        prev.toolCalls = [...(prev.toolCalls || []), ...msg.toolCalls];
       }
       if (msg.audioUrl) {
         prev.audioUrl = msg.audioUrl;
@@ -156,9 +93,10 @@ function groupMessages(msgs: ChatMessage[]): ChatMessage[] {
     } else {
       grouped.push({
         ...msg,
+        parts: [...msg.parts],
+        toolCalls: [...msg.toolCalls],
         imageUrls: msg.imageUrls ? [...msg.imageUrls] : undefined,
         attachments: msg.attachments ? [...msg.attachments] : undefined,
-        toolCalls: msg.toolCalls ? [...msg.toolCalls] : undefined,
       });
     }
   }
@@ -215,6 +153,8 @@ export function useChatUI() {
   }, [chatId, cancelScheduledSend]);
 
   const [isBackendGenerating, setIsBackendGenerating] = useState(false);
+  const [messageCount, setMessageCount] = useState(0);
+  const [maxMessages, setMaxMessages] = useState(0);
 
   const reloadHistory = useCallback(async () => {
     const response = await api.get<UIMessage[]>(`/ai/chat/${chatId}`);
@@ -236,10 +176,12 @@ export function useChatUI() {
     const pollUntilComplete = async () => {
       if (!active) return;
       try {
-        const generating = await chatService.isGenerating(chatId);
+        const status = await chatService.getStatus(chatId);
         if (!active) return;
-        setIsBackendGenerating(generating);
-        if (!generating) {
+        setIsBackendGenerating(status.generating);
+        setMessageCount(status.messageCount);
+        setMaxMessages(status.maxMessages);
+        if (!status.generating) {
           await reloadHistorySafely();
           invalidateFinanceCaches();
           return;
@@ -275,7 +217,7 @@ export function useChatUI() {
       const isLast = idx === uiMessages.length - 1;
       const hasText = textOf(msg).trim().length > 0;
       const isFinished = !isPendingVal || !isLast || hasText;
-      return toDisplayMessage(msg, isFinished);
+      return toChatDisplayMessage(msg, isFinished);
     });
 
     const filtered = rawDisplay.filter(
@@ -429,6 +371,13 @@ export function useChatUI() {
     [addToolApprovalResponse],
   );
 
+  const handleAskUserAnswer = useCallback(
+    (approvalId: string, answer: string) => {
+      addToolApprovalResponse({ id: approvalId, approved: true, reason: answer });
+    },
+    [addToolApprovalResponse],
+  );
+
   const handleAddFile = (file: FileDto) => setDraftFiles([...draftFiles, file]);
   const handleRemoveFile = (fileId: number) => setDraftFiles(draftFiles.filter((f) => f.id !== fileId));
 
@@ -439,6 +388,8 @@ export function useChatUI() {
     isPending,
     isClearing,
     isExtracting,
+    messageCount,
+    maxMessages,
     instantDraftMode,
     toggleInstantDraftMode,
     draftFiles,
@@ -450,6 +401,7 @@ export function useChatUI() {
     handleSend,
     handleContinue,
     handleToolApproval,
+    handleAskUserAnswer,
     handleNewChat,
     handleClearMemory,
     handleEditMessage,

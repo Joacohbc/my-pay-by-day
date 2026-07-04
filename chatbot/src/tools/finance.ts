@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { BackendError, createApiClient, patchEvent, unwrap, type FinanceEventDto } from '@/backend/client.js';
-import { botDraftPatchSchema, botEventFilterSchema, botEventInputSchema, botEventPatchSchema } from '@/bot/dto.js';
+import { botDraftPatchSchema, botEventFilterSchema, botEventInputSchema, botEventPatchSchema, lenientBoolean } from '@/bot/dto.js';
 import { toBotDraft, toBotEvent, toDraftPatchPayload, toDraftPayload, toEventPatch, toServerDateBoundary } from '@/bot/mappers.js';
 import type { RequestContext } from '@/context.js';
 import type { KindedToolSet } from '@/tools/types.js';
@@ -63,7 +63,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       kind: 'READ',
       tool: tool({
         description: 'List budget categories. Optional archived filter.',
-        inputSchema: z.object({ archived: z.boolean().nullish() }),
+        inputSchema: z.object({ archived: lenientBoolean.nullish() }),
         execute: ({ archived }) =>
           safe(() => unwrap(client.GET('/categories', { params: { query: { archived: archived ?? undefined } } }))),
       }),
@@ -73,7 +73,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       kind: 'READ',
       tool: tool({
         description: 'List tags. Optional archived filter.',
-        inputSchema: z.object({ archived: z.boolean().nullish() }),
+        inputSchema: z.object({ archived: lenientBoolean.nullish() }),
         execute: ({ archived }) =>
           safe(() => unwrap(client.GET('/tags', { params: { query: { archived: archived ?? undefined } } }))),
       }),
@@ -83,7 +83,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       kind: 'READ',
       tool: tool({
         description: 'List tag groups with their tags.',
-        inputSchema: z.object({ archived: z.boolean().nullish() }),
+        inputSchema: z.object({ archived: lenientBoolean.nullish() }),
         execute: ({ archived }) =>
           safe(() => unwrap(client.GET('/tag-groups', { params: { query: { archived: archived ?? undefined } } }))),
       }),
@@ -96,7 +96,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
           'List finance nodes (accounts, wallets, cards, external entities, contacts) to resolve names to IDs when building events. Optional filters: type (OWN|EXTERNAL|CONTACT) and archived.',
         inputSchema: z.object({
           type: z.enum(['OWN', 'EXTERNAL', 'CONTACT']).nullish(),
-          archived: z.boolean().nullish(),
+          archived: lenientBoolean.nullish(),
         }),
         execute: ({ type, archived }) =>
           safe(() =>
@@ -261,6 +261,20 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
             await unwrap(client.DELETE('/drafts/{id}', { params: { path: { id: draftId } } }));
             return { ok: true, deletedDraftId: draftId };
           }),
+      }),
+    },
+
+    // ===================== DRAFT VALIDATE =====================
+    validateDraft: {
+      kind: 'READ',
+      tool: tool({
+        description:
+          'Check a draft for validation errors (missing name/date, unbalanced line items, missing/archived ' +
+          'finance nodes, future date) WITHOUT confirming it. Use this before confirmDraft when unsure the draft ' +
+          'is complete, or when the user asks whether a draft is ready.',
+        inputSchema: z.object({ draftId: z.number() }),
+        execute: ({ draftId }) =>
+          safe(() => unwrap(client.POST('/drafts/finance-events/{id}/validate', { params: { path: { id: draftId } } }))),
       }),
     },
 

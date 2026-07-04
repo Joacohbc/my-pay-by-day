@@ -18,6 +18,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.dto.ConfirmDraftsResultDto;
+import com.mypaybyday.dto.DraftValidationResultDto;
 import com.mypaybyday.dto.FileDto;
 import com.mypaybyday.dto.FinanceEventDraftInputDto;
 import com.mypaybyday.dto.FinanceEventDto;
@@ -25,6 +26,7 @@ import com.mypaybyday.dto.FinanceLineItemDto;
 import com.mypaybyday.dto.PatchEventDto;
 import com.mypaybyday.dto.PatchTransactionDto;
 import com.mypaybyday.dto.TagDto;
+import com.mypaybyday.dto.ValidationErrorDto;
 import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.DraftEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
@@ -41,6 +43,7 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EntityDraftRepository;
 import com.mypaybyday.service.event.EventCreateService;
 import com.mypaybyday.service.event.EventUpdateService;
+import com.mypaybyday.validation.TransactionValidator;
 import io.quarkus.logging.Log;
 import org.openapitools.jackson.nullable.JsonNullable;
 
@@ -52,15 +55,18 @@ public class DraftService {
 	private final ObjectMapper objectMapper;
 	private final EventCreateService eventCreateService;
 	private final EventUpdateService eventUpdateService;
+	private final TransactionValidator transactionValidator;
 
 	@Inject
 	public DraftService(EntityDraftRepository draftRepository, Messages messages, ObjectMapper objectMapper,
-			EventCreateService eventCreateService, EventUpdateService eventUpdateService) {
+			EventCreateService eventCreateService, EventUpdateService eventUpdateService,
+			TransactionValidator transactionValidator) {
 		this.draftRepository = draftRepository;
 		this.messages = messages;
 		this.objectMapper = objectMapper;
 		this.eventCreateService = eventCreateService;
 		this.eventUpdateService = eventUpdateService;
+		this.transactionValidator = transactionValidator;
 	}
 
 	public List<DraftEntity> listAll() {
@@ -297,6 +303,49 @@ public class DraftService {
 		if (dto.lineItems() == null || dto.lineItems().isEmpty())
 			throw new BusinessException(messages.get(MsgKey.DRAFT_MISSING_LINE_ITEMS));
 		return dto;
+	}
+
+	/**
+	* Dry-run validates a finance event draft against the same rules {@link EventCreateService}/
+	* {@link EventUpdateService} enforce at confirm time, without persisting anything. Every violation
+	* is collected instead of failing fast, so the caller can see and fix all problems at once.
+	*/
+	public DraftValidationResultDto validateDraft(Long draftId) throws BusinessException {
+		FinanceEventDto dto = mapToFinanceEventDto(findEntityById(draftId));
+		FinanceEventEntity transientEvent = buildEventEntityFromDraftDto(dto);
+		FinanceTransactionEntity transaction = transientEvent.transaction;
+		List<ValidationErrorDto> errors = new ArrayList<>();
+
+		if (transientEvent.name == null || transientEvent.name.isBlank()) {
+			errors.add(new ValidationErrorDto("name", messages.get(MsgKey.DRAFT_MISSING_NAME)));
+		}
+
+		if (transaction == null || transaction.transactionDate == null) {
+			errors.add(new ValidationErrorDto("transactionDate", messages.get(MsgKey.DRAFT_MISSING_DATE)));
+		} else {
+			try {
+				transactionValidator.validateDateNotInFuture(transaction);
+			} catch (BusinessException e) {
+				errors.add(new ValidationErrorDto("transactionDate", e.getMessage()));
+			}
+		}
+
+		if (transaction == null || transaction.lineItems == null || transaction.lineItems.isEmpty()) {
+			errors.add(new ValidationErrorDto("lineItems", messages.get(MsgKey.DRAFT_MISSING_LINE_ITEMS)));
+		} else {
+			try {
+				transactionValidator.validateZeroSum(transaction);
+			} catch (BusinessException e) {
+				errors.add(new ValidationErrorDto("lineItems.zeroSum", e.getMessage()));
+			}
+			try {
+				transactionValidator.validateNodesExist(transaction);
+			} catch (BusinessException e) {
+				errors.add(new ValidationErrorDto("lineItems.nodes", e.getMessage()));
+			}
+		}
+
+		return new DraftValidationResultDto(errors.isEmpty(), errors);
 	}
 
 	private FinanceEventEntity buildEventEntityFromDraftDto(FinanceEventDto dto) {

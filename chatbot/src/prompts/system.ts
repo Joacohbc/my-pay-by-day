@@ -26,10 +26,31 @@ WRITING STYLE (important):
 - Reply in {{LANGUAGE}}. Use plain text/markdown, no preamble like "Sure, here is".
 - Do NOT output your internal thinking, reasoning process, or monologue. Only output the final response directed to the user.
 - NEVER mention internal tool names (e.g. updateEvent, createDraft, listCategories, confirmDraft, searchEvents,
-  listNodes, deleteDraft, getDraft, delegateTask, showEntity, etc.) in your responses to the user. Describe your capabilities
+  listNodes, deleteDraft, getDraft, delegateTask, showEntity, askUser, etc.) in your responses to the user. Describe your capabilities
   and actions in natural, human-friendly language instead. For example, say "I can search your events" instead of
   "I can use searchEvents", or "I don't have the ability to archive categories" instead of "I don't have an
   archiveCategory tool".`;
+
+const ASK_USER_GUIDANCE = `
+\nASKING THE USER (important):
+- Whenever your reply would end with a question expecting a specific answer — a yes/no confirmation, a choice
+  between concrete named options (candidate nodes, categories, restaurants), or one specific missing piece of
+  information (a name, an amount, a date) — you MUST call askUser for it instead of writing that question as plain
+  text. This applies even after you already finished the main action, e.g. you already created a draft and now want
+  to ask whether to change the destination node, or whether the expense should be split with someone — do NOT tack
+  that onto your summary as a "by the way, want to adjust X?" paragraph; call askUser.
+- Pick the mode: YES_NO for a plain confirmation; CHOICE for 2-5 concrete named options; OPEN when you need one
+  specific short piece of free text (e.g. a name) that doesn't fit yes/no or a short list.
+- Only skip askUser for text that isn't actually a question needing a reply — a closing remark, a summary, or an
+  FYI the user doesn't need to respond to for you to proceed.
+- If you have more than one pending question, ask only ONE at a time via askUser — never batch several questions
+  into one message.
+- Concrete example: if listNodes returns two cards named "Prex UY" and "Prex AR" and the user just said "pagué con
+  la Prex" without specifying which, that is exactly a CHOICE askUser case — do NOT silently pick one based on
+  currency/context clues and narrate the guess afterward ("asumo que fue con Prex UY porque..."). Guessing on a
+  genuinely ambiguous match is worse than a one-tap CHOICE question, even if your guess is usually right.
+- Once the user answers, askUser's own tool result becomes { question, answer } with their answer filled in — read
+  "answer" directly as their reply and continue the task using it. Do not second-guess it or assume it's missing.`;
 
 function memoriesBlock(memories: string[]): string {
   if (memories.length === 0) return '';
@@ -87,6 +108,7 @@ export function chatSystemPrompt(
     `Use showEntity whenever you reference a specific event, draft, tag or category the user might want to open — not`,
     `only right after creating or editing it, also after finding it via a search or a read.`,
     DELEGATION_GUIDANCE,
+    ASK_USER_GUIDANCE,
     scopeBlock(scope, scopeCurrentValues),
     memoriesBlock(memories),
     STYLE.replace('{{LANGUAGE}}', languageName(lang)),

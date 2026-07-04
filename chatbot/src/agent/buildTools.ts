@@ -9,7 +9,7 @@ import type { ExecutionMode } from '@/prompts/system.js';
 import { selectTools, type KindedToolSet, type ToolKind } from '@/tools/types.js';
 
 const ALLOWED_KINDS: Record<ExecutionMode, ReadonlySet<ToolKind>> = {
-  AUTONOMOUS: new Set<ToolKind>(['READ', 'DRAFT_WRITE', 'WRITE', 'DRAFT_CONFIRM']),
+  AUTONOMOUS: new Set<ToolKind>(['READ', 'DRAFT_WRITE', 'WRITE', 'DRAFT_CONFIRM', 'ASK_USER']),
   DRAFT_ONLY: new Set<ToolKind>(['READ', 'DRAFT_WRITE']),
   READ_ONLY: new Set<ToolKind>(['READ']),
   DRAFT_CONFIRMATION: new Set<ToolKind>(['READ', 'DRAFT_CONFIRM']),

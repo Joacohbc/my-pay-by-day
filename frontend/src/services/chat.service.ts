@@ -8,6 +8,13 @@ export interface ChatSummary {
   messageCount: number;
 }
 
+export interface ChatStatus {
+  generating: boolean;
+  /** Raw conversation_message row count (every user/assistant/tool entry, not just chat turns). */
+  messageCount: number;
+  maxMessages: number;
+}
+
 export const chatService = {
   listChats: async (): Promise<ChatSummary[]> => {
     return api.get<ChatSummary[]>('/ai/chat');
@@ -21,8 +28,7 @@ export const chatService = {
     await api.post(`/ai/chat/${chatId}/trim`, { textToMatch });
   },
 
-  isGenerating: async (chatId: string): Promise<boolean> => {
-    const response = await api.get<{ generating: boolean }>(`/ai/chat/${chatId}/status`);
-    return response.generating;
+  getStatus: async (chatId: string): Promise<ChatStatus> => {
+    return api.get<ChatStatus>(`/ai/chat/${chatId}/status`);
   },
 };

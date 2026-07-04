@@ -67,3 +67,32 @@ export function extractEntityRefs(toolCalls: ChatMessage['toolCalls']): ChatEnti
 
   return [...refs.values()];
 }
+
+/**
+ * The `kind:id` key this specific tool call contributes to `extractEntityRefs`'s final ref map, or
+ * `null` if the call doesn't reference a renderable entity (e.g. deleteDraft, or a failed/non-result call).
+ * Used to find where in an ordered part sequence a surviving ref should render inline.
+ */
+export function toolCallEntityKey(tc: ToolCall): string | null {
+  if (!isResultOutput(tc)) return null;
+  const output = tc.output;
+
+  switch (tc.name) {
+    case 'createDraft':
+    case 'updateDraft':
+      return typeof output.draftId === 'number' ? `draft:${output.draftId}` : null;
+    case 'confirmDraft':
+    case 'updateEvent':
+      return typeof output.id === 'number' ? `event:${output.id}` : null;
+    case 'showEntity':
+      if (typeof output.id === 'number' && typeof output.entityType === 'string') {
+        const kind = output.entityType;
+        if (kind === 'event' || kind === 'draft' || kind === 'tag' || kind === 'category') {
+          return `${kind}:${output.id}`;
+        }
+      }
+      return null;
+    default:
+      return null;
+  }
+}

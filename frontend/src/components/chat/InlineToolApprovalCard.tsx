@@ -3,15 +3,18 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
+import { InlineDraftApprovalSummary } from '@/components/chat/InlineDraftApprovalSummary';
 
 interface InlineToolApprovalCardProps {
   toolLabel: string;
   approvalId: string;
+  draftId?: number;
+  eventId?: number;
   onApprove: (approvalId: string) => void;
   onReject: (approvalId: string) => void;
 }
 
-export function InlineToolApprovalCard({ toolLabel, approvalId, onApprove, onReject }: InlineToolApprovalCardProps) {
+export function InlineToolApprovalCard({ toolLabel, approvalId, draftId, eventId, onApprove, onReject }: InlineToolApprovalCardProps) {
   const { t } = useTranslation();
   const [isResponding, setIsResponding] = useState(false);
 
@@ -27,6 +30,11 @@ export function InlineToolApprovalCard({ toolLabel, approvalId, onApprove, onRej
         {t('chat.approval.title')}
       </div>
       <p className="text-sm text-dn-text-main">{toolLabel}</p>
+      {(draftId != null || eventId != null) && (
+        <div className="rounded-lg bg-dn-bg/40 px-3 py-2">
+          <InlineDraftApprovalSummary draftId={draftId} eventId={eventId} />
+        </div>
+      )}
       <div className="flex gap-2">
         <Button size="sm" onClick={() => respond(true)} disabled={isResponding}>
           {t('chat.approval.approve')}

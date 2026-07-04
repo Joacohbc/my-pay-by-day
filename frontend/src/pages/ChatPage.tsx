@@ -18,6 +18,8 @@ export function ChatPage() {
     setInput,
     isPending,
     isClearing,
+    messageCount,
+    maxMessages,
     instantDraftMode,
     toggleInstantDraftMode,
     draftFiles,
@@ -29,6 +31,7 @@ export function ChatPage() {
     handleSend,
     handleContinue,
     handleToolApproval,
+    handleAskUserAnswer,
     handleNewChat,
     handleClearMemory,
     handleEditMessage,
@@ -50,6 +53,11 @@ export function ChatPage() {
     <div className="flex flex-col h-[calc(100dvh-80px)] bg-dn-bg overflow-hidden">
       <PageHeader
         title={t('chat.title')}
+        subtitle={
+          !isChatListVisible && messageCount > 0
+            ? t('chat.messageCount', { count: messageCount, max: maxMessages })
+            : undefined
+        }
         action={
           <div className="flex gap-2">
             {!isChatListVisible && (
@@ -98,7 +106,13 @@ export function ChatPage() {
                   <ChatEmptyState />
                 ) : (
                   messages.map((msg) => (
-                    <ChatMessage key={msg.id} message={msg} onEdit={handleEditMessage} onApprove={handleToolApproval} />
+                    <ChatMessage
+                      key={msg.id}
+                      message={msg}
+                      onEdit={handleEditMessage}
+                      onApprove={handleToolApproval}
+                      onAskUserAnswer={handleAskUserAnswer}
+                    />
                   ))
                 )}
 
@@ -163,6 +177,7 @@ export function ChatPage() {
                 onAddFile={handleAddFile}
                 onRemoveFile={handleRemoveFile}
                 isPending={isPending}
+                disabled={hasPendingApproval}
                 countdown={countdown}
                 onSendNow={triggerSendNow}
                 onStop={stop}

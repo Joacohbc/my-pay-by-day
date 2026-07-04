@@ -12,8 +12,8 @@ import { categoryKeys } from '@/hooks/useCategories';
 import { getUserTimezone } from '@/lib/utils/dateUtils';
 import { useSendCountdown } from '@/hooks/useSendCountdown';
 import i18n from '@/lib/i18n';
-import type { ChatMessage } from '@/store/chatStore';
 import type { FileDto } from '@/models';
+import { toDisplayMessage, textOf } from '@/lib/chat/toDisplayMessage';
 
 export type EntityChatScopeType = 'draft' | 'event';
 
@@ -53,54 +53,6 @@ async function toFilePart(file: FileDto): Promise<FileUIPart> {
     mediaType: file.mimeType || blob.type || 'image/jpeg',
     url: await blobToDataUrl(blob),
     filename: file.fileName,
-  };
-}
-
-function textOf(message: UIMessage): string {
-  return message.parts
-    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
-    .map((part) => part.text)
-    .join('');
-}
-
-const PRESERVED_STATES = new Set(['approval-requested', 'approval-responded']);
-
-function toolCallsOf(message: UIMessage, isFinished: boolean): NonNullable<ChatMessage['toolCalls']> {
-  return message.parts
-    .filter(
-      (
-        part,
-      ): part is UIMessage['parts'][number] & {
-        toolName?: string;
-        state: string;
-        output?: unknown;
-        input?: unknown;
-        toolCallId?: string;
-        approval?: { id: string; approved?: boolean };
-      } => part.type.startsWith('tool-') || part.type === 'dynamic-tool',
-    )
-    .map((part) => {
-      const name = part.toolName || part.type.replace(/^tool-/, '');
-      return {
-        name,
-        state: isFinished && !PRESERVED_STATES.has(part.state) ? 'result' : part.state,
-        output: part.output,
-        // AI SDK v5 UIMessage tool parts carry the tool call's arguments as `input`, not `args`
-        // (see chatbot/src/routes/chat.ts's GET /:chatId, which rebuilds parts with `input: part.input`).
-        args: part.input,
-        toolCallId: part.toolCallId,
-        approval: part.approval,
-      };
-    });
-}
-
-function toDisplayMessage(message: UIMessage, isFinished: boolean): ChatMessage {
-  return {
-    id: message.id,
-    role: message.role === 'assistant' ? 'assistant' : 'user',
-    content: textOf(message),
-    toolCalls: toolCallsOf(message, isFinished),
-    timestamp: new Date().toISOString(),
   };
 }
 
@@ -273,6 +225,13 @@ export function useEntityChat({
     [addToolApprovalResponse],
   );
 
+  const handleAskUserAnswer = useCallback(
+    (approvalId: string, answer: string) => {
+      addToolApprovalResponse({ id: approvalId, approved: true, reason: answer });
+    },
+    [addToolApprovalResponse],
+  );
+
   const handleAddFile = (file: FileDto) => setDraftFiles((prev) => [...prev, file]);
   const handleRemoveFile = (fileId: number) => setDraftFiles((prev) => prev.filter((f) => f.id !== fileId));
 
@@ -288,6 +247,7 @@ export function useEntityChat({
     handleAddFile,
     handleRemoveFile,
     handleToolApproval,
+    handleAskUserAnswer,
     countdown,
     triggerSendNow,
     handleStop: stop,

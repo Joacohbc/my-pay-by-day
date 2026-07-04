@@ -14,6 +14,7 @@ interface ChatInputProps {
   onAudioRecorded?: (audioBlob: Blob) => Promise<void>;
   onAudioFileSelected?: (file: File) => Promise<void>;
   isPending?: boolean;
+  disabled?: boolean;
   draftFiles?: FileDto[];
   onAddFile?: (file: FileDto) => void;
   onRemoveFile?: (fileId: number) => void;
@@ -32,6 +33,7 @@ export function ChatInput({
   onAudioRecorded,
   onAudioFileSelected,
   isPending,
+  disabled = false,
   draftFiles = [],
   onAddFile,
   onRemoveFile,
@@ -93,13 +95,19 @@ export function ChatInput({
       ? 'text-dn-primary/40'
       : 'text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10';
 
-  const canSend = (inputContent.trim() || draftFiles.length > 0) && !isBusy && !isRecording && !isPending;
+  const canSend = (inputContent.trim() || draftFiles.length > 0) && !isBusy && !isRecording && !isPending && !disabled;
 
   return (
     <div className="px-3 pb-3 pt-2 mt-auto">
       {isPreparingAudio && (
         <p className="text-[10px] text-dn-primary/40 uppercase tracking-[0.2em] font-black px-1 pb-2">
           {t('chat.transcribing')}
+        </p>
+      )}
+
+      {disabled && (
+        <p className="text-[10px] text-dn-primary/60 uppercase tracking-[0.2em] font-black px-1 pb-2">
+          {t('chat.question.answerAbove')}
         </p>
       )}
 
@@ -123,7 +131,7 @@ export function ChatInput({
               onSend();
             }
           }}
-          disabled={isBusy || isRecording}
+          disabled={isBusy || isRecording || disabled}
         />
 
         {/* File Uploader */}

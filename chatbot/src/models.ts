@@ -1,5 +1,5 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import type { LanguageModel, TranscriptionModel } from 'ai';
+import { extractReasoningMiddleware, wrapLanguageModel, type LanguageModel, type TranscriptionModel } from 'ai';
 import { config } from '@/config.js';
 
 const provider = createOpenRouter({
@@ -7,9 +7,20 @@ const provider = createOpenRouter({
   baseURL: config.openRouter.baseUrl,
 });
 
-/** Multimodal model (text + image + audio) for chat and the agent loop. */
+/**
+ * Multimodal model (text + image + audio) for chat and the agent loop.
+ *
+ * minimax-m3 emits its chain-of-thought inline as `<mm:think>...</mm:think>` around the actual reply
+ * instead of always using OpenRouter's separate reasoning_details field — when it does, the raw
+ * closing tag leaks into the visible text (e.g. a reply literally starting with `</mm:think>`).
+ * extractReasoningMiddleware strips that wrapper into a proper reasoning part before it reaches
+ * streamText's text output.
+ */
 export function largeModel(): LanguageModel {
-  return provider.chat(config.models.large);
+  return wrapLanguageModel({
+    model: provider.chat(config.models.large),
+    middleware: extractReasoningMiddleware({ tagName: 'mm:think' }),
+  });
 }
 
 /** Fast/cheap model for short text generation, extraction and summarisation. */
