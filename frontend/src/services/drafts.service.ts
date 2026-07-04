@@ -4,8 +4,6 @@ import { api } from '@/services/api';
 export const draftsService = {
   getFinanceEventDrafts: () => api.get<FinanceEvent[]>('/drafts/finance-events'),
 
-  getById: (id: number) => api.get<EntityDraft>(`/drafts/${id}`),
-
   getFinanceEventDraftByEntityId: (entityId: number) =>
     api.get<FinanceEvent | null>(`/drafts/finance-events/by-entity/${entityId}`),
 

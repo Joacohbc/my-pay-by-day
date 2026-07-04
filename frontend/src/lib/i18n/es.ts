@@ -102,11 +102,11 @@ const es = {
     noConversations: 'Sin conversaciones previas',
     messagesCount: '{{count}} mensajes',
     subtask: 'Subtarea',
-    instantDraft: {
-      toggle: 'Borrador instantáneo',
-      placeholder: 'Describí una transacción para crear un borrador al instante...',
-      active: 'El modo borrador instantáneo está activo — tu próximo mensaje crea un borrador directamente.',
+    quickCreate: {
+      button: 'Creación rápida',
+      prompt: 'Creá el Evento Financiero usando los datos que te paso en el mensaje y analiza todos los archivos adjuntos del mensaje.',
     },
+    sendingIn: 'Enviando en {{count}}s — tocá enviar para mandar ya',
     stepLimit: {
       title: 'El asistente alcanzó el límite de pasos',
       continue: 'Continuar',

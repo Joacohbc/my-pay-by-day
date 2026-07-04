@@ -105,7 +105,7 @@ function groupMessages(msgs: ChatMessage[]): ChatMessage[] {
 
 export function useChatUI() {
   const { t } = useTranslation();
-  const { chatId, draftFiles, setDraftFiles, newChat, instantDraftMode, toggleInstantDraftMode } = useChatStore();
+  const { chatId, draftFiles, setDraftFiles, newChat } = useChatStore();
   const queryClient = useQueryClient();
 
   const invalidateFinanceCaches = useCallback(() => {
@@ -242,10 +242,12 @@ export function useChatUI() {
 
   const imagePreviewUrls = useMemo(() => draftFiles.map((f) => filesService.getContentUrl(f.id)), [draftFiles]);
 
-  const handleInstantDraft = useCallback(async () => {
+  const handleQuickCreate = useCallback(async () => {
     const userText = input.trim();
     const currentFiles = [...draftFiles];
     if (!userText && currentFiles.length === 0) return;
+
+    const combinedText = userText ? `${t('chat.quickCreate.prompt')}\n\n${userText}` : t('chat.quickCreate.prompt');
 
     setInput('');
     setDraftFiles([]);
@@ -258,15 +260,12 @@ export function useChatUI() {
     const optimisticMessage: UIMessage = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       role: 'user',
-      parts: [
-        ...(userText ? [{ type: 'text' as const, text: userText }] : []),
-        ...uiFileParts,
-      ],
+      parts: [{ type: 'text' as const, text: combinedText }, ...uiFileParts],
     };
     setMessages((prev) => [...prev, optimisticMessage]);
     setIsExtracting(true);
     try {
-      await extractService.fromText(userText, undefined, chatId, payloadFiles.length ? payloadFiles : undefined);
+      await extractService.fromText(combinedText, undefined, chatId, payloadFiles.length ? payloadFiles : undefined);
       await reloadHistory();
       invalidateFinanceCaches();
     } catch {
@@ -276,14 +275,9 @@ export function useChatUI() {
     } finally {
       setIsExtracting(false);
     }
-  }, [input, draftFiles, setDraftFiles, chatId, setMessages, reloadHistory, invalidateFinanceCaches]);
+  }, [input, draftFiles, setDraftFiles, chatId, setMessages, reloadHistory, invalidateFinanceCaches, t]);
 
   const handleSend = useCallback(async () => {
-    if (instantDraftMode) {
-      await handleInstantDraft();
-      return;
-    }
-
     const userText = input.trim();
     if (!userText && draftFiles.length === 0) return;
 
@@ -304,7 +298,7 @@ export function useChatUI() {
 
     setMessages((prev) => [...prev, newMessage]);
     scheduleSend(() => sendMessage());
-  }, [input, draftFiles, setDraftFiles, setMessages, sendMessage, scheduleSend, instantDraftMode, handleInstantDraft]);
+  }, [input, draftFiles, setDraftFiles, setMessages, sendMessage, scheduleSend]);
 
   const applyTranscribedText = useCallback(
     (transcription: string) => {
@@ -390,8 +384,6 @@ export function useChatUI() {
     isExtracting,
     messageCount,
     maxMessages,
-    instantDraftMode,
-    toggleInstantDraftMode,
     draftFiles,
     imagePreviewUrls,
     messagesEndRef,
@@ -399,6 +391,7 @@ export function useChatUI() {
     triggerSendNow,
     stop,
     handleSend,
+    handleQuickCreate,
     handleContinue,
     handleToolApproval,
     handleAskUserAnswer,

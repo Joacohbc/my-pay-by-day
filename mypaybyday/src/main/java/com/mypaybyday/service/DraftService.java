@@ -89,10 +89,6 @@ public class DraftService {
 	}
 
 
-	public DraftEntity findById(Long id) throws BusinessException {
-		return findEntityById(id);
-	}
-
 	@Transactional
 	public DraftEntity create(EntityType entityType, Object payload) throws BusinessException {
 		DraftEntity entity = new DraftEntity();

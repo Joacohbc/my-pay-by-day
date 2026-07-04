@@ -50,15 +50,6 @@ public class DraftResource {
 		return draftService.listAll();
 	}
 
-	@GET
-	@Path("/{id}")
-	@Operation(summary = "Get a draft by its draft ID")
-	@APIResponse(responseCode = "200", description = "Draft found")
-	@APIResponse(responseCode = "400", description = "Draft not found (Business Exception)")
-	public DraftEntity getById(@PathParam("id") Long id) {
-		return draftService.findById(id);
-	}
-
 	@DELETE
 	@Path("/{id}")
 	@Operation(summary = "Delete a draft")

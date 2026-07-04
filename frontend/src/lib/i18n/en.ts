@@ -103,11 +103,11 @@ const en = {
     noConversations: 'No previous conversations',
     messagesCount: '{{count}} messages',
     subtask: 'Subtask',
-    instantDraft: {
-      toggle: 'Instant draft',
-      placeholder: 'Describe a transaction to create a draft instantly...',
-      active: 'Instant draft mode is on — your next message creates a draft directly.',
+    quickCreate: {
+      button: 'Quick create',
+      prompt: 'Create the Finance Event using the data provided in this message and analyze all attached files in the message.',
     },
+    sendingIn: 'Sending in {{count}}s — tap send to send now',
     stepLimit: {
       title: 'The assistant reached the step limit',
       continue: 'Continue',

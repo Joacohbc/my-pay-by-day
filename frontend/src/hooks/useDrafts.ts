@@ -22,14 +22,6 @@ export function useFinanceEventDrafts() {
   };
 }
 
-export function useDraft(id: number | null) {
-  return useQuery({
-    queryKey: [...DRAFTS_KEY, id],
-    queryFn: () => (id ? draftsService.getById(id) : null),
-    enabled: !!id,
-  });
-}
-
 export function useFinanceEventDraftByEntityId(entityId: number | null) {
   return useQuery({
     queryKey: [...DRAFTS_KEY, 'by-entity', entityId],

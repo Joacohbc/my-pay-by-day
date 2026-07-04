@@ -22,8 +22,7 @@ interface ChatInputProps {
   countdown?: number | null;
   onSendNow?: () => void;
   onStop?: () => void;
-  instantDraftMode?: boolean;
-  onToggleInstantDraft?: () => void;
+  onQuickCreate?: () => void;
 }
 
 export function ChatInput({
@@ -41,8 +40,7 @@ export function ChatInput({
   countdown = null,
   onSendNow,
   onStop,
-  instantDraftMode = false,
-  onToggleInstantDraft,
+  onQuickCreate,
 }: ChatInputProps) {
   const { t } = useTranslation();
   const { error: showError } = useAlert();
@@ -96,6 +94,7 @@ export function ChatInput({
       : 'text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10';
 
   const canSend = (inputContent.trim() || draftFiles.length > 0) && !isBusy && !isRecording && !isPending && !disabled;
+  const isCountingDown = countdown !== null && !!onSendNow;
 
   return (
     <div className="px-3 pb-3 pt-2 mt-auto">
@@ -114,6 +113,10 @@ export function ChatInput({
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          if (isCountingDown) {
+            onSendNow?.();
+            return;
+          }
           onSend();
         }}
         className="rounded-2xl border border-dn-border/20 bg-dn-surface-low focus-within:border-dn-primary/20 transition-colors overflow-hidden"
@@ -122,12 +125,16 @@ export function ChatInput({
         <Textarea
           containerClassName="w-full"
           className="px-4! py-3! text-sm bg-transparent! border-none! ring-0! focus:ring-0! rounded-none! min-h-13! max-h-45! overflow-y-auto resize-none"
-          placeholder={placeholder || (instantDraftMode ? t('chat.instantDraft.placeholder') : t('chat.placeholderAgent'))}
+          placeholder={placeholder || t('chat.placeholderAgent')}
           value={inputContent}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputContent(e.target.value)}
           onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
+              if (isCountingDown) {
+                onSendNow?.();
+                return;
+              }
               onSend();
             }
           }}
@@ -183,52 +190,48 @@ export function ChatInput({
               </button>
             )}
 
-            {onToggleInstantDraft && (
+            {onQuickCreate && (
               <button
                 type="button"
-                onClick={onToggleInstantDraft}
-                disabled={isPending}
-                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${
-                  instantDraftMode
-                    ? 'text-dn-primary bg-dn-primary/10'
-                    : 'text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10'
-                }`}
-                aria-label={t('chat.instantDraft.toggle')}
-                title={t('chat.instantDraft.toggle')}
+                onClick={onQuickCreate}
+                disabled={isBusy || isRecording || isPending || disabled || !(inputContent.trim() || draftFiles.length > 0)}
+                className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10 disabled:opacity-30"
+                aria-label={t('chat.quickCreate.button')}
+                title={t('chat.quickCreate.button')}
               >
                 <Icon name="flash_on" className="text-[20px]" />
               </button>
             )}
           </div>
 
-          {/* Right: Action button (Stop / Send Now) and Send button */}
+          {/* Right: Action button (Stop) and Send button (doubles as Send Now during countdown) */}
           <div className="flex items-center gap-2">
-            {((isPending && onStop) || (countdown !== null && onSendNow)) && (
+            {isPending && onStop && (
               <button
                 type="button"
-                onClick={isPending ? onStop : onSendNow}
-                className={`w-9 h-9 flex items-center justify-center rounded-xl shrink-0 transition-all shadow-sm ${
-                  isPending
-                    ? 'bg-dn-error text-white hover:bg-dn-error/80'
-                    : 'bg-dn-primary/20 text-dn-primary hover:bg-dn-primary/30 border border-dn-primary/30 animate-pulse'
-                }`}
-                aria-label={isPending ? t('chat.stop') : t('chat.sendNow')}
-                title={isPending ? t('chat.stop') : `${t('chat.sendNow')} (${countdown}s)`}
+                onClick={onStop}
+                className="w-9 h-9 flex items-center justify-center rounded-xl shrink-0 transition-all shadow-sm bg-dn-error text-white hover:bg-dn-error/80"
+                aria-label={t('chat.stop')}
+                title={t('chat.stop')}
               >
-                <Icon name={isPending ? 'stop' : 'bolt'} className="text-[20px]" />
+                <Icon name="stop" className="text-[20px]" />
               </button>
             )}
-            
+
             <button
               type="submit"
-              disabled={!canSend}
+              disabled={!canSend && !isCountingDown}
+              aria-label={isCountingDown ? `${t('chat.sendNow')} (${countdown}s)` : undefined}
+              title={isCountingDown ? `${t('chat.sendNow')} (${countdown}s)` : undefined}
               className={`w-9 h-9 flex items-center justify-center rounded-xl shrink-0 transition-all ${
-                canSend
-                  ? 'bg-dn-primary text-white hover:bg-dn-primary/80 shadow-sm'
-                  : 'bg-dn-surface text-dn-text-main/20'
+                isCountingDown
+                  ? 'bg-dn-primary/20 text-dn-primary hover:bg-dn-primary/30 border border-dn-primary/30 animate-pulse'
+                  : canSend
+                    ? 'bg-dn-primary text-white hover:bg-dn-primary/80 shadow-sm'
+                    : 'bg-dn-surface text-dn-text-main/20'
               }`}
             >
-              <Icon name="send" className="text-[18px]" />
+              <Icon name={isCountingDown ? 'bolt' : 'send'} className="text-[18px]" />
             </button>
           </div>
         </div>

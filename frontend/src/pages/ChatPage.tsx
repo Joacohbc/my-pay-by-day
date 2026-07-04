@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
@@ -8,10 +9,13 @@ import { ChatInput } from '@/components/chat/ChatInput';
 import { ChatImagePreview } from '@/components/chat/ChatImagePreview';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
 import { ChatList } from '@/components/chat/ChatList';
+import { TasksPanel } from '@/components/agent-tasks/TasksPanel';
 import { useChatStore } from '@/store/chatStore';
 
 export function ChatPage() {
   const { showChatList, openChatList } = useChatStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const showTasksPanel = searchParams.get('panel') === 'tasks';
   const {
     messages,
     input,
@@ -20,8 +24,6 @@ export function ChatPage() {
     isClearing,
     messageCount,
     maxMessages,
-    instantDraftMode,
-    toggleInstantDraftMode,
     draftFiles,
     imagePreviewUrls,
     messagesEndRef,
@@ -29,6 +31,7 @@ export function ChatPage() {
     triggerSendNow,
     stop,
     handleSend,
+    handleQuickCreate,
     handleContinue,
     handleToolApproval,
     handleAskUserAnswer,
@@ -42,7 +45,7 @@ export function ChatPage() {
     t,
   } = useChatUI();
 
-  const isChatListVisible = showChatList;
+  const isChatListVisible = showChatList && !showTasksPanel;
 
   const lastMessage = messages.at(-1);
   const hasPendingApproval = lastMessage?.toolCalls?.some((tc) => tc.state === 'approval-requested') ?? false;
@@ -54,13 +57,25 @@ export function ChatPage() {
       <PageHeader
         title={t('chat.title')}
         subtitle={
-          !isChatListVisible && messageCount > 0
+          !isChatListVisible && !showTasksPanel && messageCount > 0
             ? t('chat.messageCount', { count: messageCount, max: maxMessages })
             : undefined
         }
         action={
           <div className="flex gap-2">
-            {!isChatListVisible && (
+            <button
+              onClick={() => setSearchParams(showTasksPanel ? {} : { panel: 'tasks' })}
+              className={`shrink-0 w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
+                showTasksPanel
+                  ? 'bg-dn-primary/20 text-dn-primary'
+                  : 'bg-dn-surface-low text-dn-text-main hover:bg-dn-surface'
+              }`}
+              aria-label={t('agentTasks.title')}
+              title={t('agentTasks.title')}
+            >
+              <Icon name="pending_actions" className="text-[18px]" />
+            </button>
+            {!isChatListVisible && !showTasksPanel && (
               <button
                 onClick={openChatList}
                 className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-dn-surface-low text-dn-text-main hover:bg-dn-surface transition-colors"
@@ -78,7 +93,7 @@ export function ChatPage() {
             >
               <Icon name="add" className="text-[18px]" />
             </button>
-            {!isChatListVisible && (
+            {!isChatListVisible && !showTasksPanel && (
               <button
                 onClick={handleClearMemory}
                 disabled={isClearing || messages.length === 0}
@@ -99,6 +114,8 @@ export function ChatPage() {
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
           {isChatListVisible ? (
             <ChatList />
+          ) : showTasksPanel ? (
+            <TasksPanel />
           ) : (
             <>
               <div className="flex-1 overflow-y-auto w-full">
@@ -138,6 +155,15 @@ export function ChatPage() {
                   </div>
                 )}
 
+                {countdown !== null && (
+                  <div className="max-w-4xl mx-auto px-4 md:px-8 -mt-2">
+                    <p className="text-[10px] text-dn-text-muted flex items-center gap-1.5">
+                      <Icon name="schedule" className="text-[12px] animate-pulse" />
+                      {t('chat.sendingIn', { count: countdown })}
+                    </p>
+                  </div>
+                )}
+
                 {showContinueCard && (
                   <div className="max-w-4xl mx-auto px-4 md:px-8 mt-4">
                     <Card className="flex items-center justify-between gap-4 border border-dn-warning/30 bg-dn-warning/5">
@@ -161,12 +187,6 @@ export function ChatPage() {
                 onRemove={(idx) => handleRemoveFile(draftFiles[idx].id)}
               />
 
-              {instantDraftMode && (
-                <p className="text-[10px] text-dn-primary uppercase tracking-[0.2em] font-black px-4 pb-1">
-                  {t('chat.instantDraft.active')}
-                </p>
-              )}
-
               <ChatInput
                 inputContent={input}
                 setInputContent={setInput}
@@ -181,8 +201,7 @@ export function ChatPage() {
                 countdown={countdown}
                 onSendNow={triggerSendNow}
                 onStop={stop}
-                instantDraftMode={instantDraftMode}
-                onToggleInstantDraft={toggleInstantDraftMode}
+                onQuickCreate={handleQuickCreate}
               />
             </>
           )}
