@@ -81,7 +81,7 @@ const PRESERVED_STATES = new Set(['approval-requested', 'approval-responded']);
 function toolCallsOf(
   message: UIMessage,
   isFinished: boolean,
-): { name: string; state: string; output?: unknown; args?: any; toolCallId?: string; approval?: { id: string; approved?: boolean } }[] {
+): { name: string; state: string; output?: unknown; args?: unknown; toolCallId?: string; approval?: { id: string; approved?: boolean } }[] {
   return message.parts
     .filter(
       (
@@ -90,7 +90,7 @@ function toolCallsOf(
         toolName?: string;
         state: string;
         output?: unknown;
-        args?: any;
+        args?: unknown;
         toolCallId?: string;
         approval?: { id: string; approved?: boolean };
       } => part.type.startsWith('tool-') || part.type === 'dynamic-tool',

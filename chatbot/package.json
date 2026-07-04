@@ -9,7 +9,8 @@
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "start": "node --env-file=.env dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "gen:api": "openapi-typescript http://127.0.0.1:8080/openapi -o src/backend/schema.d.ts"
+    "gen:api": "openapi-typescript http://127.0.0.1:8080/openapi -o src/backend/schema.d.ts",
+    "i18n:audit": "node scripts/i18n-audit.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.6",

@@ -1,3 +1,4 @@
+import { errorJson } from '@/i18n.js';
 import { Hono } from 'hono';
 import { longTermMemory } from '@/memory/longTerm.js';
 
@@ -7,14 +8,14 @@ memoryRoute.get('/', (c) => c.json(longTermMemory.list()));
 
 memoryRoute.post('/', async (c) => {
   const { content } = (await c.req.json()) as { content?: string };
-  if (!content || !content.trim()) return c.json({ error: 'content is required' }, 400);
+  if (!content || !content.trim()) return errorJson(c, 'error.content_required', 400);
   return c.json(longTermMemory.add(content), 201);
 });
 
 memoryRoute.put('/:id', async (c) => {
   const id = Number(c.req.param('id'));
   const { content } = (await c.req.json()) as { content?: string };
-  if (!content || !content.trim()) return c.json({ error: 'content is required' }, 400);
+  if (!content || !content.trim()) return errorJson(c, 'error.content_required', 400);
   longTermMemory.update(id, content);
   return c.body(null, 200);
 });

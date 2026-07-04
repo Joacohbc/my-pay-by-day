@@ -12,6 +12,9 @@ on:
       - 'mypaybyday/src/main/resources/i18n/**'
       - 'mypaybyday/src/main/java/com/mypaybyday/**/*.java'
       - 'mypaybyday/scripts/i18n-audit.mjs'
+      - 'chatbot/src/i18n.ts'
+      - 'chatbot/src/**/*.ts'
+      - 'chatbot/scripts/i18n-audit.mjs'
   pull_request:
     paths:
       - 'frontend/src/i18n/**'
@@ -21,6 +24,9 @@ on:
       - 'mypaybyday/src/main/resources/i18n/**'
       - 'mypaybyday/src/main/java/com/mypaybyday/**/*.java'
       - 'mypaybyday/scripts/i18n-audit.mjs'
+      - 'chatbot/src/i18n.ts'
+      - 'chatbot/src/**/*.ts'
+      - 'chatbot/scripts/i18n-audit.mjs'
 
 jobs:
   frontend:
@@ -49,4 +55,18 @@ jobs:
 
       - name: Audit backend translations
         working-directory: mypaybyday
+        run: node scripts/i18n-audit.mjs --ci --summary
+
+  chatbot:
+    name: Chatbot i18n
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Audit chatbot translations
+        working-directory: chatbot
         run: node scripts/i18n-audit.mjs --ci --summary

@@ -50,7 +50,7 @@ export function FormPatchAiChatWidget({ entityType, getCurrentValues, onPatch }:
           message={{
             id: message.id,
             role: message.role,
-            content: message.text,
+            content: message.content,
             timestamp: new Date().toISOString(),
           }}
         />

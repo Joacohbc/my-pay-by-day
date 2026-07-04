@@ -1,3 +1,4 @@
+import { errorJson } from '@/i18n.js';
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { createApiClient, getBackendText, unwrap } from '@/backend/client.js';
@@ -60,7 +61,7 @@ export const agentTasksRoute = new Hono();
 agentTasksRoute.post('/', async (c) => {
   const ctx = requestContextFrom(c);
   const body = (await c.req.json()) as SubmitBody;
-  if (!body.instruction?.trim()) return c.json({ error: 'instruction is required' }, 400);
+  if (!body.instruction?.trim()) return errorJson(c, 'error.instruction_required', 400);
 
   const task = agentStore.create({
     instruction: body.instruction,
@@ -80,26 +81,26 @@ agentTasksRoute.get('/', (c) => {
 
 agentTasksRoute.get('/:id', (c) => {
   const task = agentStore.detail(c.req.param('id'));
-  return task ? c.json(task) : c.json({ error: 'not found' }, 404);
+  return task ? c.json(task) : errorJson(c, 'error.not_found', 404);
 });
 
 agentTasksRoute.post('/:id/cancel', (c) => {
   const id = c.req.param('id');
-  if (!agentStore.rawTask(id)) return c.json({ error: 'not found' }, 404);
+  if (!agentStore.rawTask(id)) return errorJson(c, 'error.not_found', 404);
   forceCancel(id);
   return c.json(agentStore.detail(id));
 });
 
 agentTasksRoute.post('/:id/pause', (c) => {
   const id = c.req.param('id');
-  if (!agentStore.rawTask(id)) return c.json({ error: 'not found' }, 404);
+  if (!agentStore.rawTask(id)) return errorJson(c, 'error.not_found', 404);
   forcePause(id);
   return c.json(agentStore.detail(id));
 });
 
 agentTasksRoute.post('/:id/resume', (c) => {
   const id = c.req.param('id');
-  if (!agentStore.rawTask(id)) return c.json({ error: 'not found' }, 404);
+  if (!agentStore.rawTask(id)) return errorJson(c, 'error.not_found', 404);
   conversationMemory.append(id, [{ role: 'user', content: 'Continue the task where you left off.' }]);
   agentStore.setStatus(id, 'PENDING');
   submitTask(id);
@@ -107,15 +108,15 @@ agentTasksRoute.post('/:id/resume', (c) => {
 });
 
 agentTasksRoute.delete('/:id', (c) => {
-  return c.json({ error: 'Tasks cannot be deleted directly. They are removed automatically when their associated chat session is deleted.' }, 400);
+  return errorJson(c, 'error.tasks_cannot_delete', 400);
 });
 
 agentTasksRoute.patch('/:id/mode', async (c) => {
   const id = c.req.param('id');
   const task = agentStore.rawTask(id);
-  if (!task) return c.json({ error: 'not found' }, 404);
+  if (!task) return errorJson(c, 'error.not_found', 404);
   if (task.status === 'RUNNING' || task.status === 'RETRYING') {
-    return c.json({ error: 'Cannot change execution mode while the task is running.' }, 409);
+    return errorJson(c, 'error.cannot_change_execution_mode', 409);
   }
   const raw = await c.req.text();
   let mode = raw.trim().replace(/^"|"$/g, '');
@@ -132,7 +133,7 @@ agentTasksRoute.patch('/:id/mode', async (c) => {
 agentTasksRoute.post('/:id/message', async (c) => {
   const ctx = requestContextFrom(c);
   const id = c.req.param('id');
-  if (!agentStore.rawTask(id)) return c.json({ error: 'not found' }, 404);
+  if (!agentStore.rawTask(id)) return errorJson(c, 'error.not_found', 404);
   const body = (await c.req.json()) as MessageBody;
   await attachFiles(ctx, id, body.fileIds);
   recordStep(id, { type: 'USER', content: body.message });
@@ -146,7 +147,7 @@ agentTasksRoute.post('/:id/actions/:actionId/approve', async (c) => {
   const id = c.req.param('id');
   const actionId = Number(c.req.param('actionId'));
   const action = agentStore.getAction(actionId);
-  if (!action || action.taskId !== id) return c.json({ error: 'action not found' }, 404);
+  if (!action || action.taskId !== id) return errorJson(c, 'error.action_not_found', 404);
   const { feedback } = (await c.req.json().catch(() => ({}))) as { feedback?: string };
   agentStore.resolveAction(actionId, 'APPROVED', feedback);
   broadcastAction(id, { ...action, status: 'APPROVED', resultMessage: feedback });
@@ -170,7 +171,7 @@ agentTasksRoute.post('/:id/actions/:actionId/reject', async (c) => {
   const id = c.req.param('id');
   const actionId = Number(c.req.param('actionId'));
   const action = agentStore.getAction(actionId);
-  if (!action || action.taskId !== id) return c.json({ error: 'action not found' }, 404);
+  if (!action || action.taskId !== id) return errorJson(c, 'error.action_not_found', 404);
   const { feedback } = (await c.req.json().catch(() => ({}))) as { feedback?: string };
   agentStore.resolveAction(actionId, 'REJECTED', feedback);
   broadcastAction(id, { ...action, status: 'REJECTED', resultMessage: feedback });

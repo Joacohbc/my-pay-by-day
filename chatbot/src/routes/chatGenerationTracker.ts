@@ -1,3 +1,4 @@
+import { errorJson } from '@/i18n.js';
 interface ActiveGeneration {
   startedAt: string;
 }

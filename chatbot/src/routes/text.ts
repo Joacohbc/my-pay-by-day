@@ -1,3 +1,4 @@
+import { errorJson } from '@/i18n.js';
 import { generateText } from 'ai';
 import { Hono } from 'hono';
 import { createApiClient, unwrap, type FinanceEventDto } from '@/backend/client.js';
@@ -86,10 +87,10 @@ textRoute.post('/', async (c) => {
   const ctx = requestContextFrom(c);
   const req = (await c.req.json()) as TextRequest;
   if (!req.action || !TEXT_ACTIONS.includes(req.action)) {
-    return c.json({ error: 'invalid action' }, 400);
+    return errorJson(c, 'error.invalid_action', 400);
   }
   if (req.action === 'APPLY_INSTRUCTIONS' && !req.instruction?.trim()) {
-    return c.json({ error: 'instruction is required' }, 400);
+    return errorJson(c, 'error.instruction_required', 400);
   }
 
   const base = BASE_PROMPT[req.action];

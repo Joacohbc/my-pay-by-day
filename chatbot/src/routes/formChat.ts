@@ -1,3 +1,4 @@
+import { errorJson } from '@/i18n.js';
 import { Hono } from 'hono';
 import { requestContextFrom } from '@/context.js';
 import { replaceDocumentPartsWithMarkdown } from '@/files/markitdown.js';
@@ -25,12 +26,12 @@ formChatRoute.post('/', async (c) => {
   const body = (await c.req.json()) as FormChatBody;
 
   if (!body.entityType || !FORM_PATCH_ENTITY_TYPES.includes(body.entityType)) {
-    return c.json({ error: 'invalid entityType' }, 400);
+    return errorJson(c, 'error.invalid_entity_type', 400);
   }
 
   const incoming = body.messages ?? [];
   if (incoming.length === 0) {
-    return c.json({ error: 'messages required' }, 400);
+    return errorJson(c, 'error.messages_required', 400);
   }
 
   try {

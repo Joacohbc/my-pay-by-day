@@ -12,17 +12,19 @@ import { EventCard } from '@/components/events/EventCard';
 import { Routes } from '@/lib/routes';
 import type { ChatEntityRef } from '@/components/chat/chatEntityRefs';
 
-const EVENT_LABEL_KEY: Record<ChatEntityRef['action'], string> = {
-  created: 'chat.entityCards.eventCreated',
-  updated: 'chat.entityCards.eventUpdated',
-  shown: 'chat.entityCards.eventShown',
-};
+type TranslateFn = ReturnType<typeof useTranslation>['t'];
 
-const DRAFT_LABEL_KEY: Record<ChatEntityRef['action'], string> = {
-  created: 'chat.entityCards.draftCreated',
-  updated: 'chat.entityCards.draftUpdated',
-  shown: 'chat.entityCards.draftShown',
-};
+function eventLabel(t: TranslateFn, action: ChatEntityRef['action']): string {
+  if (action === 'created') return t('chat.entityCards.eventCreated');
+  if (action === 'updated') return t('chat.entityCards.eventUpdated');
+  return t('chat.entityCards.eventShown');
+}
+
+function draftLabel(t: TranslateFn, action: ChatEntityRef['action']): string {
+  if (action === 'created') return t('chat.entityCards.draftCreated');
+  if (action === 'updated') return t('chat.entityCards.draftUpdated');
+  return t('chat.entityCards.draftShown');
+}
 
 function UnavailableCard({ message }: { message: string }) {
   return (
@@ -46,7 +48,7 @@ export function InlineEventCard({ eventId, action }: { eventId: number; action: 
 
   return (
     <div className="mt-2">
-      <EntityCardLabel>{t(EVENT_LABEL_KEY[action])}</EntityCardLabel>
+      <EntityCardLabel>{eventLabel(t, action)}</EntityCardLabel>
       <Card>
         <EventCard event={event} from={Routes.CHAT} />
       </Card>
@@ -64,7 +66,7 @@ export function InlineDraftCard({ draftId, action }: { draftId: number; action: 
 
   return (
     <div className="mt-2">
-      <EntityCardLabel>{t(DRAFT_LABEL_KEY[action])}</EntityCardLabel>
+      <EntityCardLabel>{draftLabel(t, action)}</EntityCardLabel>
       <Card>
         <EventCard event={draft} from={Routes.CHAT} />
       </Card>

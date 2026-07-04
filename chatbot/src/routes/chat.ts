@@ -1,3 +1,4 @@
+import { errorJson } from '@/i18n.js';
 import { convertToModelMessages, stepCountIs, streamText, type ModelMessage, type UIMessage } from 'ai';
 import { chatGenerationTracker } from './chatGenerationTracker.js';
 import { Hono } from 'hono';
@@ -67,7 +68,7 @@ chatRoute.get('/', (c) => {
 chatRoute.post('/', async (c) => {
   const body = (await c.req.json()) as ChatBody;
   const chatId = body.chatId ?? body.id;
-  if (!chatId) return c.json({ error: 'chatId is required' }, 400);
+  if (!chatId) return errorJson(c, 'error.chat_id_required', 400);
   const ctx = { ...requestContextFrom(c), chatId, scope: body.scope };
 
   const chatTools = toolsForModeWithApproval(
@@ -82,7 +83,7 @@ chatRoute.post('/', async (c) => {
   const approvalUIMessages = incoming.filter(isApprovalResponseMessage);
 
   if (userMessages.length === 0 && approvalUIMessages.length === 0) {
-    return c.json({ error: 'a user message or tool approval response is required' }, 400);
+    return errorJson(c, 'error.message_required', 400);
   }
 
   if (userMessages.length > 0) {
@@ -236,7 +237,7 @@ chatRoute.delete('/:chatId', (c) => {
 
 chatRoute.post('/:chatId/trim', async (c) => {
   const { textToMatch } = (await c.req.json()) as { textToMatch?: string };
-  if (!textToMatch) return c.json({ error: 'textToMatch is required' }, 400);
+  if (!textToMatch) return errorJson(c, 'error.text_match_required', 400);
   conversationMemory.trim(c.req.param('chatId'), textToMatch);
   return c.body(null, 200);
 });

@@ -16,7 +16,7 @@ export interface ChatMessage {
     name: string;
     state: string;
     output?: unknown;
-    args?: any;
+    args?: unknown;
     toolCallId?: string;
     approval?: { id: string; approved?: boolean };
   }[];

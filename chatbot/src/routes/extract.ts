@@ -1,3 +1,4 @@
+import { errorJson } from '@/i18n.js';
 import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
 import type { ModelMessage } from 'ai';
@@ -38,7 +39,7 @@ extractRoute.post('/', async (c) => {
   const ctx = requestContextFrom(c);
   const body = (await c.req.json()) as ExtractBody;
   if (!body.text && (!body.files || body.files.length === 0)) {
-    return c.json({ error: 'text or files are required' }, 400);
+    return errorJson(c, 'error.text_files_required', 400);
   }
 
   try {
@@ -103,7 +104,7 @@ eventsRoute.post('/from-image', async (c) => {
   const ctx = requestContextFrom(c);
   const body = (await c.req.json()) as FromImageBody;
   if (!body.files || body.files.length === 0) {
-    return c.json({ error: 'files are required' }, 400);
+    return errorJson(c, 'error.files_required', 400);
   }
 
   try {

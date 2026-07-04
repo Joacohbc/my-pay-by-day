@@ -58,7 +58,7 @@ export function ChatMessage({ message, onEdit, onApprove }: ChatMessageProps) {
   );
   const entityRefs = extractEntityRefs(message.toolCalls);
   const allToolsDone = message.toolCalls?.every((tc) => tc.state === 'result') ?? true;
-  const toolStepGroups = (message.toolCalls ?? []).reduce<{ name: string; count: number; isDone: boolean; args?: any; output?: any }[]>(
+  const toolStepGroups = (message.toolCalls ?? []).reduce<{ name: string; count: number; isDone: boolean; args?: unknown; output?: unknown }[]>(
     (groups, tc) => {
       const isDone = tc.state === 'result';
       if (tc.name === 'delegateTask') {
@@ -287,7 +287,7 @@ export function ChatMessage({ message, onEdit, onApprove }: ChatMessageProps) {
                           {toolStepGroups.map((group, idx) => {
                             let label = toolFriendlyNames[group.name] || `${t('chat.tools.running')} (${group.name})`;
                             if (group.name === 'delegateTask') {
-                              const subtaskTitle = group.args?.title;
+                              const subtaskTitle = (group.args as { title?: string } | undefined)?.title;
                               const progressOutput = group.output as { type?: string; message?: string } | undefined;
                               
                               if (group.isDone) {

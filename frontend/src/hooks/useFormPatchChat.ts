@@ -110,6 +110,9 @@ export function useFormPatchChat({
     [entityType],
   );
 
+  // DefaultChatTransport only invokes prepareSendMessagesRequest when a message is actually sent, never during render,
+  // but the linter can't see into this opaque third-party constructor to confirm that.
+  // eslint-disable-next-line react-hooks/refs
   const transport = useMemo(() => new DefaultChatTransport({ api: `${BASE_URL}/ai/form-chat`, prepareSendMessagesRequest }), [prepareSendMessagesRequest]);
 
   const {

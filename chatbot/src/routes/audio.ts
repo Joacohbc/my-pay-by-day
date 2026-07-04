@@ -1,3 +1,4 @@
+import { errorJson } from '@/i18n.js';
 import { experimental_transcribe as transcribe } from 'ai';
 import { Hono } from 'hono';
 import { requestContextFrom } from '@/context.js';
@@ -18,7 +19,7 @@ audioRoute.post('/transcribe', async (c) => {
   const body = await c.req.parseBody();
   const file = body['audio'];
   if (!(file instanceof File)) {
-    return c.json({ error: 'audio file is required' }, 400);
+    return errorJson(c, 'error.audio_required', 400);
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());
