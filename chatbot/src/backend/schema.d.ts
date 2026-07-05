@@ -3787,12 +3787,6 @@ export interface components {
             /** Format: int64 */
             categoryId?: number;
             tagIds?: number[];
-            isSimplifiedMode?: boolean;
-            amount?: number;
-            /** Format: int64 */
-            sourceNodeId?: number;
-            /** Format: int64 */
-            destNodeId?: number;
             lineItems?: components["schemas"]["FinanceLineItemDto"][];
         };
         FinanceEventDto: {

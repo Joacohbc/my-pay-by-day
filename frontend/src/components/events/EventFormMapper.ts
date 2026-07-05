@@ -28,10 +28,6 @@ export function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormVa
       amount: li.amount !== 0 ? String(li.amount) : '',
     })) ?? DEFAULT_LINE_ITEMS;
 
-  const numberOfLineItems = defaultValues?.lineItems?.length ?? 0;
-  const numberOfEmptyItems = defaultValues?.lineItems?.filter((li) => !li.financeNodeId).length ?? 0;
-  const isSimplifiedMode = numberOfEmptyItems > 0 && [0, 1, 2].includes(numberOfLineItems);
-
   return {
     name: defaultValues?.name ?? '',
     description: defaultValues?.description ?? '',
@@ -41,7 +37,6 @@ export function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormVa
     tagIds,
     lineItems,
     draftId: defaultValues?.draftId,
-    isSimplifiedMode,
   };
 }
 
@@ -66,7 +61,6 @@ export function buildSchema(t: (key: string, options?: Record<string, unknown>) 
       ? z.array(lineItemSchema).min(minItems, t('eventForm.minLineItems', { count: minItems })).max(maxItems)
       : z.array(lineItemSchema).min(minItems, t('eventForm.minLineItems', { count: minItems })),
     draftId: z.number().nullable().optional(),
-    isSimplifiedMode: z.boolean().optional(),
   });
 }
 
@@ -76,21 +70,14 @@ export type FormValues = z.infer<ReturnType<typeof buildSchema>>;
 
 /** Shared logic to build the transaction part of the DTO */
 export function toTransactionDto(values: FormValues): CreateTransactionDto {
-  const isSimplifiedMode = values.isSimplifiedMode ?? false;
   return {
     transactionDate: values.transactionDate.includes(':00.000')
       ? values.transactionDate
       : `${values.transactionDate}:00.000`,
-    lineItems: values.lineItems.map((li, i) => {
-      let amount = Number(li.amount);
-      if (isSimplifiedMode) {
-        amount = i === 0 ? -Math.abs(amount) : Math.abs(amount);
-      }
-      return {
-        financeNode: { id: Number(li.nodeId) },
-        amount,
-      };
-    }),
+    lineItems: values.lineItems.map((li) => ({
+      financeNode: { id: Number(li.nodeId) },
+      amount: Number(li.amount),
+    })),
   };
 }
 
@@ -166,14 +153,10 @@ function hasTransactionChanged(base: Partial<FinanceEvent>, values: FormValues):
   if (baseDateMinutes !== nextDateMinutes) return true;
 
   const baseLineItems = base.lineItems ?? [];
-  const isSimplifiedMode = values.isSimplifiedMode ?? false;
-  const nextLineItems = values.lineItems.map((li, i) => {
-    let amount = Number(li.amount);
-    if (isSimplifiedMode) {
-      amount = i === 0 ? -Math.abs(amount) : Math.abs(amount);
-    }
-    return { nodeId: Number(li.nodeId), amount };
-  });
+  const nextLineItems = values.lineItems.map((li) => ({
+    nodeId: Number(li.nodeId),
+    amount: Number(li.amount),
+  }));
 
   if (baseLineItems.length !== nextLineItems.length) return true;
 
@@ -186,34 +169,25 @@ function hasTransactionChanged(base: Partial<FinanceEvent>, values: FormValues):
 }
 
 export function toDraftDto(values: FormValues, t: (key: string) => string): FinanceEventDraftInputDto {
-  const isSimplifiedMode = values.isSimplifiedMode ?? false;
-  
   const transactionDate = values.transactionDate
     ? (values.transactionDate.includes(':00.000') ? values.transactionDate : `${values.transactionDate}:00.000`)
     : undefined;
 
-  const draftDto: FinanceEventDraftInputDto = {
+  const lineItems = values.lineItems
+    .map((li) => ({
+      financeNodeId: li.nodeId ? Number(li.nodeId) : 0,
+      amount: li.amount ? Number(li.amount) : 0,
+    }))
+    .filter((li) => li.financeNodeId || li.amount !== 0);
+
+  return {
     name: values.name || t('drafts.untitledDraft'),
     description: values.description || undefined,
     type: values.type,
     transactionDate: transactionDate || `${toLocalDateTimeString(getLocalizedNow())}:00.000`,
     categoryId: values.categoryId ? Number(values.categoryId) : undefined,
     tagIds: values.tagIds?.map((id: string) => Number(id)),
-    isSimplifiedMode,
+    lineItems,
   };
-
-  if (isSimplifiedMode) {
-    const amountStr = values.lineItems[0]?.amount;
-    draftDto.amount = amountStr ? Number(amountStr) : 0;
-    draftDto.sourceNodeId = values.lineItems[0]?.nodeId ? Number(values.lineItems[0].nodeId) : undefined;
-    draftDto.destNodeId = values.lineItems[1]?.nodeId ? Number(values.lineItems[1].nodeId) : undefined;
-  } else {
-    draftDto.lineItems = values.lineItems.map((li) => ({
-      financeNodeId: li.nodeId ? Number(li.nodeId) : 0,
-      amount: li.amount ? Number(li.amount) : 0,
-    })).filter((li) => li.financeNodeId || li.amount !== 0);
-  }
-
-  return draftDto;
 }
 

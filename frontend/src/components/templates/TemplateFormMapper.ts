@@ -24,7 +24,6 @@ export function buildSchema(t: (key: string, options?: Record<string, unknown>) 
       lineItems: maxItems
         ? z.array(lineItemSchema).min(minItems).max(maxItems)
         : z.array(lineItemSchema).min(minItems),
-      isSimplifiedMode: z.boolean().optional(),
       categoryId: optionalCategoryIdField(),
       tagIds: optionalTagIdsField(),
       modifierType: z.enum(['PERCENTAGE', 'FIXED']).optional().or(z.literal('')),
@@ -57,7 +56,6 @@ export const DEFAULT_VALUES: FormValues = {
     { nodeId: '', amount: '' },
     { nodeId: '', amount: '' },
   ],
-  isSimplifiedMode: true,
   categoryId: '',
   tagIds: [],
   modifierType: '',
@@ -75,7 +73,6 @@ export function fromTemplate(template: Template): FormValues {
       { nodeId: template.originNodeId ? String(template.originNodeId) : '', amount: '' },
       { nodeId: template.destinationNodeId ? String(template.destinationNodeId) : '', amount: '' },
     ],
-    isSimplifiedMode: true,
     categoryId: template.category ? String(template.category.id) : '',
     tagIds: template.tags.map((tag) => String(tag.id)),
     modifierType: template.modifierType ?? '',

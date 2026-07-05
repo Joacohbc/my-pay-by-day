@@ -198,7 +198,7 @@ export function SubscriptionForm({ editTarget, onSubmit, onCancel, loading }: Su
           )}
         />
 
-        <LineItemsEditor nodes={nodes} minItems={MIN_LINE_ITEMS} maxItems={MAX_LINE_ITEMS} />
+        <LineItemsEditor nodes={nodes} minItems={MIN_LINE_ITEMS} maxItems={MAX_LINE_ITEMS} allowAdvanced={false} />
 
         <div className="flex gap-2 pt-2">
           <Button type="submit" fullWidth loading={loading}>

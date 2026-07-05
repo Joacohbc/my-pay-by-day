@@ -53,7 +53,6 @@ export function toDraftPayload(input: DraftInput, timezone: string): any {
     transactionDate: normalizeDate(input.date, timezone),
     categoryId: input.categoryId ?? undefined,
     tagIds: input.tagIds ?? undefined,
-    isSimplifiedMode: false,
     lineItems: toDraftLineItems(input.lineItems),
   };
 }
@@ -71,7 +70,6 @@ export function toDraftPatchPayload(patch: Omit<BotDraftPatch, 'draftId'>, timez
     transactionDate: normalizeDate(patch.date, timezone),
     categoryId: patch.categoryId ?? undefined,
     tagIds: patch.tagIds ?? undefined,
-    isSimplifiedMode: patch.lineItems != null ? false : undefined,
     lineItems: toDraftLineItems(patch.lineItems),
   };
 }

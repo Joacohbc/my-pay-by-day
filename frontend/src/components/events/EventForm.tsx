@@ -273,10 +273,6 @@ export function EventForm({
     if (typeof patch.date === 'string') setValue('transactionDate', patch.date, { shouldDirty: true });
     if (Array.isArray(patch.lineItems) && patch.lineItems.length > 0) {
       const items = patch.lineItems as Array<{ nodeId: number | null; amount: number }>;
-      // The agent always sends the FULL line item list (never a per-item merge), and it isn't limited to the
-      // simplified 2-node shape — turn simplified mode off first so the "force exactly 2, mirror item 0's
-      // amount into the rest" effects in LineItemsEditor don't clobber an N-way split right after we set it.
-      setValue('isSimplifiedMode', false, { shouldDirty: true });
       setValue(
         'lineItems',
         items.map((li) => ({ nodeId: li.nodeId != null ? String(li.nodeId) : '', amount: String(li.amount) })),

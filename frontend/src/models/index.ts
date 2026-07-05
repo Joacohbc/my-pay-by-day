@@ -182,10 +182,6 @@ export interface FinanceEventDraftInputDto {
   transactionDate?: string;
   categoryId?: number;
   tagIds?: number[];
-  isSimplifiedMode?: boolean;
-  amount?: number;
-  sourceNodeId?: number;
-  destNodeId?: number;
   lineItems?: { financeNodeId: number; amount: number }[];
 }
 

@@ -10,7 +10,6 @@ import type { FinanceNode } from '@/models';
 
 interface LineItemsFormValues {
   lineItems: { nodeId: string; amount: string }[];
-  isSimplifiedMode?: boolean;
 }
 import { sortByUsage, getSortIcon, nextSortMode } from '@/lib/usageSorter';
 import type { SortMode } from '@/lib/usageSorter';
@@ -23,6 +22,17 @@ interface LineItemsEditorProps {
   onSortModeChange?: (mode: SortMode) => void;
   minItems?: number;
   maxItems?: number;
+  /** When false, the editor is locked to the simplified two-node view with no advanced toggle
+   *  (templates and subscriptions are structurally always one origin plus one destination). */
+  allowAdvanced?: boolean;
+}
+
+function magnitudeOf(amount?: string): number {
+  return Math.abs(Number(amount) || 0);
+}
+
+function haveEqualMagnitude(first?: string, second?: string): boolean {
+  return magnitudeOf(first) === magnitudeOf(second);
 }
 
 export function LineItemsEditor({
@@ -31,16 +41,22 @@ export function LineItemsEditor({
   onSortModeChange,
   minItems = 1,
   maxItems,
+  allowAdvanced = true,
 }: LineItemsEditorProps) {
 
   const { t } = useTranslation();
-  const { control, register, setValue, formState: { errors } } = useFormContext<LineItemsFormValues>();
+  const { control, setValue, register, formState: { errors } } = useFormContext<LineItemsFormValues>();
   const { fields, append, remove, move } = useFieldArray({ control, name: 'lineItems' });
 
-  const isSimplifiedMode = useWatch({ control, name: 'isSimplifiedMode' }) ?? true;
-  const firstAmount = useWatch({ control, name: 'lineItems.0.amount' });
+  const watchedItems = useWatch({ control, name: 'lineItems' }) ?? [];
+  const firstSignedAmount = useWatch({ control, name: 'lineItems.0.amount' }) ?? '';
 
-  const setIsSimplifiedMode = (val: boolean) => setValue('isSimplifiedMode', val);
+  const isSimpleRepresentable =
+    watchedItems.length === 2 && haveEqualMagnitude(watchedItems[0]?.amount, watchedItems[1]?.amount);
+  const [userForcedAdvanced, setUserForcedAdvanced] = useState(false);
+  const showSimplified = !allowAdvanced || (!userForcedAdvanced && isSimpleRepresentable);
+
+  const simplifiedMagnitude = firstSignedAmount ? String(magnitudeOf(firstSignedAmount)) : '';
 
   const [showNodeModal, setShowNodeModal] = useState<number | null>(null);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
@@ -113,25 +129,39 @@ export function LineItemsEditor({
     if (stringVal) recordSelection.mutate({ type: 'FINANCE_NODE', id: Number(stringVal) });
   };
 
-  // Enforce exactly 2 line items in simplified mode
+  // Guarantee the two signed slots the simplified view writes into always exist.
   useEffect(() => {
-    if (!isSimplifiedMode) return;
+    if (!showSimplified || fields.length >= 2) return;
+    for (let i = fields.length; i < 2; i++) {
+      append({ nodeId: '', amount: '' });
+    }
+  }, [showSimplified, fields.length, append]);
+
+  const handleMagnitudeChange = (raw: string) => {
+    const magnitude = magnitudeOf(raw);
+    setValue('lineItems.0.amount', raw === '' ? '' : String(-magnitude), { shouldDirty: true });
+    setValue('lineItems.1.amount', raw === '' ? '' : String(magnitude), { shouldDirty: true });
+  };
+
+  const enterSimplifiedMode = () => {
+    const firstMagnitude = watchedItems.map((li) => magnitudeOf(li?.amount)).find((m) => m > 0) ?? 0;
     if (fields.length > 2) {
       remove(Array.from({ length: fields.length - 2 }, (_, i) => i + 2));
-    } else if (fields.length < 2) {
-      for (let i = fields.length; i < 2; i++) {
-        append({ nodeId: '', amount: '' });
-      }
+    } else {
+      for (let i = fields.length; i < 2; i++) append({ nodeId: '', amount: '' });
     }
-  }, [isSimplifiedMode, fields.length, remove, append]);
+    setValue('lineItems.0.amount', firstMagnitude ? String(-firstMagnitude) : '', { shouldDirty: true });
+    setValue('lineItems.1.amount', firstMagnitude ? String(firstMagnitude) : '', { shouldDirty: true });
+    setUserForcedAdvanced(false);
+  };
 
-  // Sync all line item amounts to the first amount in simplified mode
-  useEffect(() => {
-    if (!isSimplifiedMode) return;
-    for (let i = 1; i < fields.length; i++) {
-      setValue(`lineItems.${i}.amount`, firstAmount ?? '');
+  const toggleMode = () => {
+    if (showSimplified) {
+      setUserForcedAdvanced(true);
+    } else {
+      enterSimplifiedMode();
     }
-  }, [firstAmount, isSimplifiedMode, fields.length, setValue]);
+  };
 
   return (
     <div>
@@ -149,7 +179,7 @@ export function LineItemsEditor({
           </button>
         </div>
         <div className="flex items-center gap-3">
-          {!isSimplifiedMode && (!maxItems || fields.length < maxItems) && (
+          {!showSimplified && (!maxItems || fields.length < maxItems) && (
             <button
               type="button"
               onClick={() => append({ nodeId: '', amount: '' })}
@@ -159,40 +189,22 @@ export function LineItemsEditor({
               {t('eventForm.addLineItem')}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => {
-              if (!isSimplifiedMode) {
-                // Normalize to exactly 2 items before entering simplified mode
-                if (fields.length > 2) {
-                  remove(Array.from({ length: fields.length - 2 }, (_, i) => i + 2));
-                } else if (fields.length < 2) {
-                  for (let i = fields.length; i < 2; i++) {
-                    append({ nodeId: '', amount: '' });
-                  }
-                }
-                setIsSimplifiedMode(true);
-              } else {
-                const num = parseFloat(firstAmount ?? '') || 0;
-                if (num !== 0) {
-                  fields.forEach((_, i) => {
-                    setValue(`lineItems.${i}.amount`, String(i === 0 ? -Math.abs(num) : Math.abs(num)));
-                  });
-                }
-                setIsSimplifiedMode(false);
-              }
-            }}
-            className="text-xs text-dn-text-muted hover:text-dn-primary transition-colors"
-          >
-            {isSimplifiedMode ? t('eventForm.manualMode') : t('eventForm.simplifiedMode')}
-          </button>
+          {allowAdvanced && (
+            <button
+              type="button"
+              onClick={toggleMode}
+              className="text-xs text-dn-text-muted hover:text-dn-primary transition-colors"
+            >
+              {showSimplified ? t('eventForm.manualMode') : t('eventForm.simplifiedMode')}
+            </button>
+          )}
         </div>
       </div>
       {errors.lineItems?.root?.message && (
         <p className="text-xs text-dn-error mb-2">{errors.lineItems.root.message}</p>
       )}
 
-      {isSimplifiedMode ? (
+      {showSimplified ? (
         <div className="space-y-3">
           <div className="space-y-2">
             {fields.map((field, i) => (
@@ -255,7 +267,8 @@ export function LineItemsEditor({
             type="number"
             step="0.01"
             error={errors.lineItems?.[0]?.amount?.message}
-            {...register('lineItems.0.amount')}
+            defaultValue={simplifiedMagnitude}
+            onChange={(e) => handleMagnitudeChange(e.target.value)}
           />
         </div>
       ) : (
@@ -335,7 +348,7 @@ export function LineItemsEditor({
 
       <p className="text-xs text-dn-text-muted mt-2">{t('eventForm.dragLineItemHint')}</p>
       <p className="text-xs text-dn-text-muted mt-2">
-        {isSimplifiedMode ? t('eventForm.signedAmountHint') : t('eventForm.manualAmountHint')}
+        {showSimplified ? t('eventForm.signedAmountHint') : t('eventForm.manualAmountHint')}
       </p>
 
       <Modal
@@ -356,4 +369,3 @@ export function LineItemsEditor({
     </div>
   );
 }
-

@@ -195,7 +195,7 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
           )}
         />
 
-        <LineItemsEditor nodes={nodes} minItems={MIN_LINE_ITEMS} maxItems={MAX_LINE_ITEMS} />
+        <LineItemsEditor nodes={nodes} minItems={MIN_LINE_ITEMS} maxItems={MAX_LINE_ITEMS} allowAdvanced={false} />
 
         <div className="grid grid-cols-2 gap-3">
           <Controller

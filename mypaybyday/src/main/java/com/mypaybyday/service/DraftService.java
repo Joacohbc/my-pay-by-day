@@ -202,34 +202,6 @@ public class DraftService {
 
 		if (input.lineItems() != null && !input.lineItems().isEmpty()) {
 			lineItems = input.lineItems();
-		} else if (Boolean.TRUE.equals(input.isSimplifiedMode()) || input.amount() != null || input.sourceNodeId() != null || input.destNodeId() != null) {
-			Long sourceNodeId = input.sourceNodeId();
-			Long destNodeId = input.destNodeId();
-			BigDecimal inputAmount = input.amount();
-
-			if (current != null && current.lineItems() != null && !current.lineItems().isEmpty()) {
-				if (sourceNodeId == null) {
-					sourceNodeId = current.lineItems().stream()
-						.filter(li -> li.amount() != null && li.amount().compareTo(BigDecimal.ZERO) < 0)
-						.map(FinanceLineItemDto::financeNodeId)
-						.findFirst().orElse(null);
-				}
-				if (destNodeId == null) {
-					destNodeId = current.lineItems().stream()
-						.filter(li -> li.amount() != null && li.amount().compareTo(BigDecimal.ZERO) > 0)
-						.map(FinanceLineItemDto::financeNodeId)
-						.findFirst().orElse(null);
-				}
-				if (inputAmount == null) {
-					inputAmount = current.amount();
-				}
-			}
-
-			if (inputAmount == null) inputAmount = BigDecimal.ZERO;
-
-			FinanceLineItemDto sourceItem = new FinanceLineItemDto(sourceNodeId, null, null, inputAmount.abs().negate());
-			FinanceLineItemDto destItem = new FinanceLineItemDto(destNodeId, null, null, inputAmount.abs());
-			lineItems = List.of(sourceItem, destItem);
 		}
 		
 		Long origId = input.id() != null ? input.id() : (current != null ? current.id() : null);
