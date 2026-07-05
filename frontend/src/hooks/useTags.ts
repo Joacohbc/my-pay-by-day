@@ -10,18 +10,9 @@ import {
   updateItemInLists,
   removeItemFromLists,
 } from '@/hooks/optimistic';
-
-const FIVE_MINUTES_MS = 1000 * 60 * 5;
-
-export const tagKeys = {
-  all: ['tags'] as const,
-  lists: () => [...tagKeys.all, 'list'] as const,
-  list: (archived?: boolean) => [...tagKeys.lists(), archived] as const,
-  details: () => [...tagKeys.all, 'detail'] as const,
-  detail: (id: number) => [...tagKeys.details(), id] as const,
-};
-
-export const TAGS_KEY = tagKeys.all;
+import { tagKeys } from '@/lib/queryKeys';
+import { cachePolicy } from '@/lib/cachePolicies';
+import { invalidateDomains } from '@/lib/cacheInvalidation';
 
 function resolveErrorMessage(err: unknown, fallbackMessage: string): string {
   return err instanceof Error ? err.message : fallbackMessage;
@@ -31,7 +22,7 @@ export function useTags(archived?: boolean) {
   return useQuery({
     queryKey: tagKeys.list(archived),
     queryFn: () => tagsService.getAll(archived),
-    staleTime: FIVE_MINUTES_MS,
+    ...cachePolicy.reference,
   });
 }
 
@@ -40,7 +31,7 @@ export function useTag(id: number) {
     queryKey: tagKeys.detail(id),
     queryFn: () => tagsService.getById(id),
     enabled: !!id,
-    staleTime: FIVE_MINUTES_MS,
+    ...cachePolicy.reference,
   });
 }
 
@@ -51,8 +42,7 @@ export function useCreateTag() {
   return useMutation({
     mutationFn: (dto: CreateTagDto) => tagsService.create(dto),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tagKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      invalidateDomains(queryClient, ['tags', 'duplicates']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -89,10 +79,8 @@ export function useUpdateTag() {
       if (context?.previousTagDetail) queryClient.setQueryData(tagKeys.detail(id), context.previousTagDetail);
       alert.error(resolveErrorMessage(err, t('common.error')));
     },
-    onSettled: (_data, _error, { id }) => {
-      queryClient.invalidateQueries({ queryKey: tagKeys.all });
-      queryClient.invalidateQueries({ queryKey: tagKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+    onSettled: () => {
+      invalidateDomains(queryClient, ['tags', 'duplicates']);
     },
     onSuccess: () => alert.success(t('common.saved')),
   });
@@ -106,8 +94,7 @@ export function useArchiveTag() {
   return useMutation({
     mutationFn: (id: number) => tagsService.archive(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tagKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      invalidateDomains(queryClient, ['tags', 'duplicates']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -122,8 +109,7 @@ export function useUnarchiveTag() {
   return useMutation({
     mutationFn: (id: number) => tagsService.unarchive(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tagKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      invalidateDomains(queryClient, ['tags', 'duplicates']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -148,8 +134,7 @@ export function useDeleteTag() {
       alert.error(resolveErrorMessage(err, t('common.error')));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: tagKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      invalidateDomains(queryClient, ['tags', 'duplicates']);
     },
     onSuccess: () => alert.success(t('common.saved')),
   });

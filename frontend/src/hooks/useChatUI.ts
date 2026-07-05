@@ -9,10 +9,8 @@ import { audioService } from '@/services/audio.service';
 import { extractService, type FilePayload } from '@/services/extract.service';
 import { filesService } from '@/services/files.service';
 import { useChatStore, type ChatMessage } from '@/store/chatStore';
-import { DRAFTS_KEY } from '@/hooks/useDrafts';
-import { eventKeys } from '@/hooks/useEvents';
-import { tagKeys } from '@/hooks/useTags';
-import { categoryKeys } from '@/hooks/useCategories';
+import { invalidateDomains } from '@/lib/cacheInvalidation';
+import { invalidateForToolResults } from '@/lib/chat/toolInvalidation';
 import { getUserTimezone } from '@/lib/utils/dateUtils';
 import { useSendCountdown } from '@/hooks/useSendCountdown';
 import i18n from '@/lib/i18n';
@@ -129,12 +127,6 @@ export function useChatUI() {
   const { chatId, draftFiles, setDraftFiles, newChat } = useChatStore();
   const queryClient = useQueryClient();
 
-  const invalidateFinanceCaches = useCallback(() => {
-    for (const queryKey of [DRAFTS_KEY, eventKeys.all, tagKeys.all, categoryKeys.all]) {
-      queryClient.invalidateQueries({ queryKey });
-    }
-  }, [queryClient]);
-
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -164,7 +156,7 @@ export function useChatUI() {
     id: chatId,
     transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
-    onFinish: invalidateFinanceCaches,
+    onFinish: ({ message }) => invalidateForToolResults(queryClient, message),
   });
 
   const { countdown, schedule: scheduleSend, sendNow: triggerSendNow, cancel: cancelScheduledSend } = useSendCountdown();
@@ -176,21 +168,23 @@ export function useChatUI() {
   const [isBackendGenerating, setIsBackendGenerating] = useState(false);
   const [messageCount, setMessageCount] = useState(0);
   const [maxMessages, setMaxMessages] = useState(0);
+  const wasBackendGeneratingRef = useRef(false);
 
   const reloadHistory = useCallback(async () => {
     const response = await api.get<UIMessage[]>(`/ai/chat/${chatId}`);
     setMessages(response);
+    return response;
   }, [chatId, setMessages]);
 
   useEffect(() => {
     let active = true;
     let pollingTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const reloadHistorySafely = async () => {
+    const reloadHistorySafely = async (): Promise<UIMessage[] | undefined> => {
       try {
-        await reloadHistory();
+        return await reloadHistory();
       } catch {
-        /* history fetch failed — will retry on next poll if generating */
+        return undefined;
       }
     };
 
@@ -203,10 +197,15 @@ export function useChatUI() {
         setMessageCount(status.messageCount);
         setMaxMessages(status.maxMessages);
         if (!status.generating) {
-          await reloadHistorySafely();
-          invalidateFinanceCaches();
+          const history = await reloadHistorySafely();
+          if (wasBackendGeneratingRef.current) {
+            const lastAssistantMessage = history?.findLast((message) => message.role === 'assistant');
+            invalidateForToolResults(queryClient, lastAssistantMessage);
+          }
+          wasBackendGeneratingRef.current = false;
           return;
         }
+        wasBackendGeneratingRef.current = true;
         pollingTimer = setTimeout(pollUntilComplete, 2000);
       } catch {
         if (active) setIsBackendGenerating(false);
@@ -225,7 +224,7 @@ export function useChatUI() {
       active = false;
       if (pollingTimer) clearTimeout(pollingTimer);
     };
-  }, [chatId, invalidateFinanceCaches, reloadHistory]);
+  }, [chatId, queryClient, reloadHistory]);
 
   const [input, setInput] = useState('');
   const [isClearing, setIsClearing] = useState(false);
@@ -286,7 +285,7 @@ export function useChatUI() {
     try {
       await extractService.fromText(combinedText, undefined, chatId, payloadFiles.length ? payloadFiles : undefined);
       await reloadHistory();
-      invalidateFinanceCaches();
+      invalidateDomains(queryClient, ['drafts', 'events', 'tags', 'categories']);
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== optimisticMessage.id));
       setInput(userText);
@@ -294,7 +293,7 @@ export function useChatUI() {
     } finally {
       setIsExtracting(false);
     }
-  }, [input, draftFiles, setDraftFiles, chatId, setMessages, reloadHistory, invalidateFinanceCaches, t]);
+  }, [input, draftFiles, setDraftFiles, chatId, setMessages, reloadHistory, queryClient, t]);
 
   const handleSend = useCallback(async () => {
     const userText = input.trim();

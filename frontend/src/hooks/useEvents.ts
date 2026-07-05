@@ -12,19 +12,9 @@ import {
   removeItemFromLists,
   findInPagedListCaches,
 } from '@/hooks/optimistic';
-import { categoryKeys } from '@/hooks/useCategories';
-import { tagKeys } from '@/hooks/useTags';
-import { NODES_KEY } from '@/hooks/useNodes';
-
-export const eventKeys = {
-  all: ['events'] as const,
-  lists: () => [...eventKeys.all, 'list'] as const,
-  list: (filters: EventFilters) => [...eventKeys.lists(), filters] as const,
-  details: () => [...eventKeys.all, 'detail'] as const,
-  detail: (id: number) => [...eventKeys.details(), id] as const,
-};
-
-export const EVENTS_KEY = eventKeys.all;
+import { eventKeys, categoryKeys, tagKeys, nodeKeys } from '@/lib/queryKeys';
+import { cachePolicy } from '@/lib/cachePolicies';
+import { invalidateDomains, EVENT_MUTATION_DOMAINS } from '@/lib/cacheInvalidation';
 
 function resolveErrorMessage(err: unknown, fallbackMessage: string): string {
   return err instanceof Error ? err.message : fallbackMessage;
@@ -59,8 +49,8 @@ function resolveLineItems(
   queryClient: QueryClient
 ): FinanceLineItem[] {
   return lineItemDtos.map(({ financeNode, amount }) => {
-    const cachedNode = queryClient.getQueryData<FinanceNode>([...NODES_KEY, financeNode.id])
-      ?? findInPagedListCaches<FinanceNode>(queryClient, NODES_KEY, financeNode.id);
+    const cachedNode = queryClient.getQueryData<FinanceNode>(nodeKeys.detail(financeNode.id))
+      ?? findInPagedListCaches<FinanceNode>(queryClient, nodeKeys.all, financeNode.id);
     return {
       financeNodeId: financeNode.id,
       financeNodeName: cachedNode?.name ?? '',
@@ -111,10 +101,7 @@ export function useEvents(filters: EventFilters = {}, options?: { enabled?: bool
     queryKey: eventKeys.list(filters),
     queryFn: () => eventsService.getAll(filters),
     enabled: options?.enabled,
-    staleTime: 30_000,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: 'always',
-    refetchOnReconnect: 'always',
+    ...cachePolicy.transactional,
   });
 }
 
@@ -123,10 +110,7 @@ export function useEvent(id: number) {
     queryKey: eventKeys.detail(id),
     queryFn: () => eventsService.getById(id),
     enabled: !!id,
-    staleTime: 30_000,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: 'always',
-    refetchOnReconnect: 'always',
+    ...cachePolicy.transactional,
   });
 }
 
@@ -139,9 +123,7 @@ export function useCreateEvent() {
   const mutation = useMutation({
     mutationFn: (dto: CreateEventDto) => eventsService.create(dto),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: eventKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
-      queryClient.invalidateQueries({ queryKey: ['drafts'] });
+      invalidateDomains(queryClient, EVENT_MUTATION_DOMAINS);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -197,11 +179,8 @@ export function useUpdateEvent() {
       if (context?.previousEventDetail) queryClient.setQueryData(eventKeys.detail(id), context.previousEventDetail);
       alert.error(resolveErrorMessage(err, t('common.error')));
     },
-    onSettled: (_data, _error, { id }) => {
-      queryClient.invalidateQueries({ queryKey: eventKeys.all });
-      queryClient.invalidateQueries({ queryKey: eventKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
-      queryClient.invalidateQueries({ queryKey: ['drafts'] });
+    onSettled: () => {
+      invalidateDomains(queryClient, EVENT_MUTATION_DOMAINS);
     },
     onSuccess: () => alert.success(t('common.saved')),
   });
@@ -225,9 +204,7 @@ export function useDeleteEvent() {
       alert.error(resolveErrorMessage(err, t('common.error')));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: eventKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
-      queryClient.invalidateQueries({ queryKey: ['drafts'] });
+      invalidateDomains(queryClient, EVENT_MUTATION_DOMAINS);
     },
     onSuccess: () => alert.success(t('common.saved')),
   });
@@ -241,9 +218,7 @@ export function useAddEventRelations() {
     mutationFn: ({ id, relatedIds }: { id: number; relatedIds: number[] }) =>
       eventsService.addRelations(id, relatedIds),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: eventKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
-      queryClient.invalidateQueries({ queryKey: ['drafts'] });
+      invalidateDomains(queryClient, EVENT_MUTATION_DOMAINS);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -258,9 +233,7 @@ export function useRemoveEventRelations() {
     mutationFn: ({ id, relatedIds }: { id: number; relatedIds: number[] }) =>
       eventsService.removeRelations(id, relatedIds),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: eventKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
-      queryClient.invalidateQueries({ queryKey: ['drafts'] });
+      invalidateDomains(queryClient, EVENT_MUTATION_DOMAINS);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -274,8 +247,7 @@ export function useBulkUpdateEvents() {
   return useMutation({
     mutationFn: (dto: BulkPatchEventDto) => eventsService.bulkUpdate(dto),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: eventKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      invalidateDomains(queryClient, EVENT_MUTATION_DOMAINS);
       alert.success(t('events.bulkUpdateSuccess'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -290,9 +262,7 @@ export function useMergeEvents() {
     mutationFn: ({ baseId, sourceIds, groupByNodeIds, categoryId, tagIds, name, description }: { baseId: number; sourceIds: number[]; groupByNodeIds: number[]; categoryId: number | null; tagIds: number[]; name: string; description: string }) =>
       eventsService.mergeEvents(baseId, sourceIds, groupByNodeIds, categoryId, tagIds, name, description),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: eventKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
-      queryClient.invalidateQueries({ queryKey: ['drafts'] });
+      invalidateDomains(queryClient, EVENT_MUTATION_DOMAINS);
       alert.success(t('events.mergeSuccess'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),

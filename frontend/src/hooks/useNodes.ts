@@ -3,29 +3,33 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { nodesService } from '@/services/nodes.service';
 import type { CreateFinanceNodeDto, FinanceNodeType } from '@/models';
-
-export const NODES_KEY = ['financeNodes'] as const;
+import { nodeKeys } from '@/lib/queryKeys';
+import { cachePolicy } from '@/lib/cachePolicies';
+import { invalidateDomains } from '@/lib/cacheInvalidation';
 
 export function useNodes(archived?: boolean, type?: FinanceNodeType) {
   return useQuery({
-    queryKey: [...NODES_KEY, archived, type],
+    queryKey: nodeKeys.list(archived, type),
     queryFn: () => nodesService.getAll(archived, type),
+    ...cachePolicy.reference,
   });
 }
 
 export function useNode(id: number) {
   return useQuery({
-    queryKey: [...NODES_KEY, id],
+    queryKey: nodeKeys.detail(id),
     queryFn: () => nodesService.getById(id),
     enabled: !!id,
+    ...cachePolicy.reference,
   });
 }
 
 export function useNodeBalance(id: number) {
   return useQuery({
-    queryKey: [...NODES_KEY, id, 'balance'],
+    queryKey: nodeKeys.balance(id),
     queryFn: () => nodesService.getBalance(id),
     enabled: !!id,
+    ...cachePolicy.derived,
   });
 }
 
@@ -36,7 +40,7 @@ export function useCreateNode() {
   return useMutation({
     mutationFn: (dto: CreateFinanceNodeDto) => nodesService.create(dto),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: NODES_KEY  });
+      invalidateDomains(qc, ['nodes']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
@@ -51,7 +55,7 @@ export function useUpdateNode() {
     mutationFn: ({ id, dto }: { id: number; dto: Partial<CreateFinanceNodeDto> }) =>
       nodesService.update(id, dto),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: NODES_KEY  });
+      invalidateDomains(qc, ['nodes']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
@@ -65,7 +69,7 @@ export function useArchiveNode() {
   return useMutation({
     mutationFn: (id: number) => nodesService.archive(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: NODES_KEY  });
+      invalidateDomains(qc, ['nodes']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
@@ -79,7 +83,7 @@ export function useUnarchiveNode() {
   return useMutation({
     mutationFn: (id: number) => nodesService.unarchive(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: NODES_KEY  });
+      invalidateDomains(qc, ['nodes']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
@@ -93,7 +97,7 @@ export function useDeleteNode() {
   return useMutation({
     mutationFn: (id: number) => nodesService.delete(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: NODES_KEY  });
+      invalidateDomains(qc, ['nodes']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),

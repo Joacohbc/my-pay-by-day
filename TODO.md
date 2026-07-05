@@ -6,8 +6,4 @@
 
 - Validar prompts/codigo duplicaod entre frontend/chatbot
 
-- Agregar retry-automatico al transcriber para que si falla vuelva a intentar
-
-- Cuando se cargue un archivo se haga el llamdo al markdown service y se permista en la base datos original de Java y se envie al chatbot
-
 - Gestion de Cache (en general) en la vista de Page. Tambien y sobre todo en el Chat que cunado el modelo hace algo como Tool no se revalida el cache

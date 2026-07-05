@@ -1,17 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { duplicatesApi } from '@/services/duplicates.service';
 import type { ResolveDuplicateRequest, SelectableEntityType, DuplicateRecordStatus } from '@/models';
-
-export const DUPLICATES_KEYS = {
-  all: ['duplicates'] as const,
-  byType: (type: SelectableEntityType, status: DuplicateRecordStatus) => ['duplicates', type, status] as const,
-  byEntity: (type: SelectableEntityType, id: number, status: DuplicateRecordStatus) => ['duplicates', 'entity', type, id, status] as const,
-  settings: ['duplicate-settings'] as const,
-};
+import { duplicateKeys } from '@/lib/queryKeys';
+import { invalidateDomains } from '@/lib/cacheInvalidation';
 
 export function useDuplicates(type: SelectableEntityType, status: DuplicateRecordStatus) {
   return useQuery({
-    queryKey: DUPLICATES_KEYS.byType(type, status),
+    queryKey: duplicateKeys.byType(type, status),
     queryFn: () => duplicatesApi.getDuplicates(type, status),
   });
 }
@@ -22,7 +17,7 @@ export function useEntityDuplicates(
   status: DuplicateRecordStatus = 'PENDING',
 ) {
   return useQuery({
-    queryKey: DUPLICATES_KEYS.byEntity(type, id, status),
+    queryKey: duplicateKeys.byEntity(type, id, status),
     queryFn: () => duplicatesApi.getDuplicatesForEntity(type, id, status),
     enabled: !!id,
     staleTime: 0,
@@ -36,18 +31,14 @@ export function useResolveDuplicate() {
     mutationFn: ({ id, request }: { id: number; request: ResolveDuplicateRequest }) =>
       duplicatesApi.resolveDuplicate(id, request),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DUPLICATES_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
-      queryClient.invalidateQueries({ queryKey: ['drafts'] });
+      invalidateDomains(queryClient, ['duplicates', 'events', 'categories', 'tags', 'drafts']);
     },
   });
 }
 
 export function useDuplicateSettings() {
   return useQuery({
-    queryKey: DUPLICATES_KEYS.settings,
+    queryKey: duplicateKeys.settings,
     queryFn: duplicatesApi.getSettings,
   });
 }
@@ -57,7 +48,7 @@ export function useUpdateDuplicateSettings() {
   return useMutation({
     mutationFn: duplicatesApi.updateSettings,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DUPLICATES_KEYS.settings });
+      queryClient.invalidateQueries({ queryKey: duplicateKeys.settings });
     },
   });
 }

@@ -10,16 +10,9 @@ import {
   updateItemInLists,
   removeItemFromLists,
 } from '@/hooks/optimistic';
-
-const FIVE_MINUTES_MS = 1000 * 60 * 5;
-
-export const tagGroupKeys = {
-  all: ['tag-groups'] as const,
-  lists: () => [...tagGroupKeys.all, 'list'] as const,
-  list: (archived?: boolean) => [...tagGroupKeys.lists(), archived] as const,
-  details: () => [...tagGroupKeys.all, 'detail'] as const,
-  detail: (id: number) => [...tagGroupKeys.details(), id] as const,
-};
+import { tagGroupKeys } from '@/lib/queryKeys';
+import { cachePolicy } from '@/lib/cachePolicies';
+import { invalidateDomains } from '@/lib/cacheInvalidation';
 
 function resolveErrorMessage(err: unknown, fallbackMessage: string): string {
   return err instanceof Error ? err.message : fallbackMessage;
@@ -29,7 +22,7 @@ export function useTagGroups(archived?: boolean) {
   return useQuery({
     queryKey: tagGroupKeys.list(archived),
     queryFn: () => tagGroupsService.getAll(archived),
-    staleTime: FIVE_MINUTES_MS,
+    ...cachePolicy.reference,
   });
 }
 
@@ -38,7 +31,7 @@ export function useTagGroup(id: number) {
     queryKey: tagGroupKeys.detail(id),
     queryFn: () => tagGroupsService.getById(id),
     enabled: !!id,
-    staleTime: FIVE_MINUTES_MS,
+    ...cachePolicy.reference,
   });
 }
 
@@ -49,7 +42,7 @@ export function useCreateTagGroup() {
   return useMutation({
     mutationFn: (dto: CreateTagGroupDto) => tagGroupsService.create(dto),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tagGroupKeys.all });
+      invalidateDomains(queryClient, ['tagGroups', 'duplicates']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -86,9 +79,8 @@ export function useUpdateTagGroup() {
       if (context?.previousTagGroupDetail) queryClient.setQueryData(tagGroupKeys.detail(id), context.previousTagGroupDetail);
       alert.error(resolveErrorMessage(err, t('common.error')));
     },
-    onSettled: (_data, _error, { id }) => {
-      queryClient.invalidateQueries({ queryKey: tagGroupKeys.all });
-      queryClient.invalidateQueries({ queryKey: tagGroupKeys.detail(id) });
+    onSettled: () => {
+      invalidateDomains(queryClient, ['tagGroups', 'duplicates']);
     },
     onSuccess: () => alert.success(t('common.saved')),
   });
@@ -102,7 +94,7 @@ export function useArchiveTagGroup() {
   return useMutation({
     mutationFn: (id: number) => tagGroupsService.archive(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tagGroupKeys.all });
+      invalidateDomains(queryClient, ['tagGroups', 'duplicates']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -117,7 +109,7 @@ export function useUnarchiveTagGroup() {
   return useMutation({
     mutationFn: (id: number) => tagGroupsService.unarchive(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tagGroupKeys.all });
+      invalidateDomains(queryClient, ['tagGroups', 'duplicates']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -141,7 +133,7 @@ export function useDeleteTagGroup() {
       if (context?.previousLists) restoreSnapshot(queryClient, context.previousLists);
       alert.error(resolveErrorMessage(err, t('common.error')));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: tagGroupKeys.all }),
+    onSettled: () => invalidateDomains(queryClient, ['tagGroups', 'duplicates']),
     onSuccess: () => alert.success(t('common.saved')),
   });
 }

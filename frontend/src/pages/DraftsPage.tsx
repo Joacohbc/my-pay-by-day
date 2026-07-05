@@ -9,10 +9,10 @@ import {
   useFinanceEventDrafts,
   useDeleteAllDrafts,
   useDeleteDraft,
-  DRAFTS_KEY,
 } from '@/hooks/useDrafts';
 import { draftsService } from '@/services/drafts.service';
 import { useQueryClient } from '@tanstack/react-query';
+import { invalidateDomains, EVENT_MUTATION_DOMAINS } from '@/lib/cacheInvalidation';
 import type { DraftConfirmMode, FinanceEvent } from '@/models';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -149,7 +149,7 @@ export function DraftsPage() {
       try {
         const backendMode: DraftConfirmMode = mode === 'merge' ? 'MERGE' : 'CREATE_ONLY';
         const result = await draftsService.confirmDraftsBatch({ draftIds, mode: backendMode });
-        await queryClient.invalidateQueries({ queryKey: DRAFTS_KEY });
+        invalidateDomains(queryClient, EVENT_MUTATION_DOMAINS);
         exitSelectionMode();
         return result.confirmedEvents.map((event) => event.id);
       } catch {

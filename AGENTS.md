@@ -519,3 +519,14 @@ Both the frontend and backend require English (`en`) and Spanish (`es`) translat
 Whenever an AI text action (`TextAction`) is added, removed, or modified in the chatbot service or frontend (e.g., in `chatbot/src/routes/text.ts`, `ai.service.ts`), the Custom Prompts configuration component (`AiSettingsPage.tsx` and the store `aiPromptsStore.ts`) **must** be updated to reflect exactly all available actions.
 
 This ensures that every AI action has a user-configurable prompt and prevents inconsistencies between what the system offers and what the user can customize.
+
+---
+
+### AI Tool Synchronization
+
+Whenever an AI agent tool is added, removed, or modified in the chatbot service (e.g., in `chatbot/src/tools/*.ts`), the corresponding frontend files **must** be updated in the same change so cache invalidation and any UI handling stay consistent with the tool set the agent can actually call.
+
+* **Cache invalidation map:** `frontend/src/lib/chat/toolInvalidation.ts` must be updated so every tool name is classified. Mutating tools go in `TOOL_DOMAINS`, mapped to the `CacheDomain`s they affect; read-only tools go in `READ_TOOL_NAMES`. An unmapped tool falls back to a broad finance invalidation — correct but noisy — so classify it explicitly.
+* **Form patching:** If a new tool writes to the draft/event currently open on screen, add its name to `PATCH_TOOL_NAMES` in `frontend/src/hooks/useEntityChat.ts` so the on-screen form reflects the agent's edit.
+
+A tool that exists in the chatbot but is missing from `toolInvalidation.ts` is treated as a bug.

@@ -5,10 +5,8 @@ import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalRespons
 import { BASE_URL } from '@/services/api';
 import { audioService } from '@/services/audio.service';
 import { filesService } from '@/services/files.service';
-import { DRAFTS_KEY } from '@/hooks/useDrafts';
-import { eventKeys } from '@/hooks/useEvents';
-import { tagKeys } from '@/hooks/useTags';
-import { categoryKeys } from '@/hooks/useCategories';
+import { invalidateDomains } from '@/lib/cacheInvalidation';
+import { invalidateForToolResults, domainsForToolName } from '@/lib/chat/toolInvalidation';
 import { getUserTimezone } from '@/lib/utils/dateUtils';
 import { useSendCountdown } from '@/hooks/useSendCountdown';
 import i18n from '@/lib/i18n';
@@ -112,14 +110,6 @@ export function useEntityChat({
   // eslint-disable-next-line react-hooks/refs
   const transport = useMemo(() => new DefaultChatTransport({ api: `${BASE_URL}/ai/chat`, prepareSendMessagesRequest }), [prepareSendMessagesRequest]);
 
-  // Without this, updateDraft/updateEvent tool results never reach the open form: it reads the draft/event
-  // through react-query, and that cache is only ever refreshed by an explicit invalidation like this one.
-  const invalidateFinanceCaches = useCallback(() => {
-    for (const queryKey of [DRAFTS_KEY, eventKeys.all, tagKeys.all, categoryKeys.all]) {
-      queryClient.invalidateQueries({ queryKey });
-    }
-  }, [queryClient]);
-
   const {
     messages: uiMessages,
     status,
@@ -131,7 +121,7 @@ export function useEntityChat({
     id: chatId,
     transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
-    onFinish: invalidateFinanceCaches,
+    onFinish: ({ message }) => invalidateForToolResults(queryClient, message),
   });
 
   const isPending = status === 'submitted' || status === 'streaming';
@@ -168,11 +158,11 @@ export function useEntityChat({
           onFieldsPatch?.((call.args ?? {}) as Record<string, unknown>);
           // Invalidate right as the write lands, not only once the whole assistant turn finishes — other
           // views (draft list, badges) shouldn't wait on a possibly-longer multi-step turn to catch up.
-          invalidateFinanceCaches();
+          invalidateDomains(queryClient, domainsForToolName(call.name));
         }
       }
     }
-  }, [messages, onScopeIdResolved, onFieldsPatch, invalidateFinanceCaches]);
+  }, [messages, onScopeIdResolved, onFieldsPatch, queryClient]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();

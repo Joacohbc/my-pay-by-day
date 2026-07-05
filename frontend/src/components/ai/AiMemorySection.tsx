@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { useAlert } from '@/contexts/AlertContext';
 import { memoryService, type MemoryEntry } from '@/services/memory.service';
-
-const memoryKeys = { all: ['ai-memory'] as const };
+import { memoryKeys } from '@/lib/queryKeys';
 
 export function AiMemorySection() {
   const { t } = useTranslation();
