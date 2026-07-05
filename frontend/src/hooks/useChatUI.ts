@@ -28,7 +28,10 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-async function toFilePart(file: FileDto): Promise<FileUIPart> {
+/** Full file part for the chat model: keeps the inline data URL (needed for vision) while also
+ * carrying the backend identity (fileId/typeLabel) so the persisted history can reference the real
+ * stored file instead of the base64 copy. */
+async function toFilePart(file: FileDto): Promise<FileUIPart & { fileId: number; typeLabel?: string }> {
   const response = await fetch(filesService.getContentUrl(file.id));
   const blob = await response.blob();
   return {
@@ -36,6 +39,8 @@ async function toFilePart(file: FileDto): Promise<FileUIPart> {
     mediaType: file.mimeType || blob.type || 'image/jpeg',
     url: await blobToDataUrl(blob),
     filename: file.fileName,
+    fileId: file.id,
+    typeLabel: file.typeLabel,
   };
 }
 
@@ -47,6 +52,22 @@ async function toFilePayload(file: FileDto): Promise<FilePayload> {
     data: dataUrl.slice(dataUrl.indexOf(',') + 1),
     mediaType: file.mimeType || blob.type || 'application/octet-stream',
     filename: file.fileName,
+    fileId: file.id,
+    typeLabel: file.typeLabel,
+  };
+}
+
+/** Builds the optimistic display part for an already-uploaded file, carrying only its file ID —
+ * no URL is resolved or stored here, ChatMessage's FileCard resolves everything from the ID alone.
+ * Matches the shape the persisted history part gets after reload, so the attachment card doesn't
+ * flicker between renderings. */
+function toFileRefPart(file: FileDto): Omit<FileUIPart, 'url'> & { fileId: number; typeLabel?: string } {
+  return {
+    type: 'file',
+    mediaType: file.mimeType || 'application/octet-stream',
+    filename: file.fileName,
+    fileId: file.id,
+    typeLabel: file.typeLabel,
   };
 }
 
@@ -252,10 +273,8 @@ export function useChatUI() {
     setInput('');
     setDraftFiles([]);
 
-    const [uiFileParts, payloadFiles] = await Promise.all([
-      Promise.all(currentFiles.map(toFilePart)),
-      Promise.all(currentFiles.map(toFilePayload)),
-    ]);
+    const uiFileParts = currentFiles.map(toFileRefPart);
+    const payloadFiles = await Promise.all(currentFiles.map(toFilePayload));
 
     const optimisticMessage: UIMessage = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -354,10 +373,6 @@ export function useChatUI() {
     [chatId, setMessages],
   );
 
-  const handleContinue = useCallback(() => {
-    sendMessage({ text: t('chat.stepLimit.continueMessage') });
-  }, [sendMessage, t]);
-
   const handleToolApproval = useCallback(
     (approvalId: string, approved: boolean) => {
       addToolApprovalResponse({ id: approvalId, approved });
@@ -372,8 +387,10 @@ export function useChatUI() {
     [addToolApprovalResponse],
   );
 
-  const handleAddFile = (file: FileDto) => setDraftFiles([...draftFiles, file]);
-  const handleRemoveFile = (fileId: number) => setDraftFiles(draftFiles.filter((f) => f.id !== fileId));
+  const handleAddFiles = (files: FileDto[]) => setDraftFiles([...draftFiles, ...files]);
+  const handleAddFile = (file: FileDto) => handleAddFiles([file]);
+  const handleRemoveFiles = (fileIds: number[]) => setDraftFiles(draftFiles.filter((f) => !fileIds.includes(f.id)));
+  const handleRemoveFile = (fileId: number) => handleRemoveFiles([fileId]);
 
   return {
     messages,
@@ -392,7 +409,6 @@ export function useChatUI() {
     stop,
     handleSend,
     handleQuickCreate,
-    handleContinue,
     handleToolApproval,
     handleAskUserAnswer,
     handleNewChat,
@@ -401,7 +417,9 @@ export function useChatUI() {
     handleAudioRecorded,
     handleAudioFileSelected,
     handleAddFile,
+    handleAddFiles,
     handleRemoveFile,
+    handleRemoveFiles,
     t,
   };
 }

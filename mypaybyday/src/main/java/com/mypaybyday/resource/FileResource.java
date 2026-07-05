@@ -95,6 +95,25 @@ public class FileResource {
 	}
 
 	@GET
+	@Path("/{id}/content/markdown")
+	@Produces("text/markdown")
+	@Operation(summary = "Get file content as Markdown", description = "Returns the persisted Markdown conversion of the file, converting on demand when missing")
+	@APIResponses({
+			@APIResponse(responseCode = "200", description = "File content as Markdown text"),
+			@APIResponse(responseCode = "204", description = "File is not convertible or the conversion service is unavailable"),
+			@APIResponse(responseCode = "404", description = "File not found")
+	})
+	public Response getContentMarkdown(
+			@Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
+			throws BusinessException {
+		String markdown = fileService.getMarkdownContent(id);
+		if (markdown == null) {
+			return Response.noContent().build();
+		}
+		return Response.ok(markdown).build();
+	}
+
+	@GET
 	@Path("/{id}/content/base64")
 	@Produces(MediaType.TEXT_PLAIN)
 	@Operation(summary = "Get file content as Base64", description = "Returns the file content encoded in Base64 (Data URI format)")

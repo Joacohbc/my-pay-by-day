@@ -50,7 +50,9 @@ export function buildInteractionTools(): KindedToolSet {
         description:
           'Ask the user a clarifying question before continuing, and wait for their answer instead of guessing. ' +
           'Use mode "OPEN" for free text, "CHOICE" with 2-5 short options for a multiple-choice question, or ' +
-          '"YES_NO" for a yes/no question.',
+          '"YES_NO" for a yes/no question. ' +
+          'For "CHOICE", the UI always shows a free-text field next to the options, so the user can already type ' +
+          'their own answer at any time — never add an option like "Other" or "Enter your own" to the options list.',
         inputSchema: askUserInputSchema,
         execute: async (input, options: ToolCallOptions) => ({
           question: input.question,

@@ -1,7 +1,8 @@
 import { errorJson } from '@/i18n.js';
 import { Hono } from 'hono';
 import { requestContextFrom } from '@/context.js';
-import { replaceDocumentPartsWithMarkdown } from '@/files/markitdown.js';
+import { replaceDocumentPartsWithMarkdown } from '@/files/markdown.js';
+import { fileRefsOf, reattachFileRefs } from '@/files/fileRefs.js';
 import {
   FORM_PATCH_ENTITY_TYPES,
   streamFormPatch,
@@ -35,9 +36,12 @@ formChatRoute.post('/', async (c) => {
   }
 
   try {
-    const modelMessages = await replaceDocumentPartsWithMarkdown(await convertToModelMessages(incoming));
-    // Remove the last message from modelMessages, we handle it inside streamFormPatch? No, just pass all modelMessages!
-    
+    const converted = await convertToModelMessages(incoming);
+    if (converted.length === incoming.length) {
+      converted.forEach((message, index) => reattachFileRefs(message, fileRefsOf(incoming[index])));
+    }
+    const modelMessages = await replaceDocumentPartsWithMarkdown(converted);
+
     const result = await streamFormPatch(ctx, {
       entityType: body.entityType,
       currentValues: typeof body.currentValues === 'string' ? JSON.parse(body.currentValues || '{}') : (body.currentValues ?? {}),

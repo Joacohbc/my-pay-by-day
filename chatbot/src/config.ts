@@ -32,9 +32,6 @@ export const config = {
   /** Base URL of the Java (Quarkus) domain backend that exposes the REST tools. */
   backendUrl: env('BACKEND_URL', 'http://127.0.0.1:8080'),
 
-  /** Base URL of the MarkItDown document-to-markdown sidecar. Empty string disables conversion. */
-  markitdownUrl: env('MARKITDOWN_URL', ''),
-
   database: {
     path: env('CHATBOT_DB_PATH', './chatbot.db'),
   },

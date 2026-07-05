@@ -3,6 +3,7 @@ import { normalizeText } from '@/lib/utils/textUtils';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useFiles, useUploadFile } from '@/hooks/useFiles';
 import { FileCard } from '@/components/files/FileCard';
 import type { FileDto } from '@/models';
@@ -67,27 +68,70 @@ function FileSelectorModal({ open, onClose, onSelect, excludeIds }: FileSelector
   );
 }
 
-const DEFAULT_ACCEPT = 'image/*,video/*,.pdf,.csv,.json,text/*';
-
 export interface FileUploaderProps {
   files: FileDto[];
   onAddFile: (file: FileDto) => void;
+  /** Adds several files in a single call. Falls back to sequential `onAddFile` calls when omitted —
+   * provide this when the caller computes the next file list from a snapshot (e.g. reads `currentIds`
+   * off a closed-over object), otherwise selecting multiple files at once will each be patched against
+   * the same stale snapshot and only the last one survives. */
+  onAddFiles?: (files: FileDto[]) => Promise<void> | void;
   onRemoveFile: (fileId: number) => void;
+  /** Removes several files in a single call. Falls back to sequential `onRemoveFile` calls when
+   * omitted — provide this when the caller can batch the removal into one request. */
+  onRemoveFiles?: (fileIds: number[]) => Promise<void> | void;
+  /** Restricts the OS file picker to specific types. Omit to allow any file — the backend has no
+   * MIME type allowlist: images/audio/video preview natively and every other type is converted to
+   * Markdown on a best-effort basis. */
   accept?: string;
   onAudioFile?: (file: File) => Promise<void>;
 }
 
-export function FileUploader({ files, onAddFile, onRemoveFile, accept = DEFAULT_ACCEPT, onAudioFile }: FileUploaderProps) {
+export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRemoveFiles, accept, onAudioFile }: FileUploaderProps) {
   const { t } = useTranslation();
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
   const isPending = isUploading || isTranscribing;
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelected = (fileId: number) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(fileId)) next.delete(fileId); else next.add(fileId);
+      return next;
+    });
+  };
+
+  const handleRemoveSelected = async () => {
+    const ids = Array.from(selectedIds);
+    setIsRemoving(true);
+    try {
+      if (onRemoveFiles) {
+        await onRemoveFiles(ids);
+      } else {
+        await Promise.all(ids.map((id) => onRemoveFile(id)));
+      }
+      exitSelectMode();
+    } finally {
+      setIsRemoving(false);
+    }
+  };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
     if (selectedFiles.length === 0) return;
+
+    const uploadedFiles: FileDto[] = [];
 
     for (const file of selectedFiles) {
       if (onAudioFile && file.type.startsWith('audio/')) {
@@ -105,7 +149,7 @@ export function FileUploader({ files, onAddFile, onRemoveFile, accept = DEFAULT_
         reader.onloadend = () => resolve(reader.result as string);
       });
       reader.readAsDataURL(file);
-      
+
       try {
         const base64Content = await base64Promise;
         const uploadedFile = await uploadFile({
@@ -113,12 +157,22 @@ export function FileUploader({ files, onAddFile, onRemoveFile, accept = DEFAULT_
           mimeType: file.type,
           base64Content,
         });
-        onAddFile(uploadedFile);
+        uploadedFiles.push(uploadedFile);
       } catch (error) {
         console.error('File upload failed:', error);
       }
     }
-    
+
+    if (uploadedFiles.length > 0) {
+      if (onAddFiles) {
+        await onAddFiles(uploadedFiles);
+      } else {
+        for (const uploadedFile of uploadedFiles) {
+          await onAddFile(uploadedFile);
+        }
+      }
+    }
+
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -131,7 +185,31 @@ export function FileUploader({ files, onAddFile, onRemoveFile, accept = DEFAULT_
         excludeIds={files.map((f) => f.id)}
       />
 
-      <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider mb-2">{t('eventForm.files')}</p>
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleRemoveSelected}
+        title={t('files.removeSelected')}
+        message={t('files.removeSelectedConfirm', { count: selectedIds.size })}
+        confirmLabel={t('files.removeSelected')}
+        variant="danger"
+        loading={isRemoving}
+      />
+
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">{t('eventForm.files')}</p>
+        {files.length > 0 && (
+          selectMode ? (
+            <button type="button" onClick={exitSelectMode} className="text-xs font-medium text-dn-text-muted hover:text-dn-primary transition-colors">
+              {t('common.cancel')}
+            </button>
+          ) : (
+            <button type="button" onClick={() => setSelectMode(true)} className="text-xs font-medium text-dn-text-muted hover:text-dn-primary transition-colors">
+              {t('files.select')}
+            </button>
+          )
+        )}
+      </div>
 
       <div className="space-y-3">
         {files.map((file) => (
@@ -140,29 +218,47 @@ export function FileUploader({ files, onAddFile, onRemoveFile, accept = DEFAULT_
             file={file}
             onDelete={() => onRemoveFile(file.id)}
             hideEventLinks
+            selectionMode={selectMode}
+            checked={selectedIds.has(file.id)}
+            onToggleChecked={toggleSelected}
           />
         ))}
 
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isPending}
-            className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50"
-          >
-            <Icon name={isPending ? 'pending' : 'upload'} className={isPending ? 'animate-spin' : ''} />
-            <span className="text-sm font-medium">{isPending ? t('common.loading') : t('eventForm.uploadFile')}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectorOpen(true)}
-            disabled={isPending}
-            className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50"
-          >
-            <Icon name="folder_open" />
-            <span className="text-sm font-medium">{t('eventForm.selectExistingFile')}</span>
-          </button>
-        </div>
+        {selectMode ? (
+          <div className="flex items-center justify-between gap-2 p-3 border border-dashed border-white/20 rounded-input">
+            <span className="text-sm text-dn-text-muted">{t('files.selectedCount', { count: selectedIds.size })}</span>
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(true)}
+              disabled={selectedIds.size === 0 || isRemoving}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-dn-error hover:bg-dn-error/10 rounded-button transition-colors disabled:opacity-50"
+            >
+              <Icon name="delete" className="text-[1.1rem]" />
+              {t('files.removeSelected')}
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isPending}
+              className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50"
+            >
+              <Icon name={isPending ? 'pending' : 'upload'} className={isPending ? 'animate-spin' : ''} />
+              <span className="text-sm font-medium">{isPending ? t('common.loading') : t('eventForm.uploadFile')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectorOpen(true)}
+              disabled={isPending}
+              className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50"
+            >
+              <Icon name="folder_open" />
+              <span className="text-sm font-medium">{t('eventForm.selectExistingFile')}</span>
+            </button>
+          </div>
+        )}
         <input
           type="file"
           ref={fileInputRef}

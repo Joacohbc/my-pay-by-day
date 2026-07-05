@@ -765,36 +765,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get a draft by its draft ID */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Draft found */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["DraftEntity"];
-                    };
-                };
-                /** @description Draft not found (Business Exception) */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
+        get?: never;
         put?: never;
         post?: never;
         /** Delete a draft */
@@ -1630,6 +1601,62 @@ export interface paths {
                     content: {
                         "*/*": unknown;
                     };
+                };
+                /** @description File not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/files/{id}/content/markdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get file content as Markdown
+         * @description Returns the persisted Markdown conversion of the file, converting on demand when missing
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID of the file */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description File content as Markdown text */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/markdown": unknown;
+                    };
+                };
+                /** @description File is not convertible or the conversion service is unavailable */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
                 /** @description File not found */
                 404: {
@@ -3721,6 +3748,7 @@ export interface components {
             id?: number;
             fileName?: string;
             mimeType?: string;
+            typeLabel?: string;
             /** Format: int64 */
             size?: number;
             isOrphan?: boolean;
@@ -3737,6 +3765,7 @@ export interface components {
             /** Format: binary */
             data?: string;
             hash?: string;
+            markdownContent?: string;
         };
         FileExportDto: {
             /** Format: int64 */
@@ -3746,6 +3775,7 @@ export interface components {
             /** Format: int64 */
             size?: number;
             base64Content?: string;
+            markdownContent?: string;
         };
         FinanceEventDraftInputDto: {
             /** Format: int64 */

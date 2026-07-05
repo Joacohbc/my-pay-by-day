@@ -9,7 +9,6 @@ import { agentTasksRoute } from '@/routes/agent-tasks.js';
 import { audioRoute } from '@/routes/audio.js';
 import { chatRoute } from '@/routes/chat.js';
 import { extractRoute } from '@/routes/extract.js';
-import { filesRoute } from '@/routes/files.js';
 import { formChatRoute } from '@/routes/formChat.js';
 import { memoryRoute } from '@/routes/memory.js';
 import { textRoute } from '@/routes/text.js';
@@ -36,7 +35,6 @@ app.route('/ai/memory', memoryRoute);
 app.route('/ai/text', textRoute);
 app.route('/ai/form-chat', formChatRoute);
 app.route('/ai/extract', extractRoute);
-app.route('/ai/files', filesRoute);
 app.route('/ai/audio', audioRoute);
 app.route('/agent-tasks', agentTasksRoute);
 

@@ -3,10 +3,9 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTranslation } from 'react-i18next';
 import { filesService } from '@/services/files.service';
-import { extractService } from '@/services/extract.service';
 import { Icon } from '@/components/ui/Icon';
 import { AudioMessagePlayer } from '@/components/chat/AudioMessagePlayer';
-import { isBrowserNativePreview, isMarkdownFile } from '@/lib/fileUtils';
+import { isBrowserNativePreview, isMarkdownFile, isSpreadsheetFile } from '@/lib/fileUtils';
 import type { FileDto } from '@/models';
 
 interface MultimediaPreviewerProps {
@@ -53,8 +52,7 @@ export function MultimediaPreviewer({ fileId, fileName, onClose }: MultimediaPre
           if (!cancelled) setMarkdown(text);
           return;
         }
-        const base64 = await filesService.getContentAsBase64(fileId);
-        const { markdown: converted } = await extractService.toMarkdown({ data: base64, mediaType: mimeType, filename: name });
+        const converted = await filesService.getContentAsMarkdown(fileId);
         if (!cancelled) setMarkdown(converted);
       } catch {
         if (!cancelled) setMarkdown(null);
@@ -133,9 +131,10 @@ export function MultimediaPreviewer({ fileId, fileName, onClose }: MultimediaPre
         </div>
       );
     } else if (markdown !== null) {
+      const isSpreadsheet = isSpreadsheetFile(mimeType, fileDetails.fileName);
       content = (
         <div className="w-full h-full overflow-auto p-4 md:p-8">
-          <div className="max-w-3xl mx-auto bg-dn-surface/60 backdrop-blur-md border border-white/10 rounded-2xl p-6 md:p-10 shadow-2xl prose prose-sm prose-invert max-w-none prose-table:my-0 prose-p:leading-relaxed">
+          <div className={`mx-auto bg-dn-surface/60 backdrop-blur-md border border-white/10 rounded-2xl p-6 md:p-10 shadow-2xl prose prose-sm prose-invert max-w-none prose-table:my-0 prose-p:leading-normal prose-headings:mt-4 prose-headings:mb-2 first:prose-headings:mt-0 prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-hr:my-4 prose-hr:border-white/10 ${isSpreadsheet ? 'max-w-6xl' : 'max-w-3xl'}`}>
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{

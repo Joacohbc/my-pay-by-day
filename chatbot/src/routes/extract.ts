@@ -1,9 +1,11 @@
 import { errorJson } from '@/i18n.js';
 import { Hono } from 'hono';
+import type { ModelMessage } from 'ai';
 import { requestContextFrom } from '@/context.js';
-import type { FileInput } from '@/agent/extraction.js';
+import type { ExtractionUserContentPart, FileInput } from '@/agent/extraction.js';
 import { runExtractionAgent } from '@/agent/extractionAgent.js';
 import { conversationMemory } from '@/memory/conversation.js';
+import type { DisplayMessage, DisplayPart } from '@/memory/display.js';
 import { chatTitles } from '@/memory/titles.js';
 import { logger } from '@/logging/logger.js';
 
@@ -14,6 +16,33 @@ interface ExtractBody {
   files?: FileInput[];
   templateId?: number;
   chatId?: string;
+}
+
+/** The extraction user message is persisted with its display copy as content, so the display
+ * representation is derived straight from those parts (file refs with fileId, inline images). */
+function displayOfExtractionUserMessage(userMessage: ModelMessage): DisplayMessage {
+  const content = Array.isArray(userMessage.content) ? (userMessage.content as ExtractionUserContentPart[]) : [];
+  const parts: DisplayPart[] = [];
+  for (const part of content) {
+    if (part.type === 'text') {
+      parts.push({ type: 'text', text: part.text });
+    } else if (part.type === 'image') {
+      parts.push({ type: 'file', mediaType: part.mediaType, url: asDataUrl(part.image, part.mediaType) });
+    } else if (part.type === 'file') {
+      parts.push({
+        type: 'file',
+        mediaType: part.mediaType,
+        filename: part.filename,
+        ...(part.fileId != null ? { fileId: part.fileId } : { url: asDataUrl(part.data, part.mediaType) }),
+        ...(part.typeLabel != null ? { typeLabel: part.typeLabel } : {}),
+      });
+    }
+  }
+  return { role: 'user', parts };
+}
+
+function asDataUrl(data: string, mediaType: string): string {
+  return data.startsWith('data:') ? data : `data:${mediaType};base64,${data}`;
 }
 
 export const extractRoute = new Hono();
@@ -35,7 +64,8 @@ extractRoute.post('/', async (c) => {
     });
 
     if (body.chatId) {
-      conversationMemory.append(body.chatId, [userMessage, ...responseMessages]);
+      const displays = [displayOfExtractionUserMessage(userMessage), ...responseMessages.map(() => null)];
+      conversationMemory.append(body.chatId, [userMessage, ...responseMessages], displays);
       void chatTitles.generateIfMissing(body.chatId, ctx.lang);
     }
 

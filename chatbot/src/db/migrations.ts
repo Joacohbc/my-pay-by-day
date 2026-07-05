@@ -4,6 +4,8 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS conversation (
   chat_id     TEXT    PRIMARY KEY,
   title       TEXT,
+  summary     TEXT,
+  summary_up_to_sequence INTEGER,
   created_at  TEXT    NOT NULL
 );
 
@@ -13,6 +15,7 @@ CREATE TABLE IF NOT EXISTS conversation_message (
   sequence    INTEGER NOT NULL,
   role        TEXT    NOT NULL,
   message_json TEXT   NOT NULL,
+  display_json TEXT,
   text        TEXT,
   created_at  TEXT    NOT NULL
 );
@@ -96,8 +99,8 @@ function ensureColumn(database: DatabaseSync, table: string, column: string, ddl
 
 export function runMigrations(database: DatabaseSync): void {
   database.exec(SCHEMA);
-  database.exec(BACKFILL_CONVERSATION_FROM_MESSAGES);
-  ensureColumn(database, 'agent_task', 'step_budget', 'step_budget INTEGER');
   ensureColumn(database, 'conversation', 'summary', 'summary TEXT');
   ensureColumn(database, 'conversation', 'summary_up_to_sequence', 'summary_up_to_sequence INTEGER');
+  ensureColumn(database, 'conversation_message', 'display_json', 'display_json TEXT');
+  database.exec(BACKFILL_CONVERSATION_FROM_MESSAGES);
 }

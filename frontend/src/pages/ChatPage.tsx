@@ -2,7 +2,6 @@ import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { useChatUI } from '@/hooks/useChatUI';
 import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput } from '@/components/chat/ChatInput';
@@ -32,7 +31,6 @@ export function ChatPage() {
     stop,
     handleSend,
     handleQuickCreate,
-    handleContinue,
     handleToolApproval,
     handleAskUserAnswer,
     handleNewChat,
@@ -41,7 +39,9 @@ export function ChatPage() {
     handleAudioRecorded,
     handleAudioFileSelected,
     handleAddFile,
+    handleAddFiles,
     handleRemoveFile,
+    handleRemoveFiles,
     t,
   } = useChatUI();
 
@@ -166,14 +166,9 @@ export function ChatPage() {
 
                 {showContinueCard && (
                   <div className="max-w-4xl mx-auto px-4 md:px-8 mt-4">
-                    <Card className="flex items-center justify-between gap-4 border border-dn-warning/30 bg-dn-warning/5">
-                      <div className="flex items-center gap-2 text-sm text-dn-text-main">
-                        <Icon name="hourglass_bottom" className="text-dn-warning" />
-                        {t('chat.stepLimit.title')}
-                      </div>
-                      <Button size="sm" onClick={handleContinue}>
-                        {t('chat.stepLimit.continue')}
-                      </Button>
+                    <Card className="flex items-center gap-2 text-sm text-dn-text-main border border-dn-warning/30 bg-dn-warning/5">
+                      <Icon name="hourglass_bottom" className="text-dn-warning" />
+                      {t('chat.stepLimit.title')}
                     </Card>
                   </div>
                 )}
@@ -195,7 +190,9 @@ export function ChatPage() {
                 onAudioFileSelected={handleAudioFileSelected}
                 draftFiles={draftFiles}
                 onAddFile={handleAddFile}
+                onAddFiles={handleAddFiles}
                 onRemoveFile={handleRemoveFile}
+                onRemoveFiles={handleRemoveFiles}
                 isPending={isPending}
                 disabled={hasPendingApproval}
                 countdown={countdown}

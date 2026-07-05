@@ -1,6 +1,7 @@
 import type { ModelMessage } from 'ai';
 import { db, nowIso } from '@/db/index.js';
 import { agentStore } from '@/agent/store.js';
+import { parseDisplayJson, type DisplayMessage } from '@/memory/display.js';
 
 interface Row {
   message_json: string;
@@ -9,6 +10,11 @@ interface Row {
 export interface SequencedMessage {
   sequence: number;
   message: ModelMessage;
+}
+
+export interface StoredMessage {
+  message: ModelMessage;
+  display: DisplayMessage | null;
 }
 
 export interface ConversationSummary {
@@ -71,7 +77,18 @@ export const conversationMemory = {
     db().prepare('UPDATE conversation SET summary = NULL, summary_up_to_sequence = NULL WHERE chat_id = ?').run(chatId);
   },
 
-  append(chatId: string, messages: ModelMessage[]): void {
+  /** Loads messages together with their persisted display representation (null for legacy rows and tool rows). */
+  loadWithDisplay(chatId: string): StoredMessage[] {
+    const rows = db()
+      .prepare('SELECT message_json, display_json FROM conversation_message WHERE chat_id = ? ORDER BY sequence ASC')
+      .all(chatId) as unknown as { message_json: string; display_json: string | null }[];
+    return rows.map((row) => ({
+      message: JSON.parse(row.message_json) as ModelMessage,
+      display: parseDisplayJson(row.display_json),
+    }));
+  },
+
+  append(chatId: string, messages: ModelMessage[], displays?: (DisplayMessage | null)[]): void {
     if (messages.length === 0) return;
     db()
       .prepare('INSERT INTO conversation (chat_id, created_at) VALUES (?, ?) ON CONFLICT(chat_id) DO NOTHING')
@@ -82,17 +99,26 @@ export const conversationMemory = {
       .get(chatId) as { next: number };
     let sequence = next.next;
     const insert = db().prepare(
-      'INSERT INTO conversation_message (chat_id, sequence, role, message_json, text, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO conversation_message (chat_id, sequence, role, message_json, display_json, text, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
     );
     const createdAt = nowIso();
-    for (const message of messages) {
-      insert.run(chatId, sequence++, message.role, JSON.stringify(message), textOf(message), createdAt);
-    }
+    messages.forEach((message, index) => {
+      const display = displays?.[index] ?? null;
+      insert.run(
+        chatId,
+        sequence++,
+        message.role,
+        JSON.stringify(message),
+        display == null ? null : JSON.stringify(display),
+        textOf(message),
+        createdAt,
+      );
+    });
   },
 
-  replace(chatId: string, messages: ModelMessage[]): void {
+  replace(chatId: string, messages: ModelMessage[], displays?: (DisplayMessage | null)[]): void {
     this.clearMessages(chatId);
-    this.append(chatId, messages);
+    this.append(chatId, messages, displays);
   },
 
   /** Removes every message in the chat but keeps the conversation entity (and its title). Used by trim/replace. */
@@ -150,17 +176,22 @@ export const conversationMemory = {
 
   /** Removes every message from the most recent user message that contains the given text. */
   trim(chatId: string, textToMatch: string): void {
-    const messages = this.load(chatId);
+    const stored = this.loadWithDisplay(chatId);
     let trimIndex = -1;
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const message = messages[i];
+    for (let i = stored.length - 1; i >= 0; i--) {
+      const { message } = stored[i];
       if (message.role === 'user' && textOf(message).includes(textToMatch)) {
         trimIndex = i;
         break;
       }
     }
     if (trimIndex >= 0) {
-      this.replace(chatId, messages.slice(0, trimIndex));
+      const kept = stored.slice(0, trimIndex);
+      this.replace(
+        chatId,
+        kept.map((entry) => entry.message),
+        kept.map((entry) => entry.display),
+      );
     }
   },
 

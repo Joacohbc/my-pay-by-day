@@ -109,9 +109,7 @@ const en = {
     },
     sendingIn: 'Sending in {{count}}s — tap send to send now',
     stepLimit: {
-      title: 'The assistant reached the step limit',
-      continue: 'Continue',
-      continueMessage: 'Continue where you left off.',
+      title: 'The assistant reached its step limit for this turn — send a message to let it continue.',
     },
     approval: {
       title: 'Approval required',
@@ -552,6 +550,10 @@ const en = {
     orphanSummary: '{{count}} orphan file(s) — click to review',
     noAssociatedEvents: 'No events',
     deleteConfirm: 'Permanently delete this file?',
+    select: 'Select',
+    selectedCount: '{{count}} selected',
+    removeSelected: 'Remove selected',
+    removeSelectedConfirm: 'Remove {{count}} selected file(s) from this event?',
     all: 'All',
     orphansOnly: 'Orphans',
     linkedOnly: 'Linked',

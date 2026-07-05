@@ -39,5 +39,12 @@ export const filesService = {
     const response = await fetch(`${BASE_URL}/files/${id}/content/base64`);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return response.text();
+  },
+
+  getContentAsMarkdown: async (id: number): Promise<string | null> => {
+    const response = await fetch(`${BASE_URL}/files/${id}/content/markdown`);
+    if (response.status === 204) return null;
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.text();
   }
 };

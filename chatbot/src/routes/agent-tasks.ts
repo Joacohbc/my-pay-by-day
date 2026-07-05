@@ -8,6 +8,7 @@ import { broadcastAction, recordStep, updateStatus } from '@/agent/notify.js';
 import { forceCancel, forcePause, submitTask } from '@/agent/executor.js';
 import { agentStore } from '@/agent/store.js';
 import { conversationMemory } from '@/memory/conversation.js';
+import { fetchBackendMarkdown, isConvertibleDocument } from '@/files/markdown.js';
 import type { AgentExecutionMode, AgentTaskStatus } from '@/agent/types.js';
 import { logger } from '@/logging/logger.js';
 import { config } from '@/config.js';
@@ -42,10 +43,23 @@ async function attachFiles(ctx: RequestContext, taskId: string, fileIds?: number
     try {
       const meta = await unwrap(client.GET('/files/{id}', { params: { path: { id: fileId } } }));
       const mimeType = meta.mimeType ?? 'application/octet-stream';
+      const fileName = meta.fileName ?? `file-${fileId}`;
+
+      const markdown = isConvertibleDocument(mimeType) ? await fetchBackendMarkdown(fileId) : null;
+      if (markdown != null) {
+        agentStore.saveAttachment(taskId, {
+          fileName,
+          mimeType: 'text/markdown',
+          kind: 'TEXT',
+          data: new Uint8Array(Buffer.from(markdown, 'utf8')),
+        });
+        continue;
+      }
+
       const dataUri = await getBackendText(ctx, `/files/${fileId}/content/base64`);
       const base64 = dataUri.includes(',') ? dataUri.slice(dataUri.indexOf(',') + 1) : dataUri;
       agentStore.saveAttachment(taskId, {
-        fileName: meta.fileName ?? `file-${fileId}`,
+        fileName,
         mimeType,
         kind: kindOf(mimeType),
         data: new Uint8Array(Buffer.from(base64, 'base64')),

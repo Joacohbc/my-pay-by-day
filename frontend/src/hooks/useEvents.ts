@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { eventsService, type EventFilters } from '@/services/events.service';
 import { usePendingEventsStore } from '@/store/pendingEventsStore';
-import type { CreateEventDto, PatchEventDto, BulkPatchEventDto, FinanceEvent, Category, Tag, FinanceNode, FinanceLineItem } from '@/models';
+import type { CreateEventDto, PatchEventDto, BulkPatchEventDto, FinanceEvent, Category, Tag, FinanceNode, FinanceLineItem, FileDto } from '@/models';
 import {
   type QueriesSnapshot,
   snapshotAndCancel,
@@ -169,14 +169,17 @@ export function useUpdateEvent() {
   const alert = useAlert();
   const { t } = useTranslation();
 
-  return useMutation<FinanceEvent, Error, { id: number; dto: PatchEventDto }, EventMutationContext>({
+  return useMutation<FinanceEvent, Error, { id: number; dto: PatchEventDto; optimisticFiles?: FileDto[] }, EventMutationContext>({
     mutationFn: ({ id, dto }) => eventsService.update(id, dto),
-    onMutate: async ({ id, dto }) => {
+    onMutate: async ({ id, dto, optimisticFiles }) => {
       const previousLists = await snapshotAndCancel(queryClient, eventKeys.lists());
       const previousEventDetail = queryClient.getQueryData<FinanceEvent>(eventKeys.detail(id));
       await queryClient.cancelQueries({ queryKey: eventKeys.detail(id) });
 
       const enrichedPatch = enrichPatchWithCachedEntities(dto, queryClient);
+      // Files carry rich fields (isOrphan, ...) the caller already has in hand — resolving them from
+      // an IDs-only patch through the cache would need extra plumbing for no benefit here.
+      if (optimisticFiles !== undefined) enrichedPatch.files = optimisticFiles;
 
       const applyPatchToDetailCache = (cachedDetail: FinanceEvent) =>
         queryClient.setQueryData<FinanceEvent>(

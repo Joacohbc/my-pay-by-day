@@ -363,6 +363,7 @@ public class DataTransferService {
             entity.fileName = dto.fileName();
             entity.mimeType = dto.mimeType();
             entity.size = dto.size();
+            entity.markdownContent = dto.markdownContent();
             if (dto.base64Content() != null && !dto.base64Content().isEmpty()) {
                 entity.data = Base64.getDecoder().decode(dto.base64Content());
                 try {

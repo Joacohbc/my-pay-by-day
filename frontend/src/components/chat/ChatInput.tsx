@@ -17,7 +17,9 @@ interface ChatInputProps {
   disabled?: boolean;
   draftFiles?: FileDto[];
   onAddFile?: (file: FileDto) => void;
+  onAddFiles?: (files: FileDto[]) => void;
   onRemoveFile?: (fileId: number) => void;
+  onRemoveFiles?: (fileIds: number[]) => void;
   placeholder?: string;
   countdown?: number | null;
   onSendNow?: () => void;
@@ -35,7 +37,9 @@ export function ChatInput({
   disabled = false,
   draftFiles = [],
   onAddFile,
+  onAddFiles,
   onRemoveFile,
+  onRemoveFiles,
   placeholder,
   countdown = null,
   onSendNow,
@@ -147,8 +151,9 @@ export function ChatInput({
             <FileUploader
               files={draftFiles}
               onAddFile={onAddFile}
+              onAddFiles={onAddFiles}
               onRemoveFile={onRemoveFile}
-              accept={onAudioFileSelected ? 'image/*,video/*,.pdf,.csv,.json,text/*,audio/*,.docx,.xlsx,.xls,.pptx,.epub,.html,.htm,.xml,.md,.msg' : undefined}
+              onRemoveFiles={onRemoveFiles}
               onAudioFile={onAudioFileSelected ? handleAudioFile : undefined}
             />
           </div>

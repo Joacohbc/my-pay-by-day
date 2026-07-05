@@ -1,5 +1,8 @@
 import type { FileUIPart, UIMessage } from 'ai';
 import type { ChatMessage, ChatMessagePart, ChatToolCall } from '@/store/chatStore';
+import { filesService } from '@/services/files.service';
+
+type FileRefPart = Omit<FileUIPart, 'url'> & { url?: string; fileId?: number; typeLabel?: string };
 
 const PRESERVED_STATES = new Set(['approval-requested', 'approval-responded']);
 
@@ -53,20 +56,22 @@ export function textOf(message: UIMessage): string {
 
 export function imageUrlsOf(message: UIMessage): string[] {
   return message.parts
-    .filter((part): part is FileUIPart => part.type === 'file' && (part.mediaType ?? '').startsWith('image/'))
-    .map((part) => part.url);
+    .filter((part): part is FileRefPart => part.type === 'file' && (part.mediaType ?? '').startsWith('image/'))
+    .map((part) => part.url ?? (part.fileId != null ? filesService.getContentUrl(part.fileId) : undefined))
+    .filter((url): url is string => url != null);
 }
 
-export function attachmentsOf(message: UIMessage): { url: string; name: string; type: string }[] {
+export function attachmentsOf(message: UIMessage): { name: string; type: string; fileId?: number; typeLabel?: string }[] {
   return message.parts
-    .filter((part): part is FileUIPart => part.type === 'file' && !(part.mediaType ?? '').startsWith('image/'))
+    .filter((part): part is FileRefPart => part.type === 'file' && !(part.mediaType ?? '').startsWith('image/'))
     .map((part) => {
       // @ts-expect-error - FileUIPart might have name or filename depending on version
       const name = part.filename || part.name || 'File';
       return {
-        url: part.url,
         name,
         type: part.mediaType ?? 'application/octet-stream',
+        fileId: part.fileId,
+        typeLabel: part.typeLabel,
       };
     });
 }

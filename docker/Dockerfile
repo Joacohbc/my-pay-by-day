@@ -105,7 +105,7 @@ ENV MODEL_LARGE=minimax/minimax-m3
 ENV MODEL_FAST=deepseek/deepseek-v4-flash
 ENV NODE_NO_WARNINGS=1
 
-# ── MarkItDown sidecar (internal only, reached by the chatbot over localhost) ──
+# ── MarkItDown sidecar (internal only, reached by the backend over localhost) ──
 ENV MARKITDOWN_PORT=8590
 ENV MARKITDOWN_URL=http://127.0.0.1:8590
 

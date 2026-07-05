@@ -25,7 +25,7 @@ export interface ChatMessage {
   content: string;
   toolCalls: ChatToolCall[];
   imageUrls?: string[];
-  attachments?: { url: string; name: string; type: string }[];
+  attachments?: { name: string; type: string; fileId?: number; typeLabel?: string }[];
   audioUrl?: string;
   audioTranscriptionStatus?: 'pending' | 'ready' | 'failed';
   timestamp: string;

@@ -58,11 +58,11 @@ export interface ExtractionAgentResult {
  * some fields are left incomplete.
  */
 export async function runExtractionAgent(ctx: RequestContext, input: ExtractInput): Promise<ExtractionAgentResult> {
-  const [userContent, templateContext] = await Promise.all([
+  const [{ model: modelContent, display: displayContent }, templateContext] = await Promise.all([
     buildExtractionUserContent(input),
     fetchTemplateContext(ctx, input.templateId),
   ]);
-  const userMessage: ModelMessage = { role: 'user', content: userContent };
+  const userMessage: ModelMessage = { role: 'user', content: displayContent };
 
   const result = await generateText({
     model: largeModel(),
@@ -72,7 +72,7 @@ export async function runExtractionAgent(ctx: RequestContext, input: ExtractInpu
       lang: ctx.lang,
       templateContext,
     }),
-    messages: [userMessage],
+    messages: [{ role: 'user', content: modelContent }],
     tools: toolsForMode(extractionToolSet(ctx), 'DRAFT_ONLY'),
     stopWhen: stepCountIs(config.agent.subagentMaxSteps),
   });

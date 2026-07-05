@@ -48,3 +48,18 @@ export function isMarkdownFile(mimeType: string, fileName: string): boolean {
   const lowerName = fileName.toLowerCase();
   return lowerName.endsWith('.md') || lowerName.endsWith('.markdown');
 }
+
+const SPREADSHEET_MIME_TYPES = [
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/csv',
+];
+
+/** Spreadsheets read better in a wide, landscape-oriented preview; documents (docx, pdf, ...) read
+ * better in a narrow, portrait-oriented one — this decides which layout a converted-to-Markdown
+ * file should get. */
+export function isSpreadsheetFile(mimeType: string, fileName: string): boolean {
+  if (SPREADSHEET_MIME_TYPES.includes(mimeType)) return true;
+  const lowerName = fileName.toLowerCase();
+  return lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls') || lowerName.endsWith('.csv');
+}

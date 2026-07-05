@@ -8,10 +8,12 @@ import { buildDelegateTools } from '@/tools/delegate.js';
 import { buildInteractionTools } from '@/tools/interaction.js';
 import { config } from '@/config.js';
 import { requestContextFrom, type ChatScope } from '@/context.js';
-import { replaceDocumentPartsWithMarkdown } from '@/files/markitdown.js';
+import { replaceDocumentPartsWithMarkdown } from '@/files/markdown.js';
+import { fileRefsOf, reattachFileRefs } from '@/files/fileRefs.js';
 import { groundingNow } from '@/dates.js';
 import { buildModelContext, compactIfNeeded } from '@/memory/compaction.js';
 import { conversationMemory } from '@/memory/conversation.js';
+import { toUIParts, type DisplayMessage, type DisplayOverlays, type DisplayPart } from '@/memory/display.js';
 import { chatTitles } from '@/memory/titles.js';
 import { longTermMemory } from '@/memory/longTerm.js';
 import { logger } from '@/logging/logger.js';
@@ -71,6 +73,57 @@ function isApprovalResponseMessage(message: UIMessage): boolean {
   return message.role === 'assistant' && message.parts.some((part) => 'state' in part && part.state === 'approval-responded');
 }
 
+function displayOfUserMessage(uiMessage: UIMessage): DisplayMessage {
+  const parts: DisplayPart[] = [];
+  for (const part of uiMessage.parts) {
+    if (part.type === 'text') {
+      parts.push({ type: 'text', text: part.text });
+    } else if (part.type === 'file') {
+      const { fileId, typeLabel } = part as { fileId?: number; typeLabel?: string };
+      parts.push({
+        type: 'file',
+        mediaType: part.mediaType,
+        filename: part.filename,
+        ...(fileId != null ? { fileId } : { url: part.url }),
+        ...(typeLabel != null ? { typeLabel } : {}),
+      });
+    }
+  }
+  return { role: 'user', parts };
+}
+
+/** Builds the display representation of the assistant messages produced by a generation, pairing each
+ * tool call with its display-rich output (for delegateTask that is the full sub-agent result, not the
+ * summary that toModelOutput feeds back to the model). Tool-role messages get no display of their own. */
+function displaysOfResponseMessages(
+  messages: ModelMessage[],
+  richOutputsByCallId: Map<string, unknown>,
+): (DisplayMessage | null)[] {
+  const pendingApprovals = pendingApprovalsByToolCallId(messages);
+  return messages.map((message) => {
+    if (message.role !== 'assistant' || !Array.isArray(message.content)) return null;
+    const parts: DisplayPart[] = [];
+    for (const part of message.content) {
+      if (part.type === 'text') {
+        parts.push({ type: 'text', text: part.text });
+      } else if (part.type === 'tool-call') {
+        const approvalId = pendingApprovals.get(part.toolCallId);
+        const hasOutput = richOutputsByCallId.has(part.toolCallId);
+        parts.push({
+          type: 'tool',
+          toolName: part.toolName,
+          toolCallId: part.toolCallId,
+          state: approvalId != null && !hasOutput ? 'approval-requested' : 'result',
+          input: part.input,
+          ...(hasOutput ? { output: richOutputsByCallId.get(part.toolCallId) } : {}),
+          ...(approvalId != null ? { approval: { id: approvalId } } : {}),
+        });
+      }
+    }
+    return { role: 'assistant', parts };
+  });
+}
+
 interface ChatBody {
   chatId?: string;
   id?: string;
@@ -105,6 +158,16 @@ chatRoute.post('/', async (c) => {
   const incoming = body.messages ?? [];
   const userUIMessages = incoming.filter((m) => m.role === 'user');
   const userMessages = await convertToModelMessages(userUIMessages);
+  const conversionIsOneToOne = userMessages.length === userUIMessages.length;
+  if (conversionIsOneToOne) {
+    userMessages.forEach((message, index) => reattachFileRefs(message, fileRefsOf(userUIMessages[index])));
+  } else if (userUIMessages.length > 0) {
+    chatLog.warn('user message conversion is not 1:1, skipping file ref re-attachment', {
+      chatId,
+      uiCount: userUIMessages.length,
+      modelCount: userMessages.length,
+    });
+  }
   const approvalUIMessages = incoming.filter(isApprovalResponseMessage);
 
   if (userMessages.length === 0 && approvalUIMessages.length === 0) {
@@ -122,7 +185,8 @@ chatRoute.post('/', async (c) => {
       })
       .join(' ');
     chatLog.info('chat request', { chatId, tz: ctx.timezone, lang: ctx.lang, user: userText });
-    conversationMemory.append(chatId, userMessages);
+    const displays = conversionIsOneToOne ? userUIMessages.map(displayOfUserMessage) : undefined;
+    conversationMemory.append(chatId, userMessages, displays);
   }
 
   if (approvalUIMessages.length > 0) {
@@ -167,10 +231,14 @@ chatRoute.post('/', async (c) => {
     stopWhen: stepCountIs(config.agent.maxSteps),
     onFinish: ({ text, steps, response }) => {
       chatGenerationTracker.markGenerationComplete(chatId);
+      const richOutputsByCallId = new Map<string, unknown>();
+      for (const step of steps) {
+        for (const toolResult of step.toolResults) richOutputsByCallId.set(toolResult.toolCallId, toolResult.output);
+      }
       // `response.messages` is already the full, de-duplicated set of new messages for the whole call —
       // each StepResult's own response.messages is cumulative (includes every prior step's messages too),
       // so flatMapping over `steps` re-appends earlier steps again and again (quadratic duplication).
-      conversationMemory.append(chatId, response.messages);
+      conversationMemory.append(chatId, response.messages, displaysOfResponseMessages(response.messages, richOutputsByCallId));
       chatLog.info('chat finished', { chatId, steps: steps.length, reply: text });
       void chatTitles.generateIfMissing(chatId, ctx.lang);
     },
@@ -185,67 +253,86 @@ chatRoute.post('/', async (c) => {
   });
 });
 
+/** Rebuilds UI parts from a raw ModelMessage — the fallback for rows persisted before display_json existed. */
+function reconstructLegacyParts(msg: ModelMessage, overlays: DisplayOverlays): Record<string, unknown>[] {
+  const parts: Record<string, unknown>[] = [];
+  if (typeof msg.content === 'string') {
+    if (msg.content.trim()) {
+      parts.push({ type: 'text', text: msg.content });
+    }
+    return parts;
+  }
+  if (!Array.isArray(msg.content)) return parts;
+
+  for (const part of msg.content) {
+    if (part.type === 'text') {
+      if (part.text.trim()) {
+        parts.push({ type: 'text', text: part.text });
+      }
+    } else if (part.type === 'file') {
+      const fileId = (part as { fileId?: number }).fileId;
+      const inlineDataUrl =
+        typeof part.data === 'string' && part.data.startsWith('data:')
+          ? part.data
+          : `data:${part.mediaType};base64,${part.data}`;
+      parts.push({
+        type: 'file',
+        mediaType: part.mediaType,
+        filename: part.filename,
+        ...(fileId != null ? { fileId } : { url: inlineDataUrl }),
+      });
+    } else if (part.type === 'tool-call') {
+      const approvalId = overlays.pendingApprovalsByToolCallId.get(part.toolCallId);
+      const isPendingApproval = approvalId != null && !overlays.outputsByCallId.has(part.toolCallId);
+      parts.push(
+        isPendingApproval
+          ? {
+              type: `tool-${part.toolName}`,
+              toolName: part.toolName,
+              toolCallId: part.toolCallId,
+              state: 'approval-requested',
+              input: part.input,
+              approval: { id: approvalId },
+            }
+          : {
+              type: `tool-${part.toolName}`,
+              toolName: part.toolName,
+              toolCallId: part.toolCallId,
+              state: 'result',
+              input: part.input,
+              output: overlays.outputsByCallId.get(part.toolCallId),
+              ...(approvalId != null
+                ? {
+                    approval: {
+                      id: approvalId,
+                      approved: true,
+                      reason: overlays.approvalReasonsByApprovalId.get(approvalId),
+                    },
+                  }
+                : {}),
+            },
+      );
+    }
+  }
+  return parts;
+}
+
 chatRoute.get('/:chatId', (c) => {
   const chatId = c.req.param('chatId');
-  const history = conversationMemory.load(chatId);
-  const outputsByCallId = toolOutputsByCallId(history);
-  const pendingApprovals = pendingApprovalsByToolCallId(history);
-  const approvalReasons = approvalReasonsByApprovalId(history);
-  const uiMessages = history
-    .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
-    .map((msg, index) => {
-      const parts: any[] = [];
-      if (typeof msg.content === 'string') {
-        if (msg.content.trim()) {
-          parts.push({ type: 'text', text: msg.content });
-        }
-      } else if (Array.isArray(msg.content)) {
-        for (const part of msg.content) {
-          if (part.type === 'text') {
-            if (part.text.trim()) {
-              parts.push({ type: 'text', text: part.text });
-            }
-          } else if (part.type === 'file') {
-            parts.push({
-              type: 'file',
-              mediaType: part.mediaType,
-              filename: part.filename,
-              url: part.data,
-            });
-          } else if (part.type === 'tool-call') {
-            const approvalId = pendingApprovals.get(part.toolCallId);
-            const isPendingApproval = approvalId != null && !outputsByCallId.has(part.toolCallId);
-            parts.push(
-              isPendingApproval
-                ? {
-                    type: `tool-${part.toolName}`,
-                    toolName: part.toolName,
-                    toolCallId: part.toolCallId,
-                    state: 'approval-requested',
-                    input: part.input,
-                    approval: { id: approvalId },
-                  }
-                : {
-                    type: `tool-${part.toolName}`,
-                    toolName: part.toolName,
-                    toolCallId: part.toolCallId,
-                    state: 'result',
-                    input: part.input,
-                    output: outputsByCallId.get(part.toolCallId),
-                    ...(approvalId != null
-                      ? { approval: { id: approvalId, approved: true, reason: approvalReasons.get(approvalId) } }
-                      : {}),
-                  },
-            );
-          }
-        }
-      }
-      return {
-        id: `${chatId}-${index}`,
-        role: msg.role as 'user' | 'assistant',
-        parts,
-      };
-    })
+  const stored = conversationMemory.loadWithDisplay(chatId);
+  const history = stored.map((entry) => entry.message);
+  const overlays: DisplayOverlays = {
+    outputsByCallId: toolOutputsByCallId(history),
+    pendingApprovalsByToolCallId: pendingApprovalsByToolCallId(history),
+    approvalReasonsByApprovalId: approvalReasonsByApprovalId(history),
+  };
+  const uiMessages = stored
+    .filter(({ message }) => message.role === 'user' || message.role === 'assistant')
+    .map(({ message, display }, index) => ({
+      id: `${chatId}-${index}`,
+      role: message.role as 'user' | 'assistant',
+      parts: display != null ? toUIParts(display, overlays) : reconstructLegacyParts(message, overlays),
+    }))
     .filter((msg) => msg.parts.length > 0);
 
   const lastAssistantMessage = uiMessages.at(-1);

@@ -108,9 +108,7 @@ const es = {
     },
     sendingIn: 'Enviando en {{count}}s — tocá enviar para mandar ya',
     stepLimit: {
-      title: 'El asistente alcanzó el límite de pasos',
-      continue: 'Continuar',
-      continueMessage: 'Continúa donde quedaste.',
+      title: 'El asistente alcanzó el límite de pasos de este turno — enviá un mensaje para que continúe.',
     },
     approval: {
       title: 'Se requiere aprobación',
@@ -551,6 +549,10 @@ const es = {
     orphanSummary: '{{count}} archivo(s) huérfano(s) — clic para revisar',
     noAssociatedEvents: 'Sin eventos',
     deleteConfirm: '¿Eliminar este archivo permanentemente?',
+    select: 'Seleccionar',
+    selectedCount: '{{count}} seleccionado(s)',
+    removeSelected: 'Quitar seleccionados',
+    removeSelectedConfirm: '¿Quitar {{count}} archivo(s) seleccionado(s) de este evento?',
     all: 'Todos',
     orphansOnly: 'Huérfanos',
     linkedOnly: 'Vinculados',
