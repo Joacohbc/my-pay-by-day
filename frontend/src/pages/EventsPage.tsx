@@ -236,22 +236,22 @@ export function EventsPage() {
         }
       />
 
-      <div className="grid grid-cols-3 gap-3 px-5">
-        <Card className="text-center">
-          <p className="text-xs text-dn-text-muted mb-1">{t('events.income')}</p>
-          <p className="text-lg font-mono font-semibold text-dn-success">
+      <div className="grid grid-cols-3 gap-2 px-4 sm:gap-3 sm:px-5">
+        <Card padding={false} className="p-3 sm:p-4 text-center min-w-0 flex flex-col justify-center">
+          <p className="text-[10px] sm:text-xs text-dn-text-muted mb-1 truncate" title={t('events.income')}>{t('events.income')}</p>
+          <p className="text-sm sm:text-lg font-mono font-semibold text-dn-success break-all">
             {formatCurrencyShort(totalIncome)}
           </p>
         </Card>
-        <Card className="text-center">
-          <p className="text-xs text-dn-text-muted mb-1">{t('events.expenses')}</p>
-          <p className="text-lg font-mono font-semibold text-dn-text-main">
+        <Card padding={false} className="p-3 sm:p-4 text-center min-w-0 flex flex-col justify-center">
+          <p className="text-[10px] sm:text-xs text-dn-text-muted mb-1 truncate" title={t('events.expenses')}>{t('events.expenses')}</p>
+          <p className="text-sm sm:text-lg font-mono font-semibold text-dn-text-main break-all">
             {formatCurrencyShort(totalExpenses)}
           </p>
         </Card>
-        <Card className="text-center">
-          <p className="text-xs text-dn-text-muted mb-1">{t('events.transfers')}</p>
-          <p className="text-lg font-mono font-semibold text-dn-text-main">
+        <Card padding={false} className="p-3 sm:p-4 text-center min-w-0 flex flex-col justify-center">
+          <p className="text-[10px] sm:text-xs text-dn-text-muted mb-1 truncate" title={t('events.transfers')}>{t('events.transfers')}</p>
+          <p className="text-sm sm:text-lg font-mono font-semibold text-dn-text-main break-all">
             {formatCurrencyShort(totalTransfers)}
           </p>
         </Card>
