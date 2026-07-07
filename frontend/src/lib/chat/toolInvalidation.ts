@@ -43,6 +43,7 @@ const COMPLETED_TOOL_STATES = new Set(['output-available', 'result']);
 type ToolLikeUIPart = UIMessage['parts'][number] & {
   toolName?: string;
   state?: string;
+  toolInvocation?: { state?: string; toolName?: string };
 };
 
 function isToolLikePart(part: UIMessage['parts'][number]): part is ToolLikeUIPart {
@@ -50,7 +51,11 @@ function isToolLikePart(part: UIMessage['parts'][number]): part is ToolLikeUIPar
 }
 
 function toolNameOf(part: ToolLikeUIPart): string {
-  return part.toolName || part.type.replace(/^tool-/, '');
+  return part.toolName || part.toolInvocation?.toolName || part.type.replace(/^tool-/, '');
+}
+
+function stateOf(part: ToolLikeUIPart): string | undefined {
+  return part.state || part.toolInvocation?.state;
 }
 
 export function domainsForToolName(toolName: string): readonly CacheDomain[] {
@@ -68,7 +73,10 @@ export function invalidateForToolResults(
   const affectedDomains = new Set<CacheDomain>();
   for (const part of message.parts) {
     if (!isToolLikePart(part)) continue;
-    if (!part.state || !COMPLETED_TOOL_STATES.has(part.state)) continue;
+    
+    const state = stateOf(part);
+    if (!state || !COMPLETED_TOOL_STATES.has(state)) continue;
+    
     for (const domain of domainsForToolName(toolNameOf(part))) {
       affectedDomains.add(domain);
     }
