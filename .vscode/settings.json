@@ -4,5 +4,9 @@
     "javascript.preferences.importModuleSpecifier": "non-relative",
     "chat.tools.terminal.autoApprove": {
         "pnpm": true
+    },
+    "tailwindCSS.experimental.configFile": "frontend/src/index.css",
+    "editor.quickSuggestions": {
+        "strings": true
     }
 }
