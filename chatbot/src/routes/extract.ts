@@ -1,6 +1,7 @@
 import { errorJson } from '@/i18n.js';
 import { Hono } from 'hono';
 import type { ModelMessage } from 'ai';
+import { randomUUID } from 'node:crypto';
 import { requestContextFrom } from '@/context.js';
 import type { ExtractionUserContentPart, FileInput } from '@/agent/extraction.js';
 import { runExtractionAgent } from '@/agent/extractionAgent.js';
@@ -56,6 +57,8 @@ extractRoute.post('/', async (c) => {
     return errorJson(c, 'error.text_files_required', 400);
   }
 
+  const chatId = body.chatId || randomUUID();
+
   try {
     const { draftId, summary, userMessage, responseMessages } = await runExtractionAgent(ctx, {
       text: body.text,
@@ -63,13 +66,11 @@ extractRoute.post('/', async (c) => {
       templateId: body.templateId,
     });
 
-    if (body.chatId) {
-      const displays = [displayOfExtractionUserMessage(userMessage), ...responseMessages.map(() => null)];
-      conversationMemory.append(body.chatId, [userMessage, ...responseMessages], displays);
-      void chatTitles.generateIfMissing(body.chatId, ctx.lang);
-    }
+    const displays = [displayOfExtractionUserMessage(userMessage), ...responseMessages.map(() => null)];
+    conversationMemory.append(chatId, [userMessage, ...responseMessages], displays);
+    void chatTitles.generateIfMissing(chatId, ctx.lang);
 
-    return c.json({ type: 'DRAFT', draftId, summary });
+    return c.json({ type: 'DRAFT', chatId, draftId, summary });
   } catch (e) {
     extractLog.error('event extraction failed', { error: (e as Error).message });
     return c.json({ error: (e as Error).message }, 400);

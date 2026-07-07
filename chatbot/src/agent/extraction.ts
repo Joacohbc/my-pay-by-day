@@ -46,7 +46,6 @@ export async function buildExtractionUserContent(input: ExtractInput): Promise<E
     if (file.mediaType.startsWith('image/')) {
       const imagePart: ExtractionUserContentPart = { type: 'image', image: file.data, mediaType: file.mediaType };
       model.push(imagePart);
-      display.push(imagePart);
       continue;
     }
     const markdown = await documentMarkdownOf(file);
