@@ -28,6 +28,7 @@ const READ_TOOL_NAMES = new Set([
   'getEvent',
   'listDrafts',
   'getDraft',
+  'listTemplates',
   'validateDraft',
   'showEntity',
   'getCurrentDateTime',

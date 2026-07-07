@@ -80,6 +80,7 @@ export function ChatMessage({ message, onEdit, onApprove, onAskUserAnswer }: Cha
     getEvent: t('chat.tools.getEvent'),
     listDrafts: t('chat.tools.listDrafts'),
     getDraft: t('chat.tools.getDraft'),
+    listTemplates: t('chat.tools.listTemplates'),
     showEntity: t('chat.tools.showEntity'),
     createDraft: t('chat.tools.createDraft'),
     updateDraft: t('chat.tools.updateDraft'),

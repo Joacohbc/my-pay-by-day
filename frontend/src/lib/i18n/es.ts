@@ -134,6 +134,7 @@ const es = {
       getEvent: 'Obteniendo detalles del movimiento...',
       listDrafts: 'Listando borradores pendientes...',
       getDraft: 'Obteniendo borrador...',
+      listTemplates: 'Consultando plantillas...',
       showEntity: 'Preparando para mostrar...',
       createDraft: 'Creando borrador de transacción...',
       updateDraft: 'Actualizando borrador...',

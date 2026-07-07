@@ -105,6 +105,16 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       }),
     },
 
+    listTemplates: {
+      kind: 'READ',
+      tool: tool({
+        description:
+          'List predefined templates that can be used to quickly generate finance events. Templates define default nodes, categories, and tags, and sometimes dynamic mathematical modifiers. Use this tool when the user mentions creating an event from a template (e.g. "my rent", "the usual"). By fetching the templates, you can determine what fields (like amount or specific nodes) are still required to build the event.',
+        inputSchema: z.object({}),
+        execute: () => safe(() => unwrap(client.GET('/templates', { params: { query: { page: 0, size: 100 } } }))),
+      }),
+    },
+
     // ===================== READ: events =====================
     searchEvents: {
       kind: 'READ',

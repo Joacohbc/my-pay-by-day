@@ -135,6 +135,7 @@ const en = {
       getEvent: 'Retrieving transaction details...',
       listDrafts: 'Listing pending drafts...',
       getDraft: 'Retrieving draft details...',
+      listTemplates: 'Checking templates...',
       showEntity: 'Preparing to show...',
       createDraft: 'Creating draft event...',
       updateDraft: 'Updating draft event...',
