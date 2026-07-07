@@ -54,6 +54,7 @@ export function EventAiChatWidget({ draftId, onEnsureDraft, onDraftIdResolved, o
       countdown={countdown}
       onSendNow={triggerSendNow}
       onStop={handleStop}
+      entityType="event"
     >
       {messages.map((message) => (
         <ChatMessage key={message.id} message={message} onApprove={handleToolApproval} onAskUserAnswer={handleAskUserAnswer} />

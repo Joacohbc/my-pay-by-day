@@ -43,6 +43,7 @@ export function FormPatchAiChatWidget({ entityType, getCurrentValues, onPatch }:
       countdown={countdown}
       onSendNow={triggerSendNow}
       onStop={handleStop}
+      entityType={entityType}
     >
       {messages.map((message) => (
         <ChatMessage key={message.id} message={message} />

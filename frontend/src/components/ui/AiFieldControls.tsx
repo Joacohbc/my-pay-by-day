@@ -77,14 +77,14 @@ export function AiFieldControls({ controller }: AiFieldControlsProps) {
         type="button"
         onClick={() => (isThisMicRecording ? toggleRecording() : startRecording(mode))}
         disabled={(isBusy && !isThisMicRecording) || isOtherMicRecording}
-        className="p-1 rounded text-dn-text-muted hover:text-dn-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="h-5 w-5 flex items-center justify-center rounded text-dn-text-muted hover:text-dn-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         title={isThisMicRecording ? titleRecording : titleIdle}
         aria-label={isThisMicRecording ? titleRecording : titleIdle}
       >
         {isPreparingAudio && activeRecordingMode === mode ? (
           <Spinner size="sm" />
         ) : (
-          <Icon name={icon} className={isThisMicRecording ? 'text-base text-dn-error animate-pulse' : 'text-base'} />
+          <Icon name={icon} className={isThisMicRecording ? 'text-sm text-dn-error animate-pulse' : 'text-sm'} />
         )}
       </button>
     );
@@ -101,14 +101,14 @@ export function AiFieldControls({ controller }: AiFieldControlsProps) {
         type="button"
         onClick={() => void controller.runAiAction()}
         disabled={isBusy}
-        className="p-1 rounded text-dn-text-muted hover:text-dn-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="h-5 w-5 flex items-center justify-center rounded text-dn-text-muted hover:text-dn-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         title={aiActionTitle}
         aria-label={aiActionTitle}
       >
         {controller.isLoading ? (
           <Spinner size="sm" />
         ) : (
-          <Icon name={controller.hasValue ? 'auto_fix_high' : 'auto_awesome'} className="text-base" />
+          <Icon name={controller.hasValue ? 'auto_fix_high' : 'auto_awesome'} className="text-sm" />
         )}
       </button>
     </div>

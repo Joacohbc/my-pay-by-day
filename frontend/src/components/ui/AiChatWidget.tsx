@@ -4,6 +4,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
 import { ChatInput } from '@/components/chat/ChatInput';
 import type { FileDto } from '@/models';
+import type { FormPatchEntityType } from '@/hooks/useFormPatchChat';
 
 interface AiChatWidgetProps {
   isLoading?: boolean;
@@ -24,6 +25,7 @@ interface AiChatWidgetProps {
   onSendNow?: () => void;
   /** Cancels an in-flight (already-sent) request. */
   onStop?: () => void;
+  entityType: FormPatchEntityType | 'event';
 }
 
 export function AiChatWidget({
@@ -42,6 +44,7 @@ export function AiChatWidget({
   countdown,
   onSendNow,
   onStop,
+  entityType
 }: AiChatWidgetProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -52,7 +55,13 @@ export function AiChatWidget({
   }, [open, hasMessages, isLoading]);
 
   // Always fixed at page level with max z-index, regardless of variant
-  const wrapperClass = 'fixed bottom-6 right-6 z-[9999] flex flex-col items-end pointer-events-none';
+  let wrapperClass;
+  if(entityType == 'event') {
+    wrapperClass = 'fixed bottom-24 right-6 z-[9999] flex flex-col items-end pointer-events-none';
+  } else {
+    wrapperClass = `fixed bottom-14 ${open ? 'right-6' : 'right-40 left-50'} z-[9999] flex flex-col items-center pointer-events-none`;
+  }
+
   const surfaceClass = 'pointer-events-auto';
 
   if (!open) {
