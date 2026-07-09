@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { Textarea } from '@/components/ui/Textarea';
@@ -16,15 +16,65 @@ interface ChatInputProps {
   isPending?: boolean;
   disabled?: boolean;
   draftFiles?: FileDto[];
+  pendingFiles?: File[];
   onAddFile?: (file: FileDto) => void;
   onAddFiles?: (files: FileDto[]) => void;
   onRemoveFile?: (fileId: number) => void;
   onRemoveFiles?: (fileIds: number[]) => void;
+  onRemovePendingFile?: (index: number) => void;
   placeholder?: string;
   countdown?: number | null;
   onSendNow?: () => void;
   onStop?: () => void;
   onQuickCreate?: () => void;
+}
+
+interface PendingFileChipProps {
+  file: File;
+  onRemove?: () => void;
+}
+
+function PendingFileChip({ file, onRemove }: PendingFileChipProps) {
+  const { t } = useTranslation();
+  const isImage = file.type.startsWith('image/');
+  const previewUrl = useMemo(() => (isImage ? URL.createObjectURL(file) : null), [isImage, file]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  return (
+    <div
+      className="flex items-center gap-2 rounded-xl border border-dashed border-dn-primary/30 bg-dn-primary/5 px-2 py-1.5"
+      title={t('chat.pendingUploadNotice')}
+    >
+      {previewUrl ? (
+        <img src={previewUrl} alt={file.name} className="w-8 h-8 rounded-lg object-cover shrink-0" />
+      ) : (
+        <Icon name="draft" className="text-[18px] text-dn-primary/60 shrink-0" />
+      )}
+      <div className="min-w-0">
+        <p className="text-xs text-dn-text-main truncate max-w-32">{file.name}</p>
+        <p className="text-[10px] text-dn-primary/60 flex items-center gap-1">
+          <Icon name="schedule_send" className="text-[12px]" />
+          {t('chat.pendingUploadBadge')}
+        </p>
+      </div>
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className="w-6 h-6 flex items-center justify-center rounded-lg text-dn-text-main/40 hover:text-dn-error hover:bg-dn-error/10 transition-colors shrink-0"
+          aria-label={t('common.delete')}
+          title={t('common.delete')}
+        >
+          <Icon name="close" className="text-[16px]" />
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function ChatInput({
@@ -36,10 +86,12 @@ export function ChatInput({
   isPending,
   disabled = false,
   draftFiles = [],
+  pendingFiles = [],
   onAddFile,
   onAddFiles,
   onRemoveFile,
   onRemoveFiles,
+  onRemovePendingFile,
   placeholder,
   countdown = null,
   onSendNow,
@@ -97,7 +149,8 @@ export function ChatInput({
       ? 'text-dn-primary/40'
       : 'text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10';
 
-  const canSend = (inputContent.trim() || draftFiles.length > 0) && !isBusy && !isRecording && !isPending && !disabled;
+  const hasContent = Boolean(inputContent.trim()) || draftFiles.length > 0 || pendingFiles.length > 0;
+  const canSend = hasContent && !isBusy && !isRecording && !isPending && !disabled;
   const isCountingDown = countdown !== null && !!onSendNow;
 
   return (
@@ -144,6 +197,23 @@ export function ChatInput({
           }}
           disabled={isBusy || isRecording || disabled}
         />
+
+        {pendingFiles.length > 0 && (
+          <div className="px-3 pb-3 border-t border-dn-border/10 pt-3 space-y-2">
+            <p className="text-[10px] text-dn-primary/60 uppercase tracking-[0.2em] font-black">
+              {t('chat.pendingUploadNotice')}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {pendingFiles.map((file, index) => (
+                <PendingFileChip
+                  key={`${file.name}-${file.size}-${index}`}
+                  file={file}
+                  onRemove={onRemovePendingFile ? () => onRemovePendingFile(index) : undefined}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* File Uploader */}
         {(showUploader || draftFiles.length > 0) && onAddFile && onRemoveFile && (
@@ -199,7 +269,7 @@ export function ChatInput({
               <button
                 type="button"
                 onClick={onQuickCreate}
-                disabled={isBusy || isRecording || isPending || disabled || !(inputContent.trim() || draftFiles.length > 0)}
+                disabled={isBusy || isRecording || isPending || disabled || !hasContent}
                 className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10 disabled:opacity-30"
                 aria-label={t('chat.quickCreate.button')}
                 title={t('chat.quickCreate.button')}

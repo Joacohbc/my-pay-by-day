@@ -24,6 +24,7 @@ export function ChatPage() {
     messageCount,
     maxMessages,
     draftFiles,
+    pendingFiles,
     imagePreviewUrls,
     messagesEndRef,
     countdown,
@@ -42,6 +43,7 @@ export function ChatPage() {
     handleAddFiles,
     handleRemoveFile,
     handleRemoveFiles,
+    handleRemovePendingFile,
     t,
   } = useChatUI();
 
@@ -189,10 +191,12 @@ export function ChatPage() {
                 onAudioRecorded={handleAudioRecorded}
                 onAudioFileSelected={handleAudioFileSelected}
                 draftFiles={draftFiles}
+                pendingFiles={pendingFiles}
                 onAddFile={handleAddFile}
                 onAddFiles={handleAddFiles}
                 onRemoveFile={handleRemoveFile}
                 onRemoveFiles={handleRemoveFiles}
+                onRemovePendingFile={handleRemovePendingFile}
                 isPending={isPending}
                 disabled={hasPendingApproval}
                 countdown={countdown}

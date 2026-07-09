@@ -36,6 +36,10 @@ interface ChatStoreState {
   chatId: string;
   isClearing: boolean;
   draftFiles: FileDto[];
+  /** Files waiting locally (e.g. received via Web Share Target) — uploaded to the backend only when the message is sent. */
+  pendingFiles: File[];
+  /** Text received via Web Share Target, consumed once into the chat input. */
+  sharedText: string | null;
   showChatList: boolean;
 
   newChat: () => void;
@@ -43,6 +47,8 @@ interface ChatStoreState {
   openChatList: () => void;
   closeChatList: () => void;
   setDraftFiles: (files: FileDto[]) => void;
+  setPendingFiles: (files: File[]) => void;
+  setSharedText: (text: string | null) => void;
   setIsClearing: (isClearing: boolean) => void;
 }
 
@@ -52,12 +58,16 @@ export const useChatStore = create<ChatStoreState>()(
       chatId: crypto.randomUUID(),
       isClearing: false,
       draftFiles: [],
+      pendingFiles: [],
+      sharedText: null,
       showChatList: true,
 
       newChat: () =>
         set({
           chatId: crypto.randomUUID(),
           draftFiles: [],
+          pendingFiles: [],
+          sharedText: null,
           showChatList: false,
         }),
 
@@ -65,12 +75,16 @@ export const useChatStore = create<ChatStoreState>()(
         set({
           chatId,
           draftFiles: [],
+          pendingFiles: [],
+          sharedText: null,
           showChatList: false,
         }),
 
       openChatList: () => set({ showChatList: true }),
       closeChatList: () => set({ showChatList: false }),
       setDraftFiles: (files) => set({ draftFiles: files }),
+      setPendingFiles: (files) => set({ pendingFiles: files }),
+      setSharedText: (text) => set({ sharedText: text }),
       setIsClearing: (isClearing) => set({ isClearing }),
     }),
     {

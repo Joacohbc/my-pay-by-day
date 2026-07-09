@@ -9,6 +9,7 @@ import { audioService } from '@/services/audio.service';
 import { extractService, type FilePayload } from '@/services/extract.service';
 import { filesService } from '@/services/files.service';
 import { useChatStore, type ChatMessage } from '@/store/chatStore';
+import { useAlert } from '@/contexts/AlertContext';
 import { invalidateDomains } from '@/lib/cacheInvalidation';
 import { invalidateForToolResults } from '@/lib/chat/toolInvalidation';
 import { getUserTimezone } from '@/lib/utils/dateUtils';
@@ -24,6 +25,11 @@ function blobToDataUrl(blob: Blob): Promise<string> {
     reader.onerror = () => reject(new Error('data_url_failed'));
     reader.readAsDataURL(blob);
   });
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  const dataUrl = await blobToDataUrl(file);
+  return dataUrl.slice(dataUrl.indexOf(',') + 1);
 }
 
 /** Full file part for the chat model: keeps the inline data URL (needed for vision) while also
@@ -124,7 +130,8 @@ function groupMessages(msgs: ChatMessage[]): ChatMessage[] {
 
 export function useChatUI() {
   const { t } = useTranslation();
-  const { chatId, draftFiles, setDraftFiles, newChat } = useChatStore();
+  const { chatId, draftFiles, setDraftFiles, pendingFiles, setPendingFiles, setSharedText, newChat } = useChatStore();
+  const { error: showError } = useAlert();
   const queryClient = useQueryClient();
 
   const transport = useMemo(
@@ -226,10 +233,36 @@ export function useChatUI() {
     };
   }, [chatId, queryClient, reloadHistory]);
 
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(() => useChatStore.getState().sharedText ?? '');
   const [isClearing, setIsClearing] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isUploadingPendingFiles, setIsUploadingPendingFiles] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (useChatStore.getState().sharedText) setSharedText(null);
+  }, [setSharedText]);
+
+  const uploadPendingFiles = useCallback(async (): Promise<FileDto[]> => {
+    if (pendingFiles.length === 0) return [];
+    setIsUploadingPendingFiles(true);
+    try {
+      const uploadedFiles = await Promise.all(
+        pendingFiles.map(async (file) => {
+          const base64Content = await fileToBase64(file);
+          return filesService.uploadBase64({
+            fileName: file.name,
+            mimeType: file.type,
+            base64Content,
+          });
+        }),
+      );
+      setPendingFiles([]);
+      return uploadedFiles;
+    } finally {
+      setIsUploadingPendingFiles(false);
+    }
+  }, [pendingFiles, setPendingFiles]);
 
   const messages = useMemo(() => {
     const isPendingVal = status === 'submitted' || status === 'streaming';
@@ -250,7 +283,7 @@ export function useChatUI() {
     return groupMessages(filtered);
   }, [uiMessages, status]);
   const isStreamActive = status === 'submitted' || status === 'streaming';
-  const isPending = isStreamActive || isBackendGenerating || isExtracting;
+  const isPending = isStreamActive || isBackendGenerating || isExtracting || isUploadingPendingFiles;
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -264,8 +297,16 @@ export function useChatUI() {
 
   const handleQuickCreate = useCallback(async () => {
     const userText = input.trim();
-    const currentFiles = [...draftFiles];
-    if (!userText && currentFiles.length === 0) return;
+    if (!userText && draftFiles.length === 0 && pendingFiles.length === 0) return;
+
+    let uploadedFiles: FileDto[];
+    try {
+      uploadedFiles = await uploadPendingFiles();
+    } catch {
+      showError(t('chat.pendingUploadFailed'));
+      return;
+    }
+    const currentFiles = [...draftFiles, ...uploadedFiles];
 
     const combinedText = userText ? `${t('chat.quickCreate.prompt')}\n\n${userText}` : t('chat.quickCreate.prompt');
 
@@ -293,13 +334,21 @@ export function useChatUI() {
     } finally {
       setIsExtracting(false);
     }
-  }, [input, draftFiles, setDraftFiles, chatId, setMessages, reloadHistory, queryClient, t]);
+  }, [input, draftFiles, pendingFiles, uploadPendingFiles, showError, setDraftFiles, chatId, setMessages, reloadHistory, queryClient, t]);
 
   const handleSend = useCallback(async () => {
     const userText = input.trim();
-    if (!userText && draftFiles.length === 0) return;
+    if (!userText && draftFiles.length === 0 && pendingFiles.length === 0) return;
 
-    const currentFiles = [...draftFiles];
+    let uploadedFiles: FileDto[];
+    try {
+      uploadedFiles = await uploadPendingFiles();
+    } catch {
+      showError(t('chat.pendingUploadFailed'));
+      return;
+    }
+
+    const currentFiles = [...draftFiles, ...uploadedFiles];
     setInput('');
     setDraftFiles([]);
 
@@ -316,7 +365,7 @@ export function useChatUI() {
 
     setMessages((prev) => [...prev, newMessage]);
     scheduleSend(() => sendMessage());
-  }, [input, draftFiles, setDraftFiles, setMessages, sendMessage, scheduleSend]);
+  }, [input, draftFiles, pendingFiles, uploadPendingFiles, showError, t, setDraftFiles, setMessages, sendMessage, scheduleSend]);
 
   const applyTranscribedText = useCallback(
     (transcription: string) => {
@@ -390,6 +439,7 @@ export function useChatUI() {
   const handleAddFile = (file: FileDto) => handleAddFiles([file]);
   const handleRemoveFiles = (fileIds: number[]) => setDraftFiles(draftFiles.filter((f) => !fileIds.includes(f.id)));
   const handleRemoveFile = (fileId: number) => handleRemoveFiles([fileId]);
+  const handleRemovePendingFile = (index: number) => setPendingFiles(pendingFiles.filter((_, i) => i !== index));
 
   return {
     messages,
@@ -401,6 +451,7 @@ export function useChatUI() {
     messageCount,
     maxMessages,
     draftFiles,
+    pendingFiles,
     imagePreviewUrls,
     messagesEndRef,
     countdown,
@@ -419,6 +470,7 @@ export function useChatUI() {
     handleAddFiles,
     handleRemoveFile,
     handleRemoveFiles,
+    handleRemovePendingFile,
     t,
   };
 }
