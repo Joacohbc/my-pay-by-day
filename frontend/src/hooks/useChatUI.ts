@@ -233,6 +233,8 @@ export function useChatUI() {
     };
   }, [chatId, queryClient, reloadHistory]);
 
+  const lastScheduledMessageIdRef = useRef<string | null>(null);
+
   const [input, setInput] = useState(() => useChatStore.getState().sharedText ?? '');
   const [isClearing, setIsClearing] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
@@ -363,9 +365,20 @@ export function useChatUI() {
       ],
     };
 
+    lastScheduledMessageIdRef.current = newMessage.id;
     setMessages((prev) => [...prev, newMessage]);
     scheduleSend(() => sendMessage());
   }, [input, draftFiles, pendingFiles, uploadPendingFiles, showError, t, setDraftFiles, setMessages, sendMessage, scheduleSend]);
+
+  const handleStop = useCallback(() => {
+    if (countdown !== null) {
+      cancelScheduledSend();
+      const idToRemove = lastScheduledMessageIdRef.current;
+      if (idToRemove) setMessages((prev) => prev.filter((m) => m.id !== idToRemove));
+      return;
+    }
+    stop();
+  }, [countdown, cancelScheduledSend, stop, setMessages]);
 
   const applyTranscribedText = useCallback(
     (transcription: string) => {
@@ -456,7 +469,7 @@ export function useChatUI() {
     messagesEndRef,
     countdown,
     triggerSendNow,
-    stop,
+    stop: handleStop,
     handleSend,
     handleQuickCreate,
     handleToolApproval,

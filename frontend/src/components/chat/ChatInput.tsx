@@ -281,7 +281,7 @@ export function ChatInput({
 
           {/* Right: Action button (Stop) and Send button (doubles as Send Now during countdown) */}
           <div className="flex items-center gap-2">
-            {isPending && onStop && (
+            {(isPending || isCountingDown) && onStop && (
               <button
                 type="button"
                 onClick={onStop}
