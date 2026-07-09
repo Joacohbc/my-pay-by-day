@@ -159,7 +159,7 @@ export function ChatPage() {
 
                 {countdown !== null && (
                   <div className="max-w-4xl mx-auto px-4 md:px-8 -mt-2">
-                    <p className="text-[10px] text-dn-text-muted flex items-center gap-1.5">
+                    <p className="text-[10px] text-dn-text-muted flex items-center justify-center mt-5 gap-4">
                       <Icon name="schedule" className="text-[12px] animate-pulse" />
                       {t('chat.sendingIn', { count: countdown })}
                     </p>
