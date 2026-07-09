@@ -10,7 +10,7 @@ import { InlineTaskCard } from '@/components/agent-tasks/InlineTaskCard';
 import { InlineEventCard, InlineDraftCard, InlineTagCard, InlineCategoryCard } from '@/components/chat/InlineEntityCard';
 import { InlineToolApprovalCard } from '@/components/chat/InlineToolApprovalCard';
 import { InlineQuestionCard, type AskUserArgs as AskUserQuestionArgs } from '@/components/chat/InlineQuestionCard';
-import { extractEntityRefs, toolCallEntityKey } from '@/components/chat/chatEntityRefs';
+import { extractEntityRefs, toolCallEntityKey, type ChatEntityRef } from '@/components/chat/chatEntityRefs';
 import { getFileIcon, getFileTypeLabel } from '@/lib/fileUtils';
 import type { ChatMessage as ChatMessageType, ChatMessagePart, ChatToolCall } from '@/store/chatStore';
 
@@ -127,7 +127,7 @@ export function ChatMessage({ message, onDelete, onApprove, onAskUserAnswer }: C
   // point at the same draft/event) so the "winning" ref per entity is resolved once, then anchored to the
   // last part in the ordered sequence that produced it — avoiding duplicate cards for the same entity.
   const winningRefs = extractEntityRefs(message.toolCalls);
-  const refByKey = new Map(winningRefs.map((ref) => [`${ref.kind}:${ref.id}`, ref] as const));
+  const refByKey = new Map<string, ChatEntityRef>(winningRefs.map((ref) => [`${ref.kind}:${ref.id}`, ref]));
   const lastIndexForKey = new Map<string, number>();
   message.parts.forEach((part, idx) => {
     if (part.type !== 'tool') return;

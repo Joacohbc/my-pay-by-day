@@ -2,7 +2,7 @@ import type { FileUIPart, UIMessage } from 'ai';
 import type { ChatMessage, ChatMessagePart, ChatToolCall } from '@/store/chatStore';
 import { filesService } from '@/services/files.service';
 
-type FileRefPart = Omit<FileUIPart, 'url'> & { url?: string; fileId?: number; typeLabel?: string };
+type FileRefPart = FileUIPart & { fileId?: number; typeLabel?: string };
 
 const PRESERVED_STATES = new Set(['approval-requested', 'approval-responded']);
 

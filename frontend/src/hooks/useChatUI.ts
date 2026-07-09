@@ -61,14 +61,16 @@ async function toFilePayload(file: FileDto): Promise<FilePayload> {
   };
 }
 
-/** Builds the optimistic display part for an already-uploaded file, carrying only its file ID —
- * no URL is resolved or stored here, ChatMessage's FileCard resolves everything from the ID alone.
+/** Builds the optimistic display part for an already-uploaded file. The `url` is derived straight from
+ * the file ID (the same content URL `FileCard` resolves to on its own), kept only so the part satisfies
+ * the SDK's `FileUIPart` contract — the `fileId` remains the source of truth for resolution.
  * Matches the shape the persisted history part gets after reload, so the attachment card doesn't
  * flicker between renderings. */
-function toFileRefPart(file: FileDto): Omit<FileUIPart, 'url'> & { fileId: number; typeLabel?: string } {
+function toFileRefPart(file: FileDto): FileUIPart & { fileId: number; typeLabel?: string } {
   return {
     type: 'file',
     mediaType: file.mimeType || 'application/octet-stream',
+    url: filesService.getContentUrl(file.id),
     filename: file.fileName,
     fileId: file.id,
     typeLabel: file.typeLabel,

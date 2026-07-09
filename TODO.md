@@ -1,10 +1,12 @@
 - Arreglar sistema de Duplicados
 
+- Ajustar .env.example global y el especifico de cada uno
+
 - Al ir desde el chat a un event/draft no vuelve al chat. Un sistema de from y to mas robusto
 
 - Agregar en el Chat un transcribe enchanted que se el transcribe use le modelo fast para editar el texto actual. Y no lo tome literal.
 
-- Validar prompts/codigo duplicaod entre frontend/chatbot
+- Validar prompts/codigo duplicado/obsoleto entre frontend/chatbot
 
 ## Deuda arquitectónica (análisis 2026-07-09)
 

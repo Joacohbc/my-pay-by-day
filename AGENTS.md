@@ -497,7 +497,7 @@ Resource bundle files live at `src/main/resources/i18n/`:
    * **Don't:** `import Button from '../../components/ui/Button'`
 * **Lint & Type check:** After any code change, both of the following must pass without errors from the `frontend/` directory:
    * `pnpm lint` — ESLint validation.
-   * `pnpm tsc --noEmit` — TypeScript type checking.
+   * `pnpm tsc -b` — TypeScript type checking. **Never use `tsc --noEmit` here:** the root `tsconfig.json` declares `"files": []` and only project references, so `tsc --noEmit` type-checks zero files and always passes falsely. Build mode (`tsc -b`) follows the `tsconfig.app.json` / `tsconfig.node.json` references and checks the actual `src/` sources — this is what `pnpm build` runs and what VS Code reports against.
 
 ---
 
