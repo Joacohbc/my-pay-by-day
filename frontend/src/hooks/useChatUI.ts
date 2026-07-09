@@ -422,9 +422,8 @@ export function useChatUI() {
     }
   }, [chatId, setMessages, t]);
 
-  const handleEditMessage = useCallback(
+  const handleDeleteMessage = useCallback(
     async (msg: ChatMessage) => {
-      setInput(msg.content);
       await chatService.trimMemory(chatId, msg.content);
       setMessages((prev) => {
         const index = prev.findIndex((m) => m.id === msg.id);
@@ -476,7 +475,7 @@ export function useChatUI() {
     handleAskUserAnswer,
     handleNewChat,
     handleClearMemory,
-    handleEditMessage,
+    handleDeleteMessage,
     handleAudioRecorded,
     handleAudioFileSelected,
     handleAddFile,

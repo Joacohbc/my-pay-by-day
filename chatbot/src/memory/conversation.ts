@@ -174,13 +174,13 @@ export const conversationMemory = {
     db().prepare('UPDATE conversation SET title = ? WHERE chat_id = ?').run(title, chatId);
   },
 
-  /** Removes every message from the most recent user message that contains the given text. */
+  /** Removes every message from the most recent message (of any role) that contains the given text. */
   trim(chatId: string, textToMatch: string): void {
     const stored = this.loadWithDisplay(chatId);
     let trimIndex = -1;
     for (let i = stored.length - 1; i >= 0; i--) {
       const { message } = stored[i];
-      if (message.role === 'user' && textOf(message).includes(textToMatch)) {
+      if (textOf(message).includes(textToMatch)) {
         trimIndex = i;
         break;
       }

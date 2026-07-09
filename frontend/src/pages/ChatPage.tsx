@@ -36,7 +36,7 @@ export function ChatPage() {
     handleAskUserAnswer,
     handleNewChat,
     handleClearMemory,
-    handleEditMessage,
+    handleDeleteMessage,
     handleAudioRecorded,
     handleAudioFileSelected,
     handleAddFile,
@@ -128,7 +128,7 @@ export function ChatPage() {
                     <ChatMessage
                       key={msg.id}
                       message={msg}
-                      onEdit={handleEditMessage}
+                      onDelete={handleDeleteMessage}
                       onApprove={handleToolApproval}
                       onAskUserAnswer={handleAskUserAnswer}
                     />

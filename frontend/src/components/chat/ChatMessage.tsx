@@ -16,7 +16,7 @@ import type { ChatMessage as ChatMessageType, ChatMessagePart, ChatToolCall } fr
 
 interface ChatMessageProps {
   message: ChatMessageType;
-  onEdit?: (msg: ChatMessageType) => void;
+  onDelete?: (msg: ChatMessageType) => void;
   onApprove?: (approvalId: string, approved: boolean) => void;
   onAskUserAnswer?: (approvalId: string, answer: string) => void;
 }
@@ -69,7 +69,7 @@ const MarkdownSpan = ({ text }: { text: string }) => (
   </div>
 );
 
-export function ChatMessage({ message, onEdit, onApprove, onAskUserAnswer }: ChatMessageProps) {
+export function ChatMessage({ message, onDelete, onApprove, onAskUserAnswer }: ChatMessageProps) {
   const { t } = useTranslation();
   const toolFriendlyNames: Record<string, string> = {
     listCategories: t('chat.tools.listCategories'),
@@ -142,10 +142,10 @@ export function ChatMessage({ message, onEdit, onApprove, onAskUserAnswer }: Cha
     : null;
   const hasAudioMessage = audioMessageUrl !== null;
   const hasTextContent = message.content.trim().length > 0;
-  const isEditable = isUser && !!onEdit && hasTextContent;
+  const isDeletable = !!onDelete && hasTextContent;
   const canCopy = hasTextContent;
-  const hasSideActions = canCopy || isEditable;
-  const [showEditModal, setShowEditModal] = useState(false);
+  const hasSideActions = canCopy || isDeletable;
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const stepsScrollRef = useRef<HTMLDivElement>(null);
   const toolCallCount = message.toolCalls.length;
@@ -251,13 +251,13 @@ export function ChatMessage({ message, onEdit, onApprove, onAskUserAnswer }: Cha
         <div className={`flex items-center gap-2 mb-3 group ${isUser ? 'justify-end' : 'justify-start'}`}>
           {isUser && hasSideActions && (
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-200">
-              {isEditable && (
+              {isDeletable && (
                 <button
-                  onClick={() => setShowEditModal(true)}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-dn-text-main/40 hover:text-dn-primary hover:bg-dn-primary/10 transition-colors"
-                  title={t('common.edit')}
+                  onClick={() => setShowDeleteModal(true)}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-dn-text-main/40 hover:text-dn-error hover:bg-dn-error/10 transition-colors"
+                  title={t('chat.deleteMessage')}
                 >
-                  <Icon name="edit" className="text-[14px]" />
+                  <Icon name="delete" className="text-[14px]" />
                 </button>
               )}
               {canCopy && (
@@ -289,6 +289,15 @@ export function ChatMessage({ message, onEdit, onApprove, onAskUserAnswer }: Cha
                   title={isCopied ? t('chat.copied') : t('chat.copy')}
                 >
                   <Icon name={isCopied ? 'check' : 'content_copy'} className="text-[14px]" />
+                </button>
+              )}
+              {isDeletable && (
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-dn-text-main/40 hover:text-dn-error hover:bg-dn-error/10 transition-colors"
+                  title={t('chat.deleteMessage')}
+                >
+                  <Icon name="delete" className="text-[14px]" />
                 </button>
               )}
             </div>
@@ -474,18 +483,18 @@ export function ChatMessage({ message, onEdit, onApprove, onAskUserAnswer }: Cha
       </div>
     </div>
 
-    {showEditModal && (
+    {showDeleteModal && (
       <ConfirmModal
-        open={showEditModal}
-        onClose={() => setShowEditModal(false)}
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
         onConfirm={() => {
-          setShowEditModal(false);
-          onEdit?.(message);
+          setShowDeleteModal(false);
+          onDelete?.(message);
         }}
-        title={t('chat.editMessage')}
-        message={t('chat.confirmEditMessage')}
-        confirmLabel={t('chat.editMessage')}
-        variant="primary"
+        title={t('chat.deleteMessage')}
+        message={t('chat.confirmDeleteMessage')}
+        confirmLabel={t('chat.deleteMessage')}
+        variant="danger"
       />
     )}
     </>

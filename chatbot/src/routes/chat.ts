@@ -361,5 +361,5 @@ chatRoute.post('/:chatId/trim', async (c) => {
   const { textToMatch } = (await c.req.json()) as { textToMatch?: string };
   if (!textToMatch) return errorJson(c, 'error.text_match_required', 400);
   conversationMemory.trim(c.req.param('chatId'), textToMatch);
-  return c.body(null, 200);
+  return c.body(null, 204);
 });
