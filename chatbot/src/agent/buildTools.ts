@@ -9,7 +9,7 @@ import type { ExecutionMode } from '@/prompts/system.js';
 import { selectTools, type KindedToolSet, type ToolKind } from '@/tools/types.js';
 
 const ALLOWED_KINDS: Record<ExecutionMode, ReadonlySet<ToolKind>> = {
-  AUTONOMOUS: new Set<ToolKind>(['READ', 'DRAFT_WRITE', 'WRITE', 'DRAFT_CONFIRM', 'ASK_USER']),
+  AUTONOMOUS: new Set<ToolKind>(['READ', 'DRAFT_WRITE', 'WRITE', 'DRAFT_CONFIRM', 'MEMORY', 'ASK_USER']),
   DRAFT_ONLY: new Set<ToolKind>(['READ', 'DRAFT_WRITE']),
   READ_ONLY: new Set<ToolKind>(['READ']),
   DRAFT_CONFIRMATION: new Set<ToolKind>(['READ', 'DRAFT_CONFIRM']),
@@ -72,7 +72,7 @@ function withLogging(name: string, kinded: KindedToolSet[string]): KindedToolSet
       return logPromise(name, startedAt, Promise.resolve(result));
     }) as Tool['execute'],
   };
-  return { kind: kinded.kind, tool: loggedTool };
+  return { ...kinded, tool: loggedTool };
 }
 
 function withToolLogging(toolSet: KindedToolSet): KindedToolSet {

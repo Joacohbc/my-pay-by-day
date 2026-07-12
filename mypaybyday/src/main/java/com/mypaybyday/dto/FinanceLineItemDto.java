@@ -2,12 +2,14 @@ package com.mypaybyday.dto;
 
 import java.math.BigDecimal;
 
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+
 import com.mypaybyday.entity.FinanceLineItemEntity;
 
 public record FinanceLineItemDto(
-	Long financeNodeId,
-	String financeNodeName,
-	String financeNodeIcon,
+	@Schema(nullable = true) Long financeNodeId,
+	@Schema(nullable = true) String financeNodeName,
+	@Schema(nullable = true) String financeNodeIcon,
 	BigDecimal amount
 ) {
 

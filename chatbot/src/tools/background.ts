@@ -11,6 +11,7 @@ export function buildBackgroundTools(ctx: RequestContext): KindedToolSet {
   return {
     startBackgroundTask: {
       kind: 'READ',
+      ui: { invalidates: ['agentTasks'], label: { en: 'Starting background task...', es: 'Iniciando tarea en segundo plano...' } },
       tool: tool({
         description:
           'Delegate a longer, multi-step job to a background agent that works on its own and reports progress. ' +
@@ -43,6 +44,7 @@ export function buildBackgroundTools(ctx: RequestContext): KindedToolSet {
     },
     getTaskResult: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Checking task result...', es: 'Consultando resultado de la tarea...' } },
       tool: tool({
         description:
           'Check the status and result of a background task previously started with startBackgroundTask. ' +
@@ -70,6 +72,7 @@ export function buildBackgroundTools(ctx: RequestContext): KindedToolSet {
     },
     listSessionTasks: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Listing session tasks...', es: 'Listando tareas de la sesión...' } },
       tool: tool({
         description:
           'List all background tasks currently or previously associated with this chat session, showing their statuses, progress and latest outcomes.',

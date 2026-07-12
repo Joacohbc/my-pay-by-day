@@ -8,22 +8,8 @@ import { groundingNow } from '@/dates.js';
 import { logger } from '@/logging/logger.js';
 import { largeModel } from '@/models.js';
 import { extractionAgentSystemPrompt } from '@/prompts/system.js';
-import type { KindedToolSet } from '@/tools/types.js';
 
 const extractionAgentLog = logger.child('extraction-agent');
-
-/** The long-term memory tools are kind READ (so 'DRAFT_ONLY' mode alone wouldn't filter them out), but memory
- * recall/storage is out of scope for a one-shot extraction — it only ever stages a draft from the given input. */
-const EXCLUDED_TOOL_NAMES = new Set(['saveMemory', 'recallMemory', 'forgetMemory']);
-
-function extractionToolSet(ctx: RequestContext): KindedToolSet {
-  const all = buildAllTools(ctx);
-  const filtered: KindedToolSet = {};
-  for (const [name, entry] of Object.entries(all)) {
-    if (!EXCLUDED_TOOL_NAMES.has(name)) filtered[name] = entry;
-  }
-  return filtered;
-}
 
 async function fetchTemplateContext(ctx: RequestContext, templateId: number | undefined): Promise<string | undefined> {
   if (templateId == null) return undefined;
@@ -73,7 +59,7 @@ export async function runExtractionAgent(ctx: RequestContext, input: ExtractInpu
       templateContext,
     }),
     messages: [{ role: 'user', content: modelContent }],
-    tools: toolsForMode(extractionToolSet(ctx), 'DRAFT_ONLY'),
+    tools: toolsForMode(buildAllTools(ctx), 'DRAFT_ONLY'),
     stopWhen: stepCountIs(config.agent.subagentMaxSteps),
   });
 

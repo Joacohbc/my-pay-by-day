@@ -1,3 +1,5 @@
+import { chatToolLabels } from '@/lib/chat/toolManifest.generated';
+
 const en = {
   // ─── Common ──────────────────────────────────────────────────────────────
   common: {
@@ -127,32 +129,8 @@ const en = {
     },
     tools: {
       steps: 'Agent steps',
-      delegateTask: 'Delegating to a sub-agent...',
-      getTaskResult: 'Checking task result...',
-      startBackgroundTask: 'Starting background task...',
-      listCategories: 'Checking budget categories...',
-      listTags: 'Checking tags...',
-      listTagGroups: 'Checking tag groups...',
-      listNodes: 'Checking accounts and nodes...',
-      searchEvents: 'Searching transaction history...',
-      getEvent: 'Retrieving transaction details...',
-      listDrafts: 'Listing pending drafts...',
-      getDraft: 'Retrieving draft details...',
-      listTemplates: 'Checking templates...',
-      showEntity: 'Preparing to show...',
-      createDraft: 'Creating draft event...',
-      updateDraft: 'Updating draft event...',
-      deleteDraft: 'Deleting draft event...',
-      confirmDraft: 'Confirming draft event...',
-      validateDraft: 'Checking draft...',
-      updateEvent: 'Updating transaction details...',
-      askUser: 'Asking a question...',
-      calculate: 'Performing calculations...',
-      getCurrentDateTime: 'Checking date and time...',
-      saveMemory: 'Saving preference to memory...',
-      recallMemory: 'Recalling preferences...',
-      forgetMemory: 'Forgetting memory...',
       running: 'Running...',
+      ...chatToolLabels.en,
     },
     entityCards: {
       eventCreated: 'Event created',

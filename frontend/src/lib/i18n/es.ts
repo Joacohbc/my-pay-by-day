@@ -1,3 +1,5 @@
+import { chatToolLabels } from '@/lib/chat/toolManifest.generated';
+
 const es = {
   // ─── Common ──────────────────────────────────────────────────────────────
   common: {
@@ -126,32 +128,8 @@ const es = {
     },
     tools: {
       steps: 'Pasos del agente',
-      delegateTask: 'Delegando a un subagente...',
-      getTaskResult: 'Consultando resultado de la tarea...',
-      startBackgroundTask: 'Iniciando tarea en segundo plano...',
-      listCategories: 'Consultando categorías de presupuesto...',
-      listTags: 'Consultando etiquetas...',
-      listTagGroups: 'Consultando grupos de etiquetas...',
-      listNodes: 'Consultando cuentas y entidades...',
-      searchEvents: 'Buscando movimientos en el historial...',
-      getEvent: 'Obteniendo detalles del movimiento...',
-      listDrafts: 'Listando borradores pendientes...',
-      getDraft: 'Obteniendo borrador...',
-      listTemplates: 'Consultando plantillas...',
-      showEntity: 'Preparando para mostrar...',
-      createDraft: 'Creando borrador de transacción...',
-      updateDraft: 'Actualizando borrador...',
-      deleteDraft: 'Eliminando borrador...',
-      confirmDraft: 'Confirmando borrador...',
-      validateDraft: 'Revisando borrador...',
-      updateEvent: 'Actualizando detalles de la transacción...',
-      askUser: 'Haciendo una pregunta...',
-      calculate: 'Realizando cálculos matemáticos...',
-      getCurrentDateTime: 'Consultando fecha y hora...',
-      saveMemory: 'Guardando datos en la memoria...',
-      recallMemory: 'Recordando preferencias...',
-      forgetMemory: 'Olvidando memoria...',
       running: 'Ejecutando...',
+      ...chatToolLabels.es,
     },
     entityCards: {
       eventCreated: 'Evento creado',

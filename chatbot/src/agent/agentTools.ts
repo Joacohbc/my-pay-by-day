@@ -9,6 +9,7 @@ export function buildAgentTools(taskId: string): KindedToolSet {
   return {
     reportProgress: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Reporting progress...', es: 'Reportando progreso...' } },
       tool: tool({
         description:
           'Report a progress update as you work. Call this at meaningful milestones with a 0-100 percentage and a short message describing the current step.',
@@ -26,6 +27,7 @@ export function buildAgentTools(taskId: string): KindedToolSet {
 
     requestUserAction: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Waiting for a user decision...', es: 'Esperando una decisión del usuario...' } },
       tool: tool({
         description:
           'Pause and ask the human to make a decision or approve an action before continuing. Use for approvals or when you need information you cannot obtain. The task pauses until the user responds; you will resume afterwards.',

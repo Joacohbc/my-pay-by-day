@@ -46,6 +46,7 @@ export function buildInteractionTools(): KindedToolSet {
   return {
     askUser: {
       kind: 'ASK_USER',
+      ui: { invalidates: [], label: { en: 'Asking a question...', es: 'Haciendo una pregunta...' } },
       tool: tool({
         description:
           'Ask the user a clarifying question before continuing, and wait for their answer instead of guessing. ' +

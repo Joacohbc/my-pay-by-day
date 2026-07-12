@@ -3653,8 +3653,8 @@ export interface components {
             mode: components["schemas"]["DraftConfirmMode"];
         };
         ConfirmDraftsResultDto: {
-            confirmedEvents?: components["schemas"]["FinanceEventDto"][];
-            failedDraftIds?: number[];
+            confirmedEvents: components["schemas"]["FinanceEventDto"][];
+            failedDraftIds: number[];
         };
         DataTransferDto: {
             version?: string;
@@ -3827,9 +3827,9 @@ export interface components {
         };
         FinanceLineItemDto: {
             /** Format: int64 */
-            financeNodeId?: number;
-            financeNodeName?: string;
-            financeNodeIcon?: string;
+            financeNodeId?: number | null;
+            financeNodeName?: string | null;
+            financeNodeIcon?: string | null;
             amount?: number;
         };
         FinanceLineItemEntity: {

@@ -52,9 +52,11 @@ const ASK_USER_GUIDANCE = `
 - Once the user answers, askUser's own tool result becomes { question, answer } with their answer filled in — read
   "answer" directly as their reply and continue the task using it. Do not second-guess it or assume it's missing.`;
 
-function memoriesBlock(memories: string[]): string {
+function memoriesBlock(memories: string[], hasMemoryTools: boolean): string {
   if (memories.length === 0) return '';
-  return `\nWHAT YOU REMEMBER ABOUT THIS USER (long-term memory):\n${memories.map((m) => `- ${m}`).join('\n')}\n` +
+  const rememberedFacts = `\nWHAT YOU REMEMBER ABOUT THIS USER (long-term memory):\n${memories.map((m) => `- ${m}`).join('\n')}\n`;
+  if (!hasMemoryTools) return rememberedFacts;
+  return rememberedFacts +
     `Use saveMemory to remember new durable facts/preferences the user shares (e.g. their main account).`;
 }
 
@@ -115,7 +117,7 @@ export function chatSystemPrompt(
     DELEGATION_GUIDANCE,
     ASK_USER_GUIDANCE,
     scopeBlock(scope, scopeCurrentValues),
-    memoriesBlock(memories),
+    memoriesBlock(memories, true),
     STYLE.replace('{{LANGUAGE}}', languageName(lang)),
   ].join('\n');
 }
@@ -142,7 +144,7 @@ export function agentSystemPrompt(
     `need a human decision (in DRAFT_CONFIRMATION or before a risky write), use requestUserAction and stop until resolved.`,
     `Resolve names to IDs with read tools before writing. Always use the calculate tool for ANY calculations (sums, splits, etc.) instead of computing them in text. Finish with a short summary of what you did.`,
     `* IMPORTANT: You must write all step descriptions, progress messages, and action requests (the 'message' parameter of reportProgress and requestUserAction) in the user's language ({{LANGUAGE}}).`,
-    memoriesBlock(input.memories),
+    memoriesBlock(input.memories, input.mode === 'AUTONOMOUS'),
     STYLE.replace('{{LANGUAGE}}', languageName(input.lang)),
   ].join('\n');
 }
@@ -181,7 +183,7 @@ export function subagentSystemPrompt(input: PromptInput & { mode: ExecutionMode 
     `information is missing, state what is missing in your final summary and proceed as far as you can.`,
     `\nIMPORTANT: finish with a single clear summary of what you did and found, including all IDs, amounts and names`,
     `the main assistant needs. That summary is the ONLY thing returned to the main assistant.`,
-    memoriesBlock(input.memories),
+    memoriesBlock(input.memories, input.mode === 'AUTONOMOUS'),
     STYLE.replace('{{LANGUAGE}}', languageName(input.lang)),
   ].join('\n');
 }

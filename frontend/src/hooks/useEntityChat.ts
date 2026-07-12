@@ -7,6 +7,7 @@ import { audioService } from '@/services/audio.service';
 import { filesService } from '@/services/files.service';
 import { invalidateDomains } from '@/lib/cacheInvalidation';
 import { invalidateForToolResults, domainsForToolName } from '@/lib/chat/toolInvalidation';
+import { CHAT_TOOL_MANIFEST } from '@/lib/chat/toolManifest.generated';
 import { getUserTimezone } from '@/lib/utils/dateUtils';
 import { useSendCountdown } from '@/hooks/useSendCountdown';
 import i18n from '@/lib/i18n';
@@ -32,7 +33,11 @@ interface UseEntityChatParams {
   onFieldsPatch?: (patch: Record<string, unknown>) => void;
 }
 
-const PATCH_TOOL_NAMES = new Set(['createDraft', 'updateDraft', 'updateEvent']);
+const PATCH_TOOL_NAMES = new Set(
+  Object.entries(CHAT_TOOL_MANIFEST)
+    .filter(([, meta]) => meta.patchesForm)
+    .map(([name]) => name),
+);
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {

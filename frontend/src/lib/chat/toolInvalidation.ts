@@ -2,41 +2,10 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { UIMessage } from 'ai';
 import {
   invalidateDomains,
-  EVENT_MUTATION_DOMAINS,
   BROAD_FINANCE_DOMAINS,
   type CacheDomain,
 } from '@/lib/cacheInvalidation';
-
-const TOOL_DOMAINS: Record<string, readonly CacheDomain[]> = {
-  createDraft: ['drafts'],
-  updateDraft: ['drafts'],
-  deleteDraft: ['drafts'],
-  confirmDraft: EVENT_MUTATION_DOMAINS,
-  updateEvent: EVENT_MUTATION_DOMAINS,
-  saveMemory: ['aiMemory'],
-  forgetMemory: ['aiMemory'],
-  delegateTask: ['agentTasks'],
-  startBackgroundTask: ['agentTasks'],
-};
-
-const READ_TOOL_NAMES = new Set([
-  'listCategories',
-  'listTags',
-  'listTagGroups',
-  'listNodes',
-  'searchEvents',
-  'getEvent',
-  'listDrafts',
-  'getDraft',
-  'listTemplates',
-  'validateDraft',
-  'showEntity',
-  'getCurrentDateTime',
-  'calculate',
-  'recallMemory',
-  'getTaskResult',
-  'askUser',
-]);
+import { CHAT_TOOL_MANIFEST, type ChatToolName } from '@/lib/chat/toolManifest.generated';
 
 const COMPLETED_TOOL_STATES = new Set(['output-available', 'result']);
 
@@ -59,8 +28,7 @@ function stateOf(part: ToolLikeUIPart): string | undefined {
 }
 
 export function domainsForToolName(toolName: string): readonly CacheDomain[] {
-  if (toolName in TOOL_DOMAINS) return TOOL_DOMAINS[toolName];
-  if (READ_TOOL_NAMES.has(toolName)) return [];
+  if (toolName in CHAT_TOOL_MANIFEST) return CHAT_TOOL_MANIFEST[toolName as ChatToolName].invalidates;
   return BROAD_FINANCE_DOMAINS;
 }
 

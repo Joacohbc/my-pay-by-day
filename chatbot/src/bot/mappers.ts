@@ -1,4 +1,4 @@
-import type { EventPatchBody, FinanceEventDto } from '@/backend/client.js';
+import type { EventPatchBody, FinanceEventDraftInputDto, FinanceEventDto } from '@/backend/client.js';
 import { asServerDateTime, toServerDateTime, type ServerDateTime } from '@/dates.js';
 import type { BotDraft, BotEvent, BotEventType, BotEventPatch, BotDraftPatch, BotLineItem } from '@/bot/dto.js';
 
@@ -45,7 +45,7 @@ export function toServerDateBoundary(
   return toServerDateTime(`${day}${time}`, timezone);
 }
 
-export function toDraftPayload(input: DraftInput, timezone: string): any {
+export function toDraftPayload(input: DraftInput, timezone: string): FinanceEventDraftInputDto {
   return {
     name: input.name,
     description: input.description ?? undefined,
@@ -61,7 +61,7 @@ export function toDraftPayload(input: DraftInput, timezone: string): any {
  * Maps a partial bot edit into the FinanceEventDraftInputDto shape expected by PATCH /drafts.
  * Only mapped fields are included; the backend will apply the patch to the existing draft.
  */
-export function toDraftPatchPayload(patch: Omit<BotDraftPatch, 'draftId'>, timezone: string): any {
+export function toDraftPatchPayload(patch: Omit<BotDraftPatch, 'draftId'>, timezone: string): FinanceEventDraftInputDto {
   return {
     id: patch.targetEventId ?? undefined,
     name: patch.name ?? undefined,

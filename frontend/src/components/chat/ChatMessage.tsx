@@ -12,6 +12,7 @@ import { InlineToolApprovalCard } from '@/components/chat/InlineToolApprovalCard
 import { InlineQuestionCard, type AskUserArgs as AskUserQuestionArgs } from '@/components/chat/InlineQuestionCard';
 import { extractEntityRefs, toolCallEntityKey, type ChatEntityRef } from '@/components/chat/chatEntityRefs';
 import { getFileIcon, getFileTypeLabel } from '@/lib/fileUtils';
+import { CHAT_TOOL_MANIFEST } from '@/lib/chat/toolManifest.generated';
 import type { ChatMessage as ChatMessageType, ChatMessagePart, ChatToolCall } from '@/store/chatStore';
 
 interface ChatMessageProps {
@@ -71,33 +72,9 @@ const MarkdownSpan = ({ text }: { text: string }) => (
 
 export function ChatMessage({ message, onDelete, onApprove, onAskUserAnswer }: ChatMessageProps) {
   const { t } = useTranslation();
-  const toolFriendlyNames: Record<string, string> = {
-    listCategories: t('chat.tools.listCategories'),
-    listTags: t('chat.tools.listTags'),
-    listTagGroups: t('chat.tools.listTagGroups'),
-    listNodes: t('chat.tools.listNodes'),
-    searchEvents: t('chat.tools.searchEvents'),
-    getEvent: t('chat.tools.getEvent'),
-    listDrafts: t('chat.tools.listDrafts'),
-    getDraft: t('chat.tools.getDraft'),
-    listTemplates: t('chat.tools.listTemplates'),
-    showEntity: t('chat.tools.showEntity'),
-    createDraft: t('chat.tools.createDraft'),
-    updateDraft: t('chat.tools.updateDraft'),
-    deleteDraft: t('chat.tools.deleteDraft'),
-    confirmDraft: t('chat.tools.confirmDraft'),
-    validateDraft: t('chat.tools.validateDraft'),
-    updateEvent: t('chat.tools.updateEvent'),
-    askUser: t('chat.tools.askUser'),
-    calculate: t('chat.tools.calculate'),
-    getCurrentDateTime: t('chat.tools.getCurrentDateTime'),
-    saveMemory: t('chat.tools.saveMemory'),
-    recallMemory: t('chat.tools.recallMemory'),
-    forgetMemory: t('chat.tools.forgetMemory'),
-    delegateTask: t('chat.tools.delegateTask'),
-    getTaskResult: t('chat.tools.getTaskResult'),
-    startBackgroundTask: t('chat.tools.startBackgroundTask'),
-  };
+  const toolFriendlyNames: Record<string, string> = Object.fromEntries(
+    Object.keys(CHAT_TOOL_MANIFEST).map((toolName) => [toolName, t(`chat.tools.${toolName}`)]),
+  );
   const isUser = message.role === 'user';
   const allToolsDone = message.toolCalls.every((tc) => tc.state === 'result');
 

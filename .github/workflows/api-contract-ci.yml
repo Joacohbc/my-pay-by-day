@@ -1,0 +1,63 @@
+name: API Contract CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'mypaybyday/**'
+      - 'chatbot/**'
+      - 'frontend/src/lib/chat/toolManifest.generated.ts'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'mypaybyday/**'
+      - 'chatbot/**'
+      - 'frontend/src/lib/chat/toolManifest.generated.ts'
+
+jobs:
+  contract-check:
+    name: Schema Drift & Typecheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: chatbot/pnpm-lock.yaml
+
+      - name: Build backend OpenAPI spec
+        working-directory: mypaybyday
+        run: ./mvnw package -DskipTests -B
+
+      - name: Install chatbot dependencies
+        working-directory: chatbot
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Check schema drift
+        working-directory: chatbot
+        run: pnpm gen:api:check
+
+      - name: Check tool manifest drift
+        working-directory: chatbot
+        run: pnpm gen:tools:check
+
+      - name: Typecheck
+        working-directory: chatbot
+        run: pnpm typecheck

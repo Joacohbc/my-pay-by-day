@@ -4,7 +4,7 @@ import { BackendError, createApiClient, patchEvent, unwrap, type FinanceEventDto
 import { botDraftPatchSchema, botEventFilterSchema, botEventInputSchema, botEventPatchSchema, lenientBoolean } from '@/bot/dto.js';
 import { toBotDraft, toBotEvent, toDraftPatchPayload, toDraftPayload, toEventPatch, toServerDateBoundary } from '@/bot/mappers.js';
 import type { RequestContext } from '@/context.js';
-import type { KindedToolSet } from '@/tools/types.js';
+import { EVENT_MUTATION_DOMAINS, type KindedToolSet } from '@/tools/types.js';
 
 async function safe<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
   try {
@@ -22,11 +22,11 @@ async function patchDraftById(
   timezone: string,
 ) {
   const updated = await unwrap(
-    client.PATCH('/drafts/finance-events/{id}' as any, {
+    client.PATCH('/drafts/finance-events/{id}', {
       params: { path: { id: draftId } },
       body: toDraftPatchPayload(patch, timezone),
     }),
-  ) as any;
+  );
   return { ok: true, draftId: updated.id, originalEventId: updated.originalEntityId ?? undefined };
 }
 
@@ -41,11 +41,11 @@ async function upsertDraftForEvent(
   timezone: string,
 ) {
   const updated = await unwrap(
-    client.PUT('/drafts/finance-events/by-entity/{entityId}' as any, {
+    client.PUT('/drafts/finance-events/by-entity/{entityId}', {
       params: { path: { entityId: eventId } },
       body: toDraftPatchPayload({ ...input, targetEventId: eventId }, timezone),
     }),
-  ) as any;
+  );
   return { ok: true, draftId: updated.id, originalEventId: updated.originalEntityId ?? undefined };
 }
 
@@ -61,6 +61,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
     // ===================== READ: reference data =====================
     listCategories: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Checking budget categories...', es: 'Consultando categorías de presupuesto...' } },
       tool: tool({
         description: 'List budget categories. Optional archived filter.',
         inputSchema: z.object({ archived: lenientBoolean.nullish() }),
@@ -71,6 +72,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
 
     listTags: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Checking tags...', es: 'Consultando etiquetas...' } },
       tool: tool({
         description: 'List tags. Optional archived filter.',
         inputSchema: z.object({ archived: lenientBoolean.nullish() }),
@@ -81,6 +83,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
 
     listTagGroups: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Checking tag groups...', es: 'Consultando grupos de etiquetas...' } },
       tool: tool({
         description: 'List tag groups with their tags.',
         inputSchema: z.object({ archived: lenientBoolean.nullish() }),
@@ -91,6 +94,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
 
     listNodes: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Checking accounts and nodes...', es: 'Consultando cuentas y entidades...' } },
       tool: tool({
         description:
           'List finance nodes (accounts, wallets, cards, external entities, contacts) to resolve names to IDs when building events. Optional filters: type (OWN|EXTERNAL|CONTACT) and archived.',
@@ -107,6 +111,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
 
     listTemplates: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Checking templates...', es: 'Consultando plantillas...' } },
       tool: tool({
         description:
           'List predefined templates that can be used to quickly generate finance events. Templates define default nodes, categories, and tags, and sometimes dynamic mathematical modifiers. Use this tool when the user mentions creating an event from a template (e.g. "my rent", "the usual"). By fetching the templates, you can determine what fields (like amount or specific nodes) are still required to build the event.',
@@ -118,6 +123,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
     // ===================== READ: events =====================
     searchEvents: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Searching transaction history...', es: 'Buscando movimientos en el historial...' } },
       tool: tool({
         description:
           'Search finance events with advanced filters: text search, date range (YYYY-MM-DD), type (INBOUND|OUTBOUND|OTHER), categoryId, tagId, nodeId, and min/max amount. Returns flat events.',
@@ -150,6 +156,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
 
     getEvent: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Retrieving transaction details...', es: 'Obteniendo detalles del movimiento...' } },
       tool: tool({
         description: 'Get a single finance event by its ID as a flat event.',
         inputSchema: z.object({ id: z.number() }),
@@ -161,6 +168,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
     // ===================== READ: drafts =====================
     listDrafts: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Listing pending drafts...', es: 'Listando borradores pendientes...' } },
       tool: tool({
         description:
           'List draft (pending) finance events. Each draft has a draftId; originalEventId is set when the draft edits an existing event.',
@@ -172,6 +180,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
 
     getDraft: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Retrieving draft details...', es: 'Obteniendo borrador...' } },
       tool: tool({
         description: 'Get a single draft finance event by its draftId.',
         inputSchema: z.object({ draftId: z.number() }),
@@ -187,6 +196,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
     // ===================== SHOW (UI signal) =====================
     showEntity: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Preparing to show...', es: 'Preparando para mostrar...' } },
       tool: tool({
         description:
           'Show an event, draft, tag or category to the user as a clickable card in the chat, so they can open it directly. ' +
@@ -218,6 +228,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
     // ===================== DRAFT WRITE =====================
     createDraft: {
       kind: 'DRAFT_WRITE',
+      ui: { invalidates: ['drafts'], patchesForm: true, label: { en: 'Creating draft event...', es: 'Creando borrador de transacción...' } },
       tool: tool({
         description:
           'Create a DRAFT finance event (the user confirms it later; it does NOT post a real event). ' +
@@ -250,6 +261,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
 
     updateDraft: {
       kind: 'DRAFT_WRITE',
+      ui: { invalidates: ['drafts'], patchesForm: true, label: { en: 'Updating draft event...', es: 'Actualizando borrador...' } },
       tool: tool({
         description:
           'Edit an existing draft (by draftId). Only the fields you provide change; every field you omit keeps its ' +
@@ -267,6 +279,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
 
     deleteDraft: {
       kind: 'DRAFT_WRITE',
+      ui: { invalidates: ['drafts'], label: { en: 'Deleting draft event...', es: 'Eliminando borrador...' } },
       tool: tool({
         description: 'Delete a draft finance event that is incorrect, duplicate or not needed.',
         inputSchema: z.object({ draftId: z.number() }),
@@ -281,6 +294,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
     // ===================== DRAFT VALIDATE =====================
     validateDraft: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Checking draft...', es: 'Revisando borrador...' } },
       tool: tool({
         description:
           'Check a draft for validation errors (missing name/date, unbalanced line items, missing/archived ' +
@@ -295,6 +309,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
     // ===================== DRAFT CONFIRM =====================
     confirmDraft: {
       kind: 'DRAFT_CONFIRM',
+      ui: { invalidates: EVENT_MUTATION_DOMAINS, label: { en: 'Confirming draft event...', es: 'Confirmando borrador...' } },
       tool: tool({
         description:
           'Confirm a draft, publishing it as a real finance event. MERGE (default) updates the linked event in ' +
@@ -303,10 +318,10 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
         execute: ({ draftId, mode }) =>
           safe(async () => {
             const result = await unwrap(
-              client.POST('/drafts/finance-events/confirm-batch' as any, {
+              client.POST('/drafts/finance-events/confirm-batch', {
                 body: { draftIds: [draftId], mode: mode ?? 'MERGE' },
               }),
-            ) as any;
+            );
             if (result.failedDraftIds?.includes(draftId)) {
               return { error: `Draft incomplete or not found: ${draftId}` };
             }
@@ -318,6 +333,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
     // ===================== WRITE: events =====================
     updateEvent: {
       kind: 'WRITE',
+      ui: { invalidates: EVENT_MUTATION_DOMAINS, patchesForm: true, label: { en: 'Updating transaction details...', es: 'Actualizando detalles de la transacción...' } },
       tool: tool({
         description:
           'Edit an existing finance event in place. Only the provided fields change; supports name, description, ' +

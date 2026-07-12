@@ -86,6 +86,7 @@ export function buildCalculatorTools(): KindedToolSet {
   return {
     calculate: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Performing calculations...', es: 'Realizando cálculos matemáticos...' } },
       tool: tool({
         description:
           'Evaluate a mathematical expression. Supports basic arithmetic operators (+, -, *, /) and parentheses (). Use this tool ALWAYS for any calculation, budget sum, split, or operation to prevent hallucination of numerical values.',

@@ -9,7 +9,10 @@
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "start": "node --env-file=.env dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "gen:api": "openapi-typescript http://127.0.0.1:8080/openapi -o src/backend/schema.d.ts",
+    "gen:api": "openapi-typescript ../mypaybyday/target/openapi/openapi.json -o src/backend/schema.d.ts",
+    "gen:api:check": "pnpm gen:api && git diff --exit-code src/backend/schema.d.ts",
+    "gen:tools": "tsx scripts/generate-tool-manifest.ts",
+    "gen:tools:check": "pnpm gen:tools && git diff --exit-code ../frontend/src/lib/chat/toolManifest.generated.ts",
     "i18n:audit": "node scripts/i18n-audit.mjs"
   },
   "dependencies": {

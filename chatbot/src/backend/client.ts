@@ -15,6 +15,7 @@ type Schemas = components['schemas'];
 
 export type ApiClient = Client<paths>;
 export type FinanceEventDto = Schemas['FinanceEventDto'];
+export type FinanceEventDraftInputDto = Schemas['FinanceEventDraftInputDto'];
 export type FinanceNodeDto = Schemas['FinanceNodeDto'];
 export type EventType = Schemas['EventType'];
 

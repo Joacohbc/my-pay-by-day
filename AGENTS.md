@@ -524,10 +524,8 @@ This ensures that every AI action has a user-configurable prompt and prevents in
 
 ### AI Tool Synchronization
 
-Whenever an AI agent tool is added, removed, or modified in the chatbot service (e.g., in `chatbot/src/tools/*.ts`), the corresponding frontend files **must** be updated in the same change so cache invalidation and any UI handling stay consistent with the tool set the agent can actually call.
+Every chatbot tool declares its frontend-facing metadata inline via the required `ui` field on `KindedTool` (`chatbot/src/tools/types.ts`): the `CacheDomain`s it invalidates, whether it patches the draft/event form currently open on screen (`patchesForm`), and its progress labels in both English and Spanish. The tool declaration is the single source of truth — TypeScript fails to compile if a new tool omits its metadata.
 
-* **Cache invalidation map:** `frontend/src/lib/chat/toolInvalidation.ts` must be updated so every tool name is classified. Mutating tools go in `TOOL_DOMAINS`, mapped to the `CacheDomain`s they affect; read-only tools go in `READ_TOOL_NAMES`. An unmapped tool falls back to a broad finance invalidation — correct but noisy — so classify it explicitly.
-* **Form patching:** If a new tool writes to the draft/event currently open on screen, add its name to `PATCH_TOOL_NAMES` in `frontend/src/hooks/useEntityChat.ts` so the on-screen form reflects the agent's edit.
-* **UI Translations:** The tool's name must be added to the `chat.tools` object in both `frontend/src/lib/i18n/en.ts` and `frontend/src/lib/i18n/es.ts`. Additionally, the tool must be mapped in the `toolFriendlyNames` dictionary inside `frontend/src/components/chat/ChatMessage.tsx` (using the `t('chat.tools.yourTool')` function) so it renders properly in the agent steps UI instead of showing the raw key or a generic "Running..." message.
+The frontend never hand-maintains per-tool maps. Running `pnpm gen:tools` in `chatbot/` regenerates `frontend/src/lib/chat/toolManifest.generated.ts`, from which the frontend derives cache invalidation (`toolInvalidation.ts`), form patching (`PATCH_TOOL_NAMES` in `useEntityChat.ts`), the `chat.tools.*` translations (spread into `en.ts`/`es.ts`), and the friendly names in `ChatMessage.tsx`. The sub-agent progress labels in `chatbot/src/tools/delegate.ts` read the same `ui.label` metadata directly.
 
-A tool that exists in the chatbot but is missing from `toolInvalidation.ts` or the `chat.tools` translation is treated as a bug.
+**Whenever a tool is added, removed, or its metadata changes, run `pnpm gen:tools` and commit the regenerated manifest in the same change.** CI (`api-contract-ci.yml`) fails on drift via `pnpm gen:tools:check`. Never edit `toolManifest.generated.ts` by hand.

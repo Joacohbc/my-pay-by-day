@@ -8,6 +8,7 @@ export function buildDateTools(ctx: RequestContext): KindedToolSet {
   return {
     getCurrentDateTime: {
       kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Checking date and time...', es: 'Consultando fecha y hora...' } },
       tool: tool({
         description:
           'Returns the current date and time in the user\'s timezone. Use this to resolve relative dates like "yesterday", "last Friday" or "this month".',

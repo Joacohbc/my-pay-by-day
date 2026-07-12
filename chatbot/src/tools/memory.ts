@@ -7,7 +7,8 @@ import type { KindedToolSet } from '@/tools/types.js';
 export function buildMemoryTools(): KindedToolSet {
   return {
     saveMemory: {
-      kind: 'READ',
+      kind: 'MEMORY',
+      ui: { invalidates: ['aiMemory'], label: { en: 'Saving preference to memory...', es: 'Guardando datos en la memoria...' } },
       tool: tool({
         description:
           'Remember a durable fact or preference about the user for future conversations (e.g. "main account is BROU checking", "prefers amounts in UYU"). Do not store transient or sensitive data.',
@@ -20,7 +21,8 @@ export function buildMemoryTools(): KindedToolSet {
     },
 
     recallMemory: {
-      kind: 'READ',
+      kind: 'MEMORY',
+      ui: { invalidates: [], label: { en: 'Recalling preferences...', es: 'Recordando preferencias...' } },
       tool: tool({
         description: 'Recall everything remembered about the user, optionally filtered by a search term.',
         inputSchema: z.object({ query: z.string().nullish() }),
@@ -35,7 +37,8 @@ export function buildMemoryTools(): KindedToolSet {
     },
 
     forgetMemory: {
-      kind: 'READ',
+      kind: 'MEMORY',
+      ui: { invalidates: ['aiMemory'], label: { en: 'Forgetting memory...', es: 'Olvidando memoria...' } },
       tool: tool({
         description: 'Delete a remembered fact by its memory ID when it is no longer true.',
         inputSchema: z.object({ id: z.number() }),

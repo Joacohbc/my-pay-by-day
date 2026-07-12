@@ -24,31 +24,10 @@ function lastTextOf(message: UIMessage | undefined): string {
     : 'Sub-agent finished without a summary.';
 }
 
-function getFriendlyToolProgress(toolName: string, lang: string): string {
+function getFriendlyToolProgress(toolSet: KindedToolSet, toolName: string, lang: string): string {
   const isEs = lang === 'es';
-  const progressMessages: Record<string, { en: string; es: string }> = {
-    listCategories: { en: 'Checking budget categories...', es: 'Consultando categorías de presupuesto...' },
-    listTags: { en: 'Checking tags...', es: 'Consultando etiquetas...' },
-    listTagGroups: { en: 'Checking tag groups...', es: 'Consultando grupos de etiquetas...' },
-    listNodes: { en: 'Checking accounts and nodes...', es: 'Consultando cuentas y entidades...' },
-    searchEvents: { en: 'Searching transaction history...', es: 'Buscando movimientos en el historial...' },
-    getEvent: { en: 'Retrieving transaction details...', es: 'Obteniendo detalles del movimiento...' },
-    listDrafts: { en: 'Listing pending drafts...', es: 'Listando borradores pendientes...' },
-    getDraft: { en: 'Retrieving draft details...', es: 'Obteniendo borrador...' },
-    createDraft: { en: 'Creating draft event...', es: 'Creando borrador de transacción...' },
-    updateDraft: { en: 'Updating draft event...', es: 'Actualizando borrador...' },
-    deleteDraft: { en: 'Deleting draft event...', es: 'Eliminando borrador...' },
-    confirmDraft: { en: 'Confirming draft event...', es: 'Confirmando borrador...' },
-    updateEvent: { en: 'Updating transaction details...', es: 'Actualizando detalles de la transacción...' },
-    calculate: { en: 'Performing calculations...', es: 'Realizando cálculos matemáticos...' },
-    getCurrentDateTime: { en: 'Checking date and time...', es: 'Consultando fecha y hora...' },
-    saveMemory: { en: 'Saving preference to memory...', es: 'Guardando datos en la memoria...' },
-    recallMemory: { en: 'Recalling preferences...', es: 'Recordando preferencias...' },
-    forgetMemory: { en: 'Forgetting memory...', es: 'Olvidando memoria...' },
-  };
-
-  const entry = progressMessages[toolName];
-  if (entry) return isEs ? entry.es : entry.en;
+  const label = toolSet[toolName]?.ui.label;
+  if (label) return isEs ? label.es : label.en;
   return isEs ? `Ejecutando ${toolName}...` : `Running ${toolName}...`;
 }
 
@@ -57,6 +36,7 @@ export function buildDelegateTools(ctx: RequestContext, parentMode: ExecutionMod
   return {
     delegateTask: {
       kind: 'READ',
+      ui: { invalidates: ['agentTasks'], label: { en: 'Delegating to a sub-agent...', es: 'Delegando a un subagente...' } },
       tool: tool({
         description:
           'Delegate a self-contained job to a focused sub-agent that works within this turn and returns only a summary. ' +
@@ -70,7 +50,8 @@ export function buildDelegateTools(ctx: RequestContext, parentMode: ExecutionMod
         execute: async function* ({ title, instruction, mode }, { abortSignal }) {
           const effectiveMode = clampMode(mode, parentMode);
           yield { type: 'progress', title, message: ctx.lang === 'es' ? 'Iniciando subtarea...' : 'Starting subtask...' };
-          
+
+          const kindedTools = buildAllTools(ctx);
           const result = streamText({
             model: largeModel(),
             system: subagentSystemPrompt({
@@ -83,7 +64,7 @@ export function buildDelegateTools(ctx: RequestContext, parentMode: ExecutionMod
             prompt: instruction,
             // TODO(follow-up): this sub-agent bypasses the interactive chat's tool-approval gate
             // (toolsForModeWithApproval) entirely — out of scope for that change, tracked separately.
-            tools: toolsForMode(buildAllTools(ctx), effectiveMode),
+            tools: toolsForMode(kindedTools, effectiveMode),
             stopWhen: stepCountIs(config.agent.subagentMaxSteps),
             abortSignal,
           });
@@ -93,7 +74,7 @@ export function buildDelegateTools(ctx: RequestContext, parentMode: ExecutionMod
             lastMsg = message;
             const activeToolCall = message.parts.find((p) => p.type === 'tool-call');
             if (activeToolCall && 'toolName' in activeToolCall) {
-              const friendlyProgress = getFriendlyToolProgress(activeToolCall.toolName as string, ctx.lang);
+              const friendlyProgress = getFriendlyToolProgress(kindedTools, activeToolCall.toolName as string, ctx.lang);
               yield { type: 'progress', title, message: friendlyProgress };
             } else {
               yield { type: 'progress', title, message: ctx.lang === 'es' ? 'Pensando...' : 'Thinking...' };
