@@ -19,6 +19,7 @@ import { longTermMemory } from '@/memory/longTerm.js';
 import { logger } from '@/logging/logger.js';
 import { largeModel } from '@/models.js';
 import { chatSystemPrompt, type ExecutionMode } from '@/prompts/system.js';
+import { withSseKeepAlive } from '@/routes/sseKeepAlive.js';
 import type { ToolKind } from '@/tools/types.js';
 
 const chatLog = logger.child('chat');
@@ -248,10 +249,12 @@ chatRoute.post('/', async (c) => {
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    messageMetadata: ({ part }) =>
-      part.type === 'finish' && part.finishReason === 'tool-calls' ? { stoppedByStepLimit: true } : undefined,
-  });
+  return withSseKeepAlive(
+    result.toUIMessageStreamResponse({
+      messageMetadata: ({ part }) =>
+        part.type === 'finish' && part.finishReason === 'tool-calls' ? { stoppedByStepLimit: true } : undefined,
+    }),
+  );
 });
 
 /** Rebuilds UI parts from a raw ModelMessage — the fallback for rows persisted before display_json existed. */
