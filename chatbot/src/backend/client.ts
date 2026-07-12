@@ -48,6 +48,7 @@ export function createApiClient(ctx: RequestContext): ApiClient {
     onRequest({ request }) {
       request.headers.set('X-Timezone', ctx.timezone);
       request.headers.set('X-Language', ctx.lang);
+      request.headers.set('X-Request-Id', ctx.requestId);
       return request;
     },
   };
@@ -91,7 +92,12 @@ export function patchEvent(client: ApiClient, eventId: number, body: EventPatchB
 /** Fetches a plain-text backend response (e.g. base64 file content) not modelled as JSON. */
 export async function getBackendText(ctx: RequestContext, path: string): Promise<string> {
   const res = await fetch(`${config.backendUrl}${path}`, {
-    headers: { Accept: 'text/plain', 'X-Timezone': ctx.timezone, 'X-Language': ctx.lang },
+    headers: {
+      Accept: 'text/plain',
+      'X-Timezone': ctx.timezone,
+      'X-Language': ctx.lang,
+      'X-Request-Id': ctx.requestId,
+    },
   });
   if (!res.ok) throw new BackendError(res.status, `HTTP ${res.status}`);
   return res.text();

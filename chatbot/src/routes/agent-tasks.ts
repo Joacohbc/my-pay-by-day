@@ -83,6 +83,7 @@ agentTasksRoute.post('/', async (c) => {
     lang: ctx.lang,
     timezone: ctx.timezone,
     currency: ctx.currency,
+    requestId: ctx.requestId,
   });
   await attachFiles(ctx, task.id, body.fileIds);
   submitTask(task.id);

@@ -56,7 +56,7 @@ export function useFormPatchChat({
   const prepareSendMessagesRequest = useCallback(
     ({ messages }: { messages: UIMessage[] }) => {
       return {
-        headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency() },
+        headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency(), 'X-Request-Id': crypto.randomUUID() },
         body: {
           entityType,
           messages,

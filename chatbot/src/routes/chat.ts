@@ -145,6 +145,7 @@ chatRoute.post('/', async (c) => {
   const chatId = body.chatId ?? body.id;
   if (!chatId) return errorJson(c, 'error.chat_id_required', 400);
   const ctx = { ...requestContextFrom(c), chatId, scope: body.scope };
+  const log = chatLog.with({ requestId: ctx.requestId, chatId });
 
   const chatTools = toolsForModeWithApproval(
     buildAllTools(ctx, {
@@ -163,8 +164,7 @@ chatRoute.post('/', async (c) => {
   if (conversionIsOneToOne) {
     userMessages.forEach((message, index) => reattachFileRefs(message, fileRefsOf(userUIMessages[index])));
   } else if (userUIMessages.length > 0) {
-    chatLog.warn('user message conversion is not 1:1, skipping file ref re-attachment', {
-      chatId,
+    log.warn('user message conversion is not 1:1, skipping file ref re-attachment', {
       uiCount: userUIMessages.length,
       modelCount: userMessages.length,
     });
@@ -185,7 +185,7 @@ chatRoute.post('/', async (c) => {
         return '';
       })
       .join(' ');
-    chatLog.info('chat request', { chatId, tz: ctx.timezone, lang: ctx.lang, user: userText });
+    log.info('chat request', { tz: ctx.timezone, lang: ctx.lang, user: userText });
     const displays = conversionIsOneToOne ? userUIMessages.map(displayOfUserMessage) : undefined;
     conversationMemory.append(chatId, userMessages, displays);
   }
@@ -207,7 +207,7 @@ chatRoute.post('/', async (c) => {
         }
       }
     }
-    chatLog.info('chat approval response', { chatId, approvedCount, deniedCount });
+    log.info('chat approval response', { approvedCount, deniedCount });
   }
 
   await compactIfNeeded(chatId, ctx.lang);
@@ -241,7 +241,7 @@ chatRoute.post('/', async (c) => {
       // each StepResult's own response.messages is cumulative (includes every prior step's messages too),
       // so flatMapping over `steps` re-appends earlier steps again and again (quadratic duplication).
       conversationMemory.append(chatId, response.messages, displaysOfResponseMessages(response.messages, richOutputsByCallId));
-      chatLog.info('chat finished', { chatId, steps: steps.length, reply: text });
+      log.info('chat finished', { steps: steps.length, reply: text });
       void chatTitles.generateIfMissing(chatId, ctx.lang);
     },
     onError: () => {

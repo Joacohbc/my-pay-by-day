@@ -48,12 +48,21 @@ export const config = {
   log: {
     /** Verbosity threshold: silent | error | warn | info | debug | trace. */
     level: env('LOG_LEVEL', 'debug'),
-    /** Output format: 'text' (human-readable) or 'json' (structured, one object per line). */
-    format: env('LOG_FORMAT', 'text'),
+    /**
+     * Output format: 'text' (human-readable, for local debugging) or 'json' (structured, one object
+     * per line, for prod auditing/aggregation via Loki/Grafana). Defaults to JSON under
+     * `NODE_ENV=production`, text otherwise; `LOG_FORMAT` overrides the default explicitly.
+     */
+    format: env('LOG_FORMAT', process.env.NODE_ENV === 'production' ? 'json' : 'text'),
     /** Max characters per logged field value before truncation. */
     maxFieldChars: intEnv('LOG_MAX_FIELD_CHARS', 800),
     /** Prefix each line with an ISO timestamp (text format only). */
     timestamps: env('LOG_TIMESTAMPS', 'true') !== 'false',
+  },
+
+  metrics: {
+    /** Expose the Prometheus scrape endpoint at `/metrics`. */
+    enabled: env('METRICS_ENABLED', 'true') !== 'false',
   },
 } as const;
 

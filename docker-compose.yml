@@ -16,13 +16,79 @@ services:
       - SUBAGENT_MAX_STEPS=${SUBAGENT_MAX_STEPS:-12}
       - AGENT_MAX_CHAT_MESSAGES=${AGENT_MAX_CHAT_MESSAGES:-150}
       - MYPAYBYDAY_FILES_MAX_SIZE=${MYPAYBYDAY_FILES_MAX_SIZE:-10485760}
-      - LOG_LEVEL=${LOG_LEVEL:-debug}
-      - LOG_FORMAT=${LOG_FORMAT:-text}
+      # 'production' makes the chatbot default to JSON logs; the Quarkus backend already runs its
+      # %prod profile (JSON) when packaged. Override LOG_FORMAT to force text for local debugging.
+      - NODE_ENV=${NODE_ENV:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - APP_LOG_LEVEL=${APP_LOG_LEVEL:-INFO}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
       - LOG_MAX_FIELD_CHARS=${LOG_MAX_FIELD_CHARS:-800}
       - LOG_TIMESTAMPS=${LOG_TIMESTAMPS:-true}
+      - METRICS_ENABLED=${METRICS_ENABLED:-true}
       - CHATBOT_DB_PATH=${CHATBOT_DB_PATH:-/data/chatbot.db}
     volumes:
       - db_data:/data
 
+  # ── Observability stack ──────────────────────────────────────────────
+  # Prometheus scrapes the app's /q/metrics (backend) and /metrics (chatbot) through nginx;
+  # Alloy tails the app container's JSON logs into Loki; Grafana visualizes both and lets you
+  # trace a single request across services by its X-Request-Id.
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./docker/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - 4y
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.3.2
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./docker/observability/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    restart: unless-stopped
+
+  alloy:
+    image: grafana/alloy:v1.5.1
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
+    volumes:
+      - ./docker/observability/alloy.config:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy/data
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./docker/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+    restart: unless-stopped
+
 volumes:
   db_data:
+  prometheus_data:
+  loki_data:
+  alloy_data:
+  grafana_data:

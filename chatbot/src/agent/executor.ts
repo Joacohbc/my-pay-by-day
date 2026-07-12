@@ -14,6 +14,8 @@ import { isPauseSignal } from '@/agent/signals.js';
 import { agentStore, type AttachmentContent } from '@/agent/store.js';
 import { TERMINAL_STATUSES } from '@/agent/types.js';
 import { logger } from '@/logging/logger.js';
+import { runWithRequestContext } from '@/logging/requestStore.js';
+import { randomUUID } from 'node:crypto';
 
 const agentLog = logger.child('agent');
 
@@ -90,65 +92,69 @@ async function run(taskId: string): Promise<void> {
   running.set(taskId, controller);
   agentStore.setCancelRequested(taskId, false);
 
+  const requestId = task.request_id ?? randomUUID();
   const ctx: RequestContext = {
     timezone: task.timezone ?? 'UTC',
     lang: task.lang ?? 'en',
     currency: task.currency ?? DEFAULT_CURRENCY,
+    requestId,
   };
   const isResumed = agentStore
     .steps(taskId)
     .some((s) => s.type === 'PROGRESS' || s.type === 'MESSAGE');
 
-  try {
-    updateStatus(taskId, 'RUNNING', 5, isResumed ? 'Resuming' : 'Analyzing the request');
-    await compactIfNeeded(taskId, ctx.lang);
+  await runWithRequestContext({ requestId, taskId }, async () => {
+    try {
+      updateStatus(taskId, 'RUNNING', 5, isResumed ? 'Resuming' : 'Analyzing the request');
+      await compactIfNeeded(taskId, ctx.lang);
 
-    if (conversationMemory.count(taskId) === 0) {
-      conversationMemory.append(taskId, [
-        { role: 'user', content: buildInstructionContent(taskId, task.user_instruction) } as ModelMessage,
-      ]);
+      if (conversationMemory.count(taskId) === 0) {
+        conversationMemory.append(taskId, [
+          { role: 'user', content: buildInstructionContent(taskId, task.user_instruction) } as ModelMessage,
+        ]);
+      }
+
+      const toolSet = buildAllTools(ctx, buildAgentTools(taskId));
+      const stepBudget = task.step_budget ?? config.agent.maxSteps;
+      agentLog.info('starting agent task', { taskId, mode: task.execution_mode, instruction: task.user_instruction });
+      const result = await generateText({
+        model: largeModel(),
+        system: agentSystemPrompt({
+          now: groundingNow(ctx.timezone),
+          timezone: ctx.timezone,
+          lang: ctx.lang,
+          currency: ctx.currency,
+          memories: longTermMemory.contents(),
+          mode: task.execution_mode,
+          isResumed,
+        }),
+        messages: buildModelContext(taskId),
+        tools: toolsForMode(toolSet, task.execution_mode),
+        stopWhen: stepCountIs(stepBudget),
+        abortSignal: controller.signal,
+      });
+
+      conversationMemory.append(taskId, result.response.messages);
+      agentLog.info('completed agent task', { taskId, steps: result.steps.length, reply: result.text });
+      if (result.text.trim()) recordStep(taskId, { type: 'MESSAGE', content: result.text.trim() });
+
+      const hitStepLimit = result.steps.length >= stepBudget && result.steps.at(-1)?.finishReason === 'tool-calls';
+
+      if (agentStore.status(taskId) === 'PAUSED') {
+        // already paused by a tool (e.g. requestUserAction)
+      } else if (hitStepLimit) {
+        const step = recordStep(taskId, { type: 'MESSAGE', content: STEP_LIMIT_MESSAGE[ctx.lang] ?? STEP_LIMIT_MESSAGE.en });
+        recordAction(taskId, { stepId: step.id, actionType: 'EXTEND_STEPS', payload: STEP_LIMIT_MESSAGE[ctx.lang] ?? STEP_LIMIT_MESSAGE.en });
+        updateStatus(taskId, 'PAUSED', task.progress, 'Waiting for more steps');
+      } else {
+        updateStatus(taskId, 'COMPLETED', 100, 'Done');
+      }
+    } catch (error) {
+      handleError(taskId, error);
+    } finally {
+      running.delete(taskId);
     }
-
-    const toolSet = buildAllTools(ctx, buildAgentTools(taskId));
-    const stepBudget = task.step_budget ?? config.agent.maxSteps;
-    agentLog.info('starting agent task', { taskId, mode: task.execution_mode, instruction: task.user_instruction });
-    const result = await generateText({
-      model: largeModel(),
-      system: agentSystemPrompt({
-        now: groundingNow(ctx.timezone),
-        timezone: ctx.timezone,
-        lang: ctx.lang,
-        currency: ctx.currency,
-        memories: longTermMemory.contents(),
-        mode: task.execution_mode,
-        isResumed,
-      }),
-      messages: buildModelContext(taskId),
-      tools: toolsForMode(toolSet, task.execution_mode),
-      stopWhen: stepCountIs(stepBudget),
-      abortSignal: controller.signal,
-    });
-
-    conversationMemory.append(taskId, result.response.messages);
-    agentLog.info('completed agent task', { taskId, steps: result.steps.length, reply: result.text });
-    if (result.text.trim()) recordStep(taskId, { type: 'MESSAGE', content: result.text.trim() });
-
-    const hitStepLimit = result.steps.length >= stepBudget && result.steps.at(-1)?.finishReason === 'tool-calls';
-
-    if (agentStore.status(taskId) === 'PAUSED') {
-      // already paused by a tool (e.g. requestUserAction)
-    } else if (hitStepLimit) {
-      const step = recordStep(taskId, { type: 'MESSAGE', content: STEP_LIMIT_MESSAGE[ctx.lang] ?? STEP_LIMIT_MESSAGE.en });
-      recordAction(taskId, { stepId: step.id, actionType: 'EXTEND_STEPS', payload: STEP_LIMIT_MESSAGE[ctx.lang] ?? STEP_LIMIT_MESSAGE.en });
-      updateStatus(taskId, 'PAUSED', task.progress, 'Waiting for more steps');
-    } else {
-      updateStatus(taskId, 'COMPLETED', 100, 'Done');
-    }
-  } catch (error) {
-    handleError(taskId, error);
-  } finally {
-    running.delete(taskId);
-  }
+  });
 }
 
 function handleError(taskId: string, error: unknown): void {

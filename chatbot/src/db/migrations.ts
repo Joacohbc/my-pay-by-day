@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS agent_task (
   lang             TEXT,
   timezone         TEXT,
   currency         TEXT,
+  request_id       TEXT,
   cancel_requested INTEGER NOT NULL DEFAULT 0,
   title            TEXT,
   step_budget      INTEGER,
@@ -101,5 +102,6 @@ function ensureColumn(database: DatabaseSync, table: string, column: string, ddl
 
 export function runMigrations(database: DatabaseSync): void {
   database.exec(SCHEMA);
+  ensureColumn(database, 'agent_task', 'request_id', 'request_id TEXT');
   database.exec(BACKFILL_CONVERSATION_FROM_MESSAGES);
 }
