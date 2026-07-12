@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
-import { Routes, saveEventsSearch, eventsRoute } from '@/lib/routes';
+import { Routes, saveEventsSearch } from '@/lib/routes';
 import { useEvents } from '@/hooks/useEvents';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useDebounce } from '@/hooks/useDebounce';

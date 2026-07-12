@@ -94,9 +94,13 @@ function parseTranslationFile(filePath) {
   // Strip TS-specific syntax so we can eval as JS
   code = code.replace(/\bas\s+const\b/g, '');
   code = code.replace(/^export\s+default\s+\w+;\s*$/m, '');
+  code = code.replace(/^import\s+.*?(?:'|")\s*;/gm, ''); // Strip imports
 
   // Replace `const xx = {` with `return {`
   code = code.replace(/^const\s+\w+\s*=\s*\{/m, 'return {');
+  
+  // Provide mock for imported dependencies
+  code = `const chatToolLabels = { en: {}, es: {} };\n` + code;
 
   // Wrap in a function and evaluate
   const fn = new Function(code);
