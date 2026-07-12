@@ -318,8 +318,8 @@ export interface CreateTagGroupDto {
   tagIds: number[];
 }
 
-export * from './duplicates';
-import type { DuplicateDetectionSettings } from './duplicates';
+export * from '@/models/duplicates';
+import type { DuplicateDetectionSettings } from '@/models/duplicates';
 
 // ─── DataTransfer ─────────────────────────────────────────────────────────────
 

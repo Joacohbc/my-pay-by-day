@@ -332,7 +332,7 @@ export interface paths {
         };
         /**
          * Export all data
-         * @description Returns all Tags, Categories, Finance Nodes, Tag Groups, and Events as a single JSON payload
+         * @description Returns all Tags, Categories, Finance Nodes, Tag Groups, and Events as a single ZIP file containing data.json and files/
          */
         get: {
             parameters: {
@@ -349,7 +349,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["DataTransferDto"];
+                        "application/zip": number[];
                     };
                 };
             };
@@ -384,7 +384,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["DataTransferDto"];
+                    "application/zip": string;
                 };
             };
             responses: {
@@ -3656,19 +3656,6 @@ export interface components {
             confirmedEvents: components["schemas"]["FinanceEventDto"][];
             failedDraftIds: number[];
         };
-        DataTransferDto: {
-            version?: string;
-            exportedAt?: components["schemas"]["LocalDateTime"];
-            tags?: components["schemas"]["TagDto"][];
-            categories?: components["schemas"]["CategoryDto"][];
-            financeNodes?: components["schemas"]["FinanceNodeDto"][];
-            tagGroups?: components["schemas"]["TagGroupDto"][];
-            events?: components["schemas"]["FinanceEventDto"][];
-            files?: components["schemas"]["FileExportDto"][];
-            subscriptions?: components["schemas"]["SubscriptionDto"][];
-            templates?: components["schemas"]["TemplateDto"][];
-            timePeriods?: components["schemas"]["TimePeriodDto"][];
-        };
         DataTransferResult: {
             /** Format: int32 */
             importedTags?: number;
@@ -3765,16 +3752,6 @@ export interface components {
             /** Format: binary */
             data?: string;
             hash?: string;
-            markdownContent?: string;
-        };
-        FileExportDto: {
-            /** Format: int64 */
-            id?: number;
-            fileName?: string;
-            mimeType?: string;
-            /** Format: int64 */
-            size?: number;
-            base64Content?: string;
             markdownContent?: string;
         };
         FinanceEventDraftInputDto: {
