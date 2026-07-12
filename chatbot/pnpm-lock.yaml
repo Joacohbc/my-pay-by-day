@@ -9,14 +9,14 @@ importers:
   .:
     dependencies:
       '@hono/node-server':
-        specifier: ^2.0.6
-        version: 2.0.6(hono@4.12.27)
+        specifier: ^2.0.8
+        version: 2.0.8(hono@4.12.29)
       '@openrouter/ai-sdk-provider':
         specifier: ^2.10.0
-        version: 2.10.0(ai@6.0.216(zod@4.4.3))(zod@4.4.3)
+        version: 2.10.0(ai@6.0.224(zod@4.4.3))(zod@4.4.3)
       ai:
-        specifier: ^6.0.216
-        version: 6.0.216(zod@4.4.3)
+        specifier: ^6.0.224
+        version: 6.0.224(zod@4.4.3)
       date-fns:
         specifier: ^4.4.0
         version: 4.4.0
@@ -24,8 +24,8 @@ importers:
         specifier: ^3.2.0
         version: 3.2.0(date-fns@4.4.0)
       hono:
-        specifier: ^4.12.27
-        version: 4.12.27
+        specifier: ^4.12.29
+        version: 4.12.29
       openapi-fetch:
         specifier: ^0.17.0
         version: 0.17.0
@@ -34,37 +34,37 @@ importers:
         version: 4.4.3
     devDependencies:
       '@types/node':
-        specifier: ^24.12.3
-        version: 24.13.2
+        specifier: ^24.13.3
+        version: 24.13.3
       openapi-typescript:
         specifier: ^7.13.0
         version: 7.13.0(typescript@5.9.3)
       tsc-alias:
-        specifier: ^1.8.17
-        version: 1.8.17
+        specifier: ^1.9.0
+        version: 1.9.0
       tsx:
-        specifier: ^4.20.6
-        version: 4.22.4
+        specifier: ^4.23.0
+        version: 4.23.0
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
 
 packages:
 
-  '@ai-sdk/gateway@3.0.140':
-    resolution: {integrity: sha512-4VyQTHHqfZ0qI1fCcurJgYgzVDgLfV4svzBMOHGGxCu4srFkAn4ZmwFj2M0J00kNt7QLsjOtZ6PhueupeIJSjA==}
+  '@ai-sdk/gateway@3.0.148':
+    resolution: {integrity: sha512-C/mTeSdmhu8dAnH3vZaRXffD8Oewo1r4QEGxvCdR8eC9b4PKPs2CLsbg3DVJH/X3Bea5fAu87Ob7P3fSS+oq/g==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/provider-utils@4.0.33':
-    resolution: {integrity: sha512-nJ0bAfegMAIJtrzMJtbzer1cS3nb7c7DsyU1S4nrPm7ZU0Mn6SBBZv5IGZZGTbpWTJwqKTSPeZJTXalbAxt1BA==}
+  '@ai-sdk/provider-utils@4.0.38':
+    resolution: {integrity: sha512-/HHGmtKllqjg1OLc023v9w9kK3laW7Z6TzfZukYQWCsGBbzB9p60zTvvpXFVcs44NZBVXL3viOa1HRKUbeee8g==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/provider@3.0.12':
-    resolution: {integrity: sha512-sj9DWTJ2Ze0WR9qsiOPqoqzNx3OxL6iMxHImbhvoe9qOspekbzxNDMiJ4TIGfYHYh9w4OmBjz3prvqhzTi96+Q==}
+  '@ai-sdk/provider@3.0.14':
+    resolution: {integrity: sha512-5X1k57JBJ4H7H1QjX7CnJYAB1I19r/trVZTMcSms7/kLNZ8RaU4Nt2agcwZzv82Hfx6Q7/TOLU7agAKeFfc8cA==}
     engines: {node: '>=18'}
 
   '@babel/code-frame@7.29.7':
@@ -231,8 +231,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@hono/node-server@2.0.6':
-    resolution: {integrity: sha512-7DeRlKG57JDBNZ5Qj2jwVdgwQy4b0tLubRLl3zCf91/rCf9i7p1V5FtW/yWibm1uUHE493ts9ZXH/7g/LQWl+g==}
+  '@hono/node-server@2.0.8':
+    resolution: {integrity: sha512-GuCWzLxwg218fy1JaHculFsdcuY12hxit83V+algozTPnwhNjLrRL/Alg9OYjLZLoUZ1rw/S4CdTMsnkSKCmFA==}
     engines: {node: '>=20'}
     peerDependencies:
       hono: ^4
@@ -266,15 +266,15 @@ packages:
   '@redocly/config@0.22.0':
     resolution: {integrity: sha512-gAy93Ddo01Z3bHuVdPWfCwzgfaYgMdaZPcfL7JZ7hWJoK9V0lXDbigTWkhiPFAaLWzbOJ+kbUQG1+XwIm0KRGQ==}
 
-  '@redocly/openapi-core@1.34.16':
-    resolution: {integrity: sha512-zIgmQTT2TV/U/SJ3N4jlIw36erH6X8ga1UNIoyrlbr0yLEbsiII/16LZ0kMxWu2A8pw0xd56rwTz5sMudy2OAw==}
+  '@redocly/openapi-core@1.34.17':
+    resolution: {integrity: sha512-wsV2keCt6B806XpSdezbWZ9aFJYf14YVh+XQf0ESt7M90yqVuxH9//PxvtC70sgj9OCkRM3nRaLfu4MsGQZRig==}
     engines: {node: '>=18.17.0', npm: '>=9.5.0'}
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
-  '@types/node@24.13.2':
-    resolution: {integrity: sha512-fRa09kZTgu8o71KFcDjUFuc7F+dEbZYZmkI0mg5YBTRs0yMKjYHsq/c0urDKeDb+D5qVgXOdFcuu+DZPKOITwA==}
+  '@types/node@24.13.3':
+    resolution: {integrity: sha512-Dh8vAsV36ig5wa9OX4pXvMc9D3Veibfw2wix0CUwYODLD8nkj9UsLjASr49nPg+2eKzxhBV+v7L8pXvT4e639Q==}
 
   '@vercel/oidc@3.2.0':
     resolution: {integrity: sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug==}
@@ -284,8 +284,8 @@ packages:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
 
-  ai@6.0.216:
-    resolution: {integrity: sha512-K6/H1H6b+IJuz79Nc44A/tEPzAH+dUCmQhHtP2In943OxvLekosVYBwUUsr1oQjc/JvN8WRpL1mLuefUBHxs/w==}
+  ai@6.0.224:
+    resolution: {integrity: sha512-plo+hHwMANM+P6FjX8RN6W8c8so5NVZGwvDGCWGWwIbvI5tc0ZV1zhr9v/Kq78zyxKZWE50YCSYbqGiPFEhGww==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -312,8 +312,8 @@ packages:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
     engines: {node: '>=8'}
 
-  brace-expansion@2.1.1:
-    resolution: {integrity: sha512-WR1cURNjuvBLMZBMbqM0UoE+WAfdUcEV1ccD8PVBVOI+Z3ND4+SZbN8RsfT2bMuG1qwz5RFvPukSZm5fF2D5eA==}
+  brace-expansion@2.1.2:
+    resolution: {integrity: sha512-w5JZcKgdhDOgOwm8H+KgbosopHMuGcl6qbulwjtz3SM7I7P3yW1eAjzMPLrIE+NQ9vjgANKHWeMHnrT0OXW1oA==}
 
   braces@3.0.3:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
@@ -393,8 +393,8 @@ packages:
     resolution: {integrity: sha512-jhIXaOzy1sb8IyocaruWSn1TjmnBVs8Ayhcy83rmxNJ8q2uWKCAj3CnJY+KpGSXCueAPc0i05kVvVKtP1t9S3g==}
     engines: {node: '>=10'}
 
-  hono@4.12.27:
-    resolution: {integrity: sha512-1yrb/+w6HWQJrUCLkJ2IF5jNIPvvFkblV5RNOYl6bV+OA6p9GLcMpHFFGTosSvHvcAUibuUukRqhlYI4z32C7Q==}
+  hono@4.12.29:
+    resolution: {integrity: sha512-1hNiRjawYrLq/4m3DQQjPGFg0VZkk4RjQJDff/excI6Dm9BiL75qxGrd7/c6YOxPdq6AscP3LiXhQ6fKFC1Waw==}
     engines: {node: '>=16.9.0'}
 
   https-proxy-agent@7.0.6:
@@ -537,13 +537,13 @@ packages:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
 
-  tsc-alias@1.8.17:
-    resolution: {integrity: sha512-EIduCZHqbNwPm8BZYfq1aD7BQ697A4h6uSGMOFQfYGoQwfrYFTKwYfy9Bv42YxHkduVBcn9Zx0DkX111DKskyg==}
+  tsc-alias@1.9.0:
+    resolution: {integrity: sha512-IZrCInovKxVCwXyKhcdr/HaxSYugKT0w4zyktOE/4115Nzo6gbp/NhkaEeyOG0/H7QoTeXtv+3UHffBYta9oWw==}
     engines: {node: '>=16.20.2'}
     hasBin: true
 
-  tsx@4.22.4:
-    resolution: {integrity: sha512-X8EX+XV4QR5xCsrgxaED954zTDfY8KqlDtskKEL0cHhyS/P8b4IFOvGDQpsC9Q1XnLq915wEfwwY/zzskCtmhg==}
+  tsx@4.23.0:
+    resolution: {integrity: sha512-eUdUIaCr963q2h5u3+QwvYp0+eqPvn+egeqZUm0hwERCqqx1E3kK5ehbGCvqSE5MQAULr67ww0cA3jKc3YkM1w==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -574,21 +574,21 @@ packages:
 
 snapshots:
 
-  '@ai-sdk/gateway@3.0.140(zod@4.4.3)':
+  '@ai-sdk/gateway@3.0.148(zod@4.4.3)':
     dependencies:
-      '@ai-sdk/provider': 3.0.12
-      '@ai-sdk/provider-utils': 4.0.33(zod@4.4.3)
+      '@ai-sdk/provider': 3.0.14
+      '@ai-sdk/provider-utils': 4.0.38(zod@4.4.3)
       '@vercel/oidc': 3.2.0
       zod: 4.4.3
 
-  '@ai-sdk/provider-utils@4.0.33(zod@4.4.3)':
+  '@ai-sdk/provider-utils@4.0.38(zod@4.4.3)':
     dependencies:
-      '@ai-sdk/provider': 3.0.12
+      '@ai-sdk/provider': 3.0.14
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.1.0
       zod: 4.4.3
 
-  '@ai-sdk/provider@3.0.12':
+  '@ai-sdk/provider@3.0.14':
     dependencies:
       json-schema: 0.4.0
 
@@ -678,9 +678,9 @@ snapshots:
   '@esbuild/win32-x64@0.28.1':
     optional: true
 
-  '@hono/node-server@2.0.6(hono@4.12.27)':
+  '@hono/node-server@2.0.8(hono@4.12.29)':
     dependencies:
-      hono: 4.12.27
+      hono: 4.12.29
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
@@ -694,9 +694,9 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.1
 
-  '@openrouter/ai-sdk-provider@2.10.0(ai@6.0.216(zod@4.4.3))(zod@4.4.3)':
+  '@openrouter/ai-sdk-provider@2.10.0(ai@6.0.224(zod@4.4.3))(zod@4.4.3)':
     dependencies:
-      ai: 6.0.216(zod@4.4.3)
+      ai: 6.0.224(zod@4.4.3)
       zod: 4.4.3
 
   '@opentelemetry/api@1.9.1': {}
@@ -710,7 +710,7 @@ snapshots:
 
   '@redocly/config@0.22.0': {}
 
-  '@redocly/openapi-core@1.34.16(supports-color@10.2.2)':
+  '@redocly/openapi-core@1.34.17(supports-color@10.2.2)':
     dependencies:
       '@redocly/ajv': 8.11.2
       '@redocly/config': 0.22.0
@@ -726,7 +726,7 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
-  '@types/node@24.13.2':
+  '@types/node@24.13.3':
     dependencies:
       undici-types: 7.18.2
 
@@ -734,11 +734,11 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  ai@6.0.216(zod@4.4.3):
+  ai@6.0.224(zod@4.4.3):
     dependencies:
-      '@ai-sdk/gateway': 3.0.140(zod@4.4.3)
-      '@ai-sdk/provider': 3.0.12
-      '@ai-sdk/provider-utils': 4.0.33(zod@4.4.3)
+      '@ai-sdk/gateway': 3.0.148(zod@4.4.3)
+      '@ai-sdk/provider': 3.0.14
+      '@ai-sdk/provider-utils': 4.0.38(zod@4.4.3)
       '@opentelemetry/api': 1.9.1
       zod: 4.4.3
 
@@ -757,7 +757,7 @@ snapshots:
 
   binary-extensions@2.3.0: {}
 
-  brace-expansion@2.1.1:
+  brace-expansion@2.1.2:
     dependencies:
       balanced-match: 1.0.2
 
@@ -868,7 +868,7 @@ snapshots:
       merge2: 1.4.1
       slash: 3.0.0
 
-  hono@4.12.27: {}
+  hono@4.12.29: {}
 
   https-proxy-agent@7.0.6(supports-color@10.2.2):
     dependencies:
@@ -914,7 +914,7 @@ snapshots:
 
   minimatch@5.1.9:
     dependencies:
-      brace-expansion: 2.1.1
+      brace-expansion: 2.1.2
 
   ms@2.1.3: {}
 
@@ -930,7 +930,7 @@ snapshots:
 
   openapi-typescript@7.13.0(typescript@5.9.3):
     dependencies:
-      '@redocly/openapi-core': 1.34.16(supports-color@10.2.2)
+      '@redocly/openapi-core': 1.34.17(supports-color@10.2.2)
       ansi-colors: 4.1.3
       change-case: 5.4.4
       parse-json: 8.3.0
@@ -982,7 +982,7 @@ snapshots:
     dependencies:
       is-number: 7.0.0
 
-  tsc-alias@1.8.17:
+  tsc-alias@1.9.0:
     dependencies:
       chokidar: 3.6.0
       commander: 9.5.0
@@ -992,7 +992,7 @@ snapshots:
       normalize-path: 3.0.0
       plimit-lit: 1.6.1
 
-  tsx@4.22.4:
+  tsx@4.23.0:
     dependencies:
       esbuild: 0.28.1
     optionalDependencies:

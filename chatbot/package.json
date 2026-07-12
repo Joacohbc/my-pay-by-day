@@ -16,20 +16,20 @@
     "i18n:audit": "node scripts/i18n-audit.mjs"
   },
   "dependencies": {
-    "@hono/node-server": "^2.0.6",
+    "@hono/node-server": "^2.0.8",
     "@openrouter/ai-sdk-provider": "^2.10.0",
-    "ai": "^6.0.216",
+    "ai": "^6.0.224",
     "date-fns": "^4.4.0",
     "date-fns-tz": "^3.2.0",
-    "hono": "^4.12.27",
+    "hono": "^4.12.29",
     "openapi-fetch": "^0.17.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^24.12.3",
+    "@types/node": "^24.13.3",
     "openapi-typescript": "^7.13.0",
-    "tsc-alias": "^1.8.17",
-    "tsx": "^4.20.6",
+    "tsc-alias": "^1.9.0",
+    "tsx": "^4.23.0",
     "typescript": "~5.9.3"
   }
 }
