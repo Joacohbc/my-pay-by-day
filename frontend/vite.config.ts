@@ -17,7 +17,7 @@ export default defineConfig({
       useCredentials: true,
       manifest: {
         name: 'MyPayByDay',
-        short_name: 'PayByDay',
+        short_name: '4Y',
         description: 'Personal finance tracker',
         start_url: '/',
         display: 'standalone',
