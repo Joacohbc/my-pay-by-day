@@ -114,9 +114,18 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       ui: { invalidates: [], label: { en: 'Checking templates...', es: 'Consultando plantillas...' } },
       tool: tool({
         description:
-          'List predefined templates that can be used to quickly generate finance events. Templates define default nodes, categories, and tags, and sometimes dynamic mathematical modifiers. Use this tool when the user mentions creating an event from a template (e.g. "my rent", "the usual"). By fetching the templates, you can determine what fields (like amount or specific nodes) are still required to build the event.',
+          'List predefined templates that can be used to quickly generate finance events. Templates define default nodes, categories, and tags, and sometimes dynamic mathematical modifiers. Use this tool when the user mentions creating an event from a template (e.g. "my rent", "the usual"). By fetching the templates, you can determine what fields (like amount or specific nodes) are still required to build the event. Returns { templates, totalMatches, hasMore }; hasMore means the list is truncated.',
         inputSchema: z.object({}),
-        execute: () => safe(() => unwrap(client.GET('/templates', { params: { query: { page: 0, size: 100 } } }))),
+        execute: () =>
+          safe(async () => {
+            const templatesPage = await unwrap(client.GET('/templates', { params: { query: { page: 0, size: 100 } } }));
+            const templates = templatesPage.content ?? [];
+            return {
+              templates,
+              totalMatches: templatesPage.totalElements ?? templates.length,
+              hasMore: (templatesPage.totalElements ?? 0) > templates.length,
+            };
+          }),
       }),
     },
 
@@ -126,15 +135,15 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       ui: { invalidates: [], label: { en: 'Searching transaction history...', es: 'Buscando movimientos en el historial...' } },
       tool: tool({
         description:
-          'Search finance events with advanced filters: text search, date range (YYYY-MM-DD), type (INBOUND|OUTBOUND|OTHER), categoryId, tagId, nodeId, and min/max amount. Returns flat events.',
+          'Search finance events with advanced filters: text search, date range (YYYY-MM-DD), type (INBOUND|OUTBOUND|OTHER), categoryId, tagId, nodeId, min/max amount, and zero-based page. Returns { events, page, totalMatches, hasMore }. If hasMore is true the list is truncated: request the next page or narrow the filters before computing totals or summaries.',
         inputSchema: botEventFilterSchema,
-        execute: ({ search, startDate, endDate, type, categoryId, tagId, nodeId, minAmount, maxAmount, limit }) =>
+        execute: ({ search, startDate, endDate, type, categoryId, tagId, nodeId, minAmount, maxAmount, limit, page }) =>
           safe(async () => {
-            const page = await unwrap(
+            const eventsPage = await unwrap(
               client.GET('/events', {
                 params: {
                   query: {
-                    page: 0,
+                    page,
                     size: limit,
                     search: search ?? undefined,
                     startDate: toServerDateBoundary(startDate, ctx.timezone, 'start'),
@@ -149,7 +158,13 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
                 },
               }),
             );
-            return ((page.content ?? []) as FinanceEventDto[]).map(toBotEvent);
+            const events = ((eventsPage.content ?? []) as FinanceEventDto[]).map(toBotEvent);
+            return {
+              events,
+              page: eventsPage.page ?? page,
+              totalMatches: eventsPage.totalElements ?? events.length,
+              hasMore: (eventsPage.totalPages ?? 1) > (eventsPage.page ?? page) + 1,
+            };
           }),
       }),
     },
