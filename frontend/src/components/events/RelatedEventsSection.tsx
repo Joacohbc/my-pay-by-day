@@ -13,15 +13,14 @@ import { Routes } from "@/lib/routes";
 
 export function RelatedEventsSection({ event }: { event: FinanceEvent }) {
     const { t } = useTranslation();
-    const { navigate, state } = useAppNavigation();
+    const { navigatePush } = useAppNavigation();
     const removeRelation = useRemoveEventRelations();
 
     const [toRemove, setToRemove] = useState<RelatedEvent | null>(null);
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
 
     const handleCreateAndLink = () => {
-        const from = state.from;
-        navigate(Routes.EVENT_NEW, { state: { relatedToEventId: event.id, from } });
+        navigatePush(Routes.EVENT_NEW, { relatedToEventId: event.id });
     };
 
     const handleRemove = async () => {
@@ -105,7 +104,7 @@ export function RelatedEventsSection({ event }: { event: FinanceEvent }) {
 										key={related.id}
 										className="group p-2 border border-transparent hover:border-dn-primary/50 transition-colors rounded-2xl flex items-center justify-between gap-5"
 									>
-										<EventCard event={fakeEvent} from={Routes.EVENT_DETAIL(event.id)} />
+										<EventCard event={fakeEvent} />
 										<button
 											type="button"
 											onClick={() => setToRemove(related)}

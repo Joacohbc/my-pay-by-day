@@ -44,7 +44,6 @@ export interface EventsListViewProps {
 
   renderItem?: (event: FinanceEvent) => ReactNode;
   keyResolver?: (event: FinanceEvent) => string | number;
-  from?: string;
 
   emptyTitle: string;
   emptyDescription?: string;
@@ -88,7 +87,6 @@ export function EventsListView({
   pills,
   renderItem,
   keyResolver,
-  from,
   emptyTitle,
   emptyDescription,
   emptyAction,
@@ -205,7 +203,7 @@ export function EventsListView({
                       key={keyResolver ? keyResolver(event) : event.id}
                       className="py-3 first:pt-0 last:pb-0 animate-in"
                     >
-                      {renderItem ? renderItem(event) : <EventCard event={event} from={from} iconSource={iconSource} />}
+                      {renderItem ? renderItem(event) : <EventCard event={event} iconSource={iconSource} />}
                     </div>
                   ))}
                 </Card>

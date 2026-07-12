@@ -28,7 +28,7 @@ const CONFIRM_TITLE_BY_TYPE: Record<ConfirmActionType, 'common.archive' | 'commo
 
 export function TagsPage() {
   const { t } = useTranslation();
-  const { navigate, fromRoute } = useAppNavigation();
+  const { navigateBack } = useAppNavigation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showArchived, setShowArchived] = useState(false);
   const { data: paged, isLoading, error } = useTags(showArchived ? true : undefined);
@@ -106,7 +106,7 @@ export function TagsPage() {
 
       <PageHeader
         title={t('tags.title')}
-        back={() => navigate(fromRoute ?? Routes.SETTINGS)}
+        back={() => navigateBack(Routes.SETTINGS)}
         subtitle={t('tags.count', { count: allTags.length })}
         action={
           <div className="flex items-center gap-2">

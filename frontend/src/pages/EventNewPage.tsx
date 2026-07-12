@@ -30,7 +30,7 @@ function mapTemplateToEventValues(template: Template): Partial<FinanceEvent> {
 
 export function EventNewPage() {
   const { t } = useTranslation();
-  const { navigate, fromRoute, template, draft, relatedToEventId } = useAppNavigation();
+  const { navigate, navigateBack, navigateReplace, template, draft, relatedToEventId } = useAppNavigation();
   const createEvent = useCreateEvent();
   const addRelations = useAddEventRelations();
   const createDraft = useCreateStandaloneFinanceEventDraft();
@@ -83,9 +83,9 @@ export function EventNewPage() {
       if (currentDraftId) deleteDraft.mutate(currentDraftId);
       if (relatedToEventId) {
         await addRelations.mutateAsync({ id: relatedToEventId, relatedIds: [created.id] });
-        navigate(Routes.EVENT_DETAIL(relatedToEventId), { replace: true, state: { from: fromRoute } });
+        navigateReplace(Routes.EVENT_DETAIL(relatedToEventId));
       } else {
-        navigate(Routes.EVENT_DETAIL(created.id), { replace: true, state: { from: eventsRoute() } });
+        navigateReplace(Routes.EVENT_DETAIL(created.id));
       }
     } else {
       navigate(eventsRoute());
@@ -97,7 +97,7 @@ export function EventNewPage() {
       await deleteDraft.mutateAsync(currentDraftId);
     }
     setCurrentDraftId(undefined);
-    navigate(eventsRoute());
+    navigateBack(eventsRoute());
   };
 
 
@@ -105,7 +105,7 @@ export function EventNewPage() {
     <div className="space-y-4">
       <PageHeader
         title={t('events.newEventTitle')}
-        back={() => navigate(relatedToEventId ? Routes.EVENT_DETAIL(relatedToEventId) : (fromRoute ?? eventsRoute()), { state: { from: fromRoute } })}
+        back={() => navigateBack(relatedToEventId ? Routes.EVENT_DETAIL(relatedToEventId) : eventsRoute())}
         action={
           !!currentDraftId && (
             <div className="flex items-center gap-1">

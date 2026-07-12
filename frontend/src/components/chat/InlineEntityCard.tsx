@@ -11,6 +11,7 @@ import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { EventCard } from '@/components/events/EventCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Routes } from '@/lib/routes';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import type { ChatEntityRef } from '@/components/chat/chatEntityRefs';
 
 type TranslateFn = ReturnType<typeof useTranslation>['t'];
@@ -74,7 +75,7 @@ export function InlineEventCard({ eventId, action }: { eventId: number; action: 
     <div className="mt-2">
       <EntityCardLabel>{eventLabel(t, action)}</EntityCardLabel>
       <Card>
-        {isLoading || !event ? <EventCardSkeleton /> : <EventCard event={event} from={Routes.CHAT} />}
+        {isLoading || !event ? <EventCardSkeleton /> : <EventCard event={event} />}
       </Card>
     </div>
   );
@@ -91,7 +92,7 @@ export function InlineDraftCard({ draftId, action }: { draftId: number; action: 
     <div className="mt-2">
       <EntityCardLabel>{draftLabel(t, action)}</EntityCardLabel>
       <Card>
-        {isLoading || !draft ? <EventCardSkeleton /> : <EventCard event={draft} from={Routes.CHAT} />}
+        {isLoading || !draft ? <EventCardSkeleton /> : <EventCard event={draft} />}
       </Card>
     </div>
   );
@@ -99,6 +100,7 @@ export function InlineDraftCard({ draftId, action }: { draftId: number; action: 
 
 export function InlineTagCard({ tagId }: { tagId: number }) {
   const { t } = useTranslation();
+  const { linkStateFromHere } = useAppNavigation();
   const { data: tag, isError, isLoading } = useTag(tagId);
 
   if (isError) return <UnavailableCard message={t('chat.entityCards.tagUnavailable')} />;
@@ -117,7 +119,7 @@ export function InlineTagCard({ tagId }: { tagId: number }) {
   return (
     <div className="mt-2">
       <EntityCardLabel>{t('chat.entityCards.tagShown')}</EntityCardLabel>
-      <Link to={Routes.TAG_DETAIL(tag.id)} state={{ from: Routes.CHAT }}>
+      <Link to={Routes.TAG_DETAIL(tag.id)} state={linkStateFromHere()}>
         <Card className="flex items-center gap-4 hover:bg-dn-surface transition-colors">
           <div className="w-10 h-10 rounded-2xl bg-dn-primary/10 text-dn-primary flex items-center justify-center shrink-0">
             <span className="text-lg font-bold">#</span>
@@ -131,6 +133,7 @@ export function InlineTagCard({ tagId }: { tagId: number }) {
 
 export function InlineCategoryCard({ categoryId }: { categoryId: number }) {
   const { t } = useTranslation();
+  const { linkStateFromHere } = useAppNavigation();
   const { data: category, isError, isLoading } = useCategory(categoryId);
 
   if (isError) return <UnavailableCard message={t('chat.entityCards.categoryUnavailable')} />;
@@ -149,7 +152,7 @@ export function InlineCategoryCard({ categoryId }: { categoryId: number }) {
   return (
     <div className="mt-2">
       <EntityCardLabel>{t('chat.entityCards.categoryShown')}</EntityCardLabel>
-      <Link to={Routes.CATEGORY_DETAIL(category.id)} state={{ from: Routes.CHAT }}>
+      <Link to={Routes.CATEGORY_DETAIL(category.id)} state={linkStateFromHere()}>
         <Card className="flex items-center gap-4 hover:bg-dn-surface transition-colors">
           <CategoryIcon category={category} size="lg" />
           <p className="text-base font-medium text-dn-text-main truncate">{category.name}</p>

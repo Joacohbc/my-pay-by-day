@@ -5,13 +5,11 @@ import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatDate, eventNetAmount } from '@/lib/format';
 import { NodeIcon } from '@/components/ui/NodeIcon';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 
 interface EventCardProps {
   readonly disableLink?: boolean;
   readonly event: FinanceEvent;
-  readonly to?: string;
-  readonly state?: unknown;
-  readonly from?: string;
   readonly iconSource?: 'category' | 'node';
 }
 
@@ -36,8 +34,9 @@ const typeConfig = {
   },
 };
 
-export function EventCard({ event, disableLink, from, iconSource = 'category' }: EventCardProps) {
+export function EventCard({ event, disableLink, iconSource = 'category' }: EventCardProps) {
   const { t } = useTranslation();
+  const { linkStateFromHere } = useAppNavigation();
   const cfg = typeConfig[event.type as keyof typeof typeConfig] || typeConfig.OTHER;
   const net = eventNetAmount(event);
   const date = event.transactionDate;
@@ -120,7 +119,7 @@ export function EventCard({ event, disableLink, from, iconSource = 'category' }:
   }
 
   return (
-    <Link to={finalTo} state={{ draft: event, from }} className={containerClass}>
+    <Link to={finalTo} state={linkStateFromHere({ draft: event })} className={containerClass}>
       {content}
     </Link>
   );

@@ -39,7 +39,7 @@ const draftTargetRoute = (draft: FinanceEvent) =>
 
 export function DraftsPage() {
   const { t } = useTranslation();
-  const { navigate } = useAppNavigation();
+  const { navigate, linkStateFromHere } = useAppNavigation();
   const queryClient = useQueryClient();
 
   const { data: draftEvents, isLoading, error } = useFinanceEventDrafts();
@@ -277,7 +277,7 @@ export function DraftsPage() {
     return (
       <Link
         to={targetRoute}
-        state={{ draft, from: Routes.EVENT_DRAFTS }}
+        state={linkStateFromHere({ draft })}
         className={rowClass}
         onClick={handleClick}
         onPointerDown={() => startLongPress(draft)}

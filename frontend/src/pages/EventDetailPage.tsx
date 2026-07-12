@@ -45,11 +45,11 @@ const eventTypeConfig = {
   },
 };
 
-function EventDetailSkeleton({ backRoute }: { backRoute: string }) {
+function EventDetailSkeleton({ onBack }: { onBack: () => void }) {
   const { t } = useTranslation();
   return (
     <div className="space-y-5">
-      <PageHeader title={t('events.detail')} back={backRoute} />
+      <PageHeader title={t('events.detail')} back={onBack} />
 
       <div className="px-5 flex flex-col items-center text-center">
         <Skeleton className="w-16 h-16 rounded-full mb-4" />
@@ -99,8 +99,8 @@ function EventDetailSkeleton({ backRoute }: { backRoute: string }) {
 export function EventDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const { navigateBack, fromRoute } = useAppNavigation();
-  const backRoute = fromRoute ?? eventsRoute();
+  const { navigateBack, linkStateFromHere } = useAppNavigation();
+  const goBack = () => navigateBack(eventsRoute());
 
   const { data: event, isLoading, error } = useEvent(Number(id));
   const deleteEvent = useDeleteEvent();
@@ -108,14 +108,14 @@ export function EventDetailPage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
 
-  if (isLoading) return <EventDetailSkeleton backRoute={backRoute} />;
+  if (isLoading) return <EventDetailSkeleton onBack={goBack} />;
   if (error || !event) return <ErrorState message={t('errors.eventNotFound')} />;
 
   const cfg = eventTypeConfig[event.type];
   const net = eventNetAmount(event);
 
   const confirmDelete = () => {
-    navigateBack(eventsRoute());
+    goBack();
     deleteEvent.mutate(event.id);
   };
 
@@ -169,10 +169,10 @@ export function EventDetailPage() {
 
       <PageHeader
         title={t('events.detail')}
-        back={backRoute}
+        back={goBack}
         action={
           <div className="flex gap-2">
-            <Link to={similarEventsRoute(event)} state={{ from: backRoute }}>
+            <Link to={similarEventsRoute(event)} state={linkStateFromHere()}>
               <Button
                 variant="secondary"
                 size="sm"
@@ -189,7 +189,7 @@ export function EventDetailPage() {
             >
               <Icon name="content_copy" className="text-base" />
             </Button>
-            <Link to={`/events/${event.id}/edit`} state={{ from: backRoute }}>
+            <Link to={`/events/${event.id}/edit`} state={linkStateFromHere()}>
               <Button variant="secondary" size="sm" title={t('common.edit')}>
                 <Icon name="edit" className="text-base" />
               </Button>

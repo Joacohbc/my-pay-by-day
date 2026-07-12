@@ -46,7 +46,7 @@ const FILTER_PARAMS = {
 
 export function EventsPage() {
   const { t } = useTranslation();
-  const { navigate } = useAppNavigation();
+  const { navigate, navigatePush } = useAppNavigation();
   const location = useLocation();
 
   // --- 1. URL State Management ---
@@ -150,9 +150,9 @@ export function EventsPage() {
   const handlePickTemplate = (template: Template | null) => {
     setShowPicker(false);
     if (template) {
-      navigate(Routes.EVENT_NEW, { state: { template } });
+      navigatePush(Routes.EVENT_NEW, { template });
     } else {
-      navigate(Routes.EVENT_NEW);
+      navigatePush(Routes.EVENT_NEW);
     }
   };
 
@@ -262,7 +262,6 @@ export function EventsPage() {
       <EventsListView
         events={events}
         isLoading={isLoading}
-        from={eventsRoute()}
         search={search}
         onSearchChange={setSearch}
         searchPlaceholder={t('events.searchPlaceholder')}

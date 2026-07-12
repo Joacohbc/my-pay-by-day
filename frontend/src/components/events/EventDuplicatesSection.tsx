@@ -28,7 +28,7 @@ function DuplicateEventCard({
   currentEventId: number;
 }) {
   const { t } = useTranslation();
-  const { navigate } = useAppNavigation();
+  const { navigatePush } = useAppNavigation();
   const alert = useAlert();
   const resolve = useResolveDuplicate();
   const otherId = record.entityId1 === currentEventId ? record.entityId2 : record.entityId1;
@@ -77,7 +77,7 @@ function DuplicateEventCard({
       <div className="flex flex-col gap-2 shrink-0">
         <button
           type="button"
-          onClick={() => navigate(Routes.EVENT_DETAIL(otherId), { state: { from: Routes.EVENT_DETAIL(currentEventId) } })}
+          onClick={() => navigatePush(Routes.EVENT_DETAIL(otherId))}
           title={t('duplicates.section.openEvent')}
           className="flex items-center justify-center rounded-full p-2 text-dn-text-muted hover:bg-dn-surface hover:text-dn-text-main transition-colors"
         >
