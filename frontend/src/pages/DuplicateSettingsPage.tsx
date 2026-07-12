@@ -150,6 +150,11 @@ export function DuplicateSettingsPage() {
       <PageHeader title={t('duplicates.settings.title')} back={Routes.SETTINGS} />
 
       <section className="px-5 space-y-4">
+        <div className="flex items-start gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 text-sm text-blue-700 dark:text-blue-300">
+          <Icon name="info" className="mt-0.5" />
+          <p>{t('duplicates.settings.gatingLogicInfo')}</p>
+        </div>
+
         <Card className="space-y-4">
           {field(
             'eventTimeThresholdMinutes',
@@ -157,52 +162,6 @@ export function DuplicateSettingsPage() {
             t('duplicates.settings.eventTimeThresholdHint'),
             { min: 1 }
           )}
-          {field(
-            'eventDateWeight',
-            t('duplicates.settings.eventDateWeight'),
-            t('duplicates.settings.eventDateWeightHint')
-          )}
-          {field(
-            'eventAmountWeight',
-            t('duplicates.settings.eventAmountWeight'),
-            t('duplicates.settings.eventAmountWeightHint')
-          )}
-          {field(
-            'eventNodeWeight',
-            t('duplicates.settings.eventNodeWeight'),
-            t('duplicates.settings.eventNodeWeightHint')
-          )}
-          {field(
-            'eventCategoryWeight',
-            t('duplicates.settings.eventCategoryWeight'),
-            t('duplicates.settings.eventCategoryWeightHint')
-          )}
-          {field(
-            'eventTagWeight',
-            t('duplicates.settings.eventTagWeight'),
-            t('duplicates.settings.eventTagWeightHint')
-          )}
-          {field(
-            'eventNameWeight',
-            t('duplicates.settings.eventNameWeight'),
-            t('duplicates.settings.eventNameWeightHint')
-          )}
-          <div
-            className={[
-              'flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium',
-              weightsValid
-                ? 'border-dn-success/30 bg-dn-success/10 text-dn-success'
-                : 'border-dn-error/30 bg-dn-error/10 text-dn-error',
-            ].join(' ')}
-          >
-            <Icon name={weightsValid ? 'check_circle' : 'error'} className="text-base" />
-            <span>
-              {weightsValid
-                ? weightMessage
-                : `${t('duplicates.settings.weightsSumError')} (${weightMessage})`}
-            </span>
-          </div>
-
           {field(
             'eventTotalThresholdScore',
             t('duplicates.settings.totalThreshold'),
@@ -214,6 +173,64 @@ export function DuplicateSettingsPage() {
             t('duplicates.settings.textSimilarityThresholdHint')
           )}
         </Card>
+
+        <details className="group rounded-2xl border bg-dn-panel overflow-hidden">
+          <summary className="flex cursor-pointer items-center justify-between p-4 font-medium select-none focus:outline-none">
+            <div>
+              <div className="text-sm font-semibold">{t('duplicates.settings.advancedSettings')}</div>
+              <div className="text-xs text-dn-text-muted mt-0.5">{t('duplicates.settings.advancedSettingsDesc')}</div>
+            </div>
+            <Icon name="expand_more" className="transition-transform group-open:-rotate-180" />
+          </summary>
+          <div className="border-t border-border/50 p-4 space-y-4 bg-dn-background/50">
+            {field(
+              'eventDateWeight',
+              t('duplicates.settings.eventDateWeight'),
+              t('duplicates.settings.eventDateWeightHint')
+            )}
+            {field(
+              'eventAmountWeight',
+              t('duplicates.settings.eventAmountWeight'),
+              t('duplicates.settings.eventAmountWeightHint')
+            )}
+            {field(
+              'eventNodeWeight',
+              t('duplicates.settings.eventNodeWeight'),
+              t('duplicates.settings.eventNodeWeightHint')
+            )}
+            {field(
+              'eventCategoryWeight',
+              t('duplicates.settings.eventCategoryWeight'),
+              t('duplicates.settings.eventCategoryWeightHint')
+            )}
+            {field(
+              'eventTagWeight',
+              t('duplicates.settings.eventTagWeight'),
+              t('duplicates.settings.eventTagWeightHint')
+            )}
+            {field(
+              'eventNameWeight',
+              t('duplicates.settings.eventNameWeight'),
+              t('duplicates.settings.eventNameWeightHint')
+            )}
+            
+            <div
+              className={[
+                'flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium',
+                weightsValid
+                  ? 'border-dn-success/30 bg-dn-success/10 text-dn-success'
+                  : 'border-dn-error/30 bg-dn-error/10 text-dn-error',
+              ].join(' ')}
+            >
+              <Icon name={weightsValid ? 'check_circle' : 'error'} className="text-base" />
+              <span>
+                {weightsValid
+                  ? weightMessage
+                  : `${t('duplicates.settings.weightsSumError')} (${weightMessage})`}
+              </span>
+            </div>
+          </div>
+        </details>
 
         <div className="flex gap-3">
           <Button

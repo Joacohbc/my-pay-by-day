@@ -161,10 +161,13 @@ public class DuplicateUtils {
 			boolean isNoLongerConsideredDuplicate = !targetDataMap.containsKey(otherId);
 			boolean isCurrentlyPending = existingRecord.status == DuplicateRecordStatus.PENDING;
 			
-			if (isNoLongerConsideredDuplicate && isCurrentlyPending) {
+			if (isNoLongerConsideredDuplicate) {
 				List<DuplicateRecordEntity> pairedRecords = repository.findAllByEntities(type, sharedId, otherId);
 				for (DuplicateRecordEntity pr : pairedRecords) {
-					pr.status = DuplicateRecordStatus.AUTO_RESOLVED_NOT_DUPLICATED;
+					if (isCurrentlyPending) {
+						pr.status = DuplicateRecordStatus.AUTO_RESOLVED_NOT_DUPLICATED;
+					}
+					pr.calculatedAt = Instant.now();
 					repository.persist(pr);
 				}
 			}
@@ -176,14 +179,14 @@ public class DuplicateUtils {
 
 			if (!pairedRecords.isEmpty()) {
 				for (DuplicateRecordEntity existing : pairedRecords) {
-					boolean isApplicableForUpdate = existing.status == DuplicateRecordStatus.PENDING || 
+					boolean isApplicableForStatusUpdate = existing.status == DuplicateRecordStatus.PENDING || 
 													existing.status == DuplicateRecordStatus.AUTO_RESOLVED_NOT_DUPLICATED;
 					
-					if (!isApplicableForUpdate) continue;
-
-					boolean needsPendingRevert = existing.status == DuplicateRecordStatus.AUTO_RESOLVED_NOT_DUPLICATED;
-					if (needsPendingRevert) {
-						existing.status = DuplicateRecordStatus.PENDING;
+					if (isApplicableForStatusUpdate) {
+						boolean needsPendingRevert = existing.status == DuplicateRecordStatus.AUTO_RESOLVED_NOT_DUPLICATED;
+						if (needsPendingRevert) {
+							existing.status = DuplicateRecordStatus.PENDING;
+						}
 					}
 					existing.score = data.score();
 					existing.calculatedAt = Instant.now();

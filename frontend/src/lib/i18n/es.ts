@@ -603,6 +603,9 @@ const es = {
       saved: 'Configuración guardada',
       weightsSum: 'Suma de pesos: {{sum}}%',
       weightsSumError: 'Los pesos deben sumar 100%',
+      advancedSettings: 'Configuración Avanzada',
+      advancedSettingsDesc: 'Ponderaciones matemáticas (deben sumar 100%)',
+      gatingLogicInfo: 'Para evitar falsos positivos, el sistema ahora exige estrictamente que la fecha y el monto coincidan casi a la perfección ("Al mismo tiempo"). El resto de las propiedades actúan como factores de desempate.',
     },
     section: {
       title: 'Posibles Duplicados',

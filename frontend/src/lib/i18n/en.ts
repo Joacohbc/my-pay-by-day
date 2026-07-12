@@ -604,6 +604,9 @@ const en = {
       saved: 'Settings saved',
       weightsSum: 'Weights sum: {{sum}}%',
       weightsSumError: 'Weights must sum to 100%',
+      advancedSettings: 'Advanced Settings',
+      advancedSettingsDesc: 'Mathematical weights (must sum to 100%)',
+      gatingLogicInfo: 'To avoid false positives, the system strictly requires that the date and amount match almost perfectly. The remaining properties act as tiebreakers.',
     },
     section: {
       title: 'Potential Duplicates',
