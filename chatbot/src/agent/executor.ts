@@ -1,6 +1,6 @@
 import { generateText, stepCountIs, type ModelMessage } from 'ai';
 import { config } from '@/config.js';
-import type { RequestContext } from '@/context.js';
+import { DEFAULT_CURRENCY, type RequestContext } from '@/context.js';
 import { groundingNow } from '@/dates.js';
 import { buildModelContext, compactIfNeeded } from '@/memory/compaction.js';
 import { conversationMemory } from '@/memory/conversation.js';
@@ -90,7 +90,11 @@ async function run(taskId: string): Promise<void> {
   running.set(taskId, controller);
   agentStore.setCancelRequested(taskId, false);
 
-  const ctx: RequestContext = { timezone: task.timezone ?? 'UTC', lang: task.lang ?? 'en' };
+  const ctx: RequestContext = {
+    timezone: task.timezone ?? 'UTC',
+    lang: task.lang ?? 'en',
+    currency: task.currency ?? DEFAULT_CURRENCY,
+  };
   const isResumed = agentStore
     .steps(taskId)
     .some((s) => s.type === 'PROGRESS' || s.type === 'MESSAGE');
@@ -114,6 +118,7 @@ async function run(taskId: string): Promise<void> {
         now: groundingNow(ctx.timezone),
         timezone: ctx.timezone,
         lang: ctx.lang,
+        currency: ctx.currency,
         memories: longTermMemory.contents(),
         mode: task.execution_mode,
         isResumed,

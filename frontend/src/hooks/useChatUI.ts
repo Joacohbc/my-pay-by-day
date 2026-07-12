@@ -13,6 +13,7 @@ import { useAlert } from '@/contexts/AlertContext';
 import { invalidateDomains } from '@/lib/cacheInvalidation';
 import { invalidateForToolResults } from '@/lib/chat/toolInvalidation';
 import { getUserTimezone } from '@/lib/utils/dateUtils';
+import { getCurrency } from '@/lib/format';
 import { useSendCountdown } from '@/hooks/useSendCountdown';
 import i18n from '@/lib/i18n';
 import type { FileDto } from '@/models';
@@ -153,7 +154,7 @@ export function useChatUI() {
             newMessages = lastAssistantIndex === -1 ? messages : messages.slice(messages.length - lastAssistantIndex);
           }
           return {
-            headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language },
+            headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency() },
             body: { chatId, messages: newMessages },
           };
         },

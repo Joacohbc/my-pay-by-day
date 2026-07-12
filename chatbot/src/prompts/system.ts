@@ -1,4 +1,4 @@
-import { languageName, type ChatScope } from '@/context.js';
+import { languageName, localeFor, type ChatScope } from '@/context.js';
 
 export type ExecutionMode = 'AUTONOMOUS' | 'DRAFT_ONLY' | 'READ_ONLY' | 'DRAFT_CONFIRMATION';
 
@@ -6,6 +6,7 @@ interface PromptInput {
   now: string;
   timezone: string;
   lang: string;
+  currency: string;
   memories: string[];
 }
 
@@ -31,6 +32,32 @@ WRITING STYLE (important):
   "I can use searchEvents", or "I don't have the ability to archive categories" instead of "I don't have an
   archiveCategory tool".`;
 
+/**
+ * Renders concrete Intl examples (not format descriptions) because the model copies examples far more
+ * reliably. Uses the same locale mapping and currency the frontend uses, so chat text matches the UI.
+ */
+export function formattingGuidance(lang: string, currency: string): string {
+  const locale = localeFor(lang);
+  const moneyExample = new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+  }).format(1234.56);
+  const dateExample = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date());
+  return (
+    `- When writing monetary amounts in your replies, mirror the app's display format exactly, e.g. ${moneyExample}` +
+    ` (the user's currency is ${currency}). When writing dates, follow this style: ${dateExample}.`
+  );
+}
+
+function styleBlock(lang: string, currency: string): string {
+  return STYLE.replace('{{LANGUAGE}}', languageName(lang)) + '\n' + formattingGuidance(lang, currency);
+}
+
 const ASK_USER_GUIDANCE = `
 \nASKING THE USER (important):
 - Whenever your reply would end with a question expecting a specific answer — a yes/no confirmation, a choice
@@ -52,9 +79,13 @@ const ASK_USER_GUIDANCE = `
 - Once the user answers, askUser's own tool result becomes { question, answer } with their answer filled in — read
   "answer" directly as their reply and continue the task using it. Do not second-guess it or assume it's missing.`;
 
-function memoriesBlock(memories: string[], hasMemoryTools: boolean): string {
+export function memoriesBlock(memories: string[], hasMemoryTools: boolean): string {
   if (memories.length === 0) return '';
-  const rememberedFacts = `\nWHAT YOU REMEMBER ABOUT THIS USER (long-term memory):\n${memories.map((m) => `- ${m}`).join('\n')}\n`;
+  const rememberedFacts =
+    `\nWHAT YOU REMEMBER ABOUT THIS USER (long-term memory):\n${memories.map((m) => `- ${m}`).join('\n')}\n` +
+    `Before asking the user for anything or picking a node, category or default on their behalf, check this list\n` +
+    `first: if a remembered fact already answers it (their main account, usual payment method, habits, preferences),\n` +
+    `apply it directly instead of re-asking or guessing.\n`;
   if (!hasMemoryTools) return rememberedFacts;
   return rememberedFacts +
     `Use saveMemory to remember new durable facts/preferences the user shares (e.g. their main account).`;
@@ -87,7 +118,7 @@ const DELEGATION_GUIDANCE = `
     without reviewing each change.`;
 
 export function chatSystemPrompt(
-  { now, timezone, lang, memories }: PromptInput,
+  { now, timezone, lang, currency, memories }: PromptInput,
   scope?: ChatScope,
   scopeCurrentValues?: string,
 ): string {
@@ -118,7 +149,7 @@ export function chatSystemPrompt(
     ASK_USER_GUIDANCE,
     scopeBlock(scope, scopeCurrentValues),
     memoriesBlock(memories, true),
-    STYLE.replace('{{LANGUAGE}}', languageName(lang)),
+    styleBlock(lang, currency),
   ].join('\n');
 }
 
@@ -145,11 +176,11 @@ export function agentSystemPrompt(
     `Resolve names to IDs with read tools before writing. Always use the calculate tool for ANY calculations (sums, splits, etc.) instead of computing them in text. Finish with a short summary of what you did.`,
     `* IMPORTANT: You must write all step descriptions, progress messages, and action requests (the 'message' parameter of reportProgress and requestUserAction) in the user's language ({{LANGUAGE}}).`,
     memoriesBlock(input.memories, input.mode === 'AUTONOMOUS'),
-    STYLE.replace('{{LANGUAGE}}', languageName(input.lang)),
+    styleBlock(input.lang, input.currency),
   ].join('\n');
 }
 
-export function extractionAgentSystemPrompt(input: Omit<PromptInput, 'memories'> & { templateContext?: string }): string {
+export function extractionAgentSystemPrompt(input: PromptInput & { templateContext?: string }): string {
   return [
     `You are the My Pay By Day extraction agent. The current date/time is ${input.now} (${input.timezone}).`,
     DOMAIN,
@@ -168,7 +199,8 @@ export function extractionAgentSystemPrompt(input: Omit<PromptInput, 'memories'>
     input.templateContext ? `\n${input.templateContext}` : '',
     `Always use the calculate tool for ANY calculations instead of computing them in text.`,
     `After creating the draft, reply with ONE short sentence summarizing what you created.`,
-    STYLE.replace('{{LANGUAGE}}', languageName(input.lang)),
+    memoriesBlock(input.memories, false),
+    styleBlock(input.lang, input.currency),
   ].filter(Boolean).join('\n');
 }
 
@@ -184,6 +216,6 @@ export function subagentSystemPrompt(input: PromptInput & { mode: ExecutionMode 
     `\nIMPORTANT: finish with a single clear summary of what you did and found, including all IDs, amounts and names`,
     `the main assistant needs. That summary is the ONLY thing returned to the main assistant.`,
     memoriesBlock(input.memories, input.mode === 'AUTONOMOUS'),
-    STYLE.replace('{{LANGUAGE}}', languageName(input.lang)),
+    styleBlock(input.lang, input.currency),
   ].join('\n');
 }

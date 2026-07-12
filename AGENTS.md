@@ -404,7 +404,7 @@ The frontend acts as the translator between the user's local context and the ser
 * **Server Timezone:** The frontend queries `/api/config` on load to determine the server's timezone (always `UTC`) and persists it in memory (`useConfigStore`).
 * **User Timezone:** The user selects their preferred timezone in Settings, which is stored in `localStorage` under `user-timezone` (defaulting to the browser's timezone).
 * **Payload Interceptors (`api.ts`):**
-    * **Timezone Header:** Every request sent via `api.ts` includes an `X-Timezone` header containing the user's current timezone (retrieved via `getUserTimezone()`).
+    * **Context Headers:** Every request sent via `api.ts` includes `X-Timezone` (from `getUserTimezone()`), `X-Language` (current `i18n.language`) and `X-Currency` (from `getCurrency()` in `@/lib/format`). The chat hooks (`useChatUI`, `useEntityChat`, `useFormPatchChat`) send the same three headers on their direct chatbot requests.
     * **Outbound (to Backend):** The `api.ts` service automatically intercepts all payloads. Any string matching a local date-time format (e.g., `"YYYY-MM-DDTHH:mm:ss"`) is converted from the user's localized timezone to the server's timezone (`UTC`) before being sent.
     * **Inbound (from Backend):** Responses are intercepted, and any `UTC` date-time string received from the server is automatically converted back to the user's localized timezone before being handed to the application state.
 * **AI Agent Grounding:** The backend `TimezoneFilter` extracts the `X-Timezone` header into a `TimezoneContext`. AI agents (both background tasks and intelligent extraction) use this context to ground their "current time" reference, ensuring that relative dates (like "yesterday" or "last Friday") are interpreted correctly according to the user's local clock.
@@ -529,3 +529,13 @@ Every chatbot tool declares its frontend-facing metadata inline via the required
 The frontend never hand-maintains per-tool maps. Running `pnpm gen:tools` in `chatbot/` regenerates `frontend/src/lib/chat/toolManifest.generated.ts`, from which the frontend derives cache invalidation (`toolInvalidation.ts`), form patching (`PATCH_TOOL_NAMES` in `useEntityChat.ts`), the `chat.tools.*` translations (spread into `en.ts`/`es.ts`), and the friendly names in `ChatMessage.tsx`. The sub-agent progress labels in `chatbot/src/tools/delegate.ts` read the same `ui.label` metadata directly.
 
 **Whenever a tool is added, removed, or its metadata changes, run `pnpm gen:tools` and commit the regenerated manifest in the same change.** CI (`api-contract-ci.yml`) fails on drift via `pnpm gen:tools:check`. Never edit `toolManifest.generated.ts` by hand.
+
+---
+
+### AI User-Context Grounding (timezone, language, currency, memory)
+
+Every chatbot request carries the user's context as headers — `X-Timezone`, `X-Language` and `X-Currency` — resolved by `requestContextFrom` (`chatbot/src/context.ts`) into a `RequestContext { timezone, lang, currency }`. An invalid or missing currency code falls back to `USD`. Background tasks persist all three fields on the `agent_task` row when created, so a task resumed later still renders with the context of the user who launched it.
+
+* **Display formatting:** `formattingGuidance(lang, currency)` (`chatbot/src/prompts/system.ts`) renders concrete `Intl` examples (e.g. `$1,234.56`, `Jul 12, 2026`) using `localeFor(lang)` — the same `en→en-US` / `es→es-ES` mapping the frontend uses in `@/lib/format` — so amounts and dates in AI replies match what the UI displays. It is included in **every** system prompt: chat, background agent, sub-agent, extraction (via `styleBlock`), form patch, and text actions.
+* **Long-term memory:** `memoriesBlock` injects the user's saved facts into every agentic prompt (chat, background agent, sub-agent, extraction, form patch) with an active instruction to check them *before* asking the user or picking defaults.
+* **Rule:** when adding a new prompt or AI entry point, it **must** include `formattingGuidance` (or `styleBlock`) and, if it acts on the user's data, `memoriesBlock`. A prompt that hardcodes formats or ignores memory is a bug.

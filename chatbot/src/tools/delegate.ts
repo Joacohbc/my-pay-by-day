@@ -58,6 +58,7 @@ export function buildDelegateTools(ctx: RequestContext, parentMode: ExecutionMod
               now: groundingNow(ctx.timezone),
               timezone: ctx.timezone,
               lang: ctx.lang,
+              currency: ctx.currency,
               memories: longTermMemory.contents(),
               mode: effectiveMode,
             }),

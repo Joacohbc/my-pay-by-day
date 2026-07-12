@@ -13,7 +13,7 @@ import type { KindedToolSet } from '@/tools/types.js';
 
 const OUTPUT_PATH = resolve(import.meta.dirname, '../../frontend/src/lib/chat/toolManifest.generated.ts');
 
-const stubContext: RequestContext = { timezone: 'UTC', lang: 'en' };
+const stubContext: RequestContext = { timezone: 'UTC', lang: 'en', currency: 'USD' };
 
 function collectAllTools(): KindedToolSet {
   return {

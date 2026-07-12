@@ -9,6 +9,7 @@ import { invalidateDomains } from '@/lib/cacheInvalidation';
 import { invalidateForToolResults, domainsForToolName } from '@/lib/chat/toolInvalidation';
 import { CHAT_TOOL_MANIFEST } from '@/lib/chat/toolManifest.generated';
 import { getUserTimezone } from '@/lib/utils/dateUtils';
+import { getCurrency } from '@/lib/format';
 import { useSendCountdown } from '@/hooks/useSendCountdown';
 import i18n from '@/lib/i18n';
 import type { FileDto } from '@/models';
@@ -97,7 +98,7 @@ export function useEntityChat({
         newMessages = lastAssistantIndex === -1 ? messages : messages.slice(messages.length - lastAssistantIndex);
       }
       return {
-        headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language },
+        headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency() },
         body: {
           chatId,
           messages: newMessages,

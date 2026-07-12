@@ -6,6 +6,8 @@ import type { components } from '@/backend/schema.js';
 import { languageName, type RequestContext } from '@/context.js';
 import { largeModel } from '@/models.js';
 import { logger } from '@/logging/logger.js';
+import { longTermMemory } from '@/memory/longTerm.js';
+import { formattingGuidance, memoriesBlock } from '@/prompts/system.js';
 import { buildFinanceTools } from '@/tools/finance.js';
 
 const formPatchLog = logger.child('formPatch');
@@ -106,7 +108,9 @@ export async function streamFormPatch(ctx: RequestContext, input: FormPatchInput
     `To apply edits to the form, you MUST call the "patch_form" tool with ONLY the fields the user wants to change (leave others null).`,
     `Never invent IDs; search for the correct entity using your tools if needed, or use IDs from the grounding lists provided.`,
     `If the user attaches an image/file, use it as the source of truth for the fields it clearly shows.`,
+    memoriesBlock(longTermMemory.contents(), false),
     `Your final text response should be a short friendly reply summarizing what you changed (or why you couldn't), in ${languageName(ctx.lang)}.`,
+    formattingGuidance(ctx.lang, ctx.currency),
   ].join('\n');
 
   const financeTools = buildFinanceTools(ctx);

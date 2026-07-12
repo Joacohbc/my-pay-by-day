@@ -7,6 +7,7 @@ import type { RequestContext } from '@/context.js';
 import { groundingNow } from '@/dates.js';
 import { logger } from '@/logging/logger.js';
 import { largeModel } from '@/models.js';
+import { longTermMemory } from '@/memory/longTerm.js';
 import { extractionAgentSystemPrompt } from '@/prompts/system.js';
 
 const extractionAgentLog = logger.child('extraction-agent');
@@ -56,6 +57,8 @@ export async function runExtractionAgent(ctx: RequestContext, input: ExtractInpu
       now: groundingNow(ctx.timezone),
       timezone: ctx.timezone,
       lang: ctx.lang,
+      currency: ctx.currency,
+      memories: longTermMemory.contents(),
       templateContext,
     }),
     messages: [{ role: 'user', content: modelContent }],

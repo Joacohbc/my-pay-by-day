@@ -36,6 +36,7 @@ export function buildBackgroundTools(ctx: RequestContext): KindedToolSet {
             executionMode,
             lang: ctx.lang,
             timezone: ctx.timezone,
+            currency: ctx.currency,
           });
           submitTask(task.id);
           return { taskId: task.id, status: 'PENDING' };

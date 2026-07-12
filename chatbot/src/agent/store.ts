@@ -21,6 +21,7 @@ interface TaskRow {
   current_step: string | null;
   lang: string | null;
   timezone: string | null;
+  currency: string | null;
   cancel_requested: number;
   title: string | null;
   step_budget: number | null;
@@ -125,16 +126,17 @@ export const agentStore = {
     executionMode: AgentExecutionMode;
     lang: string;
     timezone: string;
+    currency: string;
     title?: string;
   }): AgentTaskDto {
     const id = randomUUID();
     const now = nowIso();
     db()
       .prepare(
-        `INSERT INTO agent_task (id, user_instruction, execution_mode, status, progress, lang, timezone, title, created_at, updated_at)
-         VALUES (?, ?, ?, 'PENDING', 0, ?, ?, ?, ?, ?)`,
+        `INSERT INTO agent_task (id, user_instruction, execution_mode, status, progress, lang, timezone, currency, title, created_at, updated_at)
+         VALUES (?, ?, ?, 'PENDING', 0, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(id, input.instruction, input.executionMode, input.lang, input.timezone, input.title ?? null, now, now);
+      .run(id, input.instruction, input.executionMode, input.lang, input.timezone, input.currency, input.title ?? null, now, now);
     return this.findById(id)!.task;
   },
 

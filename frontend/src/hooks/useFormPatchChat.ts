@@ -5,6 +5,7 @@ import { BASE_URL } from '@/services/api';
 import { audioService } from '@/services/audio.service';
 import { filesService } from '@/services/files.service';
 import { getUserTimezone } from '@/lib/utils/dateUtils';
+import { getCurrency } from '@/lib/format';
 import { useSendCountdown } from '@/hooks/useSendCountdown';
 import i18n from '@/lib/i18n';
 import type { FileDto } from '@/models';
@@ -55,7 +56,7 @@ export function useFormPatchChat({
   const prepareSendMessagesRequest = useCallback(
     ({ messages }: { messages: UIMessage[] }) => {
       return {
-        headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language },
+        headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency() },
         body: {
           entityType,
           messages,

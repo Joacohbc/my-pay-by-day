@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 import { createApiClient, unwrap, type FinanceEventDto } from '@/backend/client.js';
 import { languageName, requestContextFrom, type RequestContext } from '@/context.js';
 import { fastModel } from '@/models.js';
+import { formattingGuidance } from '@/prompts/system.js';
 import { logger } from '@/logging/logger.js';
 
 const textLog = logger.child('text');
@@ -97,7 +98,8 @@ textRoute.post('/', async (c) => {
   const system =
     `You are a personal-finance writing assistant. ${base}\n` +
     `OUTPUT RULES: return ONLY the resulting plain text — no markdown, no quotes, no explanation. ` +
-    `Write in ${languageName(ctx.lang)}. Keep it concise and suitable for a form field.`;
+    `Write in ${languageName(ctx.lang)}. Keep it concise and suitable for a form field.\n` +
+    formattingGuidance(ctx.lang, ctx.currency);
 
   const examples = await similarExamples(ctx, req);
   const userParts: string[] = [];

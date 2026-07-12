@@ -38,8 +38,10 @@ CREATE TABLE IF NOT EXISTS agent_task (
   current_step     TEXT,
   lang             TEXT,
   timezone         TEXT,
+  currency         TEXT,
   cancel_requested INTEGER NOT NULL DEFAULT 0,
   title            TEXT,
+  step_budget      INTEGER,
   created_at       TEXT    NOT NULL,
   updated_at       TEXT    NOT NULL
 );
@@ -99,8 +101,5 @@ function ensureColumn(database: DatabaseSync, table: string, column: string, ddl
 
 export function runMigrations(database: DatabaseSync): void {
   database.exec(SCHEMA);
-  ensureColumn(database, 'conversation', 'summary', 'summary TEXT');
-  ensureColumn(database, 'conversation', 'summary_up_to_sequence', 'summary_up_to_sequence INTEGER');
-  ensureColumn(database, 'conversation_message', 'display_json', 'display_json TEXT');
   database.exec(BACKFILL_CONVERSATION_FROM_MESSAGES);
 }
