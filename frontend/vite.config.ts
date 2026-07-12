@@ -11,6 +11,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // The app can sit behind cookie-based auth walls (e.g. Cloudflare Access);
+      // without credentials the manifest request gets redirected to the login
+      // page and fails with a CORS error.
+      useCredentials: true,
       manifest: {
         name: 'MyPayByDay',
         short_name: 'PayByDay',
