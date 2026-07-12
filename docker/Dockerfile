@@ -38,7 +38,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /chatbot
 
-COPY chatbot/package.json chatbot/pnpm-lock.yaml ./
+COPY chatbot/package.json chatbot/pnpm-lock.yaml chatbot/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY chatbot/ .
