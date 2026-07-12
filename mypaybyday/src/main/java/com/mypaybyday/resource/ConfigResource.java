@@ -8,7 +8,7 @@ import jakarta.ws.rs.core.MediaType;
 import com.mypaybyday.dto.ConfigDto;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-@Path("/api/config")
+@Path("/config")
 @Produces(MediaType.APPLICATION_JSON)
 public class ConfigResource {
 

@@ -9,10 +9,18 @@ services:
       # AI (Node chatbot service via Vercel AI SDK + OpenRouter)
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
-      - MODEL_LARGE=${MODEL_LARGE:-google/gemini-flash-3.5}
+      - MODEL_LARGE=${MODEL_LARGE:-google/gemini-2.5-flash}
       - MODEL_FAST=${MODEL_FAST:-google/gemini-flash-lite}
+      - MODEL_AUDIO=${MODEL_AUDIO:-openai/whisper-large-v3-turbo}
       - AGENT_MAX_STEPS=${AGENT_MAX_STEPS:-25}
+      - SUBAGENT_MAX_STEPS=${SUBAGENT_MAX_STEPS:-12}
+      - AGENT_MAX_CHAT_MESSAGES=${AGENT_MAX_CHAT_MESSAGES:-150}
       - MYPAYBYDAY_FILES_MAX_SIZE=${MYPAYBYDAY_FILES_MAX_SIZE:-10485760}
+      - LOG_LEVEL=${LOG_LEVEL:-debug}
+      - LOG_FORMAT=${LOG_FORMAT:-text}
+      - LOG_MAX_FIELD_CHARS=${LOG_MAX_FIELD_CHARS:-800}
+      - LOG_TIMESTAMPS=${LOG_TIMESTAMPS:-true}
+      - CHATBOT_DB_PATH=${CHATBOT_DB_PATH:-/data/chatbot.db}
     volumes:
       - db_data:/data
 

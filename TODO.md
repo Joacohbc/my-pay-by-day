@@ -1,5 +1,3 @@
-- Arreglar sistema de Duplicados
-
 - Ajustar .env.example global y el especifico de cada uno
 
 - Validar prompts/codigo duplicado/obsoleto entre frontend/chatbot
