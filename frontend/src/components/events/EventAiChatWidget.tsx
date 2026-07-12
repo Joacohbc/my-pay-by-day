@@ -20,7 +20,7 @@ export function EventAiChatWidget({ draftId, onEnsureDraft, onDraftIdResolved, o
     isPending,
     draftFiles,
     handleSend,
-    handleAudioRecorded,
+    handleAudioRecordedEnhanced,
     handleAudioFileSelected,
     handleAddFile,
     handleRemoveFile,
@@ -45,7 +45,7 @@ export function EventAiChatWidget({ draftId, onEnsureDraft, onDraftIdResolved, o
       inputContent={input}
       setInputContent={setInput}
       onSend={handleSend}
-      onAudioRecorded={handleAudioRecorded}
+      onAudioRecordedEnhanced={handleAudioRecordedEnhanced}
       onAudioFileSelected={handleAudioFileSelected}
       draftFiles={draftFiles}
       onAddFile={handleAddFile}

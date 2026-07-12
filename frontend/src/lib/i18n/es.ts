@@ -94,6 +94,7 @@ const es = {
     pendingUploadBadge: 'Se sube al enviar',
     pendingUploadFailed: 'Error al subir los archivos adjuntos. Inténtalo de nuevo.',
     startRecording: 'Iniciar grabación de voz',
+    startRecordingEnhanced: 'Edición por voz — dicta cambios sobre el texto actual',
     stopRecording: 'Detener grabación',
     reviewRecording: 'Revisa la grabación antes de enviarla',
     transcribing: 'Transcribiendo audio...',
@@ -550,12 +551,8 @@ const es = {
   // ─── AI ──────────────────────────────────────────────────────────────────
   ai: {
     actions: {
-      generate: 'Generar con IA',
-      voiceInput: 'Dictar por voz',
-      stopVoiceInput: 'Detener grabación de voz',
-      improve: 'Mejorar con IA',
-      voiceInstruct: 'Mejorar por instrucción de voz',
-      stopVoiceInstruct: 'Detener grabación de instrucción',
+      smartDictation: 'Dictado inteligente — habla para reescribir este campo',
+      stopSmartDictation: 'Detener dictado inteligente',
     },
 
     memory: {

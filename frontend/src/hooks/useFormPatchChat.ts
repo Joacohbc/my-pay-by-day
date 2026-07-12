@@ -156,6 +156,16 @@ export function useFormPatchChat({
     [applyTranscribedText],
   );
 
+  const handleAudioRecordedEnhanced = useCallback(
+    async (audioBlob: Blob, currentText: string) => {
+      const { transcription } = await audioService.transcribeRecordedAudioEnhanced(audioBlob, currentText);
+      const editedText = transcription.trim();
+      if (!editedText) throw new Error('transcription_failed');
+      setInput(editedText);
+    },
+    [],
+  );
+
   const handleAddFile = (file: FileDto) => setDraftFiles((prev) => [...prev, file]);
   const handleRemoveFile = (fileId: number) => setDraftFiles((prev) => prev.filter((f) => f.id !== fileId));
 
@@ -167,6 +177,7 @@ export function useFormPatchChat({
     draftFiles,
     handleSend,
     handleAudioRecorded,
+    handleAudioRecordedEnhanced,
     handleAudioFileSelected,
     handleAddFile,
     handleRemoveFile,

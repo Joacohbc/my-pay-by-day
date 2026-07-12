@@ -34,29 +34,17 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
     },
   });
 
-  const buildContext = () => {
-    const values = getValues();
-    const parts: string[] = ['Entity type: Category (budget classification bucket)'];
-    if (values.name) parts.push(`Name: ${values.name}`);
-    if (values.description) parts.push(`Description: ${values.description}`);
-    return parts.join('\n');
-  };
-
   const nameAi = useAiFieldController<CategoryFormValues>({
     name: 'name',
-    semantic: 'name',
     getValues,
     setValue,
-    buildContext,
     allowVoice: true,
   });
 
   const descriptionAi = useAiFieldController<CategoryFormValues>({
     name: 'description',
-    semantic: 'description',
     getValues,
     setValue,
-    buildContext,
     allowVoice: true,
   });
 

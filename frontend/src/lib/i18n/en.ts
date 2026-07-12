@@ -95,6 +95,7 @@ const en = {
     pendingUploadBadge: 'Uploads on send',
     pendingUploadFailed: 'Failed to upload the attached files. Please try again.',
     startRecording: 'Start voice recording',
+    startRecordingEnhanced: 'Voice edit — dictate changes to the current text',
     stopRecording: 'Stop recording',
     reviewRecording: 'Review recording before sending',
     transcribing: 'Transcribing audio...',
@@ -551,12 +552,8 @@ const en = {
   // ─── AI ──────────────────────────────────────────────────────────────────
   ai: {
     actions: {
-      generate: 'Generate with AI',
-      voiceInput: 'Dictate by voice',
-      stopVoiceInput: 'Stop voice recording',
-      improve: 'Improve with AI',
-      voiceInstruct: 'Improve by voice instruction',
-      stopVoiceInstruct: 'Stop voice instruction recording',
+      smartDictation: 'Smart dictation — speak to rewrite this field',
+      stopSmartDictation: 'Stop smart dictation',
     },
 
     memory: {

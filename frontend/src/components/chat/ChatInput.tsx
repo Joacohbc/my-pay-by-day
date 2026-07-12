@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { Textarea } from '@/components/ui/Textarea';
@@ -12,6 +12,7 @@ interface ChatInputProps {
   setInputContent: (val: string) => void;
   onSend: () => void;
   onAudioRecorded?: (audioBlob: Blob) => Promise<void>;
+  onAudioRecordedEnhanced?: (audioBlob: Blob, currentText: string) => Promise<void>;
   onAudioFileSelected?: (file: File) => Promise<void>;
   isPending?: boolean;
   disabled?: boolean;
@@ -82,6 +83,7 @@ export function ChatInput({
   setInputContent,
   onSend,
   onAudioRecorded,
+  onAudioRecordedEnhanced,
   onAudioFileSelected,
   isPending,
   disabled = false,
@@ -127,23 +129,76 @@ export function ChatInput({
     showError(t('chat.transcriptionFailed'));
   }, [showError, t]);
 
+  const inputContentRef = useRef(inputContent);
+  useEffect(() => {
+    inputContentRef.current = inputContent;
+  }, [inputContent]);
+
+  const enhanceModeRef = useRef(false);
+  const [isEnhanceRecording, setIsEnhanceRecording] = useState(false);
+
+  const dispatchRecordedAudio = useCallback(
+    async (audioBlob: Blob) => {
+      const useEnhance = enhanceModeRef.current;
+      enhanceModeRef.current = false;
+      setIsEnhanceRecording(false);
+
+      if (useEnhance && onAudioRecordedEnhanced) {
+        await onAudioRecordedEnhanced(audioBlob, inputContentRef.current);
+        return;
+      }
+      await onAudioRecorded?.(audioBlob);
+    },
+    [onAudioRecorded, onAudioRecordedEnhanced],
+  );
+
   const {
     recordingState,
     isRecordingSupported,
     toggleRecording,
-  } = useVoiceRecorder(onAudioRecorded ?? (() => Promise.resolve()), handleVoiceError);
+  } = useVoiceRecorder(dispatchRecordedAudio, handleVoiceError);
 
   const isRecording = recordingState === 'recording';
   const isPreparingAudio = recordingState === 'preparing';
   const isBusy = isPreparingAudio;
 
-  const micTitle = isRecording
+  const isPlainRecording = isRecording && !isEnhanceRecording;
+  const isEnhancedRecordingActive = isRecording && isEnhanceRecording;
+
+  const togglePlainRecording = useCallback(() => {
+    if (recordingState === 'idle') {
+      enhanceModeRef.current = false;
+    }
+    toggleRecording();
+  }, [recordingState, toggleRecording]);
+
+  const toggleEnhancedRecording = useCallback(() => {
+    if (recordingState === 'idle') {
+      enhanceModeRef.current = true;
+      setIsEnhanceRecording(true);
+    }
+    toggleRecording();
+  }, [recordingState, toggleRecording]);
+
+  const micTitle = isPlainRecording
     ? t('chat.stopRecording')
     : isPreparingAudio
       ? t('chat.transcribing')
       : t('chat.startRecording');
 
-  const micButtonClass = isRecording
+  const enhancedMicTitle = isEnhancedRecordingActive
+    ? t('chat.stopRecording')
+    : isPreparingAudio
+      ? t('chat.transcribing')
+      : t('chat.startRecordingEnhanced');
+
+  const micButtonClass = isPlainRecording
+    ? 'text-dn-error bg-dn-error/10 hover:bg-dn-error/20 animate-pulse'
+    : isPreparingAudio
+      ? 'text-dn-primary/40'
+      : 'text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10';
+
+  const enhancedMicButtonClass = isEnhancedRecordingActive
     ? 'text-dn-error bg-dn-error/10 hover:bg-dn-error/20 animate-pulse'
     : isPreparingAudio
       ? 'text-dn-primary/40'
@@ -255,13 +310,26 @@ export function ChatInput({
             {onAudioRecorded && isRecordingSupported && (
               <button
                 type="button"
-                onClick={toggleRecording}
-                disabled={isBusy}
+                onClick={togglePlainRecording}
+                disabled={isBusy || isEnhancedRecordingActive}
                 className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${micButtonClass}`}
                 aria-label={micTitle}
                 title={micTitle}
               >
-                <Icon name={isRecording ? 'mic_off' : 'mic'} className="text-[20px]" />
+                <Icon name={isPlainRecording ? 'mic_off' : 'mic'} className="text-[20px]" />
+              </button>
+            )}
+
+            {onAudioRecordedEnhanced && isRecordingSupported && (
+              <button
+                type="button"
+                onClick={toggleEnhancedRecording}
+                disabled={isBusy || isPlainRecording}
+                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${enhancedMicButtonClass}`}
+                aria-label={enhancedMicTitle}
+                title={enhancedMicTitle}
+              >
+                <Icon name={isEnhancedRecordingActive ? 'mic_off' : 'auto_fix_high'} className="text-[20px]" />
               </button>
             )}
 

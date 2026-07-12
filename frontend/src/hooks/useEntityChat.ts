@@ -214,6 +214,16 @@ export function useEntityChat({
     [applyTranscribedText],
   );
 
+  const handleAudioRecordedEnhanced = useCallback(
+    async (audioBlob: Blob, currentText: string) => {
+      const { transcription } = await audioService.transcribeRecordedAudioEnhanced(audioBlob, currentText);
+      const editedText = transcription.trim();
+      if (!editedText) throw new Error('transcription_failed');
+      setInput(editedText);
+    },
+    [setInput],
+  );
+
   const handleToolApproval = useCallback(
     (approvalId: string, approved: boolean) => {
       addToolApprovalResponse({ id: approvalId, approved });
@@ -239,6 +249,7 @@ export function useEntityChat({
     draftFiles,
     handleSend,
     handleAudioRecorded,
+    handleAudioRecordedEnhanced,
     handleAudioFileSelected,
     handleAddFile,
     handleRemoveFile,

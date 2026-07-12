@@ -1,23 +1,18 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
 import { useAlert } from '@/contexts/AlertContext';
 import type { AiFieldController } from '@/hooks/useAiFieldController';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
-import { audioService } from '@/services/audio.service';
 
 interface AiFieldControlsProps {
   controller: AiFieldController;
 }
 
-type RecordingMode = 'dictate' | 'instruct';
-
 export function AiFieldControls({ controller }: AiFieldControlsProps) {
   const { t } = useTranslation();
   const alert = useAlert();
-  const [activeRecordingMode, setActiveRecordingMode] = useState<RecordingMode>('dictate');
-  const recordingModeRef = useRef<RecordingMode>('dictate');
 
   const handleVoiceError = useCallback((errorKey: string) => {
     if (errorKey === 'voice_not_supported') {
@@ -31,20 +26,10 @@ export function AiFieldControls({ controller }: AiFieldControlsProps) {
     alert.error(t('chat.transcriptionFailed'));
   }, [alert, t]);
 
-  const handleAudioReady = useCallback(async (recordedAudioBlob: Blob) => {
-    const transcriptionResponse = await audioService.transcribeRecordedAudio(recordedAudioBlob);
-    const transcriptionText = transcriptionResponse.transcription.trim();
-
-    if (!transcriptionText) {
-      throw new Error('transcription_failed');
-    }
-
-    if (recordingModeRef.current === 'instruct') {
-      await controller.applyInstruction(transcriptionText);
-    } else {
-      controller.applyTranscription(transcriptionText);
-    }
-  }, [controller, recordingModeRef]);
+  const handleAudioReady = useCallback(
+    (recordedAudioBlob: Blob) => controller.applyEnhancedDictation(recordedAudioBlob),
+    [controller],
+  );
 
   const {
     recordingState,
@@ -56,12 +41,15 @@ export function AiFieldControls({ controller }: AiFieldControlsProps) {
 
   const isRecordingAudio = recordingState === 'recording';
   const isPreparingAudio = recordingState === 'preparing';
-  const isBusy = controller.isLoading || isRecordingAudio || isPreparingAudio;
-  const canUseVoice = controller.allowVoice && isRecordingSupported;
+  const isBusy = controller.isLoading || isPreparingAudio;
 
-  const startRecording = (mode: RecordingMode) => {
-    recordingModeRef.current = mode;
-    setActiveRecordingMode(mode);
+  if (!controller.allowVoice || !isRecordingSupported) return null;
+
+  const handleClick = () => {
+    if (isRecordingAudio) {
+      toggleRecording();
+      return;
+    }
     if (permissionState !== 'granted') {
       void requestPermission();
       return;
@@ -69,46 +57,22 @@ export function AiFieldControls({ controller }: AiFieldControlsProps) {
     toggleRecording();
   };
 
-  const micButton = (mode: RecordingMode, icon: string, titleIdle: string, titleRecording: string) => {
-    const isThisMicRecording = isRecordingAudio && activeRecordingMode === mode;
-    const isOtherMicRecording = isRecordingAudio && activeRecordingMode !== mode;
-    return (
-      <button
-        type="button"
-        onClick={() => (isThisMicRecording ? toggleRecording() : startRecording(mode))}
-        disabled={(isBusy && !isThisMicRecording) || isOtherMicRecording}
-        className="h-5 w-5 flex items-center justify-center rounded text-dn-text-muted hover:text-dn-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        title={isThisMicRecording ? titleRecording : titleIdle}
-        aria-label={isThisMicRecording ? titleRecording : titleIdle}
-      >
-        {isPreparingAudio && activeRecordingMode === mode ? (
-          <Spinner size="sm" />
-        ) : (
-          <Icon name={icon} className={isThisMicRecording ? 'text-sm text-dn-error animate-pulse' : 'text-sm'} />
-        )}
-      </button>
-    );
-  };
-
-  const aiActionTitle = controller.hasValue ? t('ai.actions.improve') : t('ai.actions.generate');
+  const title = isRecordingAudio ? t('ai.actions.stopSmartDictation') : t('ai.actions.smartDictation');
 
   return (
     <div className="flex items-center gap-0.5">
-      {canUseVoice && micButton('dictate', 'mic', t('ai.actions.voiceInput'), t('ai.actions.stopVoiceInput'))}
-      {canUseVoice && micButton('instruct', 'record_voice_over', t('ai.actions.voiceInstruct'), t('ai.actions.stopVoiceInstruct'))}
-
       <button
         type="button"
-        onClick={() => void controller.runAiAction()}
-        disabled={isBusy}
+        onClick={handleClick}
+        disabled={isBusy && !isRecordingAudio}
         className="h-5 w-5 flex items-center justify-center rounded text-dn-text-muted hover:text-dn-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        title={aiActionTitle}
-        aria-label={aiActionTitle}
+        title={title}
+        aria-label={title}
       >
-        {controller.isLoading ? (
+        {isBusy ? (
           <Spinner size="sm" />
         ) : (
-          <Icon name={controller.hasValue ? 'auto_fix_high' : 'auto_awesome'} className="text-sm" />
+          <Icon name="auto_fix_high" className={isRecordingAudio ? 'text-sm text-dn-error animate-pulse' : 'text-sm'} />
         )}
       </button>
     </div>

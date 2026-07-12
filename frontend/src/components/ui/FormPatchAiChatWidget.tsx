@@ -18,7 +18,7 @@ export function FormPatchAiChatWidget({ entityType, getCurrentValues, onPatch }:
     isPending,
     draftFiles,
     handleSend,
-    handleAudioRecorded,
+    handleAudioRecordedEnhanced,
     handleAudioFileSelected,
     handleAddFile,
     handleRemoveFile,
@@ -34,7 +34,7 @@ export function FormPatchAiChatWidget({ entityType, getCurrentValues, onPatch }:
       inputContent={input}
       setInputContent={setInput}
       onSend={handleSend}
-      onAudioRecorded={handleAudioRecorded}
+      onAudioRecordedEnhanced={handleAudioRecordedEnhanced}
       onAudioFileSelected={handleAudioFileSelected}
       draftFiles={draftFiles}
       onAddFile={handleAddFile}

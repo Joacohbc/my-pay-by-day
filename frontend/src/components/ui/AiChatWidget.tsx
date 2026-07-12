@@ -14,6 +14,7 @@ interface AiChatWidgetProps {
   setInputContent: (value: string) => void;
   onSend: () => void;
   onAudioRecorded?: (blob: Blob) => Promise<void>;
+  onAudioRecordedEnhanced?: (blob: Blob, currentText: string) => Promise<void>;
   onAudioFileSelected?: (file: File) => Promise<void>;
   draftFiles?: FileDto[];
   onAddFile?: (file: FileDto) => void;
@@ -36,6 +37,7 @@ export function AiChatWidget({
   setInputContent,
   onSend,
   onAudioRecorded,
+  onAudioRecordedEnhanced,
   onAudioFileSelected,
   draftFiles,
   onAddFile,
@@ -115,6 +117,7 @@ export function AiChatWidget({
           setInputContent={setInputContent}
           onSend={onSend}
           onAudioRecorded={onAudioRecorded}
+          onAudioRecordedEnhanced={onAudioRecordedEnhanced}
           onAudioFileSelected={onAudioFileSelected}
           isPending={isLoading}
           draftFiles={draftFiles}

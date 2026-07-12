@@ -79,30 +79,17 @@ export function TemplateForm({ editTarget, onSubmit, onCancel, loading }: Templa
 
   const watchModifierType = useWatch({ control, name: 'modifierType' });
 
-  const buildContext = () => {
-    const values = getValues();
-    const parts: string[] = ['Entity type: Template (blueprint for creating finance events quickly)'];
-    if (values.name) parts.push(`Name: ${values.name}`);
-    if (values.description) parts.push(`Description: ${values.description}`);
-    if (values.eventType) parts.push(`Event type: ${values.eventType}`);
-    return parts.join('\n');
-  };
-
   const nameAi = useAiFieldController<FormValues>({
     name: 'name',
-    semantic: 'name',
     getValues,
     setValue,
-    buildContext,
     allowVoice: true,
   });
 
   const descriptionAi = useAiFieldController<FormValues>({
     name: 'description',
-    semantic: 'description',
     getValues,
     setValue,
-    buildContext,
     allowVoice: true,
   });
 

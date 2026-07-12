@@ -408,6 +408,16 @@ export function useChatUI() {
     [applyTranscribedText],
   );
 
+  const handleAudioRecordedEnhanced = useCallback(
+    async (audioBlob: Blob, currentText: string) => {
+      const { transcription } = await audioService.transcribeRecordedAudioEnhanced(audioBlob, currentText);
+      const editedText = transcription.trim();
+      if (!editedText) throw new Error('transcription_failed');
+      setInput(editedText);
+    },
+    [setInput],
+  );
+
   const handleNewChat = useCallback(() => {
     setDraftFiles([]);
     setMessages([]);
@@ -480,6 +490,7 @@ export function useChatUI() {
     handleClearMemory,
     handleDeleteMessage,
     handleAudioRecorded,
+    handleAudioRecordedEnhanced,
     handleAudioFileSelected,
     handleAddFile,
     handleAddFiles,

@@ -39,30 +39,17 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
     },
   });
 
-  const buildContext = () => {
-    const values = getValues();
-    const parts: string[] = ['Entity type: Finance Node (account, external entity, or contact)'];
-    if (values.name) parts.push(`Name: ${values.name}`);
-    if (values.description) parts.push(`Description: ${values.description}`);
-    if (values.type) parts.push(`Type: ${values.type}`);
-    return parts.join('\n');
-  };
-
   const nameAi = useAiFieldController<NodeFormValues>({
     name: 'name',
-    semantic: 'name',
     getValues,
     setValue,
-    buildContext,
     allowVoice: true,
   });
 
   const descriptionAi = useAiFieldController<NodeFormValues>({
     name: 'description',
-    semantic: 'description',
     getValues,
     setValue,
-    buildContext,
     allowVoice: true,
   });
 

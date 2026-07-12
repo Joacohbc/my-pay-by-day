@@ -232,34 +232,18 @@ export function EventForm({
     return parts.join('\n');
   };
 
-  const buildSimilarGrounding = () => {
-    const values = getValues();
-    const categoryId = values.categoryId ? Number(values.categoryId) : undefined;
-    const amounts = values.lineItems
-      .map((li) => Math.abs(Number(li.amount)))
-      .filter((n) => Number.isFinite(n) && n > 0);
-    const amount = amounts.length > 0 ? Math.max(...amounts) : undefined;
-    return { categoryId: Number.isFinite(categoryId) ? categoryId : undefined, amount };
-  };
-
   const nameAi = useAiFieldController<FormValues>({
     name: 'name',
-    semantic: 'name',
     getValues,
     setValue,
-    buildContext: buildAiContext,
-    getSimilarGrounding: buildSimilarGrounding,
     allowVoice: true,
     shouldDirty: true,
   });
 
   const descriptionAi = useAiFieldController<FormValues>({
     name: 'description',
-    semantic: 'description',
     getValues,
     setValue,
-    buildContext: buildAiContext,
-    getSimilarGrounding: buildSimilarGrounding,
     allowVoice: true,
     shouldDirty: true,
   });
