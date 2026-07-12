@@ -37,7 +37,7 @@ export function CloneEventModal({
   event: FinanceEvent;
 }) {
   const { t } = useTranslation();
-  const { navigate } = useAppNavigation();
+  const { navigatePush } = useAppNavigation();
   const [selected, setSelected] = useState<Set<CloneField>>(new Set(ALL_FIELDS));
 
   const toggle = (field: CloneField) => {
@@ -68,7 +68,7 @@ export function CloneEventModal({
         : event.lineItems.map((li) => ({ ...li, amount: 0 }));
     }
 
-    navigate(Routes.EVENT_NEW, { state: { draft } });
+    navigatePush(Routes.EVENT_NEW, { draft });
     onClose();
   };
 

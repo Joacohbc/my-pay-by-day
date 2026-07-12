@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { normalizeText } from '@/lib/utils/textUtils';
 import { useTranslation } from 'react-i18next';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useTags, useDeleteTag, useArchiveTag, useUnarchiveTag } from '@/hooks/useTags';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -26,6 +28,8 @@ const CONFIRM_TITLE_BY_TYPE: Record<ConfirmActionType, 'common.archive' | 'commo
 
 export function TagsPage() {
   const { t } = useTranslation();
+  const { navigateBack } = useAppNavigation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showArchived, setShowArchived] = useState(false);
   const { data: paged, isLoading, error } = useTags(showArchived ? true : undefined);
   const { data: allDuplicates } = useDuplicates('TAG', 'PENDING');
@@ -46,6 +50,11 @@ export function TagsPage() {
     ? allTags.filter(t => normalizeText(t.name).includes(normalizeText(search)))
     : allTags;
 
+  const highlightId = Number(searchParams.get('highlight')) || null;
+  const highlightTarget = highlightId ? allTags.find((tag) => tag.id === highlightId) ?? null : null;
+  const modalEditTarget = editTarget ?? highlightTarget;
+  const modalOpen = showModal || highlightTarget !== null;
+
   const openCreate = () => {
     setEditTarget(null);
     setShowModal(true);
@@ -54,6 +63,12 @@ export function TagsPage() {
   const openEdit = (tag: Tag) => {
     setEditTarget(tag);
     setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditTarget(null);
+    if (highlightId) setSearchParams((prev) => { prev.delete('highlight'); return prev; }, { replace: true });
   };
 
   const actionMutationByType: Record<ConfirmActionType, (id: number) => Promise<unknown>> = {
@@ -91,7 +106,7 @@ export function TagsPage() {
 
       <PageHeader
         title={t('tags.title')}
-        back={Routes.SETTINGS}
+        back={() => navigateBack(Routes.SETTINGS)}
         subtitle={t('tags.count', { count: allTags.length })}
         action={
           <div className="flex items-center gap-2">
@@ -155,14 +170,14 @@ export function TagsPage() {
 
 
       <Modal
-        open={showModal}
-        onClose={() => { setShowModal(false); setEditTarget(null); }}
-        title={editTarget ? t('tags.editTag') : t('tags.newTag')}
+        open={modalOpen}
+        onClose={closeModal}
+        title={modalEditTarget ? t('tags.editTag') : t('tags.newTag')}
       >
         <TagForm
-          editTarget={editTarget}
-          onSuccess={() => setShowModal(false)}
-          onCancel={() => setShowModal(false)}
+          editTarget={modalEditTarget}
+          onSuccess={closeModal}
+          onCancel={closeModal}
         />
       </Modal>
 

@@ -1,117 +1,99 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { zustandStorage } from '@/lib/idbStorage';
+import type { FileDto } from '@/models';
+
+export interface ChatToolCall {
+  name: string;
+  state: string;
+  output?: unknown;
+  args?: unknown;
+  toolCallId?: string;
+  approval?: { id: string; approved?: boolean; reason?: string };
+}
+
+export type ChatMessagePart =
+  | { type: 'text'; text: string }
+  | { type: 'tool'; call: ChatToolCall };
 
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
+  /** Ordered exactly as the model emitted them — text and tool calls interleaved. */
+  parts: ChatMessagePart[];
+  /** Derived from `parts` once at conversion time (not a live getter, so it survives object spreads in groupMessages). */
   content: string;
+  toolCalls: ChatToolCall[];
   imageUrls?: string[];
+  attachments?: { name: string; type: string; fileId?: number; typeLabel?: string }[];
   audioUrl?: string;
   audioTranscriptionStatus?: 'pending' | 'ready' | 'failed';
   timestamp: string;
+  stoppedByStepLimit?: boolean;
 }
-
-type ChatMessageDraft = Omit<ChatMessage, 'id' | 'timestamp'>;
-type ChatMessageUpdate = Partial<ChatMessageDraft>;
-
-import { chatService } from '@/services/chat.service';
-import type { FileDto } from '@/models';
 
 interface ChatStoreState {
   chatId: string;
-  messages: ChatMessage[];
   isClearing: boolean;
   draftFiles: FileDto[];
+  /** Files waiting locally (e.g. received via Web Share Target) — uploaded to the backend only when the message is sent. */
+  pendingFiles: File[];
+  /** Text received via Web Share Target, consumed once into the chat input. */
+  sharedText: string | null;
+  showChatList: boolean;
 
-  addMessage: (msg: ChatMessageDraft) => string;
-  updateMessage: (messageId: string, patch: ChatMessageUpdate) => void;
-  clearChat: () => void;
   newChat: () => void;
-  clearBackendMemory: () => Promise<void>;
-  trimBackendMemory: (textToMatch: string) => Promise<void>;
+  selectChat: (chatId: string) => void;
+  openChatList: () => void;
+  closeChatList: () => void;
   setDraftFiles: (files: FileDto[]) => void;
+  setPendingFiles: (files: File[]) => void;
+  setSharedText: (text: string | null) => void;
+  setIsClearing: (isClearing: boolean) => void;
 }
 
 export const useChatStore = create<ChatStoreState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       chatId: crypto.randomUUID(),
-      messages: [],
       isClearing: false,
       draftFiles: [],
-
-      addMessage: (msg) => {
-        const nextMessageId = crypto.randomUUID();
-
-        set((state) => ({
-          messages: [
-            ...state.messages,
-            {
-              ...msg,
-              id: nextMessageId,
-              timestamp: new Date().toISOString(),
-            },
-          ],
-        }));
-
-        return nextMessageId;
-      },
-
-      updateMessage: (messageId, patch) =>
-        set((state) => ({
-          messages: state.messages.map((message) =>
-            message.id === messageId
-              ? { ...message, ...patch }
-              : message
-          ),
-        })),
-
-      clearChat: () => set({ messages: [] }),
+      pendingFiles: [],
+      sharedText: null,
+      showChatList: true,
 
       newChat: () =>
         set({
           chatId: crypto.randomUUID(),
-          messages: [],
           draftFiles: [],
+          pendingFiles: [],
+          sharedText: null,
+          showChatList: false,
         }),
 
-      clearBackendMemory: async () => {
-        const { chatId } = get();
-        set({ isClearing: true });
-        try {
-          await chatService.clearMemory(chatId);
-          set({ messages: [] });
-        } finally {
-          set({ isClearing: false });
-        }
-      },
+      selectChat: (chatId) =>
+        set({
+          chatId,
+          draftFiles: [],
+          pendingFiles: [],
+          sharedText: null,
+          showChatList: false,
+        }),
 
-      trimBackendMemory: async (textToMatch: string) => {
-        const { chatId, messages } = get();
-        set({ isClearing: true });
-        try {
-          await chatService.trimMemory(chatId, textToMatch);
-          // Also trim locally
-          const matchIndex = [...messages].reverse().findIndex(m => m.role === 'user' && m.content.includes(textToMatch));
-          if (matchIndex !== -1) {
-            const actualIndex = messages.length - 1 - matchIndex;
-            set({ messages: messages.slice(0, actualIndex) });
-          }
-        } finally {
-          set({ isClearing: false });
-        }
-      },
-
-      setDraftFiles: (files: FileDto[]) => set({ draftFiles: files }),
+      openChatList: () => set({ showChatList: true }),
+      closeChatList: () => set({ showChatList: false }),
+      setDraftFiles: (files) => set({ draftFiles: files }),
+      setPendingFiles: (files) => set({ pendingFiles: files }),
+      setSharedText: (text) => set({ sharedText: text }),
+      setIsClearing: (isClearing) => set({ isClearing }),
     }),
     {
       name: 'mpbd-chat',
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         chatId: state.chatId,
-        messages: state.messages
-      })
-    }
-  )
+        showChatList: state.showChatList,
+      }),
+    },
+  ),
 );

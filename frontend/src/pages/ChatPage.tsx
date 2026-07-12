@@ -1,162 +1,217 @@
-import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { Card } from '@/components/ui/Card';
 import { useChatUI } from '@/hooks/useChatUI';
 import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { ChatImagePreview } from '@/components/chat/ChatImagePreview';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { AgentTasksView } from '@/components/agent-tasks/AgentTasksView';
-
-type ChatTab = 'chat' | 'tasks';
+import { ChatList } from '@/components/chat/ChatList';
+import { TasksPanel } from '@/components/agent-tasks/TasksPanel';
+import { useChatStore } from '@/store/chatStore';
 
 export function ChatPage() {
+  const { showChatList, openChatList } = useChatStore();
   const [searchParams, setSearchParams] = useSearchParams();
+  const showTasksPanel = searchParams.get('panel') === 'tasks';
   const {
     messages,
     input,
     setInput,
     isPending,
     isClearing,
+    messageCount,
+    maxMessages,
     draftFiles,
+    pendingFiles,
     imagePreviewUrls,
     messagesEndRef,
+    countdown,
+    triggerSendNow,
+    stop,
     handleSend,
+    handleQuickCreate,
+    handleToolApproval,
+    handleAskUserAnswer,
     handleNewChat,
     handleClearMemory,
-    handleEditMessage,
+    handleDeleteMessage,
     handleAudioRecorded,
+    handleAudioRecordedEnhanced,
+    handleAudioFileSelected,
     handleAddFile,
+    handleAddFiles,
     handleRemoveFile,
+    handleRemoveFiles,
+    handleRemovePendingFile,
     t,
   } = useChatUI();
 
-  const activeTab = (searchParams.get('tab') as ChatTab) || 'chat';
-  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const isChatListVisible = showChatList && !showTasksPanel;
 
-  const handleTabChange = (tab: ChatTab) => {
-    setSearchParams({ tab });
-  };
+  const lastMessage = messages.at(-1);
+  const hasPendingApproval = lastMessage?.toolCalls?.some((tc) => tc.state === 'approval-requested') ?? false;
+  const showContinueCard =
+    !isPending && lastMessage?.role === 'assistant' && lastMessage.stoppedByStepLimit && !hasPendingApproval;
 
   return (
     <div className="flex flex-col h-[calc(100dvh-80px)] bg-dn-bg overflow-hidden">
       <PageHeader
         title={t('chat.title')}
+        subtitle={
+          !isChatListVisible && !showTasksPanel && messageCount > 0
+            ? t('chat.messageCount', { count: messageCount, max: maxMessages })
+            : undefined
+        }
         action={
           <div className="flex gap-2">
-            {activeTab === 'chat' ? (
-              <>
-                <button
-                  onClick={handleNewChat}
-                  className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-dn-surface-low text-dn-text-main hover:bg-dn-surface transition-colors"
-                  aria-label={t('chat.newChat')}
-                  title={t('chat.newChat')}
-                >
-                  <Icon name="add" className="text-[18px]" />
-                </button>
-                <button
-                  onClick={handleClearMemory}
-                  disabled={isClearing || messages.length === 0}
-                  className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-dn-surface-low text-dn-text-main hover:bg-dn-error hover:text-white transition-colors disabled:opacity-30"
-                  aria-label={t('chat.clearMemory')}
-                  title={t('chat.clearMemory')}
-                >
-                  <Icon name="delete_sweep" className="text-[18px]" />
-                </button>
-              </>
-            ) : (
+            <button
+              onClick={() => setSearchParams(showTasksPanel ? {} : { panel: 'tasks' })}
+              className={`shrink-0 w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
+                showTasksPanel
+                  ? 'bg-dn-primary/20 text-dn-primary'
+                  : 'bg-dn-surface-low text-dn-text-main hover:bg-dn-surface'
+              }`}
+              aria-label={t('agentTasks.title')}
+              title={t('agentTasks.title')}
+            >
+              <Icon name="pending_actions" className="text-[18px]" />
+            </button>
+            {!isChatListVisible && !showTasksPanel && (
               <button
-                onClick={() => setShowNewTaskModal(true)}
-                className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-dn-primary text-white hover:bg-dn-primary-focus transition-colors shadow-lg"
-                aria-label={t('agentTasks.newTask')}
-                title={t('agentTasks.newTask')}
+                onClick={openChatList}
+                className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-dn-surface-low text-dn-text-main hover:bg-dn-surface transition-colors"
+                aria-label={t('chat.conversations')}
+                title={t('chat.conversations')}
               >
-                <Icon name="add" className="text-[20px]" />
+                <Icon name="forum" className="text-[18px]" />
               </button>
             )}
+            <button
+              onClick={handleNewChat}
+              className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-dn-surface-low text-dn-text-main hover:bg-dn-surface transition-colors"
+              aria-label={t('chat.newChat')}
+              title={t('chat.newChat')}
+            >
+              <Icon name="add" className="text-[18px]" />
+            </button>
+            {!isChatListVisible && !showTasksPanel && (
+              <button
+                onClick={handleClearMemory}
+                disabled={isClearing || messages.length === 0}
+                className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-dn-surface-low text-dn-text-main hover:bg-dn-error hover:text-white transition-colors disabled:opacity-30"
+                aria-label={t('chat.clearMemory')}
+                title={t('chat.clearMemory')}
+              >
+                <Icon name="delete_sweep" className="text-[18px]" />
+              </button>
+            )}
+
           </div>
         }
       />
 
-      <div className="px-5 mb-2">
-        <SegmentedControl<ChatTab>
-          value={activeTab}
-          onChange={handleTabChange}
-          options={[
-            { value: 'chat', label: t('chat.tabs.chat') },
-            { value: 'tasks', label: t('chat.tabs.tasks') },
-          ]}
-        />
-      </div>
+      <div className="flex flex-1 overflow-hidden relative w-full">
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+          {isChatListVisible ? (
+            <ChatList />
+          ) : showTasksPanel ? (
+            <TasksPanel />
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto w-full">
+                {messages.length === 0 ? (
+                  <ChatEmptyState />
+                ) : (
+                  messages.map((msg) => (
+                    <ChatMessage
+                      key={msg.id}
+                      message={msg}
+                      onDelete={handleDeleteMessage}
+                      onApprove={handleToolApproval}
+                      onAskUserAnswer={handleAskUserAnswer}
+                    />
+                  ))
+                )}
 
-      {activeTab === 'chat' ? (
-        <>
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto w-full">
-            {messages.length === 0 ? (
-              <ChatEmptyState />
-            ) : (
-              messages.map((msg) => (
-                <ChatMessage
-                  key={msg.id}
-                  message={msg}
-                  onEdit={handleEditMessage}
-                />
-              ))
-            )}
-
-            {/* Thinking Indicator */}
-            {isPending && (
-              <div className="w-full py-6 md:py-8 bg-dn-bg">
-                <div className="max-w-4xl mx-auto px-4 md:px-8 flex flex-col space-y-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-dn-surface-low border border-dn-border text-dn-primary/50 shadow-sm">
-                      <Icon name="smart_toy" className="text-[16px] animate-pulse" />
-                    </div>
-                    <div className="flex items-center space-x-1.5 opacity-40">
-                      <div className="w-1 h-1 bg-dn-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
-                      <div className="w-1 h-1 bg-dn-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
-                      <div className="w-1 h-1 bg-dn-primary rounded-full animate-bounce" />
+                {isPending && (
+                  <div className="w-full py-6 md:py-8 bg-dn-bg">
+                    <div className="max-w-4xl mx-auto px-4 md:px-8 flex flex-col space-y-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-dn-surface-low border border-dn-border text-dn-primary/50 shadow-sm">
+                          <Icon name="smart_toy" className="text-[16px] animate-pulse" />
+                        </div>
+                        <div className="flex items-center space-x-1.5 opacity-40">
+                          <div className="w-1 h-1 bg-dn-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+                          <div className="w-1 h-1 bg-dn-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+                          <div className="w-1 h-1 bg-dn-primary rounded-full animate-bounce" />
+                        </div>
+                      </div>
+                      {draftFiles.length > 0 && (
+                        <span className="text-[10px] text-dn-primary/40 uppercase tracking-[0.2em] font-black px-1">
+                          {t('chat.processingImage')}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  {draftFiles.length > 0 && (
-                    <span className="text-[10px] text-dn-primary/40 uppercase tracking-[0.2em] font-black px-1">
-                      {t('chat.processingImage')}
-                    </span>
-                  )}
-                </div>
+                )}
+
+                {countdown !== null && (
+                  <div className="max-w-4xl mx-auto px-4 md:px-8 -mt-2">
+                    <p className="text-[10px] text-dn-text-muted flex items-center justify-center mt-5 gap-4">
+                      <Icon name="schedule" className="text-[12px] animate-pulse" />
+                      {t('chat.sendingIn', { count: countdown })}
+                    </p>
+                  </div>
+                )}
+
+                {showContinueCard && (
+                  <div className="max-w-4xl mx-auto px-4 md:px-8 mt-4">
+                    <Card className="flex items-center gap-2 text-sm text-dn-text-main border border-dn-warning/30 bg-dn-warning/5">
+                      <Icon name="hourglass_bottom" className="text-dn-warning" />
+                      {t('chat.stepLimit.title')}
+                    </Card>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} className="h-8" />
               </div>
-            )}
-            <div ref={messagesEndRef} className="h-8" />
-          </div>
 
-          {/* Image Preview Bar */}
-          <ChatImagePreview
-            images={draftFiles}
-            previewUrls={imagePreviewUrls}
-            onRemove={(idx) => handleRemoveFile(draftFiles[idx].id)}
-          />
+              <ChatImagePreview
+                images={draftFiles}
+                previewUrls={imagePreviewUrls}
+                onRemove={(idx) => handleRemoveFile(draftFiles[idx].id)}
+              />
 
-          {/* Input Area */}
-          <ChatInput
-            inputContent={input}
-            setInputContent={setInput}
-            onSend={handleSend}
-            onAudioRecorded={handleAudioRecorded}
-            draftFiles={draftFiles}
-            onAddFile={handleAddFile}
-            onRemoveFile={handleRemoveFile}
-            isPending={isPending}
-          />
-        </>
-      ) : (
-        <AgentTasksView 
-          showNewTaskModal={showNewTaskModal} 
-          onCloseModal={() => setShowNewTaskModal(false)} 
-        />
-      )}
+              <ChatInput
+                inputContent={input}
+                setInputContent={setInput}
+                onSend={handleSend}
+                onAudioRecorded={handleAudioRecorded}
+                onAudioRecordedEnhanced={handleAudioRecordedEnhanced}
+                onAudioFileSelected={handleAudioFileSelected}
+                draftFiles={draftFiles}
+                pendingFiles={pendingFiles}
+                onAddFile={handleAddFile}
+                onAddFiles={handleAddFiles}
+                onRemoveFile={handleRemoveFile}
+                onRemoveFiles={handleRemoveFiles}
+                onRemovePendingFile={handleRemovePendingFile}
+                isPending={isPending}
+                disabled={hasPendingApproval}
+                countdown={countdown}
+                onSendNow={triggerSendNow}
+                onStop={stop}
+                onQuickCreate={handleQuickCreate}
+              />
+            </>
+          )}
+        </div>
+
+
+      </div>
     </div>
   );
 }

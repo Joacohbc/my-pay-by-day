@@ -3,17 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { subscriptionsService } from '@/services/subscriptions.service';
 import type { CreateSubscriptionDto } from '@/models';
-
-export const SUBSCRIPTIONS_KEY = ['subscriptions'] as const;
+import { subscriptionKeys } from '@/lib/queryKeys';
+import { cachePolicy } from '@/lib/cachePolicies';
+import { invalidateDomains } from '@/lib/cacheInvalidation';
 
 export function useSubscriptions(page = 0, size = 20) {
   return useQuery({
-    queryKey: [...SUBSCRIPTIONS_KEY, page, size],
+    queryKey: subscriptionKeys.list(page, size),
     queryFn: () => subscriptionsService.getAll(page, size),
-    staleTime: 30_000,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: 'always',
-    refetchOnReconnect: 'always',
+    ...cachePolicy.transactional,
   });
 }
 
@@ -24,7 +22,7 @@ export function useCreateSubscription() {
   return useMutation({
     mutationFn: (dto: CreateSubscriptionDto) => subscriptionsService.create(dto),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
+      invalidateDomains(qc, ['subscriptions']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
@@ -44,7 +42,7 @@ export function useUpdateSubscription() {
       dto: Partial<CreateSubscriptionDto>;
     }) => subscriptionsService.update(id, dto),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
+      invalidateDomains(qc, ['subscriptions']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
@@ -58,7 +56,7 @@ export function useDeleteSubscription() {
   return useMutation({
     mutationFn: (id: number) => subscriptionsService.delete(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
+      invalidateDomains(qc, ['subscriptions']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),

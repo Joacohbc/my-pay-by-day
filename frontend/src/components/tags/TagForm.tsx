@@ -1,12 +1,11 @@
-import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
-import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { useCreateTag, useUpdateTag } from '@/hooks/useTags';
-import { useAiFormController } from '@/hooks/useAiFormController';
+import { useAiFieldController } from '@/hooks/useAiFieldController';
+import { FormPatchAiChatWidget } from '@/components/ui/FormPatchAiChatWidget';
 import type { Tag } from '@/models';
 
 interface TagFormValues {
@@ -32,30 +31,18 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
     },
   });
 
-  const buildContext = () => {
-    const values = getValues();
-    const parts: string[] = ['Entity type: Tag (transversal label for grouping events)'];
-    if (values.name) parts.push(`Name: ${values.name}`);
-    if (values.description) parts.push(`Description: ${values.description}`);
-    return parts.join('\n');
-  };
-
-  const aiFields = useMemo(() => [
-    { key: 'name', name: 'name' as const, label: t('common.name'), semantic: 'name' as const, allowVoice: true },
-    {
-      key: 'description',
-      name: 'description' as const,
-      label: t('common.description'),
-      semantic: 'description' as const,
-      allowVoice: true,
-    },
-  ], [t]);
-
-  const aiController = useAiFormController<TagFormValues>({
-    fields: aiFields,
+  const nameAi = useAiFieldController<TagFormValues>({
+    name: 'name',
     getValues,
     setValue,
-    buildContext,
+    allowVoice: true,
+  });
+
+  const descriptionAi = useAiFieldController<TagFormValues>({
+    name: 'description',
+    getValues,
+    setValue,
+    allowVoice: true,
   });
 
   const onSubmit = async (values: TagFormValues, e?: React.BaseSyntheticEvent) => {
@@ -75,8 +62,14 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
 
   const isSubmitting = createTag.isPending || updateTag.isPending;
 
-  return <>
-      <form
+  const applyPatch = (patch: Record<string, unknown>) => {
+    if (typeof patch.name === 'string') setValue('name', patch.name, { shouldDirty: true });
+    if (typeof patch.description === 'string') setValue('description', patch.description, { shouldDirty: true });
+  };
+
+  return (
+    <>
+    <form
       onSubmit={(e) => {
         e.stopPropagation();
         handleSubmit(onSubmit)(e);
@@ -88,13 +81,13 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
         placeholder={t('tags.namePlaceholder')}
         error={errors.name?.message}
         {...register('name', { required: t('common.nameRequired') })}
-        onFocus={() => aiController.markFieldAsActive('name')}
+        ai={nameAi}
       />
       <Textarea
         label={t('common.description')}
         placeholder={t('tags.descriptionPlaceholder')}
         {...register('description')}
-        onFocus={() => aiController.markFieldAsActive('description')}
+        ai={descriptionAi}
       />
 
       <div className="pt-2 flex gap-3">
@@ -107,8 +100,12 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
           {editTarget ? t('common.update') : t('common.create')}
         </Button>
       </div>
-
     </form>
-    <AiFormActionsFab controller={aiController} />
-  </>
+    <FormPatchAiChatWidget
+      entityType="tag"
+      getCurrentValues={() => getValues() as unknown as Record<string, unknown>}
+      onPatch={applyPatch}
+    />
+    </>
+  );
 }

@@ -20,6 +20,7 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
+import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.panache.common.Page;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -28,14 +29,16 @@ public class FileService {
 
 	private final Messages messages;
 
-	public FileService(Messages messages) {
+	private final MarkItDownClient markItDownClient;
+
+	public FileService(Messages messages, MarkItDownClient markItDownClient) {
 		this.messages = messages;
+		this.markItDownClient = markItDownClient;
 	}
 
 	@ConfigProperty(name = "mypaybyday.files.max-size")
 	long maxFileSize;
 
-	@Transactional
 	public FileDto uploadBase64(Base64FileUploadRequestDto request) throws BusinessException {
 		if (request.base64Content() == null || request.base64Content().isBlank()) {
 			throw new BusinessException(messages.get(MsgKey.FILE_CONTENT_EMPTY));
@@ -61,20 +64,68 @@ public class FileService {
 		}
 
 		String hash = computeHash(data);
-		FileEntity existing = FileEntity.find("hash", hash).firstResult();
-		if (existing != null) {
-			return FileDto.from(existing, isOrphan(existing.id));
+		FileDto deduplicated = findByHash(hash);
+		if (deduplicated != null) {
+			return deduplicated;
 		}
 
+		String markdown = convertToMarkdown(fileName, mimeType, data);
+		return QuarkusTransaction.requiringNew().call(() -> persistFile(fileName, mimeType, data, hash, markdown));
+	}
+
+	private FileDto findByHash(String hash) {
+		FileEntity existing = FileEntity.find("hash", hash).firstResult();
+		if (existing == null) {
+			return null;
+		}
+		return FileDto.from(existing, isOrphan(existing.id));
+	}
+
+	private FileDto persistFile(String fileName, String mimeType, byte[] data, String hash, String markdown) {
 		FileEntity file = new FileEntity();
 		file.fileName = fileName;
 		file.mimeType = mimeType;
 		file.size = data.length;
 		file.data = data;
 		file.hash = hash;
+		file.markdownContent = markdown;
 		file.persist();
 
 		return FileDto.from(file);
+	}
+
+	private String convertToMarkdown(String fileName, String mimeType, byte[] data) {
+		if (!markItDownClient.isConvertible(mimeType)) {
+			return null;
+		}
+		return markItDownClient.convert(data, mimeType, fileName).orElse(null);
+	}
+
+	/**
+	 * Returns the persisted Markdown content of a file, converting it on demand when a previous
+	 * conversion attempt failed (e.g. the sidecar was down at upload time). The lazy retry runs
+	 * inside the read transaction — the sidecar call briefly holds the single-connection pool,
+	 * an accepted tradeoff for this rare recovery path.
+	 *
+	 * @param id the file identifier
+	 * @return the Markdown text, or {@code null} when the file is not convertible or the sidecar is unavailable
+	 * @throws BusinessException when the file does not exist
+	 */
+	@Transactional
+	public String getMarkdownContent(Long id) throws BusinessException {
+		FileEntity file = getFileContent(id);
+		if (file.markdownContent != null) {
+			return file.markdownContent;
+		}
+		if (!markItDownClient.isConvertible(file.mimeType)) {
+			return null;
+		}
+
+		String markdown = markItDownClient.convert(file.data, file.mimeType, file.fileName).orElse(null);
+		if (markdown != null) {
+			file.markdownContent = markdown;
+		}
+		return markdown;
 	}
 
 	private String computeHash(byte[] data) {

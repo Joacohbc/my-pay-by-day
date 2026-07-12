@@ -7,13 +7,13 @@ import { Button } from '@/components/ui/Button';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { TagGroupSelector } from '@/components/ui/TagGroupSelector';
-import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
+import { EventAiChatWidget } from '@/components/events/EventAiChatWidget';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useTagGroups } from '@/hooks/useTagGroups';
 import { useNodes } from '@/hooks/useNodes';
-import { useAiFormController } from '@/hooks/useAiFormController';
-import type { CreateEventDto, PatchEventDto, FinanceEvent } from '@/models';
+import { useAiFieldController } from '@/hooks/useAiFieldController';
+import type { CreateEventDto, PatchEventDto, FinanceEvent, FinanceEventDraftInputDto } from '@/models';
 import { buildSchema, buildFormDefaults, MIN_LINE_ITEMS, toDraftDto } from '@/components/events/EventFormMapper';
 import { prependMissingArchived } from '@/lib/prependMissingArchived';
 
@@ -56,7 +56,15 @@ interface EventFormProps {
    * Fires on every form field change with the current values. Parents can read
    * `draftId` from the payload to drive UI like the DraftBadge.
    */
-  onChange?: (dto: Partial<FinanceEvent>, values: FormValues) => void;
+  onChange?: (dto: FinanceEventDraftInputDto, values: FormValues) => void;
+
+  /** Current draft id known by the parent page, used to scope the AI mini-chat widget. */
+  aiChatDraftId?: number;
+  /** Creates/updates the draft on demand from the parent page and resolves its id — used to bootstrap the
+   * mini-chat when the user chats before touching any field. */
+  onEnsureDraft?: (dto: FinanceEventDraftInputDto) => Promise<number>;
+  /** Called when the mini-chat's agent creates/targets a draft id the parent page didn't know about yet. */
+  onDraftIdResolved?: (id: number) => void;
 
   submitLabel?: string;
   loading?: boolean;
@@ -68,6 +76,9 @@ export function EventForm({
   draftValues,
   onSubmit,
   onChange,
+  aiChatDraftId,
+  onEnsureDraft,
+  onDraftIdResolved,
   submitLabel,
   loading = false,
 }: EventFormProps) {
@@ -221,40 +232,58 @@ export function EventForm({
     return parts.join('\n');
   };
 
-  const aiFields = useMemo(() => [
-    {
-      key: 'name',
-      name: 'name' as const,
-      label: t('eventForm.eventName'),
-      semantic: 'name' as const,
-      allowVoice: true,
-    },
-    {
-      key: 'description',
-      name: 'description' as const,
-      label: t('eventForm.description'),
-      semantic: 'description' as const,
-      allowVoice: true,
-    },
-  ], [t]);
-
-  const aiController = useAiFormController<FormValues>({
-    fields: aiFields,
+  const nameAi = useAiFieldController<FormValues>({
+    name: 'name',
     getValues,
     setValue,
-    buildContext: buildAiContext,
+    allowVoice: true,
     shouldDirty: true,
   });
+
+  const descriptionAi = useAiFieldController<FormValues>({
+    name: 'description',
+    getValues,
+    setValue,
+    allowVoice: true,
+    shouldDirty: true,
+  });
+
+  const applyDraftPatch = (patch: Record<string, unknown>) => {
+    if (typeof patch.name === 'string') setValue('name', patch.name, { shouldDirty: true });
+    if (typeof patch.description === 'string') setValue('description', patch.description, { shouldDirty: true });
+    if (typeof patch.type === 'string') setValue('type', patch.type as FormValues['type'], { shouldDirty: true });
+    if (typeof patch.categoryId === 'number') setValue('categoryId', String(patch.categoryId), { shouldDirty: true });
+    if (Array.isArray(patch.tagIds)) setValue('tagIds', patch.tagIds.map(String), { shouldDirty: true });
+    if (typeof patch.date === 'string') setValue('transactionDate', patch.date, { shouldDirty: true });
+    if (Array.isArray(patch.lineItems) && patch.lineItems.length > 0) {
+      const items = patch.lineItems as Array<{ nodeId: number | null; amount: number }>;
+      setValue(
+        'lineItems',
+        items.map((li) => ({ nodeId: li.nodeId != null ? String(li.nodeId) : '', amount: String(li.amount) })),
+        { shouldDirty: true },
+      );
+    }
+  };
+
+  const handleEnsureDraft = async () => {
+    const existing = getValues('draftId');
+    if (existing) return Number(existing);
+    const newId = await onEnsureDraft!(toDraftDto(getValues(), t));
+    setValue('draftId', newId, { shouldDirty: false });
+    return newId;
+  };
+
+  const handleDraftIdResolved = (id: number) => {
+    onDraftIdResolved?.(id);
+    setValue('draftId', id, { shouldDirty: false });
+  };
 
   if (!formReady) return <FullPageSpinner />
 
   return (
     <FormProvider {...methods}>
       <form onSubmit={handleSubmit(handleFormSubmit, handleInvalidSubmit)} className="space-y-5">
-        <BasicInfoFields
-          onNameFocus={() => aiController.markFieldAsActive('name')}
-          onDescriptionFocus={() => aiController.markFieldAsActive('description')}
-        />
+        <BasicInfoFields nameAi={nameAi} descriptionAi={descriptionAi} />
 
         <TypeAndDateFields />
 
@@ -306,7 +335,16 @@ export function EventForm({
         </Button>
 
       </form>
-      <AiFormActionsFab controller={aiController} />
+
+      {onEnsureDraft && (
+        <EventAiChatWidget
+          draftId={aiChatDraftId}
+          onEnsureDraft={handleEnsureDraft}
+          onDraftIdResolved={handleDraftIdResolved}
+          onFieldsPatch={applyDraftPatch}
+          buildContext={buildAiContext}
+        />
+      )}
     </FormProvider>
   );
 }

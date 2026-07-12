@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePendingEventsStore, type PendingEvent } from '@/store/pendingEventsStore';
 import { eventsService } from '@/services/events.service';
-import { EVENTS_KEY } from '@/hooks/useEvents';
+import { invalidateDomains, EVENT_MUTATION_DOMAINS } from '@/lib/cacheInvalidation';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -59,7 +59,7 @@ export function PendingEventsSync() {
     try {
       await eventsService.create(p.dto);
       removePending(p.localId);
-      qc.invalidateQueries({ queryKey: EVENTS_KEY });
+      invalidateDomains(qc, EVENT_MUTATION_DOMAINS);
     } finally {
       unmarkSending(p.localId);
     }
@@ -75,7 +75,7 @@ export function PendingEventsSync() {
         /* keep failed ones in the queue */
       }
     }
-    qc.invalidateQueries({ queryKey: EVENTS_KEY });
+    invalidateDomains(qc, EVENT_MUTATION_DOMAINS);
     setSendingAll(false);
   };
 

@@ -9,12 +9,11 @@ import {
   useFinanceEventDrafts,
   useDeleteAllDrafts,
   useDeleteDraft,
-  DRAFTS_KEY,
 } from '@/hooks/useDrafts';
-import { eventsService } from '@/services/events.service';
 import { draftsService } from '@/services/drafts.service';
 import { useQueryClient } from '@tanstack/react-query';
-import type { FinanceEvent } from '@/models';
+import { invalidateDomains, EVENT_MUTATION_DOMAINS } from '@/lib/cacheInvalidation';
+import type { DraftConfirmMode, FinanceEvent } from '@/models';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -24,7 +23,6 @@ import { EventCard } from '@/components/events/EventCard';
 import { BulkActionsModal } from '@/components/events/BulkActionsModal';
 import { EventsListView } from '@/components/events/EventsListView';
 import { DraftsPageActions } from '@/components/events/DraftsPageActions';
-import { fromDraftToCreateDto, fromDraftToPatchDto } from '@/components/events/EventFormMapper';
 
 type DraftSegment = 'RECENT' | 'LINKED' | 'UNLINKED';
 
@@ -41,7 +39,7 @@ const draftTargetRoute = (draft: FinanceEvent) =>
 
 export function DraftsPage() {
   const { t } = useTranslation();
-  const { navigate } = useAppNavigation();
+  const { navigate, linkStateFromHere } = useAppNavigation();
   const queryClient = useQueryClient();
 
   const { data: draftEvents, isLoading, error } = useFinanceEventDrafts();
@@ -145,35 +143,19 @@ export function DraftsPage() {
 
   const confirmDrafts = useCallback(
     async (draftsToConfirm: FinanceEvent[], mode: 'merge' | 'createOnly'): Promise<number[]> => {
-      if (!draftsToConfirm.length || isConfirming) return [];
+      const draftIds = draftsToConfirm.map((draft) => draft.draftId).filter((id): id is number => !!id);
+      if (!draftIds.length || isConfirming) return [];
       setIsConfirming(true);
-      const newIds: number[] = [];
       try {
-        for (const draft of draftsToConfirm) {
-          const persistedDraftId = draft.draftId;
-          if (!persistedDraftId) continue;
-
-          const originalEventId =
-            mode === 'merge' && isLinkedDraft(draft) ? draft.id : undefined;
-
-          if (originalEventId) {
-            const updated = await eventsService.update(originalEventId, fromDraftToPatchDto(draft));
-            newIds.push(updated.id);
-          } else {
-            const created = await eventsService.create(fromDraftToCreateDto(draft));
-            newIds.push(created.id);
-          }
-
-          await draftsService.delete(persistedDraftId);
-        }
-
-        await queryClient.invalidateQueries({ queryKey: DRAFTS_KEY });
+        const backendMode: DraftConfirmMode = mode === 'merge' ? 'MERGE' : 'CREATE_ONLY';
+        const result = await draftsService.confirmDraftsBatch({ draftIds, mode: backendMode });
+        invalidateDomains(queryClient, EVENT_MUTATION_DOMAINS);
         exitSelectionMode();
-        setIsConfirming(false);
-        return newIds;
+        return result.confirmedEvents.map((event) => event.id);
       } catch {
+        return [];
+      } finally {
         setIsConfirming(false);
-        return newIds;
       }
     },
     [isConfirming, queryClient, exitSelectionMode]
@@ -295,7 +277,7 @@ export function DraftsPage() {
     return (
       <Link
         to={targetRoute}
-        state={{ draft, from: Routes.EVENT_DRAFTS }}
+        state={linkStateFromHere({ draft })}
         className={rowClass}
         onClick={handleClick}
         onPointerDown={() => startLongPress(draft)}

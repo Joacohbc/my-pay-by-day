@@ -1,5 +1,5 @@
 import { z } from 'zod/v4';
-import type { CreateEventDto, PatchEventDto, FinanceEvent, Category, Tag, FinanceLineItem, CreateTransactionDto, EventType } from '@/models';
+import type { CreateEventDto, PatchEventDto, FinanceEvent, CreateTransactionDto, EventType, FinanceEventDraftInputDto } from '@/models';
 import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
 import { nameField, descriptionField } from '@/lib/validation';
 
@@ -28,10 +28,6 @@ export function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormVa
       amount: li.amount !== 0 ? String(li.amount) : '',
     })) ?? DEFAULT_LINE_ITEMS;
 
-  const numberOfLineItems = defaultValues?.lineItems?.length ?? 0;
-  const numberOfEmptyItems = defaultValues?.lineItems?.filter((li) => !li.financeNodeId).length ?? 0;
-  const isSimplifiedMode = numberOfEmptyItems > 0 && [0, 1, 2].includes(numberOfLineItems);
-
   return {
     name: defaultValues?.name ?? '',
     description: defaultValues?.description ?? '',
@@ -41,7 +37,6 @@ export function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormVa
     tagIds,
     lineItems,
     draftId: defaultValues?.draftId,
-    isSimplifiedMode,
   };
 }
 
@@ -66,7 +61,6 @@ export function buildSchema(t: (key: string, options?: Record<string, unknown>) 
       ? z.array(lineItemSchema).min(minItems, t('eventForm.minLineItems', { count: minItems })).max(maxItems)
       : z.array(lineItemSchema).min(minItems, t('eventForm.minLineItems', { count: minItems })),
     draftId: z.number().nullable().optional(),
-    isSimplifiedMode: z.boolean().optional(),
   });
 }
 
@@ -76,21 +70,14 @@ export type FormValues = z.infer<ReturnType<typeof buildSchema>>;
 
 /** Shared logic to build the transaction part of the DTO */
 export function toTransactionDto(values: FormValues): CreateTransactionDto {
-  const isSimplifiedMode = values.isSimplifiedMode ?? false;
   return {
     transactionDate: values.transactionDate.includes(':00.000')
       ? values.transactionDate
       : `${values.transactionDate}:00.000`,
-    lineItems: values.lineItems.map((li, i) => {
-      let amount = Number(li.amount);
-      if (isSimplifiedMode) {
-        amount = i === 0 ? -Math.abs(amount) : Math.abs(amount);
-      }
-      return {
-        financeNode: { id: Number(li.nodeId) },
-        amount,
-      };
-    }),
+    lineItems: values.lineItems.map((li) => ({
+      financeNode: { id: Number(li.nodeId) },
+      amount: Number(li.amount),
+    })),
   };
 }
 
@@ -166,14 +153,10 @@ function hasTransactionChanged(base: Partial<FinanceEvent>, values: FormValues):
   if (baseDateMinutes !== nextDateMinutes) return true;
 
   const baseLineItems = base.lineItems ?? [];
-  const isSimplifiedMode = values.isSimplifiedMode ?? false;
-  const nextLineItems = values.lineItems.map((li, i) => {
-    let amount = Number(li.amount);
-    if (isSimplifiedMode) {
-      amount = i === 0 ? -Math.abs(amount) : Math.abs(amount);
-    }
-    return { nodeId: Number(li.nodeId), amount };
-  });
+  const nextLineItems = values.lineItems.map((li) => ({
+    nodeId: Number(li.nodeId),
+    amount: Number(li.amount),
+  }));
 
   if (baseLineItems.length !== nextLineItems.length) return true;
 
@@ -185,80 +168,26 @@ function hasTransactionChanged(base: Partial<FinanceEvent>, values: FormValues):
   return false;
 }
 
-export function toDraftDto(values: FormValues, t: (key: string) => string): Partial<FinanceEvent> {
-  const isSimplifiedMode = values.isSimplifiedMode ?? false;
-  const draftDto: Partial<FinanceEvent> = {
-    name: values.name || t('drafts.untitledDraft'),
-    description: values.description || undefined,
-    type: values.type,
-  };
-
+export function toDraftDto(values: FormValues, t: (key: string) => string): FinanceEventDraftInputDto {
   const transactionDate = values.transactionDate
     ? (values.transactionDate.includes(':00.000') ? values.transactionDate : `${values.transactionDate}:00.000`)
     : undefined;
 
-  draftDto.transactionDate = transactionDate || `${toLocalDateTimeString(getLocalizedNow())}:00.000`;
-  
-  draftDto.lineItems = values.lineItems.map((li, i) => {
-      const amountStr = li.amount;
-      let amount = amountStr ? Number(amountStr) : 0;
-      if (isSimplifiedMode) {
-        amount = i === 0 ? -Math.abs(amount) : Math.abs(amount);
-      }
-      return {
-        id: 0,
-        financeNodeId: li.nodeId ? Number(li.nodeId) : 0,
-        financeNodeName: '',
-        amount,
-      } as FinanceLineItem;
-    }).filter((li) => li.financeNodeId || li.amount !== 0);
+  const lineItems = values.lineItems
+    .map((li) => ({
+      financeNodeId: li.nodeId ? Number(li.nodeId) : 0,
+      amount: li.amount ? Number(li.amount) : 0,
+    }))
+    .filter((li) => li.financeNodeId || li.amount !== 0);
 
-  if (values.categoryId) draftDto.category = { id: Number(values.categoryId) } as Category;
-  if (values.tagIds?.length) draftDto.tags = values.tagIds.map((id: string) => ({ id: Number(id) } as Tag));
-
-  draftDto.draftId = values.draftId ?? undefined;
-
-  return draftDto;
-}
-
-// ─── Draft-to-DTO converters (work on FinanceEvent directly) ─────────────────
-
-function draftTransactionDto(draft: FinanceEvent): CreateTransactionDto {
   return {
-    transactionDate: draft.transactionDate,
-    lineItems: (draft.lineItems ?? []).map((li) => ({
-      financeNode: { id: li.financeNodeId },
-      amount: li.amount,
-    })),
+    name: values.name || t('drafts.untitledDraft'),
+    description: values.description || undefined,
+    type: values.type,
+    transactionDate: transactionDate || `${toLocalDateTimeString(getLocalizedNow())}:00.000`,
+    categoryId: values.categoryId ? Number(values.categoryId) : undefined,
+    tagIds: values.tagIds?.map((id: string) => Number(id)),
+    lineItems,
   };
 }
 
-export function fromDraftToCreateDto(draft: FinanceEvent): CreateEventDto {
-  return {
-    name: draft.name,
-    description: draft.description,
-    type: draft.type,
-    transaction: draftTransactionDto(draft),
-    category: draft.category?.id ? { id: draft.category.id } : undefined,
-    tags: draft.tags?.map((tag) => ({ id: tag.id })),
-    fileIds: draft.files?.map((file) => file.id),
-  };
-}
-
-export function fromDraftToPatchDto(draft: FinanceEvent): PatchEventDto {
-  return {
-    name: draft.name,
-    description: draft.description ?? null,
-    type: draft.type,
-    transaction: draftTransactionDto(draft),
-    category: draft.category?.id ? { id: draft.category.id } : null,
-    tags:
-      draft.tags && draft.tags.length > 0
-        ? draft.tags.map((tag) => ({ id: tag.id }))
-        : null,
-    fileIds:
-      draft.files && draft.files.length > 0
-        ? draft.files.map((file) => file.id)
-        : null,
-  };
-}

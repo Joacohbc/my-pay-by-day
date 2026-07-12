@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -8,7 +8,6 @@ import {
   useAgentTaskSocket,
   useCancelAgentTask,
   usePauseAgentTask,
-  useDeleteAgentTask,
   useResumeAgentTask,
   useApproveAction,
   useRejectAction,
@@ -55,14 +54,12 @@ function StepIcon({ done, error }: { done: boolean; error?: boolean }) {
 export function AgentTaskDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   const { data: task, isLoading, error } = useAgentTask(id || '');
   useAgentTaskSocket(id || null);
 
   const cancelTask = useCancelAgentTask();
   const pauseTask = usePauseAgentTask();
-  const deleteTask = useDeleteAgentTask();
   const resumeTask = useResumeAgentTask();
   const approveAction = useApproveAction();
   const rejectAction = useRejectAction();
@@ -72,9 +69,12 @@ export function AgentTaskDetailPage() {
   const [feedbacks, setFeedbacks] = useState<Record<number, string>>({});
   const [reply, setReply] = useState('');
   const [draftFiles, setDraftFiles] = useState<FileDto[]>([]);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [isPlanCollapsed, setIsPlanCollapsed] = useState(false);
+  const [isActivityCollapsed, setIsActivityCollapsed] = useState(false);
+  const [isErrorsCollapsed, setIsErrorsCollapsed] = useState(false);
+  const [isStatusCollapsed, setIsStatusCollapsed] = useState(true);
 
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
@@ -82,7 +82,6 @@ export function AgentTaskDetailPage() {
 
   const isRunning = task.status === 'RUNNING' || task.status === 'RETRYING';
   const isPaused = task.status === 'PAUSED';
-  const isDone = task.status === 'COMPLETED' || task.status === 'FAILED' || task.status === 'CANCELLED';
   const hasPendingActions = task.actions?.some((a) => a.status === 'PENDING_APPROVAL');
 
   const steps = task.steps ?? [];
@@ -101,15 +100,15 @@ export function AgentTaskDetailPage() {
 
   const displayProgress = isSuccessfullyCompleted ? 100 : Math.max(task.progress, calculatedProgress);
 
-  const handleDelete = async () => {
-    if (!id) return;
-    try {
-      await deleteTask.mutateAsync(id);
-      navigate(Routes.AGENT_TASKS);
-    } catch (err) {
-      console.error('Delete failed:', err);
-    }
+  const getLocalizedCurrentStep = (step: string | undefined | null) => {
+    if (!step) return <span className="animate-pulse">{t('agentTasks.initializing')}</span>;
+    if (step === 'Done') return t('agentTasks.done', 'Completed');
+    if (step === 'Resuming') return t('agentTasks.resuming', 'Resuming...');
+    if (step === 'Analyzing the request') return t('agentTasks.analyzing', 'Analyzing request...');
+    return step;
   };
+
+
 
   const handleCancel = async () => {
     if (!id) return;
@@ -213,16 +212,6 @@ export function AgentTaskDetailPage() {
   return (
     <div className="space-y-4 pb-20">
       <ConfirmModal
-        open={confirmDelete}
-        onClose={() => setConfirmDelete(false)}
-        onConfirm={handleDelete}
-        title={t('agentTasks.delete')}
-        message={t('common.deleteConfirm')}
-        confirmLabel={t('common.delete')}
-        loading={deleteTask.isPending}
-      />
-
-      <ConfirmModal
         open={confirmCancel}
         onClose={() => setConfirmCancel(false)}
         onConfirm={handleCancel}
@@ -233,29 +222,16 @@ export function AgentTaskDetailPage() {
       />
 
       <PageHeader
-        title={task.userInstruction || t('agentTasks.title')}
+        title={task.title || task.userInstruction || t('agentTasks.title')}
         back={Routes.AGENT_TASKS}
         action={
           <div className="flex items-center gap-2">
-            {/* Final state: delete only */}
-            {isDone && (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="text-dn-error border-dn-error"
-                onClick={() => setConfirmDelete(true)}
-                loading={deleteTask.isPending}
-              >
-                <Icon name="delete" className="text-sm" />
-                {t('common.delete')}
-              </Button>
-            )}
 
             {/* Paused / Interrupted: resume + cancel */}
             {(isPaused || task.status === 'INTERRUPTED') && (
               <>
                 <Button
-                  variant="secondary"
+                  variant="primary"
                   size="sm"
                   loading={resumeTask.isPending}
                   onClick={handleResume}
@@ -265,9 +241,8 @@ export function AgentTaskDetailPage() {
                   {t('agentTasks.resume')}
                 </Button>
                 <Button
-                  variant="secondary"
+                  variant="danger"
                   size="sm"
-                  className="text-dn-error border-dn-error"
                   loading={cancelTask.isPending}
                   onClick={() => setConfirmCancel(true)}
                 >
@@ -290,9 +265,8 @@ export function AgentTaskDetailPage() {
                   {t('common.pause')}
                 </Button>
                 <Button
-                  variant="secondary"
+                  variant="danger"
                   size="sm"
-                  className="text-dn-error border-dn-error"
                   loading={cancelTask.isPending}
                   onClick={() => setConfirmCancel(true)}
                 >
@@ -305,9 +279,8 @@ export function AgentTaskDetailPage() {
             {/* Pending: cancel only */}
             {task.status === 'PENDING' && (
               <Button
-                variant="secondary"
+                variant="danger"
                 size="sm"
-                className="text-dn-error border-dn-error"
                 loading={cancelTask.isPending}
                 onClick={() => setConfirmCancel(true)}
               >
@@ -321,21 +294,48 @@ export function AgentTaskDetailPage() {
 
       <div className="px-5 space-y-4">
         {/* Live progress bar */}
-        {isRunning && (
-          <div className="flex items-center gap-3 p-3 bg-dn-primary/10 rounded-xl border border-dn-primary/30">
-            <Icon name="sync" className="animate-spin text-dn-primary text-lg shrink-0" />
+        {task.status !== 'PENDING' && (
+          <div className={`flex items-center gap-3 p-3 rounded-xl border transition-colors duration-300 ${
+            task.status === 'COMPLETED'
+              ? 'bg-dn-success/10 border-dn-success/30 text-dn-success'
+              : task.status === 'FAILED' || task.status === 'CANCELLED' || task.status === 'INTERRUPTED'
+                ? 'bg-dn-error/10 border-dn-error/30 text-dn-error'
+                : task.status === 'PAUSED'
+                  ? 'bg-dn-warning/10 border-dn-warning/30 text-dn-warning'
+                  : 'bg-dn-primary/10 border-dn-primary/30 text-dn-primary'
+          }`}>
+            <Icon 
+              name={isRunning ? 'sync' : task.status === 'COMPLETED' ? 'check_circle' : 'info'} 
+              className={`text-lg shrink-0 ${isRunning ? 'animate-spin' : ''}`} 
+            />
             <div className="flex-1 min-w-0 space-y-1.5">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-semibold text-dn-primary truncate leading-none">
-                  {task.currentStep || <span className="animate-pulse">{t('agentTasks.initializing')}</span>}
+                <span className="text-xs font-semibold truncate leading-none">
+                  {getLocalizedCurrentStep(task.currentStep)}
                 </span>
-                <span className="text-[10px] font-bold text-dn-primary/80 ml-2 shrink-0 leading-none">
+                <span className="text-[10px] font-bold ml-2 shrink-0 leading-none">
                   {displayProgress}%
                 </span>
               </div>
-              <div className="h-1.5 w-full bg-dn-primary/20 rounded-full overflow-hidden">
+              <div className={`h-1.5 w-full rounded-full overflow-hidden ${
+                task.status === 'COMPLETED'
+                  ? 'bg-dn-success/20'
+                  : task.status === 'FAILED' || task.status === 'CANCELLED' || task.status === 'INTERRUPTED'
+                    ? 'bg-dn-error/20'
+                    : task.status === 'PAUSED'
+                      ? 'bg-dn-warning/20'
+                      : 'bg-dn-primary/20'
+              }`}>
                 <div
-                  className="h-full bg-dn-primary transition-all duration-500 ease-out"
+                  className={`h-full transition-all duration-500 ease-out ${
+                    task.status === 'COMPLETED'
+                      ? 'bg-dn-success'
+                      : task.status === 'FAILED' || task.status === 'CANCELLED' || task.status === 'INTERRUPTED'
+                        ? 'bg-dn-error'
+                        : task.status === 'PAUSED'
+                          ? 'bg-dn-warning'
+                          : 'bg-dn-primary'
+                  }`}
                   style={{ width: `${displayProgress}%` }}
                 />
               </div>
@@ -345,57 +345,81 @@ export function AgentTaskDetailPage() {
 
         {/* Status card */}
         <Card className="p-4 space-y-3 bg-dn-surface-low/50">
-          <div className="flex items-center justify-between">
-            <span className={`text-[10px] uppercase px-2 py-0.5 rounded-full font-bold tracking-wider ${STATUS_COLORS[task.status] ?? 'text-dn-text-muted bg-dn-surface-low'}`}>
+          <div 
+            role="button"
+            tabIndex={0}
+            onClick={() => setIsStatusCollapsed(!isStatusCollapsed)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setIsStatusCollapsed(!isStatusCollapsed);
+              }
+            }}
+            className="flex items-center gap-2 cursor-pointer select-none"
+          >
+            <Icon name="info" className="text-dn-primary text-lg" />
+            <h3 className="text-sm font-semibold text-dn-text-main">{t('agentTasks.status', 'Status')}</h3>
+            <span className={`text-[10px] uppercase px-2 py-0.5 rounded-full font-bold tracking-wider ml-2 ${STATUS_COLORS[task.status] ?? 'text-dn-text-muted bg-dn-surface-low'}`}>
               {t(`agentTasks.statuses.${task.status}`, task.status)}
             </span>
-            <span className="text-xs font-mono text-dn-text-muted">ID: {task.id.slice(0, 8)}…</span>
+            <Icon 
+              name="keyboard_arrow_down" 
+              className={`ml-auto text-dn-text-muted transition-transform duration-200 ${!isStatusCollapsed ? 'rotate-180' : ''}`} 
+            />
           </div>
 
-          <div className="flex items-center gap-1.5 pt-1 border-t border-dn-border/20">
-            <span className="text-[10px] font-bold uppercase text-dn-text-muted tracking-wider">{t('agentTasks.executionMode')}:</span>
-            {!isRunning ? (
-              <div className="flex items-center gap-1 group cursor-pointer">
-                <select
-                  value={task.executionMode}
-                  onChange={(e) => updateMode.mutate({ id: task.id, mode: e.target.value })}
-                  disabled={updateMode.isPending}
-                  className="text-xs font-bold text-dn-primary bg-dn-primary/5 border border-dn-primary/20 rounded px-1.5 py-0.5 cursor-pointer focus:ring-1 focus:ring-dn-primary focus:outline-none hover:bg-dn-primary/10 transition-colors"
-                >
-                  {['AUTONOMOUS', 'DRAFT_ONLY', 'READ_ONLY', 'DRAFT_CONFIRMATION'].map((m) => (
-                    <option key={m} value={m} className="bg-dn-surface text-dn-text-main">
-                      {t(`agentTasks.modes.${m}`)}
-                    </option>
-                  ))}
-                </select>
-                <Icon name="edit" className="text-[10px] text-dn-primary opacity-50 group-hover:opacity-100 transition-opacity" />
+          {!isStatusCollapsed && (
+            <div className="space-y-3 border-t border-white/5 pt-3 animate-in fade-in duration-250">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono text-dn-text-muted">ID: {task.id}</span>
               </div>
-            ) : (
-              <span className="text-xs font-bold text-dn-primary">
-                {t(`agentTasks.modes.${task.executionMode}`)}
-              </span>
-            )}
-            {updateMode.isPending && <Icon name="sync" className="animate-spin text-[10px] text-dn-primary" />}
-          </div>
 
-          <div>
-            <h3 className="text-sm font-semibold text-dn-text-main mb-1">{t('agentTasks.instruction')}</h3>
-            <div className="text-sm text-dn-text-muted font-mono prose prose-sm prose-invert max-w-none prose-p:my-0">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {task.userInstruction || t('agentTasks.noInstruction')}
-              </ReactMarkdown>
-            </div>
-          </div>
-
-          {/* Attachments */}
-          {task.attachments && task.attachments.length > 0 && (
-            <div className="mt-4">
-              <h4 className="text-sm font-semibold text-dn-text-main mb-2">{t('agentTasks.attachments')}</h4>
-              <div className="flex flex-col gap-2">
-                {task.attachments.map((att) => (
-                  <FileCard key={att.id} file={{ ...att, size: att.sizeBytes || 0 }} />
-                ))}
+              <div className="flex items-center gap-1.5 pt-1">
+                <span className="text-[10px] font-bold uppercase text-dn-text-muted tracking-wider">{t('agentTasks.executionMode')}:</span>
+                {!isRunning ? (
+                  <div className="flex items-center gap-1 group cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                    <select
+                      value={task.executionMode}
+                      onChange={(e) => updateMode.mutate({ id: task.id, mode: e.target.value })}
+                      disabled={updateMode.isPending}
+                      className="text-xs font-bold text-dn-primary bg-dn-primary/5 border border-dn-primary/20 rounded px-1.5 py-0.5 cursor-pointer focus:ring-1 focus:ring-dn-primary focus:outline-none hover:bg-dn-primary/10 transition-colors"
+                    >
+                      {['AUTONOMOUS', 'DRAFT_ONLY', 'READ_ONLY', 'DRAFT_CONFIRMATION'].map((m) => (
+                        <option key={m} value={m} className="bg-dn-surface text-dn-text-main">
+                          {t(`agentTasks.modes.${m}`)}
+                        </option>
+                      ))}
+                    </select>
+                    <Icon name="edit" className="text-[10px] text-dn-primary opacity-50 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                ) : (
+                  <span className="text-xs font-bold text-dn-primary">
+                    {t(`agentTasks.modes.${task.executionMode}`)}
+                  </span>
+                )}
+                {updateMode.isPending && <Icon name="sync" className="animate-spin text-[10px] text-dn-primary" />}
               </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-dn-text-main mb-1">{t('agentTasks.instruction')}</h3>
+                <div className="text-sm text-dn-text-muted font-mono prose prose-sm prose-invert max-w-none prose-p:my-0">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {task.userInstruction || t('agentTasks.noInstruction')}
+                  </ReactMarkdown>
+                </div>
+              </div>
+
+              {/* Attachments */}
+              {task.attachments && task.attachments.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-semibold text-dn-text-main mb-2">{t('agentTasks.attachments')}</h4>
+                  <div className="flex flex-col gap-2">
+                    {task.attachments.map((att) => (
+                      <FileCard key={att.id} file={{ ...att, size: att.sizeBytes || 0 }} hideEventLinks />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Card>
@@ -407,7 +431,11 @@ export function AgentTaskDetailPage() {
               <Icon name="priority_high" className="text-dn-warning mt-0.5" />
               <div className="flex-1">
                 <h4 className="text-sm font-semibold text-dn-warning mb-1">
-                  {action.actionType === 'APPROVAL' ? t('agentTasks.approvalRequired') : t('agentTasks.informationRequired')}
+                  {action.actionType === 'APPROVAL'
+                    ? t('agentTasks.approvalRequired')
+                    : action.actionType === 'EXTEND_STEPS'
+                      ? t('agentTasks.stepLimitReached')
+                      : t('agentTasks.informationRequired')}
                 </h4>
                 <div className="text-sm text-dn-text-main/90 leading-relaxed prose prose-sm prose-invert max-w-none prose-p:my-0">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -453,58 +481,117 @@ export function AgentTaskDetailPage() {
         {/* Plan checklist */}
         {plannedSteps.length > 0 && (
           <Card className="p-4 space-y-3">
-            <div className="flex items-center gap-2">
+            <div 
+              role="button"
+              tabIndex={0}
+              onClick={() => setIsPlanCollapsed(!isPlanCollapsed)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setIsPlanCollapsed(!isPlanCollapsed);
+                }
+              }}
+              className="flex items-center gap-2 cursor-pointer select-none"
+            >
               <Icon name="checklist" className="text-dn-primary text-lg" />
               <h3 className="text-sm font-semibold text-dn-text-main">{t('agentTasks.plan')}</h3>
-              <span className="ml-auto text-xs text-dn-text-muted">
+              <span className="text-xs text-dn-text-muted bg-white/5 rounded-full px-2 py-0.5 ml-2 font-mono leading-none">
                 {Math.min(completedPlanCount, plannedSteps.length)}/{plannedSteps.length}
               </span>
+              <Icon 
+                name="keyboard_arrow_down" 
+                className={`ml-auto text-dn-text-muted transition-transform duration-200 ${!isPlanCollapsed ? 'rotate-180' : ''}`} 
+              />
             </div>
-            <div className="space-y-2">
-              {plannedSteps.map((step, i) => {
-                const done = i < completedPlanCount;
-                return (
-                  <div key={step.id} className={`flex items-start gap-2.5 text-sm ${done ? 'text-dn-text-muted' : 'text-dn-text-main'}`}>
-                    <StepIcon done={done} />
-                    <span className={done ? 'line-through' : ''}>{step.description}</span>
-                  </div>
-                );
-              })}
-            </div>
+            {!isPlanCollapsed && (
+              <div className="space-y-2 border-t border-white/5 pt-3 animate-in fade-in duration-250">
+                {plannedSteps.map((step, i) => {
+                  const done = i < completedPlanCount;
+                  return (
+                    <div key={step.id} className={`flex items-center gap-2.5 text-sm ${done ? 'text-dn-text-muted' : 'text-dn-text-main'}`}>
+                      <StepIcon done={done} />
+                      <span className={done ? 'line-through' : ''}>{step.description}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </Card>
         )}
 
         {/* Activity timeline */}
         {progressSteps.length > 0 && (
-          <Card className="p-4 space-y-3">
-            <div className="flex items-center gap-2">
+          <Card className="p-4 space-y-4">
+            <div 
+              role="button"
+              tabIndex={0}
+              onClick={() => setIsActivityCollapsed(!isActivityCollapsed)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setIsActivityCollapsed(!isActivityCollapsed);
+                }
+              }}
+              className="flex items-center gap-2 cursor-pointer select-none"
+            >
               <Icon name="history" className="text-dn-primary text-lg" />
               <h3 className="text-sm font-semibold text-dn-text-main">{t('agentTasks.activity')}</h3>
+              <span className="text-xs text-dn-text-muted bg-white/5 rounded-full px-2 py-0.5 ml-2 font-mono leading-none">
+                {progressSteps.length}
+              </span>
+              <Icon 
+                name="keyboard_arrow_down" 
+                className={`ml-auto text-dn-text-muted transition-transform duration-200 ${!isActivityCollapsed ? 'rotate-180' : ''}`} 
+              />
             </div>
-            <div className="space-y-0">
-              {progressSteps.map((step, i) => (
-                <ActivityRow key={step.id} step={step} isLast={i === progressSteps.length - 1} />
-              ))}
-            </div>
+            {!isActivityCollapsed && (
+              <div className="space-y-0.5 border-t border-white/5 pt-3 animate-in fade-in duration-250">
+                {progressSteps.map((step, i) => (
+                  <ActivityRow key={step.id} step={step} isLast={i === progressSteps.length - 1} status={task.status} />
+                ))}
+              </div>
+            )}
           </Card>
         )}
 
         {/* Error steps */}
-        {errorSteps.map((step) => (
-          <Card key={step.id} className="p-4 border border-dn-error/40 bg-dn-error/5">
-            <div className="flex items-start gap-2">
-              <Icon name="error" className="text-dn-error mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs font-semibold text-dn-error mb-1">{t('agentTasks.error')}</p>
-                <div className="text-xs text-dn-text-main font-mono prose prose-sm prose-invert max-w-none prose-p:my-0">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {step.description || step.content || ''}
-                  </ReactMarkdown>
-                </div>
-              </div>
+        {errorSteps.length > 0 && (
+          <Card className="p-4 space-y-3 border border-dn-error/35 bg-dn-error/5">
+            <div 
+              role="button"
+              tabIndex={0}
+              onClick={() => setIsErrorsCollapsed(!isErrorsCollapsed)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setIsErrorsCollapsed(!isErrorsCollapsed);
+                }
+              }}
+              className="flex items-center gap-2 cursor-pointer select-none"
+            >
+              <Icon name="error" className="text-dn-error text-lg" />
+              <h3 className="text-sm font-semibold text-dn-error">{t('agentTasks.error', 'Error')}</h3>
+              <span className="text-xs text-dn-error bg-dn-error/15 rounded-full px-2 py-0.5 ml-2 font-mono leading-none">
+                {errorSteps.length}
+              </span>
+              <Icon 
+                name="keyboard_arrow_down" 
+                className={`ml-auto text-dn-error transition-transform duration-200 ${!isErrorsCollapsed ? 'rotate-180' : ''}`} 
+              />
             </div>
+            {!isErrorsCollapsed && (
+              <div className="space-y-3 border-t border-dn-error/15 pt-3 animate-in fade-in duration-250">
+                {errorSteps.map((step) => (
+                  <div key={step.id} className="text-xs text-dn-text-main font-mono prose prose-sm prose-invert max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {step.description || step.content || ''}
+                    </ReactMarkdown>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
-        ))}
+        )}
 
         {/* Previous Results (History) */}
         {previousMessages.length > 0 && (
@@ -539,25 +626,32 @@ export function AgentTaskDetailPage() {
 
         {/* Final response or Thinking state */}
         {(latestMessage?.content || isRunning) && (
-          <Card className={`p-4 border-t-4 bg-dn-surface space-y-2 ${isRunning ? 'border-t-dn-primary animate-pulse' : 'border-t-dn-success'}`}>
-            <div className="flex items-center gap-2 mb-1">
-              <Icon name={isRunning ? 'sync' : 'task_alt'} className={`text-lg ${isRunning ? 'text-dn-primary animate-spin' : 'text-dn-success'}`} />
-              <h3 className={`text-sm font-semibold ${isRunning ? 'text-dn-primary' : 'text-dn-success'}`}>
-                {isRunning ? t('agentTasks.generatingResponse', 'Thinking...') : t('agentTasks.result')}
-              </h3>
-            </div>
-            {isRunning ? (
-              <div className="space-y-2">
-                <div className="h-2 bg-dn-border/50 rounded w-3/4" />
-                <div className="h-2 bg-dn-border/50 rounded w-1/2" />
+          <Card className="p-4 bg-dn-surface-low/50 space-y-3">
+            <div className={`flex items-center justify-between ${ !isRunning  && "border-b border-white/5 pb-2" }`}>
+              <div className="flex items-center gap-2">
+                <Icon 
+                  name={isRunning ? 'sync' : isSuccessfullyCompleted ? 'check_circle' : 'error'} 
+                  className={`text-lg ${isRunning ? 'text-dn-primary animate-spin' : isSuccessfullyCompleted ? 'text-dn-success' : 'text-dn-error'}`} 
+                />
+                <h3 className="text-sm font-semibold text-dn-text-main">
+                  {isRunning ? t('agentTasks.generatingResponse', 'Thinking...') : t('agentTasks.result')}
+                </h3>
               </div>
-            ) : (
-              <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed prose-table:my-0">
+              {!isRunning && (
+                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                  isSuccessfullyCompleted ? 'bg-dn-success/10 text-dn-success' : 'bg-dn-error/10 text-dn-error'
+                }`}>
+                  {isSuccessfullyCompleted ? 'OK' : 'ERROR'}
+                </span>
+              )}
+            </div>
+            { !isRunning && (
+              <div className="prose prose-sm prose-invert max-w-none prose-p:leading-relaxed selection:bg-dn-primary/20 pt-1">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {latestMessage?.content || ''}
                 </ReactMarkdown>
               </div>
-            )}
+            ) }
           </Card>
         )}
 
@@ -568,8 +662,8 @@ export function AgentTaskDetailPage() {
           </div>
         )}
 
-        {/* Reply / continue — reuses ChatInput, hidden only when cancelled */}
-        {task.status !== 'CANCELLED' && (
+        {/* Reply / continue — hidden while running and when cancelled */}
+        {task.status !== 'CANCELLED' && !isRunning && (
           <ChatInput
             inputContent={reply}
             setInputContent={setReply}
@@ -577,7 +671,7 @@ export function AgentTaskDetailPage() {
             onAddFile={handleAddFile}
             onRemoveFile={handleRemoveFile}
             onAudioRecorded={handleAudioRecorded}
-            isPending={isRunning || sendMessage.isPending}
+            isPending={sendMessage.isPending}
             draftFiles={draftFiles}
           />
         )}
@@ -586,23 +680,44 @@ export function AgentTaskDetailPage() {
   );
 }
 
-function ActivityRow({ step, isLast }: { step: AgentTaskStep; isLast: boolean }) {
+function ActivityRow({ step, isLast, status }: { step: AgentTaskStep; isLast: boolean; status: string }) {
   const isUser = step.type === 'USER';
+  const isRunningLast = isLast && (status === 'RUNNING' || status === 'RETRYING');
+  
+  let iconName = 'check_circle';
+  let iconClass = 'text-dn-success bg-dn-success/10 border-dn-success/20';
+  
+  if (isUser) {
+    iconName = 'person';
+    iconClass = 'text-dn-primary bg-dn-primary/10 border-dn-primary/20';
+  } else if (isRunningLast) {
+    iconName = 'sync';
+    iconClass = 'text-dn-primary bg-dn-primary/10 border-dn-primary/20 animate-spin';
+  } else {
+    iconName = 'smart_toy';
+    iconClass = 'text-dn-text-muted bg-white/5 border-white/10';
+  }
+
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-4 group">
       <div className="flex flex-col items-center">
-        <div className={`w-2 h-2 rounded-full ${isUser ? 'bg-dn-primary' : 'bg-dn-success'} mt-1.5 shrink-0`} />
-        {!isLast && <div className="w-px flex-1 bg-dn-border/50 my-1" />}
-      </div>
-      <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-3'}`}>
-        <div className={`text-xs ${isUser ? 'font-medium text-dn-primary' : 'text-dn-text-main'} prose prose-sm prose-invert max-w-none prose-p:my-0 prose-p:leading-tight`}>
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {(isUser ? `**[User]** ` : '') + (step.description || '')}
-          </ReactMarkdown>
+        <div className={`w-6 h-6 rounded-full flex items-center justify-center border shrink-0 ${iconClass}`}>
+          <Icon name={iconName} className="text-[11px]" />
         </div>
-        {step.stepCreatedAt && (
-          <p className="text-[10px] text-dn-text-muted mt-0.5">{formatTime(step.stepCreatedAt)}</p>
-        )}
+        {!isLast && <div className="w-px flex-1 bg-dn-border/20 my-1.5" />}
+      </div>
+      
+      <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-4.5'}`}>
+        <div className="flex items-start justify-between gap-2.5">
+          <span className={`text-xs ${isUser ? 'font-semibold text-dn-primary' : 'text-dn-text-main/90'} leading-relaxed`}>
+            {step.description || step.content || ''}
+          </span>
+          {step.stepCreatedAt && (
+            <span className="text-[9px] text-dn-text-muted font-mono leading-none mt-1 shrink-0 opacity-85">
+              {formatTime(step.stepCreatedAt)}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

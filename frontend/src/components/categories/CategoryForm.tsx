@@ -1,13 +1,12 @@
-import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { IconPicker } from '@/components/ui/IconPicker';
-import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { useCreateCategory, useUpdateCategory } from '@/hooks/useCategories';
-import { useAiFormController } from '@/hooks/useAiFormController';
+import { useAiFieldController } from '@/hooks/useAiFieldController';
+import { FormPatchAiChatWidget } from '@/components/ui/FormPatchAiChatWidget';
 import type { Category } from '@/models';
 
 interface CategoryFormValues {
@@ -35,30 +34,18 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
     },
   });
 
-  const buildContext = () => {
-    const values = getValues();
-    const parts: string[] = ['Entity type: Category (budget classification bucket)'];
-    if (values.name) parts.push(`Name: ${values.name}`);
-    if (values.description) parts.push(`Description: ${values.description}`);
-    return parts.join('\n');
-  };
-
-  const aiFields = useMemo(() => [
-    { key: 'name', name: 'name' as const, label: t('common.name'), semantic: 'name' as const, allowVoice: true },
-    {
-      key: 'description',
-      name: 'description' as const,
-      label: t('common.description'),
-      semantic: 'description' as const,
-      allowVoice: true,
-    },
-  ], [t]);
-
-  const aiController = useAiFormController<CategoryFormValues>({
-    fields: aiFields,
+  const nameAi = useAiFieldController<CategoryFormValues>({
+    name: 'name',
     getValues,
     setValue,
-    buildContext,
+    allowVoice: true,
+  });
+
+  const descriptionAi = useAiFieldController<CategoryFormValues>({
+    name: 'description',
+    getValues,
+    setValue,
+    allowVoice: true,
   });
 
   const onSubmit = async (values: CategoryFormValues, e?: React.BaseSyntheticEvent) => {
@@ -78,9 +65,15 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
 
   const isSubmitting = createCategory.isPending || updateCategory.isPending;
 
+  const applyPatch = (patch: Record<string, unknown>) => {
+    if (typeof patch.name === 'string') setValue('name', patch.name, { shouldDirty: true });
+    if (typeof patch.description === 'string') setValue('description', patch.description, { shouldDirty: true });
+    if (typeof patch.icon === 'string') setValue('icon', patch.icon, { shouldDirty: true });
+  };
+
   return (
     <>
-        <form
+    <form
       onSubmit={(e) => {
         e.stopPropagation();
         handleSubmit(onSubmit)(e);
@@ -92,13 +85,13 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
         placeholder={t('categories.namePlaceholder')}
         error={errors.name?.message}
         {...register('name', { required: t('common.nameRequired') })}
-        onFocus={() => aiController.markFieldAsActive('name')}
+        ai={nameAi}
       />
       <Textarea
         label={t('common.description')}
         placeholder={t('categories.descriptionPlaceholder')}
         {...register('description')}
-        onFocus={() => aiController.markFieldAsActive('description')}
+        ai={descriptionAi}
       />
       <Controller
         name="icon"
@@ -124,7 +117,11 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
       </div>
 
     </form>
-    <AiFormActionsFab controller={aiController} />
+    <FormPatchAiChatWidget
+      entityType="category"
+      getCurrentValues={() => getValues() as unknown as Record<string, unknown>}
+      onPatch={applyPatch}
+    />
     </>
   );
 }

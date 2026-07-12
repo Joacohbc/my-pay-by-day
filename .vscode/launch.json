@@ -2,7 +2,7 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "Debug Quarkus Backend",
+			"name": "Debug Backend",
 			"type": "java",
 			"request": "attach",
 			"hostName": "localhost",
@@ -11,24 +11,32 @@
 			"preLaunchTask": "quarkus:dev"
 		},
 		{
-			"name": "Debug Frontend (Chrome)",
-			"type": "chrome",
+			"name": "Debug Frontend",
+			"type": "node",
 			"request": "launch",
-			"url": "http://localhost:5173",
-			"webRoot": "${workspaceFolder}/frontend/src",
-			"sourceMapPathOverrides": {
-				"webpack:///./src/*": "${workspaceFolder}/frontend/src/*"
-			},
-			"preLaunchTask": "vite:dev"
-		}
-	],
-	"compounds": [
+			"runtimeExecutable": "pnpm",
+			"runtimeArgs": ["dev", "--host"],
+			"cwd": "${workspaceFolder}/frontend",
+			"console": "integratedTerminal",
+			"skipFiles": ["<node_internals>/**"]
+		},
 		{
-			"name": "Full Stack",
-			"configurations": [
-				"Debug Quarkus Backend",
-				"Debug Frontend (Chrome)"
-			]
+			"name": "Debug Chatbot",
+			"type": "node",
+			"request": "launch",
+			"runtimeExecutable": "pnpm",
+			"runtimeArgs": ["dev", "--host"],
+			"cwd": "${workspaceFolder}/chatbot",
+			"envFile": "${workspaceFolder}/chatbot/.env",
+			"console": "integratedTerminal",
+			"skipFiles": ["<node_internals>/**"]
+		},
+		{
+			"name": "Run Markitdown",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "./run.sh",
+			"cwd": "/workspace/docker/markitdown"
 		}
 	]
 }

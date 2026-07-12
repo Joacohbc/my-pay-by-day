@@ -22,7 +22,7 @@ function ScorePill({ label, value }: { label: string; value?: number }) {
 
 function DuplicatePairCard({ record, index }: { record: DuplicateEventRecord; index: number }) {
   const { t } = useTranslation();
-  const { navigate } = useAppNavigation();
+  const { navigatePush } = useAppNavigation();
   const alert = useAlert();
   const resolve = useResolveDuplicate();
 
@@ -92,7 +92,7 @@ function DuplicatePairCard({ record, index }: { record: DuplicateEventRecord; in
           <div className="flex gap-1 shrink-0">
             <button
               type="button"
-              onClick={() => navigate(Routes.EVENT_DETAIL(record.entityId1), { state: { from: Routes.EVENTS_DUPLICATES } })}
+              onClick={() => navigatePush(Routes.EVENT_DETAIL(record.entityId1))}
               title={t('duplicates.section.openEvent')}
               className="flex items-center justify-center rounded-full p-1.5 text-dn-text-muted hover:bg-dn-surface hover:text-dn-text-main transition-colors"
             >
@@ -117,7 +117,7 @@ function DuplicatePairCard({ record, index }: { record: DuplicateEventRecord; in
           <div className="flex gap-1 shrink-0">
             <button
               type="button"
-              onClick={() => navigate(Routes.EVENT_DETAIL(record.entityId2), { state: { from: Routes.EVENTS_DUPLICATES } })}
+              onClick={() => navigatePush(Routes.EVENT_DETAIL(record.entityId2))}
               title={t('duplicates.section.openEvent')}
               className="flex items-center justify-center rounded-full p-1.5 text-dn-text-muted hover:bg-dn-surface hover:text-dn-text-main transition-colors"
             >

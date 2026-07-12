@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, defaultShouldDehydrateQuery } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { RouterProvider } from 'react-router-dom';
@@ -6,6 +6,18 @@ import { router } from '@/router';
 import { AlertProvider } from '@/contexts/AlertContext';
 
 import { queryStorage } from '@/lib/idbStorage';
+import {
+  eventKeys,
+  draftKeys,
+  categoryKeys,
+  tagKeys,
+  tagGroupKeys,
+  nodeKeys,
+  timePeriodKeys,
+  subscriptionKeys,
+  templateKeys,
+  duplicateKeys,
+} from '@/lib/queryKeys';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,9 +34,32 @@ const persister = createAsyncStoragePersister({
   key: 'mpbd-query-cache',
 });
 
+const PERSISTED_ROOT_KEYS = new Set<unknown>([
+  eventKeys.all[0],
+  draftKeys.all[0],
+  categoryKeys.all[0],
+  tagKeys.all[0],
+  tagGroupKeys.all[0],
+  nodeKeys.all[0],
+  timePeriodKeys.all[0],
+  subscriptionKeys.all[0],
+  templateKeys.all[0],
+  duplicateKeys.settings[0],
+]);
+
 function App() {
   return (
-    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        buster: 'domain-filtered-v1',
+        dehydrateOptions: {
+          shouldDehydrateQuery: (query) =>
+            defaultShouldDehydrateQuery(query) && PERSISTED_ROOT_KEYS.has(query.queryKey[0]),
+        },
+      }}
+    >
       <AlertProvider>
         <RouterProvider router={router} />
       </AlertProvider>

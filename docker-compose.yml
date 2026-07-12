@@ -6,16 +6,12 @@ services:
       - DB_FIELD_ENCRYPTION_KEY=${DB_FIELD_ENCRYPTION_KEY}
       - QUARKUS_DATASOURCE_JDBC_URL=${QUARKUS_DATASOURCE_JDBC_URL:-jdbc:sqlite:/data/mypaybyday.db}
       - TZ=${TZ:-UTC}
-      - BASE_URL=${BASE_URL:-https://openrouter.ai/api/v1}
+      # AI (Node chatbot service via Vercel AI SDK + OpenRouter)
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - AI_PRIMARY_MODEL=${AI_PRIMARY_MODEL:-openai/gpt-oss-120b}
-      - AI_VISION_MODEL=${AI_VISION_MODEL:-qwen/qwen3.5-flash-02-23}
-      - AI_AUDIO_MODEL=${AI_AUDIO_MODEL:-google/gemini-3.1-flash-lite-preview}
-      - AI_AGENT_MODEL=${AI_AGENT_MODEL:-google/gemini-3-flash-preview}
-      - AI_PRIMARY_TIMEOUT=${AI_PRIMARY_TIMEOUT:-60}
-      - AI_VISION_TIMEOUT=${AI_VISION_TIMEOUT:-180}
-      - AI_AUDIO_TIMEOUT=${AI_AUDIO_TIMEOUT:-180}
-      - AI_AGENT_TIMEOUT=${AI_AGENT_TIMEOUT:-600}
+      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      - MODEL_LARGE=${MODEL_LARGE:-google/gemini-flash-3.5}
+      - MODEL_FAST=${MODEL_FAST:-google/gemini-flash-lite}
+      - AGENT_MAX_STEPS=${AGENT_MAX_STEPS:-25}
       - MYPAYBYDAY_FILES_MAX_SIZE=${MYPAYBYDAY_FILES_MAX_SIZE:-10485760}
     volumes:
       - db_data:/data

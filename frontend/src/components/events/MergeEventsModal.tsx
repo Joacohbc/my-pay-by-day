@@ -9,10 +9,9 @@ import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
 import { EventMultiSelectModal } from '@/components/events/EventMultiSelectModal';
 import { formatCurrency, eventNetAmount } from '@/lib/format';
-import { Routes, eventsRoute } from '@/lib/routes';
+import { Routes } from '@/lib/routes';
 import { aiService } from '@/services/ai.service';
 import { useAlert } from '@/contexts/AlertContext';
-import { useAiPromptsStore } from '@/store/aiPromptsStore';
 import type { Category, FinanceEvent, Tag } from '@/models';
 
 type MergeStep = 'select-base' | 'select-sources' | 'configure-grouping' | 'configure-meta' | 'confirm';
@@ -27,10 +26,9 @@ export function MergeEventsModal({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const { navigate } = useAppNavigation();
+  const { navigatePush } = useAppNavigation();
   const alert = useAlert();
   const mergeEvents = useMergeEvents();
-  const getPromptForAction = useAiPromptsStore((s) => s.getPromptForAction);
 
   const [step, setStep] = useState<MergeStep>('select-base');
   const [baseEvent, setBaseEvent] = useState<FinanceEvent | null>(null);
@@ -144,7 +142,6 @@ export function MergeEventsModal({
       const result = await aiService.generateText({
         action: 'MERGE_DESCRIPTION',
         context: allDescriptions,
-        customPrompt: getPromptForAction('mergeDescription'),
       });
       setMergedDescription(result.text);
     } catch (err) {
@@ -184,7 +181,7 @@ export function MergeEventsModal({
       description: mergedDescription,
     });
     handleClose();
-    navigate(Routes.EVENT_DETAIL(merged.id), { state: { from: eventsRoute() } });
+    navigatePush(Routes.EVENT_DETAIL(merged.id));
   };
 
   const mergedTotal = baseEvent

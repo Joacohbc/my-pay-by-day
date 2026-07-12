@@ -9,7 +9,7 @@
 * **Double-entry accounting** with automatic integrity validation (Origins = Destinations on every Transaction).
 * **Budget management** via flexible Time Periods with per-category limits and savings goals.
 * **Recurring agreements** through Subscriptions backed by Templates, which auto-generate Events on each billing cycle.
-* **AI integration** (LangChain4j + OpenRouter) for chat-based event creation, receipt/invoice image parsing, and voice transcription.
+* **AI integration** (Vercel AI SDK + OpenRouter) for chat-based event creation, receipt/invoice image parsing, and voice transcription.
 * **Internationalisation** in English and Spanish across both frontend and backend.
 * **Timezone Detection**: The system automatically detects the user's timezone via the `X-Timezone` header (managed by `TimezoneFilter` in the backend) to ensure AI agents and date processing align with the user's local time.
 
@@ -22,7 +22,7 @@
 | Forms | React Hook Form + Zod |
 | Backend | Java 17 + Quarkus 3.x + Hibernate ORM (Panache) |
 | Database | SQLite |
-| AI | LangChain4j 1.x via OpenRouter (chat + vision models) |
+| AI | Vercel AI SDK via OpenRouter (chat + vision models) |
 
 ### Design philosophy
 
@@ -271,7 +271,6 @@ function process(data) {
 
 The backend source code lives under `mypaybyday/src/main/java/com/mypaybyday/` and is split into the following packages:
 
-* **`ai/`** — LangChain4j AI integration: agent definitions, finance tool declarations, chat memory, and audio transcription.
 * **`config/`** — Application-level configuration beans (Jackson, timezone, startup diagnostics).
 * **`crypto/`** — Field-level encryption utilities and JPA attribute converters for encrypted strings and decimals.
 * **`dto/`** — Data Transfer Objects used as the public contract between the resource and service layers. Every public service method must receive and return DTOs, never raw JPA entities.
@@ -405,7 +404,7 @@ The frontend acts as the translator between the user's local context and the ser
 * **Server Timezone:** The frontend queries `/api/config` on load to determine the server's timezone (always `UTC`) and persists it in memory (`useConfigStore`).
 * **User Timezone:** The user selects their preferred timezone in Settings, which is stored in `localStorage` under `user-timezone` (defaulting to the browser's timezone).
 * **Payload Interceptors (`api.ts`):**
-    * **Timezone Header:** Every request sent via `api.ts` includes an `X-Timezone` header containing the user's current timezone (retrieved via `getUserTimezone()`).
+    * **Context Headers:** Every request sent via `api.ts` includes `X-Timezone` (from `getUserTimezone()`), `X-Language` (current `i18n.language`) and `X-Currency` (from `getCurrency()` in `@/lib/format`). The chat hooks (`useChatUI`, `useEntityChat`, `useFormPatchChat`) send the same three headers on their direct chatbot requests.
     * **Outbound (to Backend):** The `api.ts` service automatically intercepts all payloads. Any string matching a local date-time format (e.g., `"YYYY-MM-DDTHH:mm:ss"`) is converted from the user's localized timezone to the server's timezone (`UTC`) before being sent.
     * **Inbound (from Backend):** Responses are intercepted, and any `UTC` date-time string received from the server is automatically converted back to the user's localized timezone before being handed to the application state.
 * **AI Agent Grounding:** The backend `TimezoneFilter` extracts the `X-Timezone` header into a `TimezoneContext`. AI agents (both background tasks and intelligent extraction) use this context to ground their "current time" reference, ensuring that relative dates (like "yesterday" or "last Friday") are interpreted correctly according to the user's local clock.
@@ -498,7 +497,7 @@ Resource bundle files live at `src/main/resources/i18n/`:
    * **Don't:** `import Button from '../../components/ui/Button'`
 * **Lint & Type check:** After any code change, both of the following must pass without errors from the `frontend/` directory:
    * `pnpm lint` — ESLint validation.
-   * `pnpm tsc --noEmit` — TypeScript type checking.
+   * `pnpm tsc -b` — TypeScript type checking. **Never use `tsc --noEmit` here:** the root `tsconfig.json` declares `"files": []` and only project references, so `tsc --noEmit` type-checks zero files and always passes falsely. Build mode (`tsc -b`) follows the `tsconfig.app.json` / `tsconfig.node.json` references and checks the actual `src/` sources — this is what `pnpm build` runs and what VS Code reports against.
 
 ---
 
@@ -517,6 +516,26 @@ Both the frontend and backend require English (`en`) and Spanish (`es`) translat
 
 ### AI Actions Synchronization
 
-Whenever an AI text action (`AiTextAction`) is added, removed, or modified in the backend or frontend (e.g., in `AiTextAction.java`, `ai.service.ts`, or anywhere AI text actions are defined), the Custom Prompts configuration component (`AiSettingsPage.tsx` and the store `aiPromptsStore.ts`) **must** be updated to reflect exactly all available actions.
+Whenever an AI text action (`TextAction`) is added, removed, or modified in the chatbot service or frontend (e.g., in `chatbot/src/routes/text.ts`, `ai.service.ts`), the Custom Prompts configuration component (`AiSettingsPage.tsx` and the store `aiPromptsStore.ts`) **must** be updated to reflect exactly all available actions.
 
 This ensures that every AI action has a user-configurable prompt and prevents inconsistencies between what the system offers and what the user can customize.
+
+---
+
+### AI Tool Synchronization
+
+Every chatbot tool declares its frontend-facing metadata inline via the required `ui` field on `KindedTool` (`chatbot/src/tools/types.ts`): the `CacheDomain`s it invalidates, whether it patches the draft/event form currently open on screen (`patchesForm`), and its progress labels in both English and Spanish. The tool declaration is the single source of truth — TypeScript fails to compile if a new tool omits its metadata.
+
+The frontend never hand-maintains per-tool maps. Running `pnpm gen:tools` in `chatbot/` regenerates `frontend/src/lib/chat/toolManifest.generated.ts`, from which the frontend derives cache invalidation (`toolInvalidation.ts`), form patching (`PATCH_TOOL_NAMES` in `useEntityChat.ts`), the `chat.tools.*` translations (spread into `en.ts`/`es.ts`), and the friendly names in `ChatMessage.tsx`. The sub-agent progress labels in `chatbot/src/tools/delegate.ts` read the same `ui.label` metadata directly.
+
+**Whenever a tool is added, removed, or its metadata changes, run `pnpm gen:tools` and commit the regenerated manifest in the same change.** CI (`api-contract-ci.yml`) fails on drift via `pnpm gen:tools:check`. Never edit `toolManifest.generated.ts` by hand.
+
+---
+
+### AI User-Context Grounding (timezone, language, currency, memory)
+
+Every chatbot request carries the user's context as headers — `X-Timezone`, `X-Language` and `X-Currency` — resolved by `requestContextFrom` (`chatbot/src/context.ts`) into a `RequestContext { timezone, lang, currency }`. An invalid or missing currency code falls back to `USD`. Background tasks persist all three fields on the `agent_task` row when created, so a task resumed later still renders with the context of the user who launched it.
+
+* **Display formatting:** `formattingGuidance(lang, currency)` (`chatbot/src/prompts/system.ts`) renders concrete `Intl` examples (e.g. `$1,234.56`, `Jul 12, 2026`) using `localeFor(lang)` — the same `en→en-US` / `es→es-ES` mapping the frontend uses in `@/lib/format` — so amounts and dates in AI replies match what the UI displays. It is included in **every** system prompt: chat, background agent, sub-agent, extraction (via `styleBlock`), form patch, and text actions.
+* **Long-term memory:** `memoriesBlock` injects the user's saved facts into every agentic prompt (chat, background agent, sub-agent, extraction, form patch) with an active instruction to check them *before* asking the user or picking defaults.
+* **Rule:** when adding a new prompt or AI entry point, it **must** include `formattingGuidance` (or `styleBlock`) and, if it acts on the user's data, `memoriesBlock`. A prompt that hardcodes formats or ignores memory is a bug.

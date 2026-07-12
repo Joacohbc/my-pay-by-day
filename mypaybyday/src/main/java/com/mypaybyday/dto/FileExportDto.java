@@ -8,7 +8,8 @@ public record FileExportDto(
     String fileName,
     String mimeType,
     long size,
-    String base64Content
+    String base64Content,
+    String markdownContent
 ) {
     public static FileExportDto from(FileEntity file) {
         String base64 = "";
@@ -20,7 +21,8 @@ public record FileExportDto(
             file.fileName,
             file.mimeType,
             file.size,
-            base64
+            base64,
+            file.markdownContent
         );
     }
 }

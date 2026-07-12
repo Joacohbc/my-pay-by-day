@@ -24,7 +24,6 @@ export function buildSchema(t: (key: string, options?: Record<string, unknown>) 
     lineItems: maxItems
       ? z.array(lineItemSchema).min(minItems, t('eventForm.minLineItems', { count: minItems })).max(maxItems)
       : z.array(lineItemSchema).min(minItems, t('eventForm.minLineItems', { count: minItems })),
-    isSimplifiedMode: z.boolean().optional(),
     categoryId: optionalCategoryIdField(),
     tagIds: optionalTagIdsField(),
     recurrence: z.enum(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'], {
@@ -49,7 +48,6 @@ export const DEFAULT_VALUES: FormValues = {
     { nodeId: '', amount: '' },
     { nodeId: '', amount: '' },
   ],
-  isSimplifiedMode: true,
   categoryId: '',
   tagIds: [],
   recurrence: 'MONTHLY',
@@ -69,7 +67,6 @@ export function fromSubscription(subscription: Subscription): FormValues {
       { nodeId: subscription.originNodeId ? String(subscription.originNodeId) : '', amount },
       { nodeId: subscription.destinationNodeId ? String(subscription.destinationNodeId) : '', amount },
     ],
-    isSimplifiedMode: true,
     categoryId: subscription.category ? String(subscription.category.id) : '',
     tagIds: subscription.tags ? subscription.tags.map((tag) => String(tag.id)) : [],
     recurrence: subscription.recurrence,

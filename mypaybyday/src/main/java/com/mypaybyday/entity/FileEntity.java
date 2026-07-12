@@ -37,4 +37,8 @@ public class FileEntity extends BaseEntity {
 
 	public String hash;
 
+	@Column(columnDefinition = "TEXT")
+	@Basic(fetch = FetchType.LAZY)
+	public String markdownContent;
+
 }

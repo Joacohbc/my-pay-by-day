@@ -2,21 +2,50 @@ import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { agentTasksService } from '@/services/agent-tasks.service';
 import { BASE_URL } from '@/services/api';
-import type { AgentTaskSubmitDto, AgentTaskWsPayload, AgentTask } from '@/models/agent-tasks';
+import type { AgentTaskWsPayload, AgentTask, AgentTaskStatus } from '@/models/agent-tasks';
+import { agentTaskKeys } from '@/lib/queryKeys';
+import { invalidateDomains, BROAD_FINANCE_DOMAINS } from '@/lib/cacheInvalidation';
 
-export const agentTaskKeys = {
-  all: ['agent-tasks'] as const,
-  lists: () => [...agentTaskKeys.all, 'list'] as const,
-  list: (status?: string) => [...agentTaskKeys.lists(), { status }] as const,
-  detail: (id: string) => [...agentTaskKeys.all, 'detail', id] as const,
-};
+const TERMINAL_STATUSES = new Set<AgentTaskStatus>([
+  'COMPLETED',
+  'FAILED',
+  'CANCELLED',
+  'INTERRUPTED',
+]);
 
 export function useAgentTasks(status?: string) {
-  return useQuery({
+  const queryClient = useQueryClient();
+  const previousStatusesRef = useRef<Map<string, AgentTaskStatus> | null>(null);
+
+  const query = useQuery({
     queryKey: agentTaskKeys.list(status),
     queryFn: () => agentTasksService.getAll(status),
     refetchInterval: 5000,
   });
+
+  useEffect(() => {
+    const tasks = query.data;
+    if (!tasks) return;
+
+    const previousStatuses = previousStatusesRef.current;
+    const nextStatuses = new Map(tasks.map((task) => [task.id, task.status]));
+    previousStatusesRef.current = nextStatuses;
+
+    if (!previousStatuses) return;
+
+    const hasNewlyFinishedTask = tasks.some((task) => {
+      const previousStatus = previousStatuses.get(task.id);
+      return (
+        previousStatus !== undefined &&
+        !TERMINAL_STATUSES.has(previousStatus) &&
+        TERMINAL_STATUSES.has(task.status)
+      );
+    });
+
+    if (hasNewlyFinishedTask) invalidateDomains(queryClient, BROAD_FINANCE_DOMAINS);
+  }, [query.data, queryClient]);
+
+  return query;
 }
 
 export function useAgentTask(id: string) {
@@ -25,16 +54,6 @@ export function useAgentTask(id: string) {
     queryFn: () => agentTasksService.getById(id),
     enabled: !!id,
     staleTime: 0,
-  });
-}
-
-export function useSubmitAgentTask() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (dto: AgentTaskSubmitDto) => agentTasksService.submit(dto),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: agentTaskKeys.lists() });
-    },
   });
 }
 
@@ -71,15 +90,7 @@ export function useResumeAgentTask() {
   });
 }
 
-export function useDeleteAgentTask() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => agentTasksService.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: agentTaskKeys.lists() });
-    },
-  });
-}
+
 
 export function useUpdateAgentTaskMode() {
   const queryClient = useQueryClient();
@@ -127,27 +138,20 @@ export function useRejectAction() {
   });
 }
 
-/** Opens a WebSocket for the given task ID and merges live updates into the query cache. */
+/** Opens an SSE stream for the given task ID and merges live updates into the query cache. */
 export function useAgentTaskSocket(taskId: string | null) {
   const queryClient = useQueryClient();
-  const wsRef = useRef<WebSocket | null>(null);
+  const sourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
     if (!taskId) return;
 
-    let wsUrl: string;
-    if (BASE_URL.startsWith('http')) {
-      const origin = new URL(BASE_URL).origin;
-      wsUrl = `${origin.replace(/^http/, 'ws')}/ws/agent-tasks/${taskId}`;
-    } else {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      wsUrl = `${protocol}//${window.location.host}/ws/agent-tasks/${taskId}`;
-    }
+    const streamUrl = `${BASE_URL}/agent-tasks/${taskId}/stream`;
+    const source = new EventSource(streamUrl);
+    sourceRef.current = source;
+    let financeInvalidatedOnTerminal = false;
 
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    ws.onmessage = (ev) => {
+    source.onmessage = (ev) => {
       try {
         const raw = JSON.parse(ev.data);
 
@@ -156,6 +160,7 @@ export function useAgentTaskSocket(taskId: string | null) {
           queryClient.invalidateQueries({ queryKey: agentTaskKeys.detail(taskId) });
           return;
         }
+        if (raw.type === 'ping') return;
 
         const payload: AgentTaskWsPayload = raw;
         if (payload.taskId !== taskId) return;
@@ -196,16 +201,21 @@ export function useAgentTaskSocket(taskId: string | null) {
                 : t
             )
         );
+
+        if (!financeInvalidatedOnTerminal && TERMINAL_STATUSES.has(payload.status)) {
+          financeInvalidatedOnTerminal = true;
+          invalidateDomains(queryClient, BROAD_FINANCE_DOMAINS);
+        }
       } catch {
         // ignore parse errors
       }
     };
 
-    ws.onerror = () => ws.close();
+    source.onerror = () => source.close();
 
     return () => {
-      ws.close();
-      wsRef.current = null;
+      source.close();
+      sourceRef.current = null;
     };
   }, [taskId, queryClient]);
 }

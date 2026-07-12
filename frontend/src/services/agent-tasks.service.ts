@@ -1,10 +1,7 @@
-import type { AgentTask, AgentTaskSubmitDto } from '@/models/agent-tasks';
+import type { AgentTask } from '@/models/agent-tasks';
 import { api } from '@/services/api';
 
 export const agentTasksService = {
-  submit: (dto: AgentTaskSubmitDto) =>
-    api.post<AgentTask>('/agent-tasks', dto),
-
   getAll: (status?: string) => {
     const path = status ? `/agent-tasks?status=${status}` : '/agent-tasks';
     return api.get<AgentTask[]>(path);
@@ -22,8 +19,7 @@ export const agentTasksService = {
   resume: (id: string) =>
     api.post<AgentTask>(`/agent-tasks/${id}/resume`),
 
-  delete: (id: string) =>
-    api.delete(`/agent-tasks/${id}`),
+
 
   updateMode: (id: string, mode: string) =>
     api.patch<AgentTask>(`/agent-tasks/${id}/mode`, mode),

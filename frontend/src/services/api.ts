@@ -1,4 +1,5 @@
 import i18n from '@/lib/i18n';
+import { getCurrency } from '@/lib/format';
 import { fromServerDate, getUserTimezone, toServerDate, transformDates } from '@/lib/utils/dateUtils';
 
 // In production (Docker) VITE_API_BASE_URL is injected at container startup
@@ -52,10 +53,11 @@ export const api = {
         Accept: 'application/json',
         'X-Timezone': getUserTimezone(),
         'X-Language': getLang(),
+        'X-Currency': getCurrency(),
       }
     }).then((r) => handleResponse<T>(r)),
 
-  post: <T>(path: string, body?: unknown): Promise<T> => {
+  post: <T>(path: string, body?: unknown, options?: { signal?: AbortSignal }): Promise<T> => {
     // Transform all local date strings to server timezone before sending to the server
     const transformedBody = body !== undefined ? transformDates(body, toServerDate) : undefined;
     return fetch(`${BASE_URL}${path}`, {
@@ -65,8 +67,10 @@ export const api = {
         Accept: 'application/json',
         'X-Timezone': getUserTimezone(),
         'X-Language': getLang(),
+        'X-Currency': getCurrency(),
       },
       body: transformedBody !== undefined ? JSON.stringify(transformedBody) : undefined,
+      signal: options?.signal,
     }).then((r) => handleResponse<T>(r));
   },
 
@@ -80,6 +84,7 @@ export const api = {
         Accept: 'application/json',
         'X-Timezone': getUserTimezone(),
         'X-Language': getLang(),
+        'X-Currency': getCurrency(),
       },
       body: JSON.stringify(transformedBody),
     }).then((r) => handleResponse<T>(r));
@@ -95,6 +100,7 @@ export const api = {
         Accept: 'application/json',
         'X-Timezone': getUserTimezone(),
         'X-Language': getLang(),
+        'X-Currency': getCurrency(),
       },
       body: JSON.stringify(transformedBody),
     }).then((r) => handleResponse<T>(r));
@@ -107,6 +113,7 @@ export const api = {
         'Content-Type': 'application/json',
         'X-Timezone': getUserTimezone(),
         'X-Language': getLang(),
+        'X-Currency': getCurrency(),
       },
       body: body ? JSON.stringify(body) : undefined,
     }).then((r) => handleResponse<T>(r)),
@@ -118,6 +125,7 @@ export const api = {
         Accept: 'application/json',
         'X-Timezone': getUserTimezone(),
         'X-Language': getLang(),
+        'X-Currency': getCurrency(),
       },
       body,
     }).then((r) => handleResponse<T>(r)),

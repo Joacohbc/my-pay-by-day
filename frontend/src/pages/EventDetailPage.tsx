@@ -3,13 +3,13 @@ import { useParams, Link } from 'react-router-dom';
 import { eventsRoute, similarEventsRoute } from '@/lib/routes';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useEvent, useDeleteEvent, useUpdateEvent } from '@/hooks/useEvents';
-import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
@@ -45,11 +45,62 @@ const eventTypeConfig = {
   },
 };
 
+function EventDetailSkeleton({ onBack }: { onBack: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-5">
+      <PageHeader title={t('events.detail')} back={onBack} />
+
+      <div className="px-5 flex flex-col items-center text-center">
+        <Skeleton className="w-16 h-16 rounded-full mb-4" />
+        <Skeleton className="h-5 w-40 mb-2" />
+        <Skeleton className="h-8 w-28 mt-3" />
+        <div className="flex gap-2 mt-3">
+          <Skeleton className="h-5 w-16 rounded-pill" />
+          <Skeleton className="h-5 w-20 rounded-pill" />
+        </div>
+      </div>
+
+      <div className="px-5">
+        <Card className="divide-y divide-white/5">
+          <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+          <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </Card>
+      </div>
+
+      <div className="px-5">
+        <Skeleton className="h-3 w-24 mb-3" />
+        <Card className="divide-y divide-white/5">
+          <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+        </Card>
+      </div>
+
+      <div className="px-5">
+        <Skeleton className="h-3 w-16 mb-3" />
+        <Skeleton className="h-16 w-full rounded-input" />
+      </div>
+    </div>
+  );
+}
+
 export function EventDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const { navigateBack, fromRoute } = useAppNavigation();
-  const backRoute = fromRoute ?? eventsRoute();
+  const { navigateBack, linkStateFromHere } = useAppNavigation();
+  const goBack = () => navigateBack(eventsRoute());
 
   const { data: event, isLoading, error } = useEvent(Number(id));
   const deleteEvent = useDeleteEvent();
@@ -57,30 +108,45 @@ export function EventDetailPage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
 
-  if (isLoading) return <FullPageSpinner />;
+  if (isLoading) return <EventDetailSkeleton onBack={goBack} />;
   if (error || !event) return <ErrorState message={t('errors.eventNotFound')} />;
 
   const cfg = eventTypeConfig[event.type];
   const net = eventNetAmount(event);
 
   const confirmDelete = () => {
-    navigateBack(eventsRoute());
+    goBack();
     deleteEvent.mutate(event.id);
   };
 
-  const handleAddFile = async (file: FileDto) => {
+  const handleAddFiles = async (files: FileDto[]) => {
     if (!event) return;
-    const currentIds = event.files?.map((f) => f.id) || [];
-    if (!currentIds.includes(file.id)) {
-      await updateEvent.mutateAsync({ id: event.id, dto: { fileIds: [...currentIds, file.id] } });
-    }
+    const currentFiles = event.files || [];
+    const existingIds = new Set(currentFiles.map((f) => f.id));
+    const newFiles = files.filter((f) => !existingIds.has(f.id)).map((f) => ({ ...f, isOrphan: false }));
+    if (newFiles.length === 0) return;
+    const nextFiles = [...currentFiles, ...newFiles];
+    await updateEvent.mutateAsync({
+      id: event.id,
+      dto: { fileIds: nextFiles.map((f) => f.id) },
+      optimisticFiles: nextFiles,
+    });
   };
 
-  const handleRemoveFile = async (fileId: number) => {
+  const handleAddFile = (file: FileDto) => handleAddFiles([file]);
+
+  const handleRemoveFiles = async (fileIds: number[]) => {
     if (!event) return;
-    const currentIds = event.files?.map((f) => f.id) || [];
-    await updateEvent.mutateAsync({ id: event.id, dto: { fileIds: currentIds.filter((id) => id !== fileId) } });
+    const idsToRemove = new Set(fileIds);
+    const nextFiles = (event.files || []).filter((f) => !idsToRemove.has(f.id));
+    await updateEvent.mutateAsync({
+      id: event.id,
+      dto: { fileIds: nextFiles.map((f) => f.id) },
+      optimisticFiles: nextFiles,
+    });
   };
+
+  const handleRemoveFile = (fileId: number) => handleRemoveFiles([fileId]);
 
   return (
     <div className="space-y-5">
@@ -103,10 +169,10 @@ export function EventDetailPage() {
 
       <PageHeader
         title={t('events.detail')}
-        back={backRoute}
+        back={goBack}
         action={
           <div className="flex gap-2">
-            <Link to={similarEventsRoute(event)} state={{ from: backRoute }}>
+            <Link to={similarEventsRoute(event)} state={linkStateFromHere()}>
               <Button
                 variant="secondary"
                 size="sm"
@@ -123,7 +189,7 @@ export function EventDetailPage() {
             >
               <Icon name="content_copy" className="text-base" />
             </Button>
-            <Link to={`/events/${event.id}/edit`} state={{ from: backRoute }}>
+            <Link to={`/events/${event.id}/edit`} state={linkStateFromHere()}>
               <Button variant="secondary" size="sm" title={t('common.edit')}>
                 <Icon name="edit" className="text-base" />
               </Button>
@@ -220,7 +286,9 @@ export function EventDetailPage() {
         <FileUploader
           files={event?.files || []}
           onAddFile={handleAddFile}
+          onAddFiles={handleAddFiles}
           onRemoveFile={handleRemoveFile}
+          onRemoveFiles={handleRemoveFiles}
         />
       </div>
 

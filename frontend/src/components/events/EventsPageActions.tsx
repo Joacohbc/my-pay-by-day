@@ -50,6 +50,15 @@ export function EventsPageActions({
     </span>
   );
 
+  const responsiveBadge = (count: number) => (
+    <>
+      <span className="hidden sm:inline-block bg-dn-error text-white text-[10px] leading-tight font-semibold px-1.5 py-0.5 rounded-full min-w-4.5 text-center">
+        {count}
+      </span>
+      <span className="inline-block sm:hidden w-2 h-2 rounded-full bg-dn-error shrink-0" />
+    </>
+  );
+
   const totalBadgeCount = draftsCount + duplicatesCount;
 
   return (
@@ -62,14 +71,15 @@ export function EventsPageActions({
           aria-expanded={showMenu}
           aria-haspopup="menu"
           aria-label={t('common.moreActions')}
+          className="px-2.5 sm:px-4"
         >
-          <Icon name="more_horiz" className="text-sm" />
-          {t('common.moreActions')}
-          {totalBadgeCount > 0 && badge(totalBadgeCount)}
+          <Icon name="menu" className="text-sm" />
+          <span className="hidden sm:inline">{t('common.moreActions')}</span>
+          {totalBadgeCount > 0 && responsiveBadge(totalBadgeCount)}
         </Button>
-        <Button size="sm" onClick={onNewEvent}>
+        <Button size="sm" onClick={onNewEvent} className="px-2.5 sm:px-4">
           <Icon name="add" className="text-sm" />
-          {t('common.new')}
+          <span className="hidden sm:inline">{t('common.new')}</span>
         </Button>
       </div>
 

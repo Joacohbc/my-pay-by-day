@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { normalizeText } from '@/lib/utils/textUtils';
 import { useTranslation } from 'react-i18next';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useCategories, useDeleteCategory, useArchiveCategory, useUnarchiveCategory } from '@/hooks/useCategories';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -26,6 +28,8 @@ const CONFIRM_TITLE_BY_TYPE: Record<ConfirmActionType, 'common.archive' | 'commo
 
 export function CategoriesPage() {
   const { t } = useTranslation();
+  const { navigateBack } = useAppNavigation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showArchived, setShowArchived] = useState(false);
   const { data: paged, isLoading, error } = useCategories(showArchived ? true : undefined);
   const { data: allDuplicates } = useDuplicates('CATEGORY', 'PENDING');
@@ -46,6 +50,11 @@ export function CategoriesPage() {
     ? allCategories.filter(c => normalizeText(c.name).includes(normalizeText(search)))
     : allCategories;
 
+  const highlightId = Number(searchParams.get('highlight')) || null;
+  const highlightTarget = highlightId ? allCategories.find((category) => category.id === highlightId) ?? null : null;
+  const modalEditTarget = editTarget ?? highlightTarget;
+  const modalOpen = showModal || highlightTarget !== null;
+
   const openCreate = () => {
     setEditTarget(null);
     setShowModal(true);
@@ -54,6 +63,12 @@ export function CategoriesPage() {
   const openEdit = (cat: Category) => {
     setEditTarget(cat);
     setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditTarget(null);
+    if (highlightId) setSearchParams((prev) => { prev.delete('highlight'); return prev; }, { replace: true });
   };
 
   const actionMutationByType: Record<ConfirmActionType, (id: number) => Promise<unknown>> = {
@@ -91,7 +106,7 @@ export function CategoriesPage() {
 
       <PageHeader
         title={t('categories.title')}
-        back={Routes.SETTINGS}
+        back={() => navigateBack(Routes.SETTINGS)}
         subtitle={t('categories.count', { count: allCategories.length })}
         action={
           <div className="flex items-center gap-2">
@@ -152,14 +167,14 @@ export function CategoriesPage() {
       )}
 
       <Modal
-        open={showModal}
-        onClose={() => { setShowModal(false); setEditTarget(null); }}
-        title={editTarget ? t('categories.editCategory') : t('categories.newCategory')}
+        open={modalOpen}
+        onClose={closeModal}
+        title={modalEditTarget ? t('categories.editCategory') : t('categories.newCategory')}
       >
         <CategoryForm
-          editTarget={editTarget}
-          onSuccess={() => setShowModal(false)}
-          onCancel={() => setShowModal(false)}
+          editTarget={modalEditTarget}
+          onSuccess={closeModal}
+          onCancel={closeModal}
         />
       </Modal>
 

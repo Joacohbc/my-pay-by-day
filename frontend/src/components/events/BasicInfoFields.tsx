@@ -2,14 +2,15 @@ import { useTranslation } from 'react-i18next';
 import { useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
+import type { AiFieldController } from '@/hooks/useAiFieldController';
 import type { FormValues } from '@/components/events/EventFormMapper';
 
 interface BasicInfoFieldsProps {
-  onNameFocus: () => void;
-  onDescriptionFocus: () => void;
+  nameAi: AiFieldController;
+  descriptionAi: AiFieldController;
 }
 
-export function BasicInfoFields({ onNameFocus, onDescriptionFocus }: BasicInfoFieldsProps) {
+export function BasicInfoFields({ nameAi, descriptionAi }: BasicInfoFieldsProps) {
   const { t } = useTranslation();
   const { register, formState: { errors } } = useFormContext<FormValues>();
 
@@ -20,14 +21,14 @@ export function BasicInfoFields({ onNameFocus, onDescriptionFocus }: BasicInfoFi
         placeholder={t('eventForm.eventNamePlaceholder')}
         error={errors.name?.message}
         {...register('name')}
-        onFocus={onNameFocus}
+        ai={nameAi}
       />
 
       <Textarea
         label={t('eventForm.description')}
         placeholder={t('eventForm.descriptionPlaceholder')}
         {...register('description')}
-        onFocus={onDescriptionFocus}
+        ai={descriptionAi}
       />
     </>
   );

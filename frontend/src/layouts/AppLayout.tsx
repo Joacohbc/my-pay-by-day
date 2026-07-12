@@ -1,6 +1,7 @@
 import { Outlet, ScrollRestoration } from 'react-router-dom';
 import { BottomNav } from '@/components/navigation/BottomNav';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
+import { SharedFilesHandler } from '@/components/chat/SharedFilesHandler';
 
 export function AppLayout() {
   return (
@@ -11,6 +12,7 @@ export function AppLayout() {
       </main>
       <BottomNav />
       <ScrollRestoration />
+      <SharedFilesHandler />
     </div>
   );
 }

@@ -47,6 +47,7 @@ export function fromServerDate(dateString: string): string {
   // Assume it's a LocalDateTime coming from backend (no Z), force it to be UTC
   const utcString = dateString.endsWith('Z') ? dateString : `${dateString}Z`;
   const date = new Date(utcString);
+  if (Number.isNaN(date.getTime())) return dateString;
   const userTz = getUserTimezone();
   return formatInTimeZone(date, userTz, "yyyy-MM-dd'T'HH:mm:ss");
 }
@@ -80,7 +81,7 @@ export function transformDates(obj: unknown, transformer: (val: string) => strin
 
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
-    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z?$/.test(value)) {
       result[key] = transformer(value);
     } else if (typeof value === 'object' && value !== null) {
       result[key] = transformDates(value, transformer);

@@ -102,18 +102,20 @@ public class EventDuplicateDetectionService {
 							continue;
 						}
 
-						potentialDuplicates.add(new DuplicateUtils.DuplicateRecordData(
-							event.id,
-							other.id,
-							EntityType.FINANCE_EVENT,
-							existingRecord.score,
-							dateScore,
-							amountScore,
-							nodeScore,
-							categoryScore,
-							tagScore,
-							nameScore
-						));
+						if (existingRecord.score >= settings.eventTotalThresholdScore) {
+							potentialDuplicates.add(new DuplicateUtils.DuplicateRecordData(
+								event.id,
+								other.id,
+								EntityType.FINANCE_EVENT,
+								existingRecord.score,
+								dateScore,
+								amountScore,
+								nodeScore,
+								categoryScore,
+								tagScore,
+								nameScore
+							));
+						}
 					}
 					
 					continue;
@@ -128,13 +130,19 @@ public class EventDuplicateDetectionService {
 			double tagScore = calculateTagScore(event, other);
 			double nameScore = DuplicateUtils.calculateTextSimilarityScore(event.name, other.name);
 
-			double totalScore =
-				(dateScore * settings.eventDateWeight) +
-				(amountScore * settings.eventAmountWeight) +
-				(nodeScore * settings.eventNodeWeight) +
-				(categoryScore * settings.eventCategoryWeight) +
-				(tagScore * settings.eventTagWeight) +
-				(nameScore * settings.eventNameWeight);
+			double totalScore;
+			// GATING: Ensure core dimensions (Amount, Date) align to avoid false positives.
+			if (dateScore == 0.0 || amountScore < 0.8) {
+				totalScore = 0.0;
+			} else {
+				totalScore =
+					(dateScore * settings.eventDateWeight) +
+					(amountScore * settings.eventAmountWeight) +
+					(nodeScore * settings.eventNodeWeight) +
+					(categoryScore * settings.eventCategoryWeight) +
+					(tagScore * settings.eventTagWeight) +
+					(nameScore * settings.eventNameWeight);
+			}
 			
 			LOG.infof("EventDuplicateDetectionService: Event %d vs %d - dateScore: %.4f, amountScore: %.4f, nodeScore: %.4f, categoryScore: %.4f, tagScore: %.4f, nameScore: %.4f, totalScore: %.4f",
 				event.id, other.id, dateScore, amountScore, nodeScore, categoryScore, tagScore, nameScore, totalScore);

@@ -1,5 +1,0 @@
-Summarize the following conversation in {0}, preserving all important financial facts, decisions, balances, and pending actions. 
-Be concise but thorough. This summary will serve as the ONLY context for the agent moving forward.
-
-CONVERSATION TO SUMMARIZE:
-{1}

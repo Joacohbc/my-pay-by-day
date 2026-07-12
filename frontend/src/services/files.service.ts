@@ -27,5 +27,24 @@ export const filesService = {
 
   getContentUrl: (id: number): string => {
     return `${BASE_URL}/files/${id}/content/binary`;
+  },
+
+  getContentAsText: async (id: number): Promise<string> => {
+    const response = await fetch(`${BASE_URL}/files/${id}/content/binary`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.text();
+  },
+
+  getContentAsBase64: async (id: number): Promise<string> => {
+    const response = await fetch(`${BASE_URL}/files/${id}/content/base64`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.text();
+  },
+
+  getContentAsMarkdown: async (id: number): Promise<string | null> => {
+    const response = await fetch(`${BASE_URL}/files/${id}/content/markdown`);
+    if (response.status === 204) return null;
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.text();
   }
 };

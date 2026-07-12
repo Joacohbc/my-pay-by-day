@@ -102,6 +102,8 @@ export interface EventSummary extends Identifiable {
 export interface FileDto extends Identifiable {
   fileName: string;
   mimeType: string;
+  /** Short backend-computed type label (PDF, DOCX, PNG, ...). Optional to tolerate older backends. */
+  typeLabel?: string;
   size: number;
   isOrphan: boolean;
 }
@@ -170,6 +172,29 @@ export interface BulkPatchEventDto {
   eventIds: number[];
   category?: { id: number } | null;
   tags?: { id: number }[] | null;
+}
+
+export interface FinanceEventDraftInputDto {
+  id?: number;
+  name?: string;
+  description?: string;
+  type?: EventType;
+  transactionDate?: string;
+  categoryId?: number;
+  tagIds?: number[];
+  lineItems?: { financeNodeId: number; amount: number }[];
+}
+
+export type DraftConfirmMode = 'MERGE' | 'CREATE_ONLY';
+
+export interface ConfirmDraftsRequestDto {
+  draftIds: number[];
+  mode: DraftConfirmMode;
+}
+
+export interface ConfirmDraftsResultDto {
+  confirmedEvents: FinanceEvent[];
+  failedDraftIds: number[];
 }
 
 // ─── Template ─────────────────────────────────────────────────────────────────

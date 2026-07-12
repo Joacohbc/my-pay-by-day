@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
@@ -6,10 +5,12 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { IconPicker } from '@/components/ui/IconPicker';
-import { AiFormActionsFab } from '@/components/ui/AiFormActionsFab';
 import { useCreateNode, useUpdateNode } from '@/hooks/useNodes';
-import { useAiFormController } from '@/hooks/useAiFormController';
+import { useAiFieldController } from '@/hooks/useAiFieldController';
+import { FormPatchAiChatWidget } from '@/components/ui/FormPatchAiChatWidget';
 import type { FinanceNode, FinanceNodeType } from '@/models';
+
+const NODE_TYPES: FinanceNodeType[] = ['OWN', 'EXTERNAL', 'CONTACT'];
 
 interface NodeFormValues {
   name: string;
@@ -38,25 +39,18 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
     },
   });
 
-  const buildContext = () => {
-    const values = getValues();
-    const parts: string[] = ['Entity type: Finance Node (account, external entity, or contact)'];
-    if (values.name) parts.push(`Name: ${values.name}`);
-    if (values.description) parts.push(`Description: ${values.description}`);
-    if (values.type) parts.push(`Type: ${values.type}`);
-    return parts.join('\n');
-  };
-
-  const aiFields = useMemo(() => [
-    { key: 'name', name: 'name' as const, label: t('common.name'), semantic: 'name' as const, allowVoice: true },
-    { key: 'description', name: 'description' as const, label: t('common.description'), semantic: 'description' as const, allowVoice: true },
-  ], [t]);
-
-  const aiController = useAiFormController<NodeFormValues>({
-    fields: aiFields,
+  const nameAi = useAiFieldController<NodeFormValues>({
+    name: 'name',
     getValues,
     setValue,
-    buildContext,
+    allowVoice: true,
+  });
+
+  const descriptionAi = useAiFieldController<NodeFormValues>({
+    name: 'description',
+    getValues,
+    setValue,
+    allowVoice: true,
   });
 
   const nodeTypeOptions = [
@@ -82,6 +76,15 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
 
   const isSubmitting = createNode.isPending || updateNode.isPending;
 
+  const applyPatch = (patch: Record<string, unknown>) => {
+    if (typeof patch.name === 'string') setValue('name', patch.name, { shouldDirty: true });
+    if (typeof patch.description === 'string') setValue('description', patch.description, { shouldDirty: true });
+    if (typeof patch.icon === 'string') setValue('icon', patch.icon, { shouldDirty: true });
+    if (typeof patch.type === 'string' && NODE_TYPES.includes(patch.type as FinanceNodeType)) {
+      setValue('type', patch.type as FinanceNodeType, { shouldDirty: true });
+    }
+  };
+
   return (
     <>
     <form
@@ -96,13 +99,13 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
         placeholder={t('nodes.nodeNamePlaceholder')}
         error={errors.name?.message}
         {...register('name', { required: t('common.nameRequired') })}
-        onFocus={() => aiController.markFieldAsActive('name')}
+        ai={nameAi}
       />
       <Textarea
         label={t('common.description')}
         placeholder={t('nodes.descriptionPlaceholder')}
         {...register('description')}
-        onFocus={() => aiController.markFieldAsActive('description')}
+        ai={descriptionAi}
       />
       <Controller
         name="icon"
@@ -143,7 +146,11 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
         </Button>
       </div>
     </form>
-    <AiFormActionsFab controller={aiController} />
+    <FormPatchAiChatWidget
+      entityType="node"
+      getCurrentValues={() => getValues() as unknown as Record<string, unknown>}
+      onPatch={applyPatch}
+    />
     </>
   );
 }

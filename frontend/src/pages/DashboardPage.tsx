@@ -21,16 +21,16 @@ export function DashboardPage() {
   const { t } = useTranslation();
   const { defaultId } = useDefaultTimePeriod();
   const { data: periods, isLoading } = useTimePeriods();
-  const { navigate } = useAppNavigation();
+  const { navigate, navigatePush } = useAppNavigation();
   const [showPicker, setShowPicker] = useState(false);
   const [dynamicPeriod, setDynamicPeriod] = useState<DynamicPeriodOption | null>(null);
 
   const handlePickTemplate = (template: Template | null) => {
     setShowPicker(false);
     if (template) {
-      navigate(Routes.EVENT_NEW, { state: { template } });
+      navigatePush(Routes.EVENT_NEW, { template });
     } else {
-      navigate(Routes.EVENT_NEW);
+      navigatePush(Routes.EVENT_NEW);
     }
   };
 

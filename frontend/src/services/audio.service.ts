@@ -48,4 +48,20 @@ export const audioService = {
     const wavAudioBlob = await convertAudioBlobToWav(recordedAudioBlob);
     return audioService.transcribeAudio(wavAudioBlob);
   },
+
+  transcribeEnhanced: async (audioBlob: Blob, currentText: string): Promise<AudioTranscriptionResponse> => {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'recording.wav');
+    formData.append('currentText', currentText);
+
+    return api.postForm<AudioTranscriptionResponse>('/ai/audio/transcribe-enhanced', formData);
+  },
+
+  transcribeRecordedAudioEnhanced: async (
+    recordedAudioBlob: Blob,
+    currentText: string,
+  ): Promise<AudioTranscriptionResponse> => {
+    const wavAudioBlob = await convertAudioBlobToWav(recordedAudioBlob);
+    return audioService.transcribeEnhanced(wavAudioBlob, currentText);
+  },
 };

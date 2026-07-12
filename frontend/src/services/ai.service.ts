@@ -1,17 +1,10 @@
 import { api } from '@/services/api';
 
-export type AiTextAction =
-  | 'GENERATE_NAME'
-  | 'GENERATE_DESCRIPTION'
-  | 'FIX_NAME_SPELLING'
-  | 'FIX_DESCRIPTION_SPELLING'
-  | 'MERGE_DESCRIPTION';
+export type AiTextAction = 'MERGE_DESCRIPTION';
 
 export interface AiTextRequest {
   action: AiTextAction;
   context?: string;
-  currentValue?: string;
-  customPrompt?: string;
 }
 
 export interface AiTextResponse {

@@ -10,18 +10,9 @@ import {
   updateItemInLists,
   removeItemFromLists,
 } from '@/hooks/optimistic';
-
-const FIVE_MINUTES_MS = 1000 * 60 * 5;
-
-export const categoryKeys = {
-  all: ['categories'] as const,
-  lists: () => [...categoryKeys.all, 'list'] as const,
-  list: (archived?: boolean) => [...categoryKeys.lists(), archived] as const,
-  details: () => [...categoryKeys.all, 'detail'] as const,
-  detail: (id: number) => [...categoryKeys.details(), id] as const,
-};
-
-export const CATEGORIES_KEY = categoryKeys.all;
+import { categoryKeys } from '@/lib/queryKeys';
+import { cachePolicy } from '@/lib/cachePolicies';
+import { invalidateDomains } from '@/lib/cacheInvalidation';
 
 function resolveErrorMessage(err: unknown, fallbackMessage: string): string {
   return err instanceof Error ? err.message : fallbackMessage;
@@ -31,7 +22,7 @@ export function useCategories(archived?: boolean) {
   return useQuery({
     queryKey: categoryKeys.list(archived),
     queryFn: () => categoriesService.getAll(archived),
-    staleTime: FIVE_MINUTES_MS,
+    ...cachePolicy.reference,
   });
 }
 
@@ -40,7 +31,7 @@ export function useCategory(id: number) {
     queryKey: categoryKeys.detail(id),
     queryFn: () => categoriesService.getById(id),
     enabled: !!id,
-    staleTime: FIVE_MINUTES_MS,
+    ...cachePolicy.reference,
   });
 }
 
@@ -52,8 +43,7 @@ export function useCreateCategory() {
   return useMutation({
     mutationFn: (dto: CreateCategoryDto) => categoriesService.create(dto),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      invalidateDomains(queryClient, ['categories', 'duplicates']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -90,10 +80,8 @@ export function useUpdateCategory() {
       if (context?.previousCategoryDetail) queryClient.setQueryData(categoryKeys.detail(id), context.previousCategoryDetail);
       alert.error(resolveErrorMessage(err, t('common.error')));
     },
-    onSettled: (_data, _error, { id }) => {
-      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
-      queryClient.invalidateQueries({ queryKey: categoryKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+    onSettled: () => {
+      invalidateDomains(queryClient, ['categories', 'duplicates']);
     },
     onSuccess: () => alert.success(t('common.saved')),
   });
@@ -107,8 +95,7 @@ export function useArchiveCategory() {
   return useMutation({
     mutationFn: (id: number) => categoriesService.archive(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      invalidateDomains(queryClient, ['categories', 'duplicates']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -123,8 +110,7 @@ export function useUnarchiveCategory() {
   return useMutation({
     mutationFn: (id: number) => categoriesService.unarchive(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      invalidateDomains(queryClient, ['categories', 'duplicates']);
       alert.success(t('common.saved'));
     },
     onError: (err) => alert.error(resolveErrorMessage(err, t('common.error'))),
@@ -149,8 +135,7 @@ export function useDeleteCategory() {
       alert.error(resolveErrorMessage(err, t('common.error')));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['duplicates'] });
+      invalidateDomains(queryClient, ['categories', 'duplicates']);
     },
     onSuccess: () => alert.success(t('common.saved')),
   });
