@@ -319,6 +319,7 @@ export interface CreateTagGroupDto {
 }
 
 export * from './duplicates';
+import type { DuplicateDetectionSettings } from './duplicates';
 
 // ─── DataTransfer ─────────────────────────────────────────────────────────────
 
@@ -334,6 +335,7 @@ export interface DataTransferDto {
   subscriptions: Subscription[];
   templates: Template[];
   timePeriods: TimePeriod[];
+  duplicateDetectionSettings?: DuplicateDetectionSettings;
 }
 
 export interface DataTransferResult {

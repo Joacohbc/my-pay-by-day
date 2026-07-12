@@ -12,8 +12,12 @@ public record FileExportDto(
     String markdownContent
 ) {
     public static FileExportDto from(FileEntity file) {
+        return from(file, true);
+    }
+
+    public static FileExportDto from(FileEntity file, boolean includeData) {
         String base64 = "";
-        if (file.data != null) {
+        if (includeData && file.data != null) {
             base64 = Base64.getEncoder().encodeToString(file.data);
         }
         return new FileExportDto(

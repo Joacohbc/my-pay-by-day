@@ -129,4 +129,29 @@ export const api = {
       },
       body,
     }).then((r) => handleResponse<T>(r)),
+
+  getBlob: (path: string): Promise<Blob> =>
+    fetch(`${BASE_URL}${path}`, {
+      headers: {
+        'X-Timezone': getUserTimezone(),
+        'X-Language': getLang(),
+        'X-Currency': getCurrency(),
+      }
+    }).then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.blob();
+    }),
+
+  postBinary: <T>(path: string, body: Blob, contentType: string): Promise<T> =>
+    fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': contentType,
+        Accept: 'application/json',
+        'X-Timezone': getUserTimezone(),
+        'X-Language': getLang(),
+        'X-Currency': getCurrency(),
+      },
+      body,
+    }).then((r) => handleResponse<T>(r)),
 };

@@ -33,11 +33,14 @@ public class DataTransferResource {
 
     @GET
     @Path("/export")
-    @Operation(summary = "Export all data", description = "Returns all Tags, Categories, Finance Nodes, Tag Groups, and Events as a single JSON payload")
+    @Operation(summary = "Export all data", description = "Returns all Tags, Categories, Finance Nodes, Tag Groups, and Events as a single ZIP file containing data.json and files/")
     @APIResponse(responseCode = "200", description = "Data exported successfully",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = DataTransferDto.class)))
+            content = @Content(mediaType = "application/zip", schema = @Schema(implementation = byte[].class)))
+    @Produces("application/zip")
     public Response exportAll() {
-        return Response.ok(dataTransferService.exportAll()).build();
+        return Response.ok(dataTransferService.exportAsZip())
+                .header("Content-Disposition", "attachment; filename=\"mypaybyday-export.zip\"")
+                .build();
     }
 
     @POST
@@ -48,7 +51,8 @@ public class DataTransferResource {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = DataTransferResult.class))),
             @APIResponse(responseCode = "400", description = "Validation error in tags, categories, or nodes")
     })
-    public Response importAll(DataTransferDto dto) throws BusinessException {
-        return Response.ok(dataTransferService.importAll(dto)).build();
+    @Consumes("application/zip")
+    public Response importAll(java.io.InputStream zipStream) {
+        return Response.ok(dataTransferService.importFromZip(zipStream)).build();
     }
 }

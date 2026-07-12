@@ -31,7 +31,7 @@ import { useAlert } from '@/contexts/AlertContext';
 import { idbRemove } from '@/lib/idbStorage';
 import { useDismissedBannersStore } from '@/store/dismissedBannersStore';
 import { dataTransferService } from '@/services/data-transfer.service';
-import type { DataTransferDto } from '@/models';
+import JSZip from 'jszip';
 
 interface SettingRowProps {
   to: string;
@@ -103,13 +103,12 @@ export function SettingsPage() {
   };
 
   const handleExport = async () => {
-    const data = await dataTransferService.exportAll();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const blob = await dataTransferService.exportAll();
     const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
     const exportDate = new Date().toISOString().slice(0, 10);
+    const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `mypaybyday-export-${exportDate}.json`;
+    anchor.download = `mypaybyday-export-${exportDate}.zip`;
     anchor.click();
     URL.revokeObjectURL(url);
     success(t('settings.exportSuccess'));
@@ -121,9 +120,18 @@ export function SettingsPage() {
     e.target.value = '';
     setIsImporting(true);
     try {
-      const text = await file.text();
-      const dto = JSON.parse(text) as DataTransferDto;
-      const result = await dataTransferService.importAll(dto);
+      let payloadBlob: Blob;
+      if (file.name.endsWith('.json')) {
+        // Backwards compatibility for old JSON exports
+        const text = await file.text();
+        const zip = new JSZip();
+        zip.file("data.json", text);
+        payloadBlob = await zip.generateAsync({ type: 'blob' });
+      } else {
+        payloadBlob = file;
+      }
+      
+      const result = await dataTransferService.importAll(payloadBlob);
       const summary = t('settings.importSuccess', {
         tags: result.importedTags,
         categories: result.importedCategories,
@@ -351,7 +359,7 @@ export function SettingsPage() {
             <input
               ref={importInputRef}
               type="file"
-              accept="application/json"
+              accept=".json,.zip"
               className="hidden"
               onChange={handleImportFileSelected}
             />

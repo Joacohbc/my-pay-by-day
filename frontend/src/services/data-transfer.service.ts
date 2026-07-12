@@ -1,7 +1,7 @@
-import type { DataTransferDto, DataTransferResult } from '@/models';
+import type { DataTransferResult } from '@/models';
 import { api } from '@/services/api';
 
 export const dataTransferService = {
-  exportAll: () => api.get<DataTransferDto>('/data/export'),
-  importAll: (dto: DataTransferDto) => api.post<DataTransferResult>('/data/import', dto),
+  exportAll: () => api.getBlob('/data/export'),
+  importAll: (blob: Blob) => api.postBinary<DataTransferResult>('/data/import', blob, 'application/zip'),
 };

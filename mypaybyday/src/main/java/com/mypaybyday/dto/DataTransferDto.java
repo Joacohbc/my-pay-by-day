@@ -14,7 +14,8 @@ public record DataTransferDto(
         List<FileExportDto> files,
         List<SubscriptionDto> subscriptions,
         List<TemplateDto> templates,
-        List<TimePeriodDto> timePeriods
+        List<TimePeriodDto> timePeriods,
+        DuplicateDetectionSettingsDto duplicateDetectionSettings
 ) {
     public static final String CURRENT_VERSION = "1.0";
 }
