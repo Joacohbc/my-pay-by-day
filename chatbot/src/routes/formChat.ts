@@ -9,6 +9,7 @@ import {
   type FormPatchEntityType,
 } from '@/agent/formPatch.js';
 import { logger } from '@/logging/logger.js';
+import { withSseKeepAlive } from '@/routes/sseKeepAlive.js';
 
 const formChatLog = logger.child('formChat');
 
@@ -48,7 +49,7 @@ formChatRoute.post('/', async (c) => {
       messages: modelMessages,
     });
     
-    return result.toUIMessageStreamResponse();
+    return withSseKeepAlive(result.toUIMessageStreamResponse());
   } catch (e) {
     formChatLog.error('form chat failed', { error: (e as Error).message, entityType: body.entityType });
     return c.json({ error: (e as Error).message }, 400);

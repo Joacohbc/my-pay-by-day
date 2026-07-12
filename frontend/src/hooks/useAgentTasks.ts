@@ -147,74 +147,94 @@ export function useAgentTaskSocket(taskId: string | null) {
     if (!taskId) return;
 
     const streamUrl = `${BASE_URL}/agent-tasks/${taskId}/stream`;
-    const source = new EventSource(streamUrl);
-    sourceRef.current = source;
+    const RECONNECT_DELAY_MS = 3000;
+    let active = true;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let financeInvalidatedOnTerminal = false;
 
-    source.onmessage = (ev) => {
-      try {
-        const raw = JSON.parse(ev.data);
+    const connect = () => {
+      if (!active) return;
+      const source = new EventSource(streamUrl);
+      sourceRef.current = source;
 
-        // On connect ack, invalidate to get full fresh state from HTTP
-        if (raw.type === 'connected') {
-          queryClient.invalidateQueries({ queryKey: agentTaskKeys.detail(taskId) });
-          return;
-        }
-        if (raw.type === 'ping') return;
+      source.onmessage = (ev) => {
+        try {
+          const raw = JSON.parse(ev.data);
 
-        const payload: AgentTaskWsPayload = raw;
-        if (payload.taskId !== taskId) return;
-
-        queryClient.setQueryData<AgentTask>(
-          agentTaskKeys.detail(taskId),
-          (prev) => {
-            if (!prev) {
-              // HTTP not loaded yet — invalidate so it re-fetches with latest state
-              queryClient.invalidateQueries({ queryKey: agentTaskKeys.detail(taskId) });
-              return prev;
-            }
-            return {
-              ...prev,
-              status: payload.status,
-              progress: payload.progress,
-              currentStep: payload.currentStep ?? prev.currentStep,
-              steps: (() => {
-                  const existingIds = new Set(prev.steps?.map((s) => s.id) ?? []);
-                  const fresh = (payload.newSteps ?? []).filter((s) => !existingIds.has(s.id));
-                  return [...(prev.steps ?? []), ...fresh];
-                })(),
-              actions: (() => {
-                  const actionMap = new Map(prev.actions?.map((a) => [a.id, a]) ?? []);
-                  (payload.newActions ?? []).forEach((a) => actionMap.set(a.id, a));
-                  return Array.from(actionMap.values());
-                })(),
-            };
+          // On connect ack, invalidate to get full fresh state from HTTP
+          if (raw.type === 'connected') {
+            queryClient.invalidateQueries({ queryKey: agentTaskKeys.detail(taskId) });
+            return;
           }
-        );
+          if (raw.type === 'ping') return;
 
-        queryClient.setQueryData<AgentTask[]>(
-          agentTaskKeys.list(),
-          (prev) =>
-            prev?.map((t) =>
-              t.id === taskId
-                ? { ...t, status: payload.status, progress: payload.progress, currentStep: payload.currentStep }
-                : t
-            )
-        );
+          const payload: AgentTaskWsPayload = raw;
+          if (payload.taskId !== taskId) return;
 
-        if (!financeInvalidatedOnTerminal && TERMINAL_STATUSES.has(payload.status)) {
-          financeInvalidatedOnTerminal = true;
-          invalidateDomains(queryClient, BROAD_FINANCE_DOMAINS);
+          queryClient.setQueryData<AgentTask>(
+            agentTaskKeys.detail(taskId),
+            (prev) => {
+              if (!prev) {
+                // HTTP not loaded yet — invalidate so it re-fetches with latest state
+                queryClient.invalidateQueries({ queryKey: agentTaskKeys.detail(taskId) });
+                return prev;
+              }
+              return {
+                ...prev,
+                status: payload.status,
+                progress: payload.progress,
+                currentStep: payload.currentStep ?? prev.currentStep,
+                steps: (() => {
+                    const existingIds = new Set(prev.steps?.map((s) => s.id) ?? []);
+                    const fresh = (payload.newSteps ?? []).filter((s) => !existingIds.has(s.id));
+                    return [...(prev.steps ?? []), ...fresh];
+                  })(),
+                actions: (() => {
+                    const actionMap = new Map(prev.actions?.map((a) => [a.id, a]) ?? []);
+                    (payload.newActions ?? []).forEach((a) => actionMap.set(a.id, a));
+                    return Array.from(actionMap.values());
+                  })(),
+              };
+            }
+          );
+
+          queryClient.setQueryData<AgentTask[]>(
+            agentTaskKeys.list(),
+            (prev) =>
+              prev?.map((t) =>
+                t.id === taskId
+                  ? { ...t, status: payload.status, progress: payload.progress, currentStep: payload.currentStep }
+                  : t
+              )
+          );
+
+          if (!financeInvalidatedOnTerminal && TERMINAL_STATUSES.has(payload.status)) {
+            financeInvalidatedOnTerminal = true;
+            invalidateDomains(queryClient, BROAD_FINANCE_DOMAINS);
+          }
+        } catch {
+          // ignore parse errors
         }
-      } catch {
-        // ignore parse errors
-      }
+      };
+
+      // Reverse proxies in front of the container drop long-lived SSE connections.
+      // EventSource retries transient errors on its own; once the browser gives the
+      // connection up for dead (CLOSED) it never retries, so reopen it manually.
+      // Each reconnect's `connected` ack refetches the full task state over HTTP,
+      // backfilling any events missed while the stream was down.
+      source.onerror = () => {
+        if (source.readyState !== EventSource.CLOSED) return;
+        source.close();
+        reconnectTimer = setTimeout(connect, RECONNECT_DELAY_MS);
+      };
     };
 
-    source.onerror = () => source.close();
+    connect();
 
     return () => {
-      source.close();
+      active = false;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      sourceRef.current?.close();
       sourceRef.current = null;
     };
   }, [taskId, queryClient]);
