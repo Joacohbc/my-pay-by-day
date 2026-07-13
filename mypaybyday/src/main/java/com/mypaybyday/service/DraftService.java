@@ -101,11 +101,13 @@ public class DraftService {
 				// Use ObjectMapper to serialize the payload to JSON
 				entity.setRawPayloadJson(objectMapper.writeValueAsString(payload));
 			} catch (JsonProcessingException e) {
+				Log.errorf(e, "Failed to serialize draft payload for entityType=%s", entityType);
 				throw new BusinessException(messages.get(MsgKey.DRAFT_INVALID_PAYLOAD));
 			}
 		}
 
 		draftRepository.persist(entity);
+		Log.infof("Created draft id=%d type=%s originalEntity=%s", entity.id, entityType, entity.getOriginalEntityId());
 		return entity;
 	}
 
@@ -122,7 +124,9 @@ public class DraftService {
 			try {
 				entity.setRawPayloadJson(objectMapper.writeValueAsString(payload));
 				draftRepository.persist(entity);
+				Log.infof("Updated draft id=%d", id);
 			} catch (JsonProcessingException e) {
+				Log.errorf(e, "Failed to serialize draft payload for draft id=%d", id);
 				throw new BusinessException(messages.get(MsgKey.DRAFT_INVALID_PAYLOAD));
 			}
 		}
@@ -157,7 +161,9 @@ public class DraftService {
 				entity.setOriginalEntityId(updated.id());
 			}
 			draftRepository.persist(entity);
+			Log.infof("Updated finance-event draft id=%d", id);
 		} catch (JsonProcessingException e) {
+			Log.errorf(e, "Failed to serialize finance-event draft id=%d", id);
 			throw new BusinessException(messages.get(MsgKey.DRAFT_INVALID_PAYLOAD));
 		}
 		return entity;
@@ -240,6 +246,7 @@ public class DraftService {
 			}
 		}
 
+		Log.infof("Confirmed %d drafts, skipped %d: failed=%s", confirmedEvents.size(), failedDraftIds.size(), failedDraftIds);
 		return new ConfirmDraftsResultDto(confirmedEvents, failedDraftIds);
 	}
 
@@ -388,7 +395,8 @@ public class DraftService {
 
 	@Transactional
 	public void deleteFinanceEventDrafts() {
-		draftRepository.delete("entityType", EntityType.FINANCE_EVENT);
+		long deleted = draftRepository.delete("entityType", EntityType.FINANCE_EVENT);
+		Log.infof("Deleted %d finance-event drafts", deleted);
 	}
 
 	@Transactional
@@ -409,6 +417,7 @@ public class DraftService {
 			FinanceEventDto dto = objectMapper.readValue(entity.getRawPayloadJson(), FinanceEventDto.class);
 			return dto.fromDraft(entity.getOriginalEntityId(), entity.id);
 		} catch (JsonProcessingException e) {
+			Log.errorf(e, "Failed to deserialize stored draft id=%d", entity.id);
 			throw new BusinessException(messages.get(MsgKey.DRAFT_INVALID_PAYLOAD));
 		}
 	}

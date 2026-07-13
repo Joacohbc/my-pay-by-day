@@ -17,6 +17,7 @@ import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.LineItemRepository;
 import com.mypaybyday.service.event.TransactionService;
 import com.mypaybyday.validation.FinanceNodeValidator;
+import io.quarkus.logging.Log;
 
 @ApplicationScoped
 public class FinanceNodeService {
@@ -101,6 +102,7 @@ public class FinanceNodeService {
 		financeNodeValidator.validate(node);
 
 		financeNodeRepository.persist(node);
+		Log.infof("Created finance-node id=%d type=%s", node.id, node.type);
 		return FinanceNodeDto.from(node);
 	}
 
@@ -117,6 +119,7 @@ public class FinanceNodeService {
 
 		financeNodeValidator.validate(node);
 
+		Log.infof("Updated finance-node id=%d", id);
 		return FinanceNodeDto.from(node);
 	}
 
@@ -131,11 +134,13 @@ public class FinanceNodeService {
 				|| financeNodeRepository.countInSubscriptions(node) > 0;
 
 		if (inUseForRecurring) {
+			Log.warnf("Archive rejected: finance-node id=%d is in use by templates/subscriptions", id);
 			throw new BusinessException(messages.get(MsgKey.NODE_ARCHIVE_IN_USE));
 		}
 
 		// It's always allowed to archive, we just don't physically delete
 		node.archived = true;
+		Log.infof("Archived finance-node id=%d", id);
 	}
 
 	@Transactional
@@ -145,6 +150,7 @@ public class FinanceNodeService {
 			throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
 		}
 		node.archived = false;
+		Log.infof("Unarchived finance-node id=%d", id);
 	}
 
 	@Transactional
@@ -158,14 +164,17 @@ public class FinanceNodeService {
 				|| financeNodeRepository.countInSubscriptions(node) > 0;
 
 		if (inUseForRecurring) {
+			Log.warnf("Delete rejected: finance-node id=%d is in use by templates/subscriptions", id);
 			throw new BusinessException(messages.get(MsgKey.NODE_ARCHIVE_IN_USE));
 		}
-		
+
 		long txCount = lineItemRepository.count("financeNode", node);
 		if (txCount > 0) {
+			Log.warnf("Delete rejected: finance-node id=%d has %d line items", id, txCount);
 			throw new BusinessException(messages.get(MsgKey.NODE_HAS_TRANSACTIONS));
 		}
 		financeNodeRepository.delete(node);
+		Log.infof("Deleted finance-node id=%d", id);
 	}
 
 	@Transactional
@@ -184,6 +193,7 @@ public class FinanceNodeService {
 				.map(lineItem -> lineItem.amount)
 				.reduce(BigDecimal.ZERO, BigDecimal::add);
 
+		Log.debugf("Calculated balance for finance-node id=%d", id);
 		return total;
 	}
 }
