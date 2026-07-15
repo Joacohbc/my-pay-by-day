@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { IconPicker } from '@/components/ui/IconPicker';
+import { ColorPicker } from '@/components/ui/ColorPicker';
 import { useCreateCategory, useUpdateCategory } from '@/hooks/useCategories';
 import { useAiFieldController } from '@/hooks/useAiFieldController';
 import { FormPatchAiChatWidget } from '@/components/ui/FormPatchAiChatWidget';
@@ -13,6 +14,7 @@ interface CategoryFormValues {
   name: string;
   description: string;
   icon: string;
+  color: string;
 }
 
 interface CategoryFormProps {
@@ -31,6 +33,7 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
       name: editTarget?.name ?? '',
       description: editTarget?.description ?? '',
       icon: editTarget?.icon ?? '',
+      color: editTarget?.color ?? '',
     },
   });
 
@@ -69,6 +72,7 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
     if (typeof patch.name === 'string') setValue('name', patch.name, { shouldDirty: true });
     if (typeof patch.description === 'string') setValue('description', patch.description, { shouldDirty: true });
     if (typeof patch.icon === 'string') setValue('icon', patch.icon, { shouldDirty: true });
+    if (typeof patch.color === 'string') setValue('color', patch.color, { shouldDirty: true });
   };
 
   return (
@@ -99,6 +103,17 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
         render={({ field }) => (
           <IconPicker
             label={t('categories.iconLabel')}
+            value={field.value}
+            onChange={field.onChange}
+          />
+        )}
+      />
+      <Controller
+        name="color"
+        control={control}
+        render={({ field }) => (
+          <ColorPicker
+            label={t('common.colorLabel')}
             value={field.value}
             onChange={field.onChange}
           />

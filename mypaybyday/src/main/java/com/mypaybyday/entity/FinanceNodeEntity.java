@@ -43,6 +43,8 @@ public class FinanceNodeEntity extends BaseEntity {
 
 	public String icon;
 
+	public String color;
+
 	@Builder.Default
 	public boolean archived = false;
 

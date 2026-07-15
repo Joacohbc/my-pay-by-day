@@ -20,9 +20,11 @@ public class FinanceNodeValidator {
         node.name = regexValidator.sanitize(node.name);
         node.description = regexValidator.sanitize(node.description);
         node.icon = regexValidator.sanitize(node.icon);
+        node.color = regexValidator.sanitize(node.color);
 
         regexValidator.validateText(node.name, RegexValidator.SHORT_MAX_LENGTH);
         regexValidator.validateText(node.description, RegexValidator.LONG_MAX_LENGTH);
         regexValidator.validateIcon(node.icon);
+        regexValidator.validateColor(node.color);
     }
 }

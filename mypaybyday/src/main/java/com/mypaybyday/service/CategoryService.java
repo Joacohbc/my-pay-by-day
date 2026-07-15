@@ -131,6 +131,7 @@ public class CategoryService {
 		category.name = dto.name();
 		category.description = dto.description();
 		category.icon = dto.icon();
+		category.color = dto.color();
 
 		categoryValidator.validate(category);
 
@@ -148,6 +149,7 @@ public class CategoryService {
 		category.name = dto.name();
 		category.description = dto.description();
 		category.icon = dto.icon();
+		category.color = dto.color();
 
 		categoryValidator.validate(category);
 

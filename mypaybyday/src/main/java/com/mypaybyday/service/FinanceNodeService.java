@@ -97,6 +97,7 @@ public class FinanceNodeService {
 		node.type = dto.type();
 		node.description = dto.description();
 		node.icon = dto.icon();
+		node.color = dto.color();
 
 		financeNodeValidator.validate(node);
 
@@ -114,6 +115,7 @@ public class FinanceNodeService {
 		node.type = dto.type();
 		node.description = dto.description();
 		node.icon = dto.icon();
+		node.color = dto.color();
 
 		financeNodeValidator.validate(node);
 

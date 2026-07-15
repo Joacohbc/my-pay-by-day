@@ -189,7 +189,7 @@ public class DraftService {
 
 		CategoryDto category = current != null ? current.category() : null;
 		if (input.categoryId() != null) {
-			category = new CategoryDto(input.categoryId(), null, null, null, false);
+			category = new CategoryDto(input.categoryId(), null, null, null, null, false);
 		}
 
 		List<TagDto> tags = current != null ? current.tags() : List.of();

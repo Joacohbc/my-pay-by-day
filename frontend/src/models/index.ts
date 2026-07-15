@@ -27,6 +27,7 @@ export interface Category extends Identifiable {
   name: string;
   description?: string;
   icon?: string;
+  color?: string;
   archived: boolean;
 }
 
@@ -37,6 +38,7 @@ export type CreateCategoryDto = Omit<Category, 'id' | 'archived'>;
 export interface Tag extends Identifiable {
   name: string;
   description?: string;
+  color?: string;
   archived: boolean;
 }
 
@@ -58,6 +60,7 @@ export interface FinanceNode extends Identifiable {
   type: FinanceNodeType;
   description?: string;
   icon?: string;
+  color?: string;
   archived: boolean;
 }
 

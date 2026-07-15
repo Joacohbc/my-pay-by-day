@@ -302,6 +302,7 @@ public class DataTransferService {
             TagEntity entity = new TagEntity();
             entity.name = dto.name();
             entity.description = dto.description();
+            entity.color = dto.color();
             entity.archived = dto.archived();
             tagValidator.validate(entity);
             tagRepository.persist(entity);
@@ -321,6 +322,7 @@ public class DataTransferService {
             entity.name = dto.name();
             entity.description = dto.description();
             entity.icon = dto.icon();
+            entity.color = dto.color();
             entity.archived = dto.archived();
             categoryValidator.validate(entity);
             categoryRepository.persist(entity);
@@ -341,6 +343,7 @@ public class DataTransferService {
             entity.type = dto.type();
             entity.description = dto.description();
             entity.icon = dto.icon();
+            entity.color = dto.color();
             entity.archived = dto.archived();
             financeNodeValidator.validate(entity);
             financeNodeRepository.persist(entity);

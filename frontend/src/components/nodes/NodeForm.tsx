@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { IconPicker } from '@/components/ui/IconPicker';
+import { ColorPicker } from '@/components/ui/ColorPicker';
 import { useCreateNode, useUpdateNode } from '@/hooks/useNodes';
 import { useAiFieldController } from '@/hooks/useAiFieldController';
 import { FormPatchAiChatWidget } from '@/components/ui/FormPatchAiChatWidget';
@@ -17,6 +18,7 @@ interface NodeFormValues {
   type: FinanceNodeType;
   description: string;
   icon: string;
+  color: string;
 }
 
 interface NodeFormProps {
@@ -36,6 +38,7 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
       type: editTarget?.type ?? 'OWN',
       description: editTarget?.description ?? '',
       icon: editTarget?.icon ?? '',
+      color: editTarget?.color ?? '',
     },
   });
 
@@ -80,6 +83,7 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
     if (typeof patch.name === 'string') setValue('name', patch.name, { shouldDirty: true });
     if (typeof patch.description === 'string') setValue('description', patch.description, { shouldDirty: true });
     if (typeof patch.icon === 'string') setValue('icon', patch.icon, { shouldDirty: true });
+    if (typeof patch.color === 'string') setValue('color', patch.color, { shouldDirty: true });
     if (typeof patch.type === 'string' && NODE_TYPES.includes(patch.type as FinanceNodeType)) {
       setValue('type', patch.type as FinanceNodeType, { shouldDirty: true });
     }
@@ -113,6 +117,17 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
         render={({ field }) => (
           <IconPicker
             label={t('nodes.iconLabel')}
+            value={field.value}
+            onChange={field.onChange}
+          />
+        )}
+      />
+      <Controller
+        name="color"
+        control={control}
+        render={({ field }) => (
+          <ColorPicker
+            label={t('common.colorLabel')}
             value={field.value}
             onChange={field.onChange}
           />

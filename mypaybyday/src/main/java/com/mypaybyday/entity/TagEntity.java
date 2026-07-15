@@ -22,6 +22,8 @@ public class TagEntity extends BaseEntity {
 
 	public String description;
 
+	public String color;
+
 	@Builder.Default
 	public boolean archived = false;
 }
