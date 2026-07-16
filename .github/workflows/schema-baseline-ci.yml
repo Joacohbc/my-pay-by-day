@@ -1,0 +1,43 @@
+name: Schema Baseline CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'mypaybyday/src/main/java/com/mypaybyday/entity/**'
+      - 'mypaybyday/src/main/resources/db/migration/**'
+      - 'mypaybyday/scripts/diff_schema.py'
+      - 'mypaybyday/scripts/verify-schema-baseline.sh'
+      - '.github/workflows/schema-baseline-ci.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'mypaybyday/src/main/java/com/mypaybyday/entity/**'
+      - 'mypaybyday/src/main/resources/db/migration/**'
+      - 'mypaybyday/scripts/diff_schema.py'
+      - 'mypaybyday/scripts/verify-schema-baseline.sh'
+      - '.github/workflows/schema-baseline-ci.yml'
+
+jobs:
+  verify-baseline:
+    name: Migrations Apply & No Drift
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify migrations apply cleanly and match JPA entities
+        run: ./mypaybyday/scripts/verify-schema-baseline.sh
