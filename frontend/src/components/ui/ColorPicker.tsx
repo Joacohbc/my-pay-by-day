@@ -2,13 +2,20 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 
 const PRESET_COLORS = [
-  '#D0BCFF',
-  '#CCC2DC',
-  '#EFB8C8',
-  '#BBDCC0',
-  '#F2B8B5',
-  '#7DD3FC',
-  '#F0D697',
+  '#F2B8B5', // Coral Red
+  '#FDBA74', // Soft Orange / Peach
+  '#F0D697', // Soft Yellow / Gold
+  '#BBDCC0', // Sage Green
+  '#A7F3D0', // Mint / Cool Green
+  '#99F6E4', // Soft Teal
+  '#7DD3FC', // Sky Blue
+  '#C7D2FE', // Soft Indigo
+  '#D0BCFF', // Lavender / Purple
+  '#F5D0FE', // Fuchsia / Light Violet
+  '#EFB8C8', // Rose Pink
+  '#FB7185', // Soft Rose
+  '#CCC2DC', // Muted Lilac
+  '#CBD5E1', // Slate Grey
 ] as const;
 
 const HEX_PATTERN = /^#[0-9a-fA-F]{6}$/;
