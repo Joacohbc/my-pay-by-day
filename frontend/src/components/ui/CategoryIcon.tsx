@@ -27,13 +27,18 @@ export function CategoryIcon({
 }: CategoryIconProps) {
   const { container, icon: iconSize, text: textSize } = sizeMap[size];
 
+  const customColorStyle = category.color
+    ? { color: category.color, backgroundColor: `${category.color}1A` }
+    : undefined;
+
   return (
     <div
       className={twMerge(
         `${container} flex items-center justify-center ${shape} shrink-0 font-bold ${textSize}`,
-        colorClass,
+        customColorStyle ? '' : colorClass,
         className
       )}
+      style={customColorStyle}
     >
       {category.icon ? (
         <Icon name={category.icon} className={iconSize} />

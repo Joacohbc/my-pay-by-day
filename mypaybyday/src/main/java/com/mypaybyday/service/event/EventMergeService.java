@@ -143,7 +143,7 @@ public class EventMergeService {
 		}
 
 		if (tagIds != null) {
-			List<TagDto> tagDtos = tagIds.stream().map(tagId -> new TagDto(tagId, null, null, false)).toList();
+			List<TagDto> tagDtos = tagIds.stream().map(tagId -> new TagDto(tagId, null, null, null, false)).toList();
 			baseEvent.tags = tagService.resolveTags(tagDtos, TagResolveConfig.forNewEntity());
 		}
 

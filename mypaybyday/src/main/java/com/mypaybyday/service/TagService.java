@@ -180,6 +180,7 @@ public class TagService {
 		TagEntity tag = new TagEntity();
 		tag.name = dto.name();
 		tag.description = dto.description();
+		tag.color = dto.color();
 
 		tagValidator.validate(tag);
 
@@ -196,6 +197,7 @@ public class TagService {
 		}
 		tag.name = dto.name();
 		tag.description = dto.description();
+		tag.color = dto.color();
 
 		tagValidator.validate(tag);
 

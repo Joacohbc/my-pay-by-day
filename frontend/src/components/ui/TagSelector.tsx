@@ -151,16 +151,26 @@ export function TagSelector({
           <div className="flex flex-wrap gap-2">
           {filteredTags.map((tag) => {
             const selected = value?.includes(String(tag.id));
+            const colorStyle = tag.color
+              ? {
+                  color: tag.color,
+                  backgroundColor: `${tag.color}${selected ? '33' : '1A'}`,
+                  borderColor: `${tag.color}${selected ? '4D' : '26'}`,
+                }
+              : undefined;
             return (
               <button
                 key={tag.id}
                 type="button"
                 onClick={() => handleToggleTag(tag)}
+                style={colorStyle}
                 className={[
                   'px-3 py-1.5 rounded-pill text-xs font-medium border transition-all cursor-pointer',
-                  selected
-                    ? 'bg-dn-primary/20 border-dn-primary/30 text-dn-primary'
-                    : 'bg-dn-surface-low border-white/5 text-dn-text-muted hover:border-white/10',
+                  colorStyle
+                    ? ''
+                    : selected
+                      ? 'bg-dn-primary/20 border-dn-primary/30 text-dn-primary'
+                      : 'bg-dn-surface-low border-white/5 text-dn-text-muted hover:border-white/10',
                 ].join(' ')}
               >
                 #{tag.name}

@@ -55,14 +55,19 @@ export function NodeIcon({
 
   const archived = !!node && isFinanceNode(node) && node.archived;
 
+  const customColor = node && isFinanceNode(node) ? node.color : undefined;
+  const customColorStyle = !archived && customColor
+    ? { color: customColor, backgroundColor: `${customColor}1A` }
+    : undefined;
+
   return (
     <div
       className={twMerge(
         `${container} flex items-center justify-center ${shape} shrink-0`,
-        colorClass ?? cfg.colorClass,
+        customColorStyle ? '' : (colorClass ?? cfg.colorClass),
         className
       )}
-      style={style}
+      style={{ ...customColorStyle, ...style }}
     >
       {archived ? (
         <Icon name="archive" className={`${iconSize} text-dn-text-muted`} />

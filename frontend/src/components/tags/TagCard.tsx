@@ -28,7 +28,10 @@ export function TagCard({
   return (
     <Card className={`${tag.archived ? 'opacity-60' : ''}`}>
       <div className="flex items-center gap-4">
-        <div className="w-10 h-10 rounded-2xl bg-dn-primary/10 text-dn-primary flex items-center justify-center shrink-0">
+        <div
+          className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${tag.color ? '' : 'bg-dn-primary/10 text-dn-primary'}`}
+          style={tag.color ? { color: tag.color, backgroundColor: `${tag.color}1A` } : undefined}
+        >
           <span className="text-lg font-bold">#</span>
         </div>
         <div className="flex-1 min-w-0">

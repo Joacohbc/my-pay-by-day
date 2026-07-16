@@ -20,9 +20,11 @@ public class CategoryValidator {
         category.name = regexValidator.sanitize(category.name);
         category.description = regexValidator.sanitize(category.description);
         category.icon = regexValidator.sanitize(category.icon);
+        category.color = regexValidator.sanitize(category.color);
 
         regexValidator.validateText(category.name, RegexValidator.SHORT_MAX_LENGTH);
         regexValidator.validateText(category.description, RegexValidator.LONG_MAX_LENGTH);
         regexValidator.validateIcon(category.icon);
+        regexValidator.validateColor(category.color);
     }
 }
