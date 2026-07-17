@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
+import { ColorPicker } from '@/components/ui/ColorPicker';
 import { useCreateTag, useUpdateTag } from '@/hooks/useTags';
 import { useAiFieldController } from '@/hooks/useAiFieldController';
 import { FormPatchAiChatWidget } from '@/components/ui/FormPatchAiChatWidget';
@@ -11,6 +12,7 @@ import type { Tag } from '@/models';
 interface TagFormValues {
   name: string;
   description: string;
+  color: string;
 }
 
 interface TagFormProps {
@@ -24,10 +26,11 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
   const createTag = useCreateTag();
   const updateTag = useUpdateTag();
 
-  const { register, handleSubmit, getValues, setValue, formState: { errors } } = useForm<TagFormValues>({
+  const { register, handleSubmit, control, getValues, setValue, formState: { errors } } = useForm<TagFormValues>({
     defaultValues: {
       name: editTarget?.name ?? '',
       description: editTarget?.description ?? '',
+      color: editTarget?.color ?? '',
     },
   });
 
@@ -65,6 +68,7 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
   const applyPatch = (patch: Record<string, unknown>) => {
     if (typeof patch.name === 'string') setValue('name', patch.name, { shouldDirty: true });
     if (typeof patch.description === 'string') setValue('description', patch.description, { shouldDirty: true });
+    if (typeof patch.color === 'string') setValue('color', patch.color, { shouldDirty: true });
   };
 
   return (
@@ -88,6 +92,17 @@ export function TagForm({ editTarget, onSuccess, onCancel }: TagFormProps) {
         placeholder={t('tags.descriptionPlaceholder')}
         {...register('description')}
         ai={descriptionAi}
+      />
+      <Controller
+        name="color"
+        control={control}
+        render={({ field }) => (
+          <ColorPicker
+            label={t('common.colorLabel')}
+            value={field.value}
+            onChange={field.onChange}
+          />
+        )}
       />
 
       <div className="pt-2 flex gap-3">

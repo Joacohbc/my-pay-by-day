@@ -372,6 +372,15 @@ Every endpoint **must** return the appropriate HTTP status code:
     * Use `Set` (`HashSet`) instead of `List` for all `@OneToMany` and `@ManyToMany` entity relationships to prevent full collection deletion and re-insertion issues in Hibernate.
 ---
 
+### Database Schema Migrations (Flyway)
+
+The database schema is owned by **Flyway**, not Hibernate. `quarkus.hibernate-orm.database.generation=none` — Hibernate never creates, updates, or validates the schema. Migrations are versioned SQL scripts under `src/main/resources/db/migration/` (`V1__baseline.sql`, `V2__add_color.sql`, …) applied automatically at startup (`quarkus.flyway.migrate-at-start=true`).
+
+* **Every schema change requires a new migration.** Whenever you add/remove/alter an entity, field, index, or constraint, add a new `V{n}__short_description.sql` in the same change. Do **not** edit an already-applied migration — its checksum is recorded and Flyway will fail validation. Always move forward with a new version.
+* **Existing databases are baselined, not recreated.** `baseline-on-migrate=true` + `baseline-version=1` marks any pre-existing non-empty database as being at V1 (the baseline reflects the last Hibernate-`update` schema) without running V1, then applies V2 onward. User data is preserved — there is no fresh install.
+* **SQLite `ALTER TABLE` is limited.** Adding a column (`ALTER TABLE x ADD COLUMN ...`) works. Dropping/altering a column or changing constraints requires the create-new-table → copy → drop → rename pattern; document that in the migration when it first comes up.
+* **Tests** run migrations from scratch on an empty database (`%test` profile disables baseline and cleans at start), so V1 must be self-sufficient.
+
 ### Data Validation
 
 When creating or updating entities in the backend service layer (e.g., `CategoryService`, `FinanceNodeService`, `EventService`), you **must** call the respective `*Validator.validate(entity)` method from `com.mypaybyday.validation` before persisting or saving the data.

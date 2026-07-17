@@ -3633,6 +3633,7 @@ export interface components {
             name?: string;
             description?: string;
             icon?: string;
+            color?: string;
             archived?: boolean;
         };
         CategoryEntity: {
@@ -3643,6 +3644,7 @@ export interface components {
             name: string;
             description?: string;
             icon?: string;
+            color?: string;
             archived?: boolean;
         };
         ConfigDto: {
@@ -3824,6 +3826,7 @@ export interface components {
             type?: components["schemas"]["FinanceNodeType"];
             description?: string;
             icon?: string;
+            color?: string;
             archived?: boolean;
         };
         FinanceNodeEntity: {
@@ -3835,6 +3838,7 @@ export interface components {
             type: components["schemas"]["FinanceNodeType"];
             description?: string;
             icon?: string;
+            color?: string;
             archived?: boolean;
         };
         FinanceNodeRef: {
@@ -4030,6 +4034,7 @@ export interface components {
             id?: number;
             name?: string;
             description?: string;
+            color?: string;
             archived?: boolean;
         };
         TagEntity: {
@@ -4039,6 +4044,7 @@ export interface components {
             updatedAt?: components["schemas"]["Instant"];
             name: string;
             description?: string;
+            color?: string;
             archived?: boolean;
         };
         TagGroupDto: {
