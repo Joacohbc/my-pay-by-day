@@ -180,6 +180,15 @@ export function useChatUI() {
   const [maxMessages, setMaxMessages] = useState(0);
   const wasBackendGeneratingRef = useRef(false);
 
+  // Lets the status-poll loop below know whether this tab's own `useChat` SSE connection is already
+  // rendering the live stream, so it doesn't stomp that smooth token-by-token view with a polled
+  // snapshot. A ref (not the `status` value itself) so the poll loop can read the latest status without
+  // restarting its effect — and therefore its timer — on every status transition.
+  const liveStreamStatusRef = useRef(status);
+  useEffect(() => {
+    liveStreamStatusRef.current = status;
+  }, [status]);
+
   const reloadHistory = useCallback(async () => {
     const response = await api.get<UIMessage[]>(`/ai/chat/${chatId}`);
     setMessages(response);
@@ -206,17 +215,25 @@ export function useChatUI() {
         setIsBackendGenerating(status.generating);
         setMessageCount(status.messageCount);
         setMaxMessages(status.maxMessages);
-        if (!status.generating) {
-          const history = await reloadHistorySafely();
-          if (wasBackendGeneratingRef.current) {
-            const lastAssistantMessage = history?.findLast((message) => message.role === 'assistant');
-            invalidateForToolResults(queryClient, lastAssistantMessage);
-          }
-          wasBackendGeneratingRef.current = false;
+        if (status.generating) {
+          // This tab is only resuming a generation it isn't itself streaming (e.g. the user left the
+          // chat view mid-response and came back) when its own `useChat` connection is idle — refresh
+          // history so whatever steps have completed server-side since become visible, instead of
+          // leaving the view blank until the whole reply finishes.
+          const isLocalStreamActive =
+            liveStreamStatusRef.current === 'submitted' || liveStreamStatusRef.current === 'streaming';
+          if (!isLocalStreamActive) await reloadHistorySafely();
+          if (!active) return;
+          wasBackendGeneratingRef.current = true;
+          pollingTimer = setTimeout(pollUntilComplete, 2000);
           return;
         }
-        wasBackendGeneratingRef.current = true;
-        pollingTimer = setTimeout(pollUntilComplete, 2000);
+        const history = await reloadHistorySafely();
+        if (wasBackendGeneratingRef.current) {
+          const lastAssistantMessage = history?.findLast((message) => message.role === 'assistant');
+          invalidateForToolResults(queryClient, lastAssistantMessage);
+        }
+        wasBackendGeneratingRef.current = false;
       } catch {
         if (active) setIsBackendGenerating(false);
       }

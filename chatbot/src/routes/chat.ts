@@ -215,6 +215,21 @@ chatRoute.post('/', async (c) => {
 
   const abortController = chatGenerationTracker.startGeneration(chatId);
 
+  // A StepResult's `response.messages` is cumulative (every prior step's messages plus this one's), so
+  // slicing from the running count persisted so far yields exactly this step's new messages — letting each
+  // step land in conversationMemory as soon as it completes instead of only once the whole call finishes.
+  // This is what lets a client that reloads history mid-generation (e.g. after leaving and returning to the
+  // chat view) see everything the model has done so far, not just a blank wait until the very end.
+  let persistedMessageCount = 0;
+  const persistStep = (stepMessages: readonly ModelMessage[], toolResults: readonly { toolCallId: string; output: unknown }[]) => {
+    const newMessages = stepMessages.slice(persistedMessageCount);
+    if (newMessages.length === 0) return;
+    persistedMessageCount = stepMessages.length;
+    const richOutputsByCallId = new Map<string, unknown>();
+    for (const toolResult of toolResults) richOutputsByCallId.set(toolResult.toolCallId, toolResult.output);
+    conversationMemory.append(chatId, newMessages, displaysOfResponseMessages(newMessages, richOutputsByCallId));
+  };
+
   const result = streamText({
     model: largeModel(),
     system: chatSystemPrompt(
@@ -232,16 +247,9 @@ chatRoute.post('/', async (c) => {
     tools: chatTools,
     stopWhen: stepCountIs(config.agent.maxSteps),
     abortSignal: abortController.signal,
-    onFinish: ({ text, steps, response }) => {
+    onStepFinish: (step) => persistStep(step.response.messages, step.toolResults),
+    onFinish: ({ text, steps }) => {
       chatGenerationTracker.markGenerationComplete(chatId, abortController);
-      const richOutputsByCallId = new Map<string, unknown>();
-      for (const step of steps) {
-        for (const toolResult of step.toolResults) richOutputsByCallId.set(toolResult.toolCallId, toolResult.output);
-      }
-      // `response.messages` is already the full, de-duplicated set of new messages for the whole call —
-      // each StepResult's own response.messages is cumulative (includes every prior step's messages too),
-      // so flatMapping over `steps` re-appends earlier steps again and again (quadratic duplication).
-      conversationMemory.append(chatId, response.messages, displaysOfResponseMessages(response.messages, richOutputsByCallId));
       chatLog.info('chat finished', { chatId, steps: steps.length, reply: text });
       void chatTitles.generateIfMissing(chatId, ctx.lang);
     },
