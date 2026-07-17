@@ -381,7 +381,9 @@ export function useChatUI() {
       return;
     }
     stop();
-  }, [countdown, cancelScheduledSend, stop, setMessages]);
+    setIsBackendGenerating(false);
+    void chatService.stopGeneration(chatId).catch(() => {});
+  }, [countdown, cancelScheduledSend, stop, setMessages, chatId]);
 
   const applyTranscribedText = useCallback(
     (transcription: string) => {
@@ -430,6 +432,7 @@ export function useChatUI() {
     try {
       await chatService.clearMemory(chatId);
       setMessages([]);
+      setIsBackendGenerating(false);
     } finally {
       setIsClearing(false);
     }

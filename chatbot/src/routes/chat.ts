@@ -213,7 +213,7 @@ chatRoute.post('/', async (c) => {
   await compactIfNeeded(chatId, ctx.lang);
   const modelMessages = await replaceDocumentPartsWithMarkdown(buildModelContext(chatId));
 
-  chatGenerationTracker.markGenerationActive(chatId);
+  const abortController = chatGenerationTracker.startGeneration(chatId);
 
   const result = streamText({
     model: largeModel(),
@@ -231,8 +231,9 @@ chatRoute.post('/', async (c) => {
     messages: modelMessages,
     tools: chatTools,
     stopWhen: stepCountIs(config.agent.maxSteps),
+    abortSignal: abortController.signal,
     onFinish: ({ text, steps, response }) => {
-      chatGenerationTracker.markGenerationComplete(chatId);
+      chatGenerationTracker.markGenerationComplete(chatId, abortController);
       const richOutputsByCallId = new Map<string, unknown>();
       for (const step of steps) {
         for (const toolResult of step.toolResults) richOutputsByCallId.set(toolResult.toolCallId, toolResult.output);
@@ -244,10 +245,18 @@ chatRoute.post('/', async (c) => {
       chatLog.info('chat finished', { chatId, steps: steps.length, reply: text });
       void chatTitles.generateIfMissing(chatId, ctx.lang);
     },
+    onAbort: () => {
+      chatGenerationTracker.markGenerationComplete(chatId, abortController);
+      chatLog.info('chat aborted', { chatId });
+    },
     onError: () => {
-      chatGenerationTracker.markGenerationComplete(chatId);
+      chatGenerationTracker.markGenerationComplete(chatId, abortController);
     },
   });
+
+  // Drive the model stream to completion server-side so the reply is persisted and the generation flag
+  // clears even when the client leaves the chat view mid-stream and stops reading the SSE response.
+  void result.consumeStream({ onError: () => {} });
 
   return withSseKeepAlive(
     result.toUIMessageStreamResponse({
@@ -356,8 +365,15 @@ chatRoute.get('/:chatId/status', (c) => {
   });
 });
 
+chatRoute.post('/:chatId/stop', (c) => {
+  const aborted = chatGenerationTracker.abortGeneration(c.req.param('chatId'));
+  return c.json({ aborted });
+});
+
 chatRoute.delete('/:chatId', (c) => {
-  conversationMemory.deleteChat(c.req.param('chatId'));
+  const chatId = c.req.param('chatId');
+  chatGenerationTracker.abortGeneration(chatId);
+  conversationMemory.deleteChat(chatId);
   return c.body(null, 204);
 });
 

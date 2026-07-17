@@ -31,4 +31,8 @@ export const chatService = {
   getStatus: async (chatId: string): Promise<ChatStatus> => {
     return api.get<ChatStatus>(`/ai/chat/${chatId}/status`);
   },
+
+  stopGeneration: async (chatId: string): Promise<void> => {
+    await api.post(`/ai/chat/${chatId}/stop`, {});
+  },
 };
