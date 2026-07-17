@@ -21,6 +21,8 @@ import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.repository.LineItemRepository;
 import com.mypaybyday.repository.SelectionHistoryRepository;
 
+import io.quarkus.logging.Log;
+
 @ApplicationScoped
 public class SelectionHistoryService {
 
@@ -65,6 +67,7 @@ public class SelectionHistoryService {
 					.build();
 			selectionHistoryRepository.persist(entity);
 		}
+		Log.debugf("Recorded selection type=%s id=%d", dto.entityType(), dto.entityId());
 	}
 
 	@Transactional

@@ -52,6 +52,7 @@ export function forceCancel(taskId: string): void {
 export function recoverTasks(): void {
   for (const task of agentStore.list('RUNNING')) {
     agentStore.setStatus(task.id, 'INTERRUPTED');
+    agentLog.warn('recovered orphaned task, marked INTERRUPTED', { taskId: task.id });
   }
 }
 
@@ -104,6 +105,7 @@ async function run(taskId: string): Promise<void> {
     .some((s) => s.type === 'PROGRESS' || s.type === 'MESSAGE');
 
   await runWithRequestContext({ requestId, taskId }, async () => {
+    const startedAt = performance.now();
     try {
       updateStatus(taskId, 'RUNNING', 5, isResumed ? 'Resuming' : 'Analyzing the request');
       await compactIfNeeded(taskId, ctx.lang);
@@ -116,7 +118,8 @@ async function run(taskId: string): Promise<void> {
 
       const toolSet = buildAllTools(ctx, buildAgentTools(taskId));
       const stepBudget = task.step_budget ?? config.agent.maxSteps;
-      agentLog.info('starting agent task', { taskId, mode: task.execution_mode, instruction: task.user_instruction });
+      agentLog.info('starting agent task', { taskId, mode: task.execution_mode });
+      agentLog.debug('agent task instruction', { taskId, instruction: task.user_instruction });
       const result = await generateText({
         model: largeModel(),
         system: agentSystemPrompt({
@@ -135,7 +138,11 @@ async function run(taskId: string): Promise<void> {
       });
 
       conversationMemory.append(taskId, result.response.messages);
-      agentLog.info('completed agent task', { taskId, steps: result.steps.length, reply: result.text });
+      const toolCalls = result.steps.flatMap((step) => step.toolCalls ?? []);
+      const tools = [...new Set(toolCalls.map((call) => call.toolName))];
+      const durationMs = Math.round(performance.now() - startedAt);
+      agentLog.info('completed agent task', { taskId, steps: result.steps.length, toolCount: toolCalls.length, tools, durationMs });
+      agentLog.debug('agent task reply', { taskId, reply: result.text });
       if (result.text.trim()) recordStep(taskId, { type: 'MESSAGE', content: result.text.trim() });
 
       const hitStepLimit = result.steps.length >= stepBudget && result.steps.at(-1)?.finishReason === 'tool-calls';

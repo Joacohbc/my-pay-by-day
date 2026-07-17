@@ -11,6 +11,8 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 
+import io.quarkus.logging.Log;
+
 @ApplicationScoped
 public class EventFileResolverService {
 
@@ -29,6 +31,7 @@ public class EventFileResolverService {
 		for (Long fileId : fileIds) {
 			FileEntity file = FileEntity.findById(fileId);
 			if (file == null) {
+				Log.warnf("Event references missing file id=%d", fileId);
 				throw new BusinessException(messages.get(MsgKey.FILE_NOT_FOUND));
 			}
 			resolvedFiles.add(file);

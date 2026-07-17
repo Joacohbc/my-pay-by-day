@@ -41,6 +41,7 @@ function contextHeaders(extra: Record<string, string> = {}): Record<string, stri
     'X-Language': getLang(),
     'X-Currency': getCurrency(),
     'X-Request-Id': crypto.randomUUID(),
+    'X-Source': 'frontend',
   };
 }
 

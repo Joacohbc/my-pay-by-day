@@ -18,6 +18,7 @@ import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.validation.CategoryValidator;
+import io.quarkus.logging.Log;
 
 @ApplicationScoped
 public class CategoryService {
@@ -137,6 +138,7 @@ public class CategoryService {
 
 		categoryRepository.persist(category);
 		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forCategory(category.id));
+		Log.infof("Created category id=%d", category.id);
 		return CategoryDto.from(category);
 	}
 
@@ -154,6 +156,7 @@ public class CategoryService {
 		categoryValidator.validate(category);
 
 		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forCategory(id));
+		Log.infof("Updated category id=%d", id);
 		return CategoryDto.from(category);
 	}
 
@@ -165,16 +168,19 @@ public class CategoryService {
 				|| subscriptionRepository.countByCategory(category) > 0;
 
 		if (inUseForRecurring) {
+			Log.warnf("Archive rejected: category id=%d is in use by templates/subscriptions", id);
 			throw new BusinessException(messages.get(MsgKey.CATEGORY_ARCHIVE_IN_USE));
 		}
 
 		category.archived = true;
+		Log.infof("Archived category id=%d", id);
 	}
 
 	@Transactional
 	public void unarchive(Long id) throws BusinessException {
 		CategoryEntity category = findEntityById(id, false);
 		category.archived = false;
+		Log.infof("Unarchived category id=%d", id);
 	}
 
 	@Transactional
@@ -186,10 +192,12 @@ public class CategoryService {
 				|| subscriptionRepository.countByCategory(category) > 0;
 
 		if (inUse) {
+			Log.warnf("Delete rejected: category id=%d is in use", id);
 			throw new BusinessException(messages.get(MsgKey.CATEGORY_IN_USE));
 		}
 
 		categoryRepository.delete(category);
+		Log.infof("Deleted category id=%d", id);
 	}
 
 }

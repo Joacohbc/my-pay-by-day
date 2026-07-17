@@ -5,9 +5,12 @@ import { config } from '@/config.js';
 import type { RequestContext } from '@/context.js';
 import { groundingNow } from '@/dates.js';
 import { longTermMemory } from '@/memory/longTerm.js';
+import { logger } from '@/logging/logger.js';
 import { largeModel } from '@/models.js';
 import { subagentSystemPrompt, type ExecutionMode } from '@/prompts/system.js';
 import type { KindedToolSet } from '@/tools/types.js';
+
+const delegateLog = logger.child('delegate');
 
 const EXECUTION_MODES = ['AUTONOMOUS', 'DRAFT_ONLY', 'READ_ONLY', 'DRAFT_CONFIRMATION'] as const;
 
@@ -68,6 +71,12 @@ export function buildDelegateTools(ctx: RequestContext, parentMode: ExecutionMod
             tools: toolsForMode(kindedTools, effectiveMode),
             stopWhen: stepCountIs(config.agent.subagentMaxSteps),
             abortSignal,
+            onError: ({ error }) => {
+              delegateLog.error('sub-agent stream failed', {
+                title,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            },
           });
           
           let lastMsg: UIMessage | undefined;

@@ -86,6 +86,7 @@ agentTasksRoute.post('/', async (c) => {
     requestId: ctx.requestId,
   });
   await attachFiles(ctx, task.id, body.fileIds);
+  tasksLog.info('task submitted', { taskId: task.id, mode: body.executionMode ?? 'AUTONOMOUS' });
   submitTask(task.id);
   return c.json(agentStore.detail(task.id), 202);
 });
@@ -119,6 +120,7 @@ agentTasksRoute.post('/:id/resume', (c) => {
   if (!agentStore.rawTask(id)) return errorJson(c, 'error.not_found', 404);
   conversationMemory.append(id, [{ role: 'user', content: 'Continue the task where you left off.' }]);
   agentStore.setStatus(id, 'PENDING');
+  tasksLog.info('task resumed', { taskId: id });
   submitTask(id);
   return c.json(agentStore.detail(id), 202);
 });
@@ -155,6 +157,7 @@ agentTasksRoute.post('/:id/message', async (c) => {
   recordStep(id, { type: 'USER', content: body.message });
   conversationMemory.append(id, [{ role: 'user', content: body.message }]);
   agentStore.setStatus(id, 'PENDING');
+  tasksLog.info('user message added to task', { taskId: id });
   submitTask(id);
   return c.json(agentStore.detail(id), 202);
 });
@@ -166,6 +169,7 @@ agentTasksRoute.post('/:id/actions/:actionId/approve', async (c) => {
   if (!action || action.taskId !== id) return errorJson(c, 'error.action_not_found', 404);
   const { feedback } = (await c.req.json().catch(() => ({}))) as { feedback?: string };
   agentStore.resolveAction(actionId, 'APPROVED', feedback);
+  tasksLog.info('action approved', { taskId: id, actionId, actionType: action.actionType });
   broadcastAction(id, { ...action, status: 'APPROVED', resultMessage: feedback });
   if (action.actionType === 'EXTEND_STEPS') {
     const task = agentStore.rawTask(id);
@@ -190,6 +194,7 @@ agentTasksRoute.post('/:id/actions/:actionId/reject', async (c) => {
   if (!action || action.taskId !== id) return errorJson(c, 'error.action_not_found', 404);
   const { feedback } = (await c.req.json().catch(() => ({}))) as { feedback?: string };
   agentStore.resolveAction(actionId, 'REJECTED', feedback);
+  tasksLog.info('action rejected', { taskId: id, actionId, actionType: action.actionType });
   broadcastAction(id, { ...action, status: 'REJECTED', resultMessage: feedback });
   if (action.actionType === 'EXTEND_STEPS') {
     updateStatus(id, 'COMPLETED', 100, 'Done');

@@ -20,6 +20,7 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
+import io.quarkus.logging.Log;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.panache.common.Page;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -91,6 +92,7 @@ public class FileService {
 		file.markdownContent = markdown;
 		file.persist();
 
+		Log.infof("Stored file id=%d size=%d mime=%s", file.id, file.size, file.mimeType);
 		return FileDto.from(file);
 	}
 
@@ -203,10 +205,12 @@ public class FileService {
 			.getSingleResult();
 
 		if (eventCount > 0) {
+			Log.warnf("Delete rejected: file id=%d is used by %d events", id, eventCount);
 			throw new BusinessException(messages.get(MsgKey.FILE_IN_USE));
 		}
 
 		file.delete();
+		Log.infof("Deleted file id=%d", id);
 	}
 
 	private boolean isOrphan(Long fileId) {

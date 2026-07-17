@@ -10,7 +10,7 @@ public class BusinessExceptionMapper implements ExceptionMapper<BusinessExceptio
 
 	@Override
 	public Response toResponse(BusinessException exception) {
-		Log.debugf("Business rule rejected request: %s", exception.getMessage());
+		Log.warnf("Business rule rejected request: %s", exception.getMessage());
 		return Response.status(Response.Status.BAD_REQUEST)
 				.entity(new ErrorResponse(exception.getMessage()))
 				.build();

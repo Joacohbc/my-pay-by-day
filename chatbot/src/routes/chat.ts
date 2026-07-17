@@ -185,7 +185,10 @@ chatRoute.post('/', async (c) => {
         return '';
       })
       .join(' ');
-    log.info('chat request', { tz: ctx.timezone, lang: ctx.lang, user: userText });
+    // Prod (INFO) records that a message arrived and its context, never the content; the user's
+    // text stays at DEBUG. The request source is already bound to the ambient log scope.
+    log.info('chat request', { tz: ctx.timezone, lang: ctx.lang });
+    log.debug('chat request text', { user: userText });
     const displays = conversionIsOneToOne ? userUIMessages.map(displayOfUserMessage) : undefined;
     conversationMemory.append(chatId, userMessages, displays);
   }
@@ -214,6 +217,7 @@ chatRoute.post('/', async (c) => {
   const modelMessages = await replaceDocumentPartsWithMarkdown(buildModelContext(chatId));
 
   chatGenerationTracker.markGenerationActive(chatId);
+  const generationStartedAt = performance.now();
 
   const result = streamText({
     model: largeModel(),
@@ -241,11 +245,18 @@ chatRoute.post('/', async (c) => {
       // each StepResult's own response.messages is cumulative (includes every prior step's messages too),
       // so flatMapping over `steps` re-appends earlier steps again and again (quadratic duplication).
       conversationMemory.append(chatId, response.messages, displaysOfResponseMessages(response.messages, richOutputsByCallId));
-      log.info('chat finished', { steps: steps.length, reply: text });
+      const toolCalls = steps.flatMap((step) => step.toolCalls ?? []);
+      const tools = [...new Set(toolCalls.map((call) => call.toolName))];
+      const durationMs = Math.round(performance.now() - generationStartedAt);
+      // Prod (INFO): how many/which tools ran and how long until the answer — never the reply text.
+      log.info('chat finished', { steps: steps.length, toolCount: toolCalls.length, tools, durationMs });
+      log.debug('chat reply', { reply: text });
       void chatTitles.generateIfMissing(chatId, ctx.lang);
     },
-    onError: () => {
+    onError: ({ error }) => {
       chatGenerationTracker.markGenerationComplete(chatId);
+      const durationMs = Math.round(performance.now() - generationStartedAt);
+      log.error('chat stream failed', { durationMs, error: error instanceof Error ? error.message : String(error) });
     },
   });
 

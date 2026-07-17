@@ -1,6 +1,9 @@
 import { emitTaskEvent } from '@/agent/events.js';
 import { agentStore } from '@/agent/store.js';
 import type { AgentActionType, AgentStepType, AgentTaskActionDto, AgentTaskStatus, AgentTaskStepDto } from '@/agent/types.js';
+import { logger } from '@/logging/logger.js';
+
+const taskLog = logger.child('agent-task');
 
 function currentProgress(taskId: string): { status: AgentTaskStatus; progress: number; currentStep?: string } {
   const row = agentStore.rawTask(taskId);
@@ -42,6 +45,7 @@ export function updateStatus(
 ): void {
   agentStore.setStatus(taskId, status, progress, currentStep);
   const state = currentProgress(taskId);
+  taskLog.info('task status', { taskId, status, progress: state.progress });
   emitTaskEvent({ taskId, ...state, newSteps: [], newActions: [] });
 }
 

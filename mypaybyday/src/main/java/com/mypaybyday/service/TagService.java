@@ -22,6 +22,7 @@ import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.validation.TagValidator;
+import io.quarkus.logging.Log;
 
 @ApplicationScoped
 public class TagService {
@@ -186,6 +187,7 @@ public class TagService {
 
 		tagRepository.persist(tag);
 		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forTag(tag.id));
+		Log.infof("Created tag id=%d", tag.id);
 		return TagDto.from(tag);
 	}
 
@@ -202,6 +204,7 @@ public class TagService {
 		tagValidator.validate(tag);
 
 		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forTag(id));
+		Log.infof("Updated tag id=%d", id);
 		return TagDto.from(tag);
 	}
 
@@ -214,16 +217,19 @@ public class TagService {
 				|| tagGroupRepository.countByTag(tag) > 0;
 
 		if (inUseForRecurring) {
+			Log.warnf("Archive rejected: tag id=%d is in use by templates/subscriptions/tag-groups", id);
 			throw new BusinessException(messages.get(MsgKey.TAG_ARCHIVE_IN_USE));
 		}
 
 		tag.archived = true;
+		Log.infof("Archived tag id=%d", id);
 	}
 
 	@Transactional
 	public void unarchive(Long id) throws BusinessException {
 		TagEntity tag = findTagEntity(id, false);
 		tag.archived = false;
+		Log.infof("Unarchived tag id=%d", id);
 	}
 
 	@Transactional
@@ -236,10 +242,12 @@ public class TagService {
 				|| tagGroupRepository.countByTag(tag) > 0;
 
 		if (inUse) {
+			Log.warnf("Delete rejected: tag id=%d is in use", id);
 			throw new BusinessException(messages.get(MsgKey.TAG_IN_USE));
 		}
 
 		tagRepository.delete(tag);
+		Log.infof("Deleted tag id=%d", id);
 	}
 
 }

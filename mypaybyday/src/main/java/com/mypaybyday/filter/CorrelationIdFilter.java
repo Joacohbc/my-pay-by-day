@@ -30,7 +30,11 @@ import org.jboss.logging.MDC;
 public class CorrelationIdFilter implements ContainerRequestFilter, ContainerResponseFilter {
 
 	public static final String REQUEST_ID_HEADER = "X-Request-Id";
+	public static final String SOURCE_HEADER = "X-Source";
 	public static final String MDC_KEY = "requestId";
+	public static final String MDC_SOURCE_KEY = "source";
+
+	private static final String UNKNOWN_SOURCE = "unknown";
 
 	private final RequestIdContext requestIdContext;
 
@@ -46,6 +50,9 @@ public class CorrelationIdFilter implements ContainerRequestFilter, ContainerRes
 		}
 		requestIdContext.setRequestId(requestId);
 		MDC.put(MDC_KEY, requestId);
+
+		String source = req.getHeaderString(SOURCE_HEADER);
+		MDC.put(MDC_SOURCE_KEY, source == null || source.isBlank() ? UNKNOWN_SOURCE : source);
 	}
 
 	@Override
@@ -55,5 +62,6 @@ public class CorrelationIdFilter implements ContainerRequestFilter, ContainerRes
 			res.getHeaders().putSingle(REQUEST_ID_HEADER, requestId);
 		}
 		MDC.remove(MDC_KEY);
+		MDC.remove(MDC_SOURCE_KEY);
 	}
 }

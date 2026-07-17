@@ -2,7 +2,16 @@ import createClient, { type Client, type Middleware } from 'openapi-fetch';
 import { config } from '@/config.js';
 import type { RequestContext } from '@/context.js';
 import type { ServerDateTime } from '@/dates.js';
+import { logger } from '@/logging/logger.js';
 import type { components, paths } from '@/backend/schema.js';
+
+function pathOf(url: string): string {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return url;
+  }
+}
 
 export class BackendError extends Error {
   constructor(public status: number, message: string) {
@@ -44,15 +53,30 @@ export interface EventPatchBody {
  */
 export function createApiClient(ctx: RequestContext): ApiClient {
   const client = createClient<paths>({ baseUrl: config.backendUrl });
-  const localeHeaders: Middleware = {
+  // Bind the correlation id explicitly: backend calls made while streaming a chat run after the
+  // request's AsyncLocalStorage scope has exited, so the ambient store would no longer carry it.
+  const backendLog = logger.child('backend').with({ requestId: ctx.requestId });
+  const startTimes = new WeakMap<Request, number>();
+  const contextMiddleware: Middleware = {
     onRequest({ request }) {
       request.headers.set('X-Timezone', ctx.timezone);
       request.headers.set('X-Language', ctx.lang);
       request.headers.set('X-Request-Id', ctx.requestId);
+      request.headers.set('X-Source', 'chatbot');
+      startTimes.set(request, performance.now());
+      backendLog.debug('backend →', { method: request.method, path: pathOf(request.url) });
       return request;
     },
+    onResponse({ request, response }) {
+      const started = startTimes.get(request);
+      const ms = started != null ? Math.round(performance.now() - started) : undefined;
+      const fields = { method: request.method, path: pathOf(request.url), status: response.status, ms };
+      if (response.ok) backendLog.info('backend ←', fields);
+      else backendLog.warn('backend ← error', fields);
+      return response;
+    },
   };
-  client.use(localeHeaders);
+  client.use(contextMiddleware);
   return client;
 }
 
@@ -97,8 +121,12 @@ export async function getBackendText(ctx: RequestContext, path: string): Promise
       'X-Timezone': ctx.timezone,
       'X-Language': ctx.lang,
       'X-Request-Id': ctx.requestId,
+      'X-Source': 'chatbot',
     },
   });
-  if (!res.ok) throw new BackendError(res.status, `HTTP ${res.status}`);
+  if (!res.ok) {
+    logger.child('backend').with({ requestId: ctx.requestId }).warn('backend ← error', { path, status: res.status });
+    throw new BackendError(res.status, `HTTP ${res.status}`);
+  }
   return res.text();
 }
