@@ -14,6 +14,7 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.TransactionRepository;
 import com.mypaybyday.validation.TransactionValidator;
+import io.quarkus.logging.Log;
 
 @ApplicationScoped
 public class TransactionService {
@@ -61,6 +62,7 @@ public class TransactionService {
 		}
 
 		transactionRepository.persist(transaction);
+		Log.debugf("Created transaction id=%d", transaction.id);
 		return transaction;
 	}
 
@@ -85,6 +87,7 @@ public class TransactionService {
 			}
 		}
 
+		Log.debugf("Updated transaction id=%d", transaction.id);
 		return transaction;
 	}
 
@@ -95,5 +98,6 @@ public class TransactionService {
 			throw new BusinessException(messages.get(MsgKey.TRANSACTION_NOT_FOUND));
 		}
 		transactionRepository.delete(transaction);
+		Log.infof("Deleted transaction id=%d", id);
 	}
 }

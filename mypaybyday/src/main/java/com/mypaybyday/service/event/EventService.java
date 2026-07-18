@@ -19,6 +19,7 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.service.DraftService;
+import io.quarkus.logging.Log;
 
 @ApplicationScoped
 public class EventService {
@@ -91,6 +92,7 @@ public class EventService {
 		}
 		entityDraftService.deleteByOriginalEntityId(id, EntityType.FINANCE_EVENT);
 		eventRepository.delete(event);
+		Log.infof("Deleted event id=%d", id);
 	}
 
 	@Transactional

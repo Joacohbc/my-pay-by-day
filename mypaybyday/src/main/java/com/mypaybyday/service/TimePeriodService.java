@@ -34,6 +34,7 @@ import com.mypaybyday.repository.TimePeriodRepository;
 import com.mypaybyday.service.event.EventService;
 import com.mypaybyday.validation.DateValidator;
 import com.mypaybyday.validation.TimePeriodValidator;
+import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
 
 @ApplicationScoped
@@ -216,6 +217,7 @@ public class TimePeriodService {
 		}
 		validatePeriod(timePeriod);
 		timePeriodRepository.persist(timePeriod);
+		Log.infof("Created time-period id=%d", timePeriod.id);
 		return TimePeriodDto.from(timePeriod);
 	}
 
@@ -261,6 +263,7 @@ public class TimePeriodService {
 
 		validatePeriod(timePeriod);
 
+		Log.infof("Updated time-period id=%d", id);
 		return TimePeriodDto.from(timePeriod);
 	}
 
@@ -268,6 +271,7 @@ public class TimePeriodService {
 	public void delete(Long id) throws BusinessException {
 		TimePeriodEntity timePeriod = findTimePeriodEntity(id);
 		timePeriodRepository.delete(timePeriod);
+		Log.infof("Deleted time-period id=%d", id);
 	}
 
 	// -------------------------------------------------------------------------

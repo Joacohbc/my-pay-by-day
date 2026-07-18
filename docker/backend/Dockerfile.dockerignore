@@ -1,0 +1,8 @@
+*
+!mypaybyday
+!mypaybyday/mvnw
+!mypaybyday/.mvn
+!mypaybyday/.mvn/**
+!mypaybyday/pom.xml
+!mypaybyday/src
+!mypaybyday/src/**

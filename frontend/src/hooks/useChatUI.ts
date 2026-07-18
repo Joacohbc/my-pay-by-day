@@ -154,7 +154,7 @@ export function useChatUI() {
             newMessages = lastAssistantIndex === -1 ? messages : messages.slice(messages.length - lastAssistantIndex);
           }
           return {
-            headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency() },
+            headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency(), 'X-Request-Id': crypto.randomUUID(), 'X-Source': 'frontend' },
             body: { chatId, messages: newMessages },
           };
         },

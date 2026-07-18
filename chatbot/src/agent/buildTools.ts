@@ -66,7 +66,10 @@ function withLogging(name: string, kinded: KindedToolSet[string]): KindedToolSet
     ...kinded.tool,
     execute: ((input: unknown, options: unknown) => {
       const startedAt = Date.now();
-      toolLog.info(`→ ${name}`, { kind: kinded.kind, args: input });
+      // Tool name + kind stay at INFO (so prod shows which tools the bot uses); the raw args
+      // (which can carry user content) drop to DEBUG.
+      toolLog.info(`→ ${name}`, { kind: kinded.kind });
+      toolLog.debug(`→ ${name} args`, { args: input });
       const result = (original as (i: unknown, o: unknown) => unknown)(input, options);
       if (isAsyncIterable(result)) return logIterable(name, startedAt, result);
       return logPromise(name, startedAt, Promise.resolve(result));

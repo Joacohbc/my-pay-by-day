@@ -21,6 +21,7 @@ import com.mypaybyday.service.CategoryService;
 import com.mypaybyday.service.TagService;
 import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.validation.EventValidator;
+import io.quarkus.logging.Log;
 
 @ApplicationScoped
 public class EventCreateService {
@@ -73,6 +74,8 @@ public class EventCreateService {
 		eventValidator.validate(event);
 		eventRepository.persist(event);
 		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forEvent(event.id));
+		Log.infof("Created event id=%d type=%s category=%s transaction=%d", event.id, event.type,
+				event.category != null ? event.category.id : null, createdTransaction.id);
 		return FinanceEventDto.from(event);
 	}
 }

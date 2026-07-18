@@ -3,6 +3,7 @@ package com.mypaybyday.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
@@ -11,16 +12,34 @@ import jakarta.transaction.Transactional;
 import com.mypaybyday.entity.SystemJobEntity;
 import com.mypaybyday.enums.JobCategory;
 import com.mypaybyday.enums.JobStatus;
+import com.mypaybyday.filter.CorrelationIdFilter;
 import com.mypaybyday.repository.SystemJobRepository;
 import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.service.duplicate.DuplicateDetectionService;
 import io.quarkus.scheduler.Scheduled;
 import org.jboss.logging.Logger;
+import org.jboss.logging.MDC;
 
 @ApplicationScoped
 public class JobSchedulerService {
 
 	private static final Logger LOG = Logger.getLogger(JobSchedulerService.class);
+
+	/**
+	 * Background jobs run outside any HTTP request, so the request-scoped MDC is empty. Stamp a
+	 * synthetic {@code job-<uuid>} correlation id (and a {@code source}) so their log lines are
+	 * grouped and never render an empty {@code [req=]}.
+	 */
+	private void withJobCorrelation(String source, Runnable body) {
+		MDC.put(CorrelationIdFilter.MDC_KEY, "job-" + UUID.randomUUID());
+		MDC.put(CorrelationIdFilter.MDC_SOURCE_KEY, source);
+		try {
+			body.run();
+		} finally {
+			MDC.remove(CorrelationIdFilter.MDC_KEY);
+			MDC.remove(CorrelationIdFilter.MDC_SOURCE_KEY);
+		}
+	}
 
 	private final SystemJobRepository systemJobRepository;
 	private final SubscriptionService subscriptionService;
@@ -35,6 +54,10 @@ public class JobSchedulerService {
 	@Scheduled(every = "1h", delayed = "30s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
 	@Transactional
 	public void processSubscriptionsJob() {
+		withJobCorrelation("scheduler:subscription", this::runSubscriptionsJob);
+	}
+
+	private void runSubscriptionsJob() {
 		LOG.info("Starting subscription processor job...");
 
 		List<SystemJobEntity> pendingJobs;
@@ -76,6 +99,10 @@ public class JobSchedulerService {
 	@Scheduled(every = "1h", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
 	@Transactional
 	public void processDuplicateDetectionJob() {
+		withJobCorrelation("scheduler:duplicate-detection", this::runDuplicateDetectionJob);
+	}
+
+	private void runDuplicateDetectionJob() {
 		LOG.info("Starting duplicate detection job...");
 
 		List<SystemJobEntity> pendingJobs = systemJobRepository.findPendingJobsByCategory(JobCategory.DUPLICATE_DETECTION);
@@ -122,8 +149,11 @@ public class JobSchedulerService {
 
 	@Transactional
 	public void onDuplicateDetectionRequested(@ObservesAsync DuplicateDetectionEvent event) {
-		LOG.infof("Immediate duplicate detection triggered for %s:%d", event.type(), event.id());
+		String requestId = event.requestId() != null ? event.requestId() : "async-" + UUID.randomUUID();
+		MDC.put(CorrelationIdFilter.MDC_KEY, requestId);
+		MDC.put(CorrelationIdFilter.MDC_SOURCE_KEY, "async-duplicate-detection");
 		try {
+			LOG.infof("Immediate duplicate detection triggered for %s:%d", event.type(), event.id());
 			switch (event.type()) {
 				case "EVENT" -> duplicateDetectionService.detectDuplicatesForEvent(event.id());
 				case "CATEGORY" -> duplicateDetectionService.detectDuplicatesForCategory(event.id());
@@ -132,6 +162,9 @@ public class JobSchedulerService {
 			}
 		} catch (Exception e) {
 			LOG.errorf(e, "Immediate duplicate detection failed for %s:%d", event.type(), event.id());
+		} finally {
+			MDC.remove(CorrelationIdFilter.MDC_KEY);
+			MDC.remove(CorrelationIdFilter.MDC_SOURCE_KEY);
 		}
 	}
 

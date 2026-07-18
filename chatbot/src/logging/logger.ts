@@ -1,4 +1,5 @@
 import { config } from '@/config.js';
+import { currentRequestFields } from '@/logging/requestStore.js';
 
 export type LogLevel = 'silent' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
 
@@ -56,9 +57,11 @@ function formatJson(level: LogLevel, scope: string, message: string, fields?: Lo
 
 function emit(level: LogLevel, scope: string, message: string, fields?: LogFields): void {
   if (LEVEL_ORDER[level] > configuredThreshold()) return;
+  const ambient = currentRequestFields();
+  const effectiveFields = ambient ? { ...ambient, ...fields } : fields;
   const line = config.log.format === 'json'
-    ? formatJson(level, scope, message, fields)
-    : formatText(level, scope, message, fields);
+    ? formatJson(level, scope, message, effectiveFields)
+    : formatText(level, scope, message, effectiveFields);
   if (level === 'error') console.error(line);
   else if (level === 'warn') console.warn(line);
   else console.log(line);
@@ -72,16 +75,26 @@ export interface Logger {
   trace(message: string, fields?: LogFields): void;
   /** Returns a logger tagged with a sub-scope (e.g. `logger.child('tool')`). */
   child(scope: string): Logger;
+  /**
+   * Returns a logger that stamps `boundFields` (e.g. `{ requestId, chatId }`) onto every line,
+   * so per-request context is traceable without repeating it at each call site.
+   */
+  with(boundFields: LogFields): Logger;
 }
 
-function createLogger(scope: string): Logger {
+function createLogger(scope: string, boundFields?: LogFields): Logger {
+  const merge = (fields?: LogFields): LogFields | undefined => {
+    if (!boundFields) return fields;
+    return fields ? { ...boundFields, ...fields } : boundFields;
+  };
   return {
-    error: (message, fields) => emit('error', scope, message, fields),
-    warn: (message, fields) => emit('warn', scope, message, fields),
-    info: (message, fields) => emit('info', scope, message, fields),
-    debug: (message, fields) => emit('debug', scope, message, fields),
-    trace: (message, fields) => emit('trace', scope, message, fields),
-    child: (childScope) => createLogger(`${scope}:${childScope}`),
+    error: (message, fields) => emit('error', scope, message, merge(fields)),
+    warn: (message, fields) => emit('warn', scope, message, merge(fields)),
+    info: (message, fields) => emit('info', scope, message, merge(fields)),
+    debug: (message, fields) => emit('debug', scope, message, merge(fields)),
+    trace: (message, fields) => emit('trace', scope, message, merge(fields)),
+    child: (childScope) => createLogger(`${scope}:${childScope}`, boundFields),
+    with: (extraFields) => createLogger(scope, merge(extraFields)),
   };
 }
 

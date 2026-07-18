@@ -28,6 +28,7 @@ import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.service.CategoryService;
 import com.mypaybyday.service.DraftService;
 import com.mypaybyday.service.TagService;
+import io.quarkus.logging.Log;
 
 @ApplicationScoped
 public class EventMergeService {
@@ -160,6 +161,7 @@ public class EventMergeService {
 			eventRepository.delete(sourceEvent);
 		}
 
+		Log.infof("Merged %d events into base id=%d: sources=%s", sourceIds.size(), baseEventId, sourceIds);
 		return FinanceEventDto.from(baseEvent);
 	}
 
@@ -179,6 +181,7 @@ public class EventMergeService {
 			relatedEvent.relatedEvents.add(event);
 		}
 
+		Log.infof("Linked event id=%d related=%s", eventId, relatedIds);
 		return FinanceEventDto.from(event);
 	}
 
@@ -198,6 +201,7 @@ public class EventMergeService {
 			relatedEvent.relatedEvents.remove(event);
 		}
 
+		Log.infof("Unlinked event id=%d related=%s", eventId, relatedIds);
 		return FinanceEventDto.from(event);
 	}
 

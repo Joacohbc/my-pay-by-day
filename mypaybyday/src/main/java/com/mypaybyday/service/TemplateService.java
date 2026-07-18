@@ -16,6 +16,7 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.validation.TemplateValidator;
+import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
 
 @ApplicationScoped
@@ -91,6 +92,7 @@ public class TemplateService {
 		TemplateEntity template = new TemplateEntity();
 		applyDto(template, dto);
 		templateRepository.persist(template);
+		Log.infof("Created template id=%d", template.id);
 		return TemplateDto.from(template);
 	}
 
@@ -105,6 +107,7 @@ public class TemplateService {
 			throw new BusinessException(messages.get(MsgKey.TEMPLATE_MODIFIER_VALIDATION));
 		}
 		applyDto(template, dto);
+		Log.infof("Updated template id=%d", id);
 		return TemplateDto.from(template);
 	}
 
@@ -112,6 +115,7 @@ public class TemplateService {
 	public void delete(Long id) throws BusinessException {
 		TemplateEntity template = findEntityById(id);
 		templateRepository.delete(template);
+		Log.infof("Deleted template id=%d", id);
 	}
 
 	// -------------------------------------------------------------------------

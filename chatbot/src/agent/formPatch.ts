@@ -126,6 +126,12 @@ export async function streamFormPatch(ctx: RequestContext, input: FormPatchInput
       system,
       messages: input.messages,
       stopWhen: stepCountIs(5),
+      onError: ({ error }) => {
+        formPatchLog.error('form patch stream failed', {
+          entityType: input.entityType,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      },
       tools: {
         ...readTools,
         patch_form: input.entityType === 'category' ? tool({

@@ -29,6 +29,22 @@ function getLang(): string {
   return i18n.language ?? 'en';
 }
 
+/**
+ * Common context headers sent on every request. `X-Request-Id` is a fresh correlation ID per
+ * request that the backend and chatbot echo into their logs, giving an end-to-end trace from the
+ * browser through both services.
+ */
+function contextHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  return {
+    ...extra,
+    'X-Timezone': getUserTimezone(),
+    'X-Language': getLang(),
+    'X-Currency': getCurrency(),
+    'X-Request-Id': crypto.randomUUID(),
+    'X-Source': 'frontend',
+  };
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let message = `HTTP ${res.status}`;
@@ -49,12 +65,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 export const api = {
   get: <T>(path: string): Promise<T> =>
     fetch(`${BASE_URL}${path}`, {
-      headers: {
-        Accept: 'application/json',
-        'X-Timezone': getUserTimezone(),
-        'X-Language': getLang(),
-        'X-Currency': getCurrency(),
-      }
+      headers: contextHeaders({ Accept: 'application/json' }),
     }).then((r) => handleResponse<T>(r)),
 
   post: <T>(path: string, body?: unknown, options?: { signal?: AbortSignal }): Promise<T> => {
@@ -62,13 +73,7 @@ export const api = {
     const transformedBody = body !== undefined ? transformDates(body, toServerDate) : undefined;
     return fetch(`${BASE_URL}${path}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'X-Timezone': getUserTimezone(),
-        'X-Language': getLang(),
-        'X-Currency': getCurrency(),
-      },
+      headers: contextHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
       body: transformedBody !== undefined ? JSON.stringify(transformedBody) : undefined,
       signal: options?.signal,
     }).then((r) => handleResponse<T>(r));
@@ -79,13 +84,7 @@ export const api = {
     const transformedBody = transformDates(body, toServerDate);
     return fetch(`${BASE_URL}${path}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'X-Timezone': getUserTimezone(),
-        'X-Language': getLang(),
-        'X-Currency': getCurrency(),
-      },
+      headers: contextHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
       body: JSON.stringify(transformedBody),
     }).then((r) => handleResponse<T>(r));
   },
@@ -95,13 +94,7 @@ export const api = {
     const transformedBody = transformDates(body, toServerDate);
     return fetch(`${BASE_URL}${path}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'X-Timezone': getUserTimezone(),
-        'X-Language': getLang(),
-        'X-Currency': getCurrency(),
-      },
+      headers: contextHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
       body: JSON.stringify(transformedBody),
     }).then((r) => handleResponse<T>(r));
   },
@@ -109,34 +102,20 @@ export const api = {
   delete: <T = void>(path: string, body?: unknown): Promise<T> =>
     fetch(`${BASE_URL}${path}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Timezone': getUserTimezone(),
-        'X-Language': getLang(),
-        'X-Currency': getCurrency(),
-      },
+      headers: contextHeaders({ 'Content-Type': 'application/json' }),
       body: body ? JSON.stringify(body) : undefined,
     }).then((r) => handleResponse<T>(r)),
 
   postForm: <T>(path: string, body: FormData): Promise<T> =>
     fetch(`${BASE_URL}${path}`, {
       method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'X-Timezone': getUserTimezone(),
-        'X-Language': getLang(),
-        'X-Currency': getCurrency(),
-      },
+      headers: contextHeaders({ Accept: 'application/json' }),
       body,
     }).then((r) => handleResponse<T>(r)),
 
   getBlob: (path: string): Promise<Blob> =>
     fetch(`${BASE_URL}${path}`, {
-      headers: {
-        'X-Timezone': getUserTimezone(),
-        'X-Language': getLang(),
-        'X-Currency': getCurrency(),
-      }
+      headers: contextHeaders(),
     }).then((r) => {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.blob();
@@ -145,13 +124,7 @@ export const api = {
   postBinary: <T>(path: string, body: Blob, contentType: string): Promise<T> =>
     fetch(`${BASE_URL}${path}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': contentType,
-        Accept: 'application/json',
-        'X-Timezone': getUserTimezone(),
-        'X-Language': getLang(),
-        'X-Currency': getCurrency(),
-      },
+      headers: contextHeaders({ 'Content-Type': contentType, Accept: 'application/json' }),
       body,
     }).then((r) => handleResponse<T>(r)),
 };

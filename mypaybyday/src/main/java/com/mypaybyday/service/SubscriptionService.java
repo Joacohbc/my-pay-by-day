@@ -32,13 +32,11 @@ import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.SystemJobRepository;
 import com.mypaybyday.service.event.EventService;
 import com.mypaybyday.validation.SubscriptionValidator;
+import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
-import org.jboss.logging.Logger;
 
 @ApplicationScoped
 public class SubscriptionService {
-
-	private static final Logger LOG = Logger.getLogger(SubscriptionService.class);
 
 	private final SubscriptionRepository subscriptionRepository;
 	private final EventRepository eventRepository;
@@ -145,6 +143,8 @@ public class SubscriptionService {
 		job.entityId = String.valueOf(subscription.id);
 		systemJobRepository.persist(job);
 
+		Log.infof("Created subscription id=%d recurrence=%s nextExec=%s", subscription.id, subscription.recurrence,
+				subscription.nextExecutionDate);
 		return SubscriptionDto.from(subscription);
 	}
 
@@ -235,6 +235,7 @@ public class SubscriptionService {
 			systemJobRepository.persist(job);
 		}
 
+		Log.infof("Updated subscription id=%d status=%s", subscription.id, subscription.status);
 		return SubscriptionDto.from(subscription);
 	}
 
@@ -253,6 +254,7 @@ public class SubscriptionService {
 		}
 
 		subscriptionRepository.delete(subscription);
+		Log.infof("Deleted subscription id=%d", id);
 	}
 
 	@Transactional
@@ -263,6 +265,7 @@ public class SubscriptionService {
 		}
 		subscription.status = SubscriptionStatus.CANCELLED;
 		subscriptionRepository.persist(subscription);
+		Log.infof("Cancelled subscription id=%d", id);
 		return findById(id);
 	}
 
@@ -274,7 +277,7 @@ public class SubscriptionService {
 		}
 
 		if (sub.status != SubscriptionStatus.ACTIVE) {
-			LOG.warnf("Subscription %d is not active, skipping execution.", sub.id);
+			Log.warnf("Subscription %d is not active, skipping execution.", sub.id);
 			return;
 		}
 
@@ -298,15 +301,16 @@ public class SubscriptionService {
 			nextJob.entityId = String.valueOf(sub.id);
 			systemJobRepository.persist(nextJob);
 
+			Log.infof("Processed subscription id=%d, next execution=%s", sub.id, sub.nextExecutionDate);
 		} catch (Exception e) {
-			LOG.errorf(e, "Failed to process subscription ID: %d", sub.id);
+			Log.errorf(e, "Failed to process subscription ID: %d", sub.id);
 			throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_PROCESSING_FAILED, e.getMessage()));
 		}
 	}
 
 	private void createEventFromSubscription(SubscriptionEntity sub) {
 		if (sub.eventType == null || sub.modifierValue == null || sub.originNode == null) {
-			LOG.warnf("Subscription %d is missing required fields (eventType, modifierValue, originNode) for event generation. Skipping.", sub.id);
+			Log.warnf("Subscription %d is missing required fields (eventType, modifierValue, originNode) for event generation. Skipping.", sub.id);
 			return;
 		}
 
@@ -327,7 +331,7 @@ public class SubscriptionService {
 					lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, null, sub.modifierValue.negate()));
 					lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, null, sub.modifierValue));
 				} else {
-					LOG.warnf("Subscription %d is type OTHER but missing destinationNode. Skipping.", sub.id);
+					Log.warnf("Subscription %d is type OTHER but missing destinationNode. Skipping.", sub.id);
 					return;
 				}
 			}
@@ -372,12 +376,13 @@ public class SubscriptionService {
 		}
 
 		FinanceEventDto createdEvent = eventService.create(event);
+		Log.infof("Generated event id=%d from subscription id=%d", createdEvent.id(), sub.id);
 
 		if (previousEvent != null) {
 			try {
 				eventService.addRelations(createdEvent.id(), List.of(previousEvent.id));
 			} catch (BusinessException e) {
-				LOG.warnf(e, "Failed to link subscription event %d to previous event %d", createdEvent.id(), previousEvent.id);
+				Log.warnf(e, "Failed to link subscription event %d to previous event %d", createdEvent.id(), previousEvent.id);
 			}
 		}
 	}
