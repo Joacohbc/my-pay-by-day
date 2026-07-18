@@ -18,7 +18,7 @@ FROM eclipse-temurin:21-jre-noble
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    groupadd -r app && useradd -r -g app -u 1000 app
+    groupadd -r app && useradd -r -g app app
 
 WORKDIR /deployments
 COPY --from=build --chown=app:app /app/target/quarkus-app/lib/     /deployments/lib/
