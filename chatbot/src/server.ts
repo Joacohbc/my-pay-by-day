@@ -14,7 +14,6 @@ import { memoryRoute } from '@/routes/memory.js';
 import { textRoute } from '@/routes/text.js';
 import { logger } from '@/logging/logger.js';
 import { runWithRequestContext } from '@/logging/requestStore.js';
-import { httpRequestDuration, registry } from '@/metrics.js';
 
 const app = new Hono();
 
@@ -39,12 +38,6 @@ app.use('*', async (c, next) => {
       const durationMs = Math.round(performance.now() - startedAt);
       const status = c.res.status;
       requestLog.info('request completed', { method, path, status, durationMs });
-      if (config.metrics.enabled && path !== '/metrics') {
-        httpRequestDuration.observe(
-          { method, route: path, status: String(status) },
-          durationMs / 1000,
-        );
-      }
     }
   });
 });
@@ -66,13 +59,6 @@ app.onError((err, c) => {
 });
 
 app.get('/health', (c) => c.json({ status: 'ok', service: 'mypaybyday-chatbot' }));
-
-if (config.metrics.enabled) {
-  app.get('/metrics', async (c) => {
-    c.header('Content-Type', registry.contentType);
-    return c.body(await registry.metrics());
-  });
-}
 
 app.route('/ai/chat', chatRoute);
 app.route('/ai/memory', memoryRoute);

@@ -59,11 +59,6 @@ export const config = {
     /** Prefix each line with an ISO timestamp (text format only). */
     timestamps: env('LOG_TIMESTAMPS', 'true') !== 'false',
   },
-
-  metrics: {
-    /** Expose the Prometheus scrape endpoint at `/metrics`. */
-    enabled: env('METRICS_ENABLED', 'true') !== 'false',
-  },
 } as const;
 
 export type AppConfig = typeof config;

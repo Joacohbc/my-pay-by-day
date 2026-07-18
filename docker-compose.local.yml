@@ -18,6 +18,18 @@
 #                        sin estas dos, esa llamada falla y nginx no levanta.
 #   backend/chatbot/markitdown no necesitan cap_add: ya corren como usuario no-root
 #   desde el arranque y no bindean puertos privilegiados.
+#
+# ── Logs ──────────────────────────────────────────────────────────────────
+# Cada app service manda su stdout (JSON) a Loki vía el logging driver de Docker
+# (sin sidecar ni docker.sock). Requiere una vez en el host:
+#   docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
+x-loki-logging: &loki-logging
+  driver: loki
+  options:
+    loki-url: "http://localhost:3100/loki/api/v1/push"
+    mode: "non-blocking"
+    loki-external-labels: "job=docker,container_name={{.Name}}"
+
 services:
 
   # ── Application services ─────────────────────────────────────────────
@@ -45,6 +57,7 @@ services:
         condition: service_healthy
       chatbot:
         condition: service_healthy
+    logging: *loki-logging
     restart: unless-stopped
 
   frontend:
@@ -62,6 +75,7 @@ services:
       - SETUID            # nginx master drops privilege to the nginx user for workers
       - SETGID
     # Not read_only: entrypoint.sh writes /usr/share/nginx/html/env.js at startup.
+    logging: *loki-logging
     restart: unless-stopped
 
   backend:
@@ -88,6 +102,7 @@ services:
     depends_on:
       markitdown:
         condition: service_healthy
+    logging: *loki-logging
     restart: unless-stopped
 
   chatbot:
@@ -112,7 +127,6 @@ services:
       - LOG_FORMAT=${LOG_FORMAT:-json}
       - LOG_MAX_FIELD_CHARS=${LOG_MAX_FIELD_CHARS:-800}
       - LOG_TIMESTAMPS=${LOG_TIMESTAMPS:-true}
-      - METRICS_ENABLED=${METRICS_ENABLED:-true}
       - CHATBOT_DB_PATH=${CHATBOT_DB_PATH:-/data/chatbot.db}
     volumes:
       - chatbot_data:/data
@@ -142,65 +156,22 @@ services:
     tmpfs:
       - /tmp
       - /home/appuser
+    logging: *loki-logging
     restart: unless-stopped
 
-  # ── Observability stack ──────────────────────────────────────────────
-  # Prometheus scrapes each service directly: backend:8080/q/metrics (Micrometer),
-  # chatbot:3001/metrics (prom-client), and the nginx exporters for gateway/frontend.
-  # Alloy tails every container's JSON logs into Loki; Grafana ties metrics + logs
-  # together and lets you trace one request across services by its X-Request-Id.
-  prometheus:
-    image: prom/prometheus:v3.1.0
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.retention.time=15d
-    volumes:
-      - ./docker/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    ports:
-      - "9090:9090"
-    depends_on:
-      - backend
-      - chatbot
-    restart: unless-stopped
-
-  gateway-metrics:
-    image: nginx/nginx-prometheus-exporter:1.4.0
-    command:
-      - --nginx.scrape-uri=http://gateway:8081/stub_status
-    depends_on:
-      - gateway
-    restart: unless-stopped
-
-  frontend-metrics:
-    image: nginx/nginx-prometheus-exporter:1.4.0
-    command:
-      - --nginx.scrape-uri=http://frontend:8081/stub_status
-    depends_on:
-      - frontend
-    restart: unless-stopped
-
+  # ── Observability stack (logs only) ──────────────────────────────────
+  # Services ship their JSON logs to Loki via Docker's Loki logging driver
+  # (see x-loki-logging above); Loki publishes :3100 on localhost so the driver
+  # on the host can push to it. Grafana reads Loki and lets you trace one
+  # request across services by its X-Request-Id.
   loki:
     image: grafana/loki:3.3.2
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
       - ./docker/observability/loki-config.yml:/etc/loki/loki-config.yml:ro
       - loki_data:/loki
-    restart: unless-stopped
-
-  alloy:
-    image: grafana/alloy:v1.5.1
-    command:
-      - run
-      - /etc/alloy/config.alloy
-      - --storage.path=/var/lib/alloy/data
-      - --server.http.listen-addr=0.0.0.0:12345
-    volumes:
-      - ./docker/observability/alloy.config:/etc/alloy/config.alloy:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - alloy_data:/var/lib/alloy/data
-    depends_on:
-      - loki
+    ports:
+      - "127.0.0.1:3100:3100"
     restart: unless-stopped
 
   grafana:
@@ -215,14 +186,11 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - prometheus
       - loki
     restart: unless-stopped
 
 volumes:
   backend_data:
   chatbot_data:
-  prometheus_data:
   loki_data:
-  alloy_data:
   grafana_data:
