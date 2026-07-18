@@ -1,0 +1,6 @@
+.git
+**/node_modules
+**/dist
+mypaybyday/target
+docker/backend/markitdown/.libs
+graphify-out

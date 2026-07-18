@@ -69,7 +69,7 @@
       "type": "shell",
       "command": "./run.sh",
       "options": {
-        "cwd": "/workspace/docker/markitdown"
+        "cwd": "/workspace/docker/backend/markitdown"
       },
       "isBackground": true,
       "problemMatcher": [

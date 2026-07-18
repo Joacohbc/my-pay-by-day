@@ -1,4 +1,4 @@
-name: Combined Docker
+name: Docker Build & Publish
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
     paths:
       - 'frontend/**'
       - 'mypaybyday/**'
+      - 'chatbot/**'
       - 'docker/**'
   workflow_dispatch:
     inputs:
@@ -16,23 +17,33 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/full
 
 jobs:
 
   build-image:
-    name: Build image (${{ matrix.platform }})
-    runs-on: ${{ matrix.runner }}
+    name: Build ${{ matrix.service.name }} (${{ matrix.platform.arch }})
+    runs-on: ${{ matrix.platform.runner }}
     permissions:
       contents: read
       packages: write
     strategy:
       fail-fast: true
       matrix:
-        include:
-          - platform: linux/amd64
+        service:
+          - name: gateway
+            dockerfile: docker/gateway/Dockerfile
+          - name: frontend
+            dockerfile: docker/frontend/Dockerfile
+          - name: chatbot
+            dockerfile: docker/chatbot/Dockerfile
+          - name: backend
+            dockerfile: docker/backend/Dockerfile
+          - name: markitdown
+            dockerfile: docker/backend/markitdown/Dockerfile
+        platform:
+          - arch: linux/amd64
             runner: ubuntu-latest
-          - platform: linux/arm64
+          - arch: linux/arm64
             runner: ubuntu-24.04-arm
 
     steps:
@@ -45,7 +56,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Lowercase image name
-        run: echo "IMAGE_NAME=$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        run: echo "IMAGE_NAME=$(echo '${{ github.repository }}/${{ matrix.service.name }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -65,8 +76,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./docker/Dockerfile
-          platforms: ${{ matrix.platform }}
+          file: ${{ matrix.service.dockerfile }}
+          platforms: ${{ matrix.platform.arch }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
           no-cache: true
@@ -80,25 +91,28 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ strategy.job-index }}
+          name: digests-${{ matrix.service.name }}-${{ strategy.job-index }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
 
   merge-manifests:
-    name: Build multi-arch manifest
+    name: Build multi-arch manifest (${{ matrix.service }})
     runs-on: ubuntu-latest
     needs: build-image
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        service: [gateway, frontend, chatbot, backend, markitdown]
 
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
           path: /tmp/digests
-          pattern: digests-*
+          pattern: digests-${{ matrix.service }}-*
           merge-multiple: true
 
       - name: Log in to GitHub Container Registry
@@ -112,7 +126,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Lowercase image name
-        run: echo "IMAGE_NAME=$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        run: echo "IMAGE_NAME=$(echo '${{ github.repository }}/${{ matrix.service }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Extract Docker metadata
         id: meta
