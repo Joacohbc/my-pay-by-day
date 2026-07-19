@@ -20,15 +20,14 @@
 #   desde el arranque y no bindean puertos privilegiados.
 #
 # ── Logs ──────────────────────────────────────────────────────────────────
-# Cada app service manda su stdout (JSON) a Loki vía el logging driver de Docker
-# (sin sidecar ni docker.sock). Requiere una vez en el host:
-#   docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
-x-loki-logging: &loki-logging
-  driver: loki
+# Cada service escribe stdout al driver json-file estándar (con rotación).
+# Promtail lee esos logs vía docker.sock y los empuja a Loki; si Loki está
+# caído, promtail reintenta solo y los containers no se ven afectados.
+x-default-logging: &default-logging
+  driver: json-file
   options:
-    loki-url: "http://localhost:3100/loki/api/v1/push"
-    mode: "non-blocking"
-    loki-external-labels: "job=docker,container_name={{.Name}}"
+    max-size: "10m"
+    max-file: "3"
 
 services:
 
@@ -57,7 +56,7 @@ services:
         condition: service_healthy
       chatbot:
         condition: service_healthy
-    logging: *loki-logging
+    logging: *default-logging
     restart: unless-stopped
 
   frontend:
@@ -75,7 +74,7 @@ services:
       - SETUID            # nginx master drops privilege to the nginx user for workers
       - SETGID
     # Not read_only: entrypoint.sh writes /usr/share/nginx/html/env.js at startup.
-    logging: *loki-logging
+    logging: *default-logging
     restart: unless-stopped
 
   backend:
@@ -96,13 +95,10 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
     depends_on:
       markitdown:
         condition: service_healthy
-    logging: *loki-logging
+    logging: *default-logging
     restart: unless-stopped
 
   chatbot:
@@ -134,12 +130,10 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
     depends_on:
       backend:
         condition: service_healthy
+    logging: *default-logging
     restart: unless-stopped
 
   markitdown:
@@ -152,26 +146,30 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /home/appuser
-    logging: *loki-logging
+    logging: *default-logging
     restart: unless-stopped
 
   # ── Observability stack (logs only) ──────────────────────────────────
-  # Services ship their JSON logs to Loki via Docker's Loki logging driver
-  # (see x-loki-logging above); Loki publishes :3100 on localhost so the driver
-  # on the host can push to it. Grafana reads Loki and lets you trace one
-  # request across services by its X-Request-Id.
+  # Promtail discovers containers via docker.sock, tails their json-file logs
+  # and pushes them to Loki over the compose network. Grafana reads Loki and
+  # lets you trace one request across services by its X-Request-Id.
   loki:
     image: grafana/loki:3.3.2
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
       - ./docker/observability/loki-config.yml:/etc/loki/loki-config.yml:ro
       - loki_data:/loki
-    ports:
-      - "127.0.0.1:3100:3100"
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:3.3.2
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./docker/observability/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail_positions:/positions
+    depends_on:
+      - loki
     restart: unless-stopped
 
   grafana:
@@ -194,3 +192,4 @@ volumes:
   chatbot_data:
   loki_data:
   grafana_data:
+  promtail_positions:
