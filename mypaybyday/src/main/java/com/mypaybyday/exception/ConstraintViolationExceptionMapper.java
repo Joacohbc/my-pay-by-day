@@ -2,7 +2,11 @@ package com.mypaybyday.exception;
 
 import java.util.stream.Collectors;
 
+import org.jboss.logging.MDC;
+
+import com.mypaybyday.enums.ErrorKind;
 import com.mypaybyday.exception.BusinessExceptionMapper.ErrorResponse;
+import com.mypaybyday.filter.CorrelationIdFilter;
 
 import io.quarkus.logging.Log;
 import jakarta.annotation.Priority;
@@ -27,6 +31,7 @@ public class ConstraintViolationExceptionMapper implements ExceptionMapper<Const
 		String details = exception.getConstraintViolations().stream()
 				.map(ConstraintViolationExceptionMapper::describe)
 				.collect(Collectors.joining("; "));
+		MDC.put(CorrelationIdFilter.MDC_ERROR_KIND_KEY, ErrorKind.VALIDATION.name().toLowerCase());
 		Log.warnf("Request rejected by validation: %s", details);
 		return Response.status(Response.Status.BAD_REQUEST)
 				.entity(new ErrorResponse(details))

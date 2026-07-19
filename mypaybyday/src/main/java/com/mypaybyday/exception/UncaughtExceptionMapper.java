@@ -1,6 +1,10 @@
 package com.mypaybyday.exception;
 
+import org.jboss.logging.MDC;
+
+import com.mypaybyday.enums.ErrorKind;
 import com.mypaybyday.exception.BusinessExceptionMapper.ErrorResponse;
+import com.mypaybyday.filter.CorrelationIdFilter;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 
@@ -33,6 +37,7 @@ public class UncaughtExceptionMapper implements ExceptionMapper<Exception> {
 		if (exception instanceof WebApplicationException webApplicationException) {
 			return webApplicationException.getResponse();
 		}
+		MDC.put(CorrelationIdFilter.MDC_ERROR_KIND_KEY, ErrorKind.TECHNICAL.name().toLowerCase());
 		Log.error("Unhandled exception while processing request", exception);
 		return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
 				.entity(new ErrorResponse(messages.get(MsgKey.INTERNAL_SERVER_ERROR)))

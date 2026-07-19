@@ -66,7 +66,7 @@ public class EventUpdateService {
 	public FinanceEventDto update(Long id, PatchEventDto patch) throws BusinessException {
 		FinanceEventEntity event = eventRepository.findById(id);
 		if (event == null) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
+			throw messages.reject(MsgKey.EVENT_NOT_FOUND);
 		}
 
 		if (patch.getName().isPresent()) {
@@ -122,13 +122,13 @@ public class EventUpdateService {
 	public List<FinanceEventDto> bulkUpdate(BulkPatchEventDto patch) throws BusinessException {
 		if (patch.getEventIds() == null || patch.getEventIds().isEmpty()) {
 			Log.warn("Bulk update rejected: no event ids supplied");
-			throw new BusinessException(messages.get(MsgKey.EVENT_BULK_NO_IDS));
+			throw messages.reject(MsgKey.EVENT_BULK_NO_IDS);
 		}
 
 		List<FinanceEventEntity> events = eventRepository.list("id IN ?1", patch.getEventIds());
 		if (events.size() != patch.getEventIds().size()) {
 			Log.warnf("Bulk update rejected: requested %d ids but found %d", patch.getEventIds().size(), events.size());
-			throw new BusinessException(messages.get(MsgKey.EVENT_BULK_EVENTS_NOT_FOUND));
+			throw messages.reject(MsgKey.EVENT_BULK_EVENTS_NOT_FOUND);
 		}
 
 		boolean applyCategory = patch.getCategory().isPresent();

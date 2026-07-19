@@ -45,10 +45,10 @@ public class SelectionHistoryService {
 	@Transactional
 	public void recordSelection(RecordSelectionDto dto) throws BusinessException {
 		if (dto.entityType() == null) {
-			throw new BusinessException(messages.get(MsgKey.SELECTION_HISTORY_ENTITY_TYPE_REQUIRED));
+			throw messages.reject(MsgKey.SELECTION_HISTORY_ENTITY_TYPE_REQUIRED);
 		}
 		if (dto.entityId() == null) {
-			throw new BusinessException(messages.get(MsgKey.SELECTION_HISTORY_ENTITY_ID_REQUIRED));
+			throw messages.reject(MsgKey.SELECTION_HISTORY_ENTITY_ID_REQUIRED);
 		}
 
 		Optional<SelectionHistoryEntity> existing = selectionHistoryRepository

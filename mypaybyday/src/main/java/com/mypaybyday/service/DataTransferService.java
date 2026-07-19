@@ -456,11 +456,11 @@ public class DataTransferService {
             for (FinanceLineItemDto liDto : dto.lineItems()) {
                 Long newNodeId = nodeIdMap.get(liDto.financeNodeId());
                 if (newNodeId == null) {
-                    throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
+                    throw messages.reject(MsgKey.NODE_NOT_FOUND);
                 }
                 FinanceNodeEntity node = financeNodeRepository.findById(newNodeId);
                 if (node == null) {
-                    throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
+                    throw messages.reject(MsgKey.NODE_NOT_FOUND);
                 }
                 FinanceLineItemEntity li = new FinanceLineItemEntity();
                 li.amount = liDto.amount();

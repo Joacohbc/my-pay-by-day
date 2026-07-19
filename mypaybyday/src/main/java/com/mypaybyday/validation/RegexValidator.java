@@ -37,30 +37,30 @@ public class RegexValidator {
     public void validateOnlyLetters(String value, int maxLength) throws BusinessException {
         if (value == null || value.isBlank()) return;
         if (value.length() > maxLength) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_MAX_LENGTH, maxLength));
+            throw messages.reject(MsgKey.VALIDATION_MAX_LENGTH, maxLength);
         }
         if (!ONLY_LETTERS_PATTERN.matcher(value).matches()) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_ONLY_LETTERS_INVALID_CHARS));
+            throw messages.reject(MsgKey.VALIDATION_ONLY_LETTERS_INVALID_CHARS);
         }
     }
 
     public void validateOnlyNumbers(String value, int maxLength) throws BusinessException {
         if (value == null || value.isEmpty()) return;
         if (value.length() > maxLength) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_MAX_LENGTH, maxLength));
+            throw messages.reject(MsgKey.VALIDATION_MAX_LENGTH, maxLength);
         }
         if (!ONLY_NUMBERS_PATTERN.matcher(value).matches()) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_ONLY_NUMBERS_INVALID_CHARS));
+            throw messages.reject(MsgKey.VALIDATION_ONLY_NUMBERS_INVALID_CHARS);
         }
     }
 
     public void validateText(String value, int maxLength) throws BusinessException {
         if (value == null || value.isBlank()) return;
         if (value.length() > maxLength) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_MAX_LENGTH, maxLength));
+            throw messages.reject(MsgKey.VALIDATION_MAX_LENGTH, maxLength);
         }
         if (!GENERAL_TEXT_PATTERN.matcher(value).matches()) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_LETTERS_AND_NUMBERS_INVALID_CHARS));
+            throw messages.reject(MsgKey.VALIDATION_LETTERS_AND_NUMBERS_INVALID_CHARS);
         }
     }
 
@@ -76,20 +76,20 @@ public class RegexValidator {
     public void validateIcon(String value) throws BusinessException {
         if (value == null || value.isEmpty()) return;
         if (value.length() > ICON_MAX_LENGTH) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_MAX_LENGTH, ICON_MAX_LENGTH));
+            throw messages.reject(MsgKey.VALIDATION_MAX_LENGTH, ICON_MAX_LENGTH);
         }
         if (!ICON_PATTERN.matcher(value).matches()) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_ICON_INVALID_CHARS));
+            throw messages.reject(MsgKey.VALIDATION_ICON_INVALID_CHARS);
         }
     }
 
     public void validateColor(String value) throws BusinessException {
         if (value == null || value.isEmpty()) return;
         if (value.length() > COLOR_MAX_LENGTH) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_MAX_LENGTH, COLOR_MAX_LENGTH));
+            throw messages.reject(MsgKey.VALIDATION_MAX_LENGTH, COLOR_MAX_LENGTH);
         }
         if (!COLOR_PATTERN.matcher(value).matches()) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_COLOR_INVALID_CHARS));
+            throw messages.reject(MsgKey.VALIDATION_COLOR_INVALID_CHARS);
         }
     }
 }

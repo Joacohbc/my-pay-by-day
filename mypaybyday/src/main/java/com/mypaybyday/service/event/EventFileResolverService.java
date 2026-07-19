@@ -32,7 +32,7 @@ public class EventFileResolverService {
 			FileEntity file = FileEntity.findById(fileId);
 			if (file == null) {
 				Log.warnf("Event references missing file id=%d", fileId);
-				throw new BusinessException(messages.get(MsgKey.FILE_NOT_FOUND));
+				throw messages.reject(MsgKey.FILE_NOT_FOUND);
 			}
 			resolvedFiles.add(file);
 		}

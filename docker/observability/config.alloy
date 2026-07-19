@@ -53,12 +53,13 @@ loki.process "normalize" {
 				message   = "message",
 				requestId = "mdc.requestId",
 				source    = "mdc.source",
+				errorKind = "mdc.errorKind",
 			}
 		}
 
 		stage.regex {
 			source     = "message"
-			expression = `\] (?P<method>[A-Z]+) (?P<path>\S+) \| source=\S+ \| ip=(?P<ip>\S+) \| origin=\S+ \| status=(?P<status>\d+) \| size=\S+ \| ua=.* \| time=(?P<time_ms>\d+)ms`
+			expression = `\] (?P<method>[A-Z]+) (?P<path>\S+) \| source=\S+ \| ip=(?P<ip>\S+) \| origin=\S+ \| status=(?P<status>\d+) \| size=\S+ \| resource=(?P<resource>\S+) \| ua=.* \| time=(?P<time_ms>\d+)ms`
 		}
 
 		stage.structured_metadata {
@@ -70,6 +71,8 @@ loki.process "normalize" {
 				method    = "",
 				path      = "",
 				ip        = "",
+				resource  = "",
+				errorKind = "",
 				time_ms   = "",
 			}
 		}

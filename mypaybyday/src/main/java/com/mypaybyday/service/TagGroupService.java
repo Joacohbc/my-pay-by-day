@@ -60,10 +60,10 @@ public class TagGroupService {
 	private TagGroupEntity findEntityById(Long id, boolean failIfArchived) throws BusinessException {
 		TagGroupEntity entity = tagGroupRepository.findById(id);
 		if (entity == null) {
-			throw new BusinessException(messages.get(MsgKey.TAG_GROUP_NOT_FOUND, id));
+			throw messages.reject(MsgKey.TAG_GROUP_NOT_FOUND, id);
 		}
 		if (failIfArchived && entity.archived) {
-			throw new BusinessException(messages.get(MsgKey.TAG_GROUP_NOT_FOUND_ARCHIVED, id));
+			throw messages.reject(MsgKey.TAG_GROUP_NOT_FOUND_ARCHIVED, id);
 		}
 		return entity;
 	}

@@ -57,7 +57,7 @@ public class EventCreateService {
 	@Transactional
 	public FinanceEventDto create(FinanceEventEntity event) throws BusinessException {
 		if (event.transaction == null) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_TRANSACTION_REQUIRED));
+			throw messages.reject(MsgKey.EVENT_TRANSACTION_REQUIRED);
 		}
 
 		FinanceTransactionEntity createdTransaction = transactionService.create(event.transaction);

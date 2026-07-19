@@ -70,7 +70,7 @@ public class DuplicateSettingsResource {
 		double weightSum = entity.eventDateWeight + entity.eventAmountWeight + entity.eventNodeWeight
 				+ entity.eventCategoryWeight + entity.eventTagWeight + entity.eventNameWeight;
 		if (Math.abs(weightSum - 1.0) > 0.001) {
-			throw new BusinessException(messages.get(MsgKey.DUPLICATE_SETTINGS_WEIGHTS_SUM_INVALID, Math.round(weightSum * 100)));
+			throw messages.reject(MsgKey.DUPLICATE_SETTINGS_WEIGHTS_SUM_INVALID, Math.round(weightSum * 100));
 		}
 
 		settingsRepository.persist(entity);

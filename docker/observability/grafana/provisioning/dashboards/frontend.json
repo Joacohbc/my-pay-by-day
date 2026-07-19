@@ -79,8 +79,8 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "gridPos": { "h": 9, "w": 8, "x": 0, "y": 12 },
       "fieldConfig": { "defaults": { "unit": "short", "custom": { "align": "auto" } }, "overrides": [] },
-      "options": { "showHeader": true, "sortBy": [ { "displayName": "Value", "desc": true } ] },
-      "transformations": [ { "id": "labelsToFields", "options": {} }, { "id": "organize", "options": { "excludeByName": { "Time": true } } } ],
+      "options": { "showHeader": true, "sortBy": [ { "displayName": "Requests", "desc": true } ] },
+      "transformations": [ { "id": "labelsToFields", "options": {} }, { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "path": "Path", "Value": "Requests" } } } ],
       "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "topk(15, sum by (path) (count_over_time({service=\"frontend\"} | path != `` [$__range])))", "legendFormat": "{{path}}" } ]
     },
     {
@@ -90,8 +90,8 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "gridPos": { "h": 9, "w": 8, "x": 8, "y": 12 },
       "fieldConfig": { "defaults": { "unit": "short", "custom": { "align": "auto" } }, "overrides": [] },
-      "options": { "showHeader": true, "sortBy": [ { "displayName": "Value", "desc": true } ] },
-      "transformations": [ { "id": "labelsToFields", "options": {} }, { "id": "organize", "options": { "excludeByName": { "Time": true } } } ],
+      "options": { "showHeader": true, "sortBy": [ { "displayName": "Requests", "desc": true } ] },
+      "transformations": [ { "id": "labelsToFields", "options": {} }, { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "status": "Status", "path": "Path", "Value": "Requests" } } } ],
       "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "topk(15, sum by (status, path) (count_over_time({service=\"frontend\"} | status =~ `[45]..` [$__range])))", "legendFormat": "{{status}} {{path}}" } ]
     },
     {
@@ -101,8 +101,8 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "gridPos": { "h": 9, "w": 8, "x": 16, "y": 12 },
       "fieldConfig": { "defaults": { "unit": "short", "custom": { "align": "auto" } }, "overrides": [] },
-      "options": { "showHeader": true, "sortBy": [ { "displayName": "Value", "desc": true } ] },
-      "transformations": [ { "id": "labelsToFields", "options": {} }, { "id": "organize", "options": { "excludeByName": { "Time": true } } } ],
+      "options": { "showHeader": true, "sortBy": [ { "displayName": "Requests", "desc": true } ] },
+      "transformations": [ { "id": "labelsToFields", "options": {} }, { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "ip": "IP", "Value": "Requests" } } } ],
       "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "topk(15, sum by (ip) (count_over_time({service=\"frontend\"} | ip != `` [$__range])))", "legendFormat": "{{ip}}" } ]
     },
     {

@@ -6,6 +6,8 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
+import com.mypaybyday.exception.BusinessException;
+
 import jakarta.enterprise.context.ApplicationScoped;
 
 /**
@@ -37,5 +39,14 @@ public class Messages {
 			// Fallback: return the key so callers always get a non-null string
 			return args.length > 0 ? key.key + " " + Arrays.toString(args) : key.key;
 		}
+	}
+
+	/**
+	 * Builds a {@link BusinessException} whose message is the localized text for {@code key} and whose
+	 * {@link com.mypaybyday.enums.ErrorKind} is derived from {@code key}. Callers throw the result, so a
+	 * message key is named exactly once at the throw site.
+	 */
+	public BusinessException reject(MsgKey key, Object... args) {
+		return new BusinessException(key, get(key, args));
 	}
 }
