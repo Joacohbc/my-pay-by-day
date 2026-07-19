@@ -6,6 +6,7 @@ import { config } from '@/config.js';
 import type { RequestContext } from '@/context.js';
 import { groundingNow } from '@/dates.js';
 import { logger } from '@/logging/logger.js';
+import { aggregateStepUsage, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
 import { largeModel } from '@/models.js';
 import { longTermMemory } from '@/memory/longTerm.js';
 import { extractionAgentSystemPrompt } from '@/prompts/system.js';
@@ -51,24 +52,35 @@ export async function runExtractionAgent(ctx: RequestContext, input: ExtractInpu
   ]);
   const userMessage: ModelMessage = { role: 'user', content: displayContent };
 
-  const result = await generateText({
-    model: largeModel(),
-    system: extractionAgentSystemPrompt({
-      now: groundingNow(ctx.timezone),
-      timezone: ctx.timezone,
-      lang: ctx.lang,
-      currency: ctx.currency,
-      memories: longTermMemory.contents(),
-      templateContext,
-    }),
-    messages: [{ role: 'user', content: modelContent }],
-    tools: toolsForMode(buildAllTools(ctx), 'DRAFT_ONLY'),
-    stopWhen: stepCountIs(config.agent.subagentMaxSteps),
-  });
+  const startedAt = performance.now();
+  let result: Awaited<ReturnType<typeof generateText>>;
+  try {
+    result = await generateText({
+      model: largeModel(),
+      system: extractionAgentSystemPrompt({
+        now: groundingNow(ctx.timezone),
+        timezone: ctx.timezone,
+        lang: ctx.lang,
+        currency: ctx.currency,
+        memories: longTermMemory.contents(),
+        templateContext,
+      }),
+      messages: [{ role: 'user', content: modelContent }],
+      tools: toolsForMode(buildAllTools(ctx), 'DRAFT_ONLY'),
+      stopWhen: stepCountIs(config.agent.subagentMaxSteps),
+    });
+  } catch (error) {
+    logLlmError('extraction', config.models.large, Math.round(performance.now() - startedAt), error);
+    throw error;
+  }
+
+  const durationMs = Math.round(performance.now() - startedAt);
+  const { usage, costUsd } = aggregateStepUsage(result.steps);
+  logLlmUsage('extraction', result.response.modelId, durationMs, usage, costUsd, { steps: result.steps.length });
 
   const draftId = findCreatedDraftId(result.steps);
   if (draftId == null) {
-    extractionAgentLog.error('extraction agent finished without creating a draft', { text: result.text });
+    extractionAgentLog.error('extraction agent finished without creating a draft', { cause: 'no_draft', text: result.text });
     throw new Error('extraction_failed_no_draft');
   }
 

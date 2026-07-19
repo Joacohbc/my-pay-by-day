@@ -3,6 +3,7 @@ import { config } from '@/config.js';
 import { languageName } from '@/context.js';
 import { fastModel } from '@/models.js';
 import { conversationMemory, textOf, type SequencedMessage } from '@/memory/conversation.js';
+import { costOf, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
 
 const COMPACTION_THRESHOLD = 0.9;
 
@@ -65,13 +66,23 @@ export async function compactIfNeeded(chatId: string, lang: string): Promise<voi
 
   const transcript = toSummarize.map((m) => `${m.message.role.toUpperCase()}: ${textOf(m.message)}`).join('\n');
   const priorSummary = existing ? `SUMMARY SO FAR:\n${existing.summary}\n\nNEW MESSAGES TO FOLD IN:\n` : '';
-  const { text } = await generateText({
-    model: fastModel(),
-    prompt:
-      `You maintain a running summary of a finance-assistant conversation, written in ${languageName(lang)}. ` +
-      `Update it to incorporate the new messages, preserving key facts, decisions, IDs, amounts, and any pending ` +
-      `drafts or follow-ups. Return only the updated summary.\n\n${priorSummary}${transcript}`,
-  });
+  const startedAt = performance.now();
+  let text: string;
+  try {
+    const result = await generateText({
+      model: fastModel(),
+      prompt:
+        `You maintain a running summary of a finance-assistant conversation, written in ${languageName(lang)}. ` +
+        `Update it to incorporate the new messages, preserving key facts, decisions, IDs, amounts, and any pending ` +
+        `drafts or follow-ups. Return only the updated summary.\n\n${priorSummary}${transcript}`,
+    });
+    const durationMs = Math.round(performance.now() - startedAt);
+    logLlmUsage('compaction', result.response.modelId, durationMs, result.usage, costOf(result.providerMetadata), { chatId });
+    text = result.text;
+  } catch (error) {
+    logLlmError('compaction', config.models.fast, Math.round(performance.now() - startedAt), error, { chatId });
+    throw error;
+  }
 
   conversationMemory.setSummary(chatId, text, newBoundary);
 }

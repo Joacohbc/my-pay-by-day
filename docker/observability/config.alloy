@@ -76,6 +76,10 @@ loki.process "normalize" {
 	}
 
 	// Chatbot (custom JSON). requestId/source already top-level; keep scope for filtering.
+	// event/tool/kind/flow/model/cause/status/ms are the discriminators dashboards filter and
+	// unwrap on directly (as structured metadata, no `| json` needed); high-cardinality or
+	// aggregation-only fields (targetId, tokens, costUsd, durationMs) stay in the JSON body and
+	// are parsed at query time instead.
 	stage.match {
 		selector = "{service=\"chatbot\"}"
 
@@ -85,6 +89,14 @@ loki.process "normalize" {
 				requestId = "requestId",
 				source    = "source",
 				scope     = "scope",
+				event     = "event",
+				tool      = "tool",
+				kind      = "kind",
+				flow      = "flow",
+				model     = "model",
+				cause     = "cause",
+				status    = "status",
+				ms        = "ms",
 			}
 		}
 
@@ -94,6 +106,14 @@ loki.process "normalize" {
 				level     = "",
 				source    = "",
 				scope     = "",
+				event     = "",
+				tool      = "",
+				kind      = "",
+				flow      = "",
+				model     = "",
+				cause     = "",
+				status    = "",
+				ms        = "",
 			}
 		}
 	}

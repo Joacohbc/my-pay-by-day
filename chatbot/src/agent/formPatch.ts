@@ -2,10 +2,12 @@ import { streamText, tool, stepCountIs, type ModelMessage } from 'ai';
 import { z } from 'zod';
 import { createApiClient, unwrap } from '@/backend/client.js';
 import { EVENT_TYPES, FINANCE_NODE_TYPES } from '@/backend/enums.js';
+import { config } from '@/config.js';
 import type { components } from '@/backend/schema.js';
 import { languageName, type RequestContext } from '@/context.js';
 import { largeModel } from '@/models.js';
 import { logger } from '@/logging/logger.js';
+import { costOf, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
 import { longTermMemory } from '@/memory/longTerm.js';
 import { formattingGuidance, memoriesBlock } from '@/prompts/system.js';
 import { buildFinanceTools } from '@/tools/finance.js';
@@ -120,17 +122,24 @@ export async function streamFormPatch(ctx: RequestContext, input: FormPatchInput
       .map(([name, t]) => [name, t.tool])
   );
 
+  const startedAt = performance.now();
   try {
     const result = streamText({
       model: largeModel(),
       system,
       messages: input.messages,
       stopWhen: stepCountIs(5),
+      onFinish: ({ response, totalUsage, providerMetadata }) => {
+        const durationMs = Math.round(performance.now() - startedAt);
+        logLlmUsage('formPatch', response.modelId, durationMs, totalUsage, costOf(providerMetadata), { entityType: input.entityType });
+      },
       onError: ({ error }) => {
+        const durationMs = Math.round(performance.now() - startedAt);
         formPatchLog.error('form patch stream failed', {
           entityType: input.entityType,
           error: error instanceof Error ? error.message : String(error),
         });
+        logLlmError('formPatch', config.models.large, durationMs, error, { entityType: input.entityType });
       },
       tools: {
         ...readTools,
@@ -164,7 +173,9 @@ export async function streamFormPatch(ctx: RequestContext, input: FormPatchInput
     
     return result;
   } catch (e) {
+    const durationMs = Math.round(performance.now() - startedAt);
     formPatchLog.error('form patch generation failed', { error: (e as Error).message, entityType: input.entityType });
+    logLlmError('formPatch', config.models.large, durationMs, e, { entityType: input.entityType });
     throw e;
   }
 }

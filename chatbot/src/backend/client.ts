@@ -59,21 +59,24 @@ export function createApiClient(ctx: RequestContext): ApiClient {
   const startTimes = new WeakMap<Request, number>();
   const contextMiddleware: Middleware = {
     onRequest({ request }) {
+      // Don't return `request`/`response` from these hooks (see onResponse below for why).
       request.headers.set('X-Timezone', ctx.timezone);
       request.headers.set('X-Language', ctx.lang);
       request.headers.set('X-Request-Id', ctx.requestId);
       request.headers.set('X-Source', 'chatbot');
       startTimes.set(request, performance.now());
       backendLog.debug('backend →', { method: request.method, path: pathOf(request.url) });
-      return request;
     },
     onResponse({ request, response }) {
+      // @hono/node-server swaps in its own `Response` class as soon as the server starts, so
+      // openapi-fetch's "is this really a Response?" check fails on the real one our fetch() call
+      // returns. That check only runs when a middleware hands a value back, so we just don't —
+      // we're only reading the response here, never replacing it.
       const started = startTimes.get(request);
       const ms = started != null ? Math.round(performance.now() - started) : undefined;
       const fields = { method: request.method, path: pathOf(request.url), status: response.status, ms };
       if (response.ok) backendLog.info('backend ←', fields);
       else backendLog.warn('backend ← error', fields);
-      return response;
     },
   };
   client.use(contextMiddleware);

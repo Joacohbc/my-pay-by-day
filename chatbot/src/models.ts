@@ -18,14 +18,14 @@ const provider = createOpenRouter({
  */
 export function largeModel(): LanguageModel {
   return wrapLanguageModel({
-    model: provider.chat(config.models.large),
+    model: provider.chat(config.models.large, { usage: { include: true } }),
     middleware: extractReasoningMiddleware({ tagName: 'mm:think' }),
   });
 }
 
 /** Fast/cheap model for short text generation, extraction and summarisation. */
 export function fastModel(): LanguageModel {
-  return provider.chat(config.models.fast);
+  return provider.chat(config.models.fast, { usage: { include: true } });
 }
 
 const AUDIO_FORMAT_BY_MEDIA_TYPE: Record<string, string> = {

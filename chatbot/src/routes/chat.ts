@@ -17,6 +17,7 @@ import { toUIParts, type DisplayMessage, type DisplayOverlays, type DisplayPart 
 import { chatTitles } from '@/memory/titles.js';
 import { longTermMemory } from '@/memory/longTerm.js';
 import { logger } from '@/logging/logger.js';
+import { costOf, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
 import { largeModel } from '@/models.js';
 import { chatSystemPrompt, type ExecutionMode } from '@/prompts/system.js';
 import { withSseKeepAlive } from '@/routes/sseKeepAlive.js';
@@ -235,7 +236,7 @@ chatRoute.post('/', async (c) => {
     messages: modelMessages,
     tools: chatTools,
     stopWhen: stepCountIs(config.agent.maxSteps),
-    onFinish: ({ text, steps, response }) => {
+    onFinish: ({ text, steps, response, totalUsage, providerMetadata }) => {
       chatGenerationTracker.markGenerationComplete(chatId);
       const richOutputsByCallId = new Map<string, unknown>();
       for (const step of steps) {
@@ -251,12 +252,14 @@ chatRoute.post('/', async (c) => {
       // Prod (INFO): how many/which tools ran and how long until the answer — never the reply text.
       log.info('chat finished', { steps: steps.length, toolCount: toolCalls.length, tools, durationMs });
       log.debug('chat reply', { reply: text });
+      logLlmUsage('chat', response.modelId, durationMs, totalUsage, costOf(providerMetadata), { steps: steps.length });
       void chatTitles.generateIfMissing(chatId, ctx.lang);
     },
     onError: ({ error }) => {
       chatGenerationTracker.markGenerationComplete(chatId);
       const durationMs = Math.round(performance.now() - generationStartedAt);
       log.error('chat stream failed', { durationMs, error: error instanceof Error ? error.message : String(error) });
+      logLlmError('chat', config.models.large, durationMs, error);
     },
   });
 
