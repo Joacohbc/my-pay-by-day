@@ -10,11 +10,12 @@ COPY chatbot/ .
 RUN pnpm build && pnpm prune --prod
 
 FROM node:22-slim
+RUN groupadd -r -g 10001 app && useradd -r -u 10001 -g app app
 WORKDIR /app/chatbot
-RUN mkdir -p /data && chown node:node /data
-COPY --from=build --chown=node:node /chatbot/dist         ./dist
-COPY --from=build --chown=node:node /chatbot/node_modules ./node_modules
-COPY --from=build --chown=node:node /chatbot/package.json ./package.json
+RUN mkdir -p /data && chown app:app /data
+COPY --from=build --chown=app:app /chatbot/dist         ./dist
+COPY --from=build --chown=app:app /chatbot/node_modules ./node_modules
+COPY --from=build --chown=app:app /chatbot/package.json ./package.json
 
 VOLUME ["/data"]
 EXPOSE 3001
@@ -28,5 +29,5 @@ ENV NODE_NO_WARNINGS=1
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.CHATBOT_PORT||3001)+'/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 
-USER node
+USER app
 CMD ["node", "dist/server.js"]

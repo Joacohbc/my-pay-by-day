@@ -5,7 +5,7 @@
 
 FROM python:3.12-slim
 
-RUN useradd -r -u 1000 -m -d /home/appuser appuser
+RUN groupadd -r -g 10001 appuser && useradd -r -u 10001 -g appuser -m -d /home/appuser appuser
 
 WORKDIR /app
 RUN pip install --no-cache-dir 'markitdown[all]'
