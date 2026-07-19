@@ -1,0 +1,144 @@
+// Grafana Alloy — log collection for the compose stack (replaces the EOL Promtail).
+// Discovers containers via the Docker socket, derives a `service` label, normalizes
+// each service's log format into homogeneous structured metadata, and pushes to Loki.
+
+discovery.docker "containers" {
+	host             = "unix:///var/run/docker.sock"
+	refresh_interval = "5s"
+}
+
+// Derive a stable low-cardinality `service` label from the compose container name
+// (e.g. my-pay-by-day-backend-1 -> backend). Only the five app services match;
+// loki/alloy/grafana get no `service` label and stay out of the per-service dashboards.
+discovery.relabel "containers" {
+	targets = discovery.docker.containers.targets
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(.*)"
+		target_label  = "container_name"
+	}
+
+	rule {
+		target_label = "job"
+		replacement  = "docker"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/.*-(backend|frontend|chatbot|gateway|markitdown)-[0-9]+"
+		target_label  = "service"
+		replacement   = "$1"
+	}
+}
+
+loki.source.docker "containers" {
+	host          = "unix:///var/run/docker.sock"
+	targets       = discovery.docker.containers.targets
+	relabel_rules = discovery.relabel.containers.rules
+	forward_to    = [loki.process.normalize.receiver]
+}
+
+loki.process "normalize" {
+	forward_to = [loki.write.default.receiver]
+
+	// Backend (Quarkus JSON in prod). Promote MDC requestId/source to the top level
+	// and parse the RequestLoggingFilter message into method/path/status/ip/time.
+	stage.match {
+		selector = "{service=\"backend\"}"
+
+		stage.json {
+			expressions = {
+				level     = "level",
+				message   = "message",
+				requestId = "mdc.requestId",
+				source    = "mdc.source",
+			}
+		}
+
+		stage.regex {
+			source     = "message"
+			expression = `\] (?P<method>[A-Z]+) (?P<path>\S+) \| source=\S+ \| ip=(?P<ip>\S+) \| origin=\S+ \| status=(?P<status>\d+) \| size=\S+ \| ua=.* \| time=(?P<time_ms>\d+)ms`
+		}
+
+		stage.structured_metadata {
+			values = {
+				requestId = "",
+				level     = "",
+				source    = "",
+				status    = "",
+				method    = "",
+				path      = "",
+				ip        = "",
+				time_ms   = "",
+			}
+		}
+	}
+
+	// Chatbot (custom JSON). requestId/source already top-level; keep scope for filtering.
+	stage.match {
+		selector = "{service=\"chatbot\"}"
+
+		stage.json {
+			expressions = {
+				level     = "level",
+				requestId = "requestId",
+				source    = "source",
+				scope     = "scope",
+			}
+		}
+
+		stage.structured_metadata {
+			values = {
+				requestId = "",
+				level     = "",
+				source    = "",
+				scope     = "",
+			}
+		}
+	}
+
+	// Gateway (nginx `log_format gateway`, plain text). Extract the edge access fields.
+	stage.match {
+		selector = "{service=\"gateway\"}"
+
+		stage.regex {
+			expression = `^(?P<ip>\S+) \S+ \S+ \[[^\]]*\] "(?P<method>\S+) (?P<path>\S+) [^"]*" (?P<status>\d+) \S+ "[^"]*" "[^"]*" src="(?P<source>[^"]*)" tz="[^"]*" lang="[^"]*" req="(?P<requestId>[^"]*)"`
+		}
+
+		stage.structured_metadata {
+			values = {
+				requestId = "",
+				status    = "",
+				source    = "",
+				ip        = "",
+				method    = "",
+				path      = "",
+			}
+		}
+	}
+
+	// Frontend (nginx default `combined`, plain text). No source/requestId available.
+	stage.match {
+		selector = "{service=\"frontend\"}"
+
+		stage.regex {
+			expression = `^(?P<ip>\S+) \S+ \S+ \[[^\]]*\] "(?P<method>\S+) (?P<path>\S+) [^"]*" (?P<status>\d+)`
+		}
+
+		stage.structured_metadata {
+			values = {
+				status = "",
+				ip     = "",
+				method = "",
+				path   = "",
+			}
+		}
+	}
+}
+
+loki.write "default" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}

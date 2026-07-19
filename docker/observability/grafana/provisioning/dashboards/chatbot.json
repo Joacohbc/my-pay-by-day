@@ -1,0 +1,132 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "title": "MPBD — Chatbot (AI)",
+  "uid": "mpbd-chatbot",
+  "tags": ["mypaybyday", "chatbot", "ai"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Requests handled",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "value": null, "color": "blue" } ] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service=\"chatbot\"} | json | msg =~ `request completed` [$__range]))" } ]
+    },
+    {
+      "id": 2,
+      "title": "Tool calls",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "value": null, "color": "purple" } ] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service=\"chatbot\"} | json | kind != `` [$__range]))" } ]
+    },
+    {
+      "id": 3,
+      "title": "Tool errors",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "value": null, "color": "green" }, { "value": 1, "color": "orange" }, { "value": 10, "color": "red" } ] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service=\"chatbot\"} | json | scope =~ `.*tool.*` | level =~ `(?i)(error|warn)` [$__range]))" } ]
+    },
+    {
+      "id": 4,
+      "title": "Error logs",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "value": null, "color": "green" }, { "value": 1, "color": "yellow" }, { "value": 20, "color": "red" } ] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service=\"chatbot\"} | level =~ `(?i)error` [$__range]))" } ]
+    },
+    {
+      "id": 5,
+      "title": "Tool calls by kind",
+      "type": "barchart",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 4 },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "orientation": "horizontal", "legend": { "displayMode": "list", "placement": "bottom" }, "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum by (kind) (count_over_time({service=\"chatbot\"} | json | kind != `` [$__range]))", "legendFormat": "{{kind}}" } ]
+    },
+    {
+      "id": 6,
+      "title": "Top tools",
+      "type": "table",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 4 },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "align": "auto" } }, "overrides": [] },
+      "options": { "showHeader": true, "sortBy": [ { "displayName": "Value", "desc": true } ] },
+      "transformations": [ { "id": "labelsToFields", "options": {} }, { "id": "organize", "options": { "excludeByName": { "Time": true } } } ],
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "topk(15, sum by (tool) (count_over_time({service=\"chatbot\"} | json | kind != `` | regexp `→ (?P<tool>\\S+)` [$__range])))", "legendFormat": "{{tool}}" } ]
+    },
+    {
+      "id": 7,
+      "title": "Log volume by level",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 4 },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "fillOpacity": 20, "stacking": { "mode": "normal" } } }, "overrides": [
+        { "matcher": { "id": "byName", "options": "error" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } } ] },
+        { "matcher": { "id": "byName", "options": "warn" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } } ] }
+      ] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "expr": "sum by (level) (count_over_time({service=\"chatbot\"} | level != `` [$__auto]))", "legendFormat": "{{level}}" } ]
+    },
+    {
+      "id": 8,
+      "title": "Tool latency p50 / p95 (ms)",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "expr": "quantile_over_time(0.5, {service=\"chatbot\"} | json | scope =~ `.*tool.*` | ms != `` | unwrap ms [$__auto])", "legendFormat": "p50" },
+        { "refId": "B", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "expr": "quantile_over_time(0.95, {service=\"chatbot\"} | json | scope =~ `.*tool.*` | ms != `` | unwrap ms [$__auto])", "legendFormat": "p95" }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Backend-client latency p95 (ms)",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "expr": "quantile_over_time(0.95, {service=\"chatbot\"} | json | scope =~ `.*backend` | ms != `` | unwrap ms [$__auto])", "legendFormat": "backend p95" } ]
+    },
+    {
+      "id": 10,
+      "title": "Background agent tasks started",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 20 },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "value": null, "color": "blue" } ] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service=\"chatbot\"} | json | msg =~ `starting agent task` [$__range]))" } ]
+    },
+    {
+      "id": 11,
+      "title": "Recent errors & tool failures (raw)",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 10, "w": 18, "x": 6, "y": 20 },
+      "options": { "showTime": true, "wrapLogMessage": true, "dedupStrategy": "none", "enableLogDetails": true, "sortOrder": "Descending" },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "expr": "{service=\"chatbot\"} | level =~ `(?i)(error|warn)`" } ]
+    }
+  ]
+}

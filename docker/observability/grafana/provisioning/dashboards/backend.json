@@ -1,0 +1,156 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "title": "MPBD — Backend (API)",
+  "uid": "mpbd-backend",
+  "tags": ["mypaybyday", "backend"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "source",
+        "type": "query",
+        "datasource": { "type": "loki", "uid": "loki" },
+        "query": "label_values({service=\"backend\"}, source)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": false,
+        "allValue": ".+",
+        "current": { "text": "All", "value": "$__all" }
+      },
+      { "name": "ip", "type": "textbox", "query": "", "current": { "text": "", "value": "" } }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Total requests",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "value": null, "color": "blue" } ] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "textMode": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service=\"backend\"} | path != `` | source =~ `$source` | ip =~ `$ip` [$__range]))" } ]
+    },
+    {
+      "id": 2,
+      "title": "Client errors 4xx",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "value": null, "color": "green" }, { "value": 1, "color": "yellow" }, { "value": 50, "color": "orange" } ] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service=\"backend\"} | status =~ `4..` | source =~ `$source` | ip =~ `$ip` [$__range]))" } ]
+    },
+    {
+      "id": 3,
+      "title": "Server errors 5xx",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "value": null, "color": "green" }, { "value": 1, "color": "red" } ] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service=\"backend\"} | status =~ `5..` | source =~ `$source` | ip =~ `$ip` [$__range]))" } ]
+    },
+    {
+      "id": 4,
+      "title": "Error logs",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "value": null, "color": "green" }, { "value": 1, "color": "yellow" }, { "value": 20, "color": "red" } ] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service=\"backend\"} | level =~ `(?i)error` [$__range]))" } ]
+    },
+    {
+      "id": 5,
+      "title": "Request rate",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 15 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "expr": "sum(count_over_time({service=\"backend\"} | path != `` | source =~ `$source` | ip =~ `$ip` [$__auto]))", "legendFormat": "requests" } ]
+    },
+    {
+      "id": 6,
+      "title": "Who uses the backend (by source)",
+      "type": "piechart",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "pieType": "donut", "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }, "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum by (source) (count_over_time({service=\"backend\"} | source != `` | ip =~ `$ip` [$__range]))", "legendFormat": "{{source}}" } ]
+    },
+    {
+      "id": 7,
+      "title": "Latency p50 / p95 (ms)",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "expr": "quantile_over_time(0.5, {service=\"backend\"} | time_ms != `` | unwrap time_ms [$__auto])", "legendFormat": "p50" },
+        { "refId": "B", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "expr": "quantile_over_time(0.95, {service=\"backend\"} | time_ms != `` | unwrap time_ms [$__auto])", "legendFormat": "p95" }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Status codes",
+      "type": "piechart",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "pieType": "pie", "legend": { "displayMode": "table", "placement": "right", "values": ["value"] }, "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum by (status) (count_over_time({service=\"backend\"} | status != `` | source =~ `$source` | ip =~ `$ip` [$__range]))", "legendFormat": "{{status}}" } ]
+    },
+    {
+      "id": 9,
+      "title": "Top endpoints",
+      "type": "table",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 20 },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "align": "auto" } }, "overrides": [] },
+      "options": { "showHeader": true, "sortBy": [ { "displayName": "Value", "desc": true } ] },
+      "transformations": [ { "id": "labelsToFields", "options": {} }, { "id": "organize", "options": { "excludeByName": { "Time": true } } } ],
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "topk(15, sum by (method, path) (count_over_time({service=\"backend\"} | path != `` | source =~ `$source` | ip =~ `$ip` [$__range])))", "legendFormat": "{{method}} {{path}}" } ]
+    },
+    {
+      "id": 10,
+      "title": "Top client IPs",
+      "type": "table",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 9, "w": 6, "x": 12, "y": 20 },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "align": "auto" } }, "overrides": [] },
+      "options": { "showHeader": true, "sortBy": [ { "displayName": "Value", "desc": true } ] },
+      "transformations": [ { "id": "labelsToFields", "options": {} }, { "id": "organize", "options": { "excludeByName": { "Time": true } } } ],
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "topk(15, sum by (ip) (count_over_time({service=\"backend\"} | ip != `` [$__range])))", "legendFormat": "{{ip}}" } ]
+    },
+    {
+      "id": 11,
+      "title": "Errors by message (top)",
+      "type": "table",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 9, "w": 6, "x": 18, "y": 20 },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "align": "auto" } }, "overrides": [] },
+      "options": { "showHeader": true, "sortBy": [ { "displayName": "Value", "desc": true } ] },
+      "transformations": [ { "id": "labelsToFields", "options": {} }, { "id": "organize", "options": { "excludeByName": { "Time": true } } } ],
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "topk(10, sum by (message) (count_over_time({service=\"backend\"} | json | level =~ `(?i)error` [$__range])))", "legendFormat": "{{message}}" } ]
+    },
+    {
+      "id": 12,
+      "title": "Recent errors (raw)",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 29 },
+      "options": { "showTime": true, "wrapLogMessage": true, "dedupStrategy": "none", "enableLogDetails": true, "sortOrder": "Descending" },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "expr": "{service=\"backend\"} | level =~ `(?i)error`" } ]
+    }
+  ]
+}
