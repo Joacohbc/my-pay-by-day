@@ -8,6 +8,8 @@ WORKDIR /app
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY frontend/ .
+ARG GIT_SHA=dev
+ENV GIT_SHA=$GIT_SHA
 RUN pnpm build
 
 FROM nginx:alpine

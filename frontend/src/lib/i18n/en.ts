@@ -789,6 +789,9 @@ const en = {
   errors: {
     eventNotFound: 'Event not found',
     couldNotLoadPeriod: 'Could not load period data',
+    boundaryTitle: 'Something went wrong',
+    boundaryMessage: 'The app hit an unexpected error. Reloading usually fixes it.',
+    boundaryReload: 'Reload',
   },
 } as const;
 

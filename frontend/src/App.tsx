@@ -4,6 +4,7 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import { RouterProvider } from 'react-router-dom';
 import { router } from '@/router';
 import { AlertProvider } from '@/contexts/AlertContext';
+import { AppErrorBoundary } from '@/components/ui/AppErrorBoundary';
 
 import { queryStorage } from '@/lib/idbStorage';
 import {
@@ -61,7 +62,9 @@ function App() {
       }}
     >
       <AlertProvider>
-        <RouterProvider router={router} />
+        <AppErrorBoundary>
+          <RouterProvider router={router} />
+        </AppErrorBoundary>
       </AlertProvider>
     </PersistQueryClientProvider>
   );

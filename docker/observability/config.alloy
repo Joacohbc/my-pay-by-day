@@ -62,16 +62,30 @@ loki.process "normalize" {
 			expression = `\] (?P<method>[A-Z]+) (?P<path>\S+) \| source=\S+ \| ip=(?P<ip>\S+) \| origin=\S+ \| status=(?P<status>\d+) \| size=\S+ \| resource=(?P<resource>\S+) \| ua=.* \| time=(?P<time_ms>\d+)ms`
 		}
 
+		// Unify log levels across services to lowercase (Quarkus emits UPPERCASE).
+		stage.template {
+			source   = "level"
+			template = "{{ ToLower .Value }}"
+		}
+
+		// source/resource/level are the dashboard filter dimensions. They must be indexed stream
+		// labels (not structured metadata) so Grafana's label_values() can populate the dropdowns —
+		// structured metadata is absent from Loki's label API. Cardinality stays bounded.
+		stage.labels {
+			values = {
+				source   = "",
+				resource = "",
+				level    = "",
+			}
+		}
+
 		stage.structured_metadata {
 			values = {
 				requestId = "",
-				level     = "",
-				source    = "",
 				status    = "",
 				method    = "",
 				path      = "",
 				ip        = "",
-				resource  = "",
 				errorKind = "",
 				time_ms   = "",
 			}
@@ -103,11 +117,21 @@ loki.process "normalize" {
 			}
 		}
 
+		stage.template {
+			source   = "level"
+			template = "{{ ToLower .Value }}"
+		}
+
+		stage.labels {
+			values = {
+				source = "",
+				level  = "",
+			}
+		}
+
 		stage.structured_metadata {
 			values = {
 				requestId = "",
-				level     = "",
-				source    = "",
 				scope     = "",
 				event     = "",
 				tool      = "",
@@ -129,11 +153,16 @@ loki.process "normalize" {
 			expression = `^(?P<ip>\S+) \S+ \S+ \[[^\]]*\] "(?P<method>\S+) (?P<path>\S+) [^"]*" (?P<status>\d+) \S+ "[^"]*" "[^"]*" src="(?P<source>[^"]*)" tz="[^"]*" lang="[^"]*" req="(?P<requestId>[^"]*)"`
 		}
 
+		stage.labels {
+			values = {
+				source = "",
+			}
+		}
+
 		stage.structured_metadata {
 			values = {
 				requestId = "",
 				status    = "",
-				source    = "",
 				ip        = "",
 				method    = "",
 				path      = "",
@@ -141,20 +170,49 @@ loki.process "normalize" {
 		}
 	}
 
-	// Frontend (nginx default `combined`, plain text). No source/requestId available.
+	// Frontend: two log shapes on one stdout stream.
+	//  1. nginx `combined` access logs -> ip/method/path/status (stage.regex; JSON lines won't match).
+	//  2. client-error JSON posted to /client-logs and echoed by `log_format clientlog` -> parsed by
+	//     stage.json (access lines aren't JSON so they no-op). Unhandled browser errors land here as
+	//     service=frontend | level=error with the full signature in the JSON body.
 	stage.match {
 		selector = "{service=\"frontend\"}"
+
+		stage.json {
+			expressions = {
+				level      = "level",
+				source     = "source",
+				kind       = "kind",
+				requestId  = "requestId",
+				route      = "route",
+				appVersion = "appVersion",
+			}
+		}
 
 		stage.regex {
 			expression = `^(?P<ip>\S+) \S+ \S+ \[[^\]]*\] "(?P<method>\S+) (?P<path>\S+) [^"]*" (?P<status>\d+)`
 		}
 
+		stage.template {
+			source   = "level"
+			template = "{{ ToLower .Value }}"
+		}
+
+		stage.labels {
+			values = {
+				source = "",
+				level  = "",
+			}
+		}
+
 		stage.structured_metadata {
 			values = {
-				status = "",
-				ip     = "",
-				method = "",
-				path   = "",
+				status    = "",
+				ip        = "",
+				method    = "",
+				path      = "",
+				requestId = "",
+				kind      = "",
 			}
 		}
 	}

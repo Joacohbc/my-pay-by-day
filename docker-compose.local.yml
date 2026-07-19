@@ -36,6 +36,8 @@ services:
     build:
       context: .
       dockerfile: docker/frontend/Dockerfile
+      args:
+        GIT_SHA: ${GIT_SHA:-dev}
     environment:
       - VITE_API_BASE_URL=${VITE_API_BASE_URL:-/api}
     logging: *default-logging
