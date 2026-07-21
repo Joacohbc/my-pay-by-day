@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { AudioMessagePlayer } from '@/components/chat/AudioMessagePlayer';
 import { isBrowserNativePreview, isMarkdownFile, isSpreadsheetFile } from '@/lib/fileUtils';
 import type { FileDto } from '@/models';
+import { logger } from '@/lib/logger';
 
 interface MultimediaPreviewerProps {
   fileId: number;
@@ -34,7 +35,10 @@ export function MultimediaPreviewer({ fileId, fileName, onClose }: MultimediaPre
   useEffect(() => {
     filesService.getById(fileId)
       .then(setFileDetails)
-      .catch(() => setError(true))
+      .catch((error) => {
+        logger.child('mediaPreview').warn('Failed to load file details', { error, fileId });
+        setError(true);
+      })
       .finally(() => setLoading(false));
   }, [fileId]);
 
@@ -54,7 +58,8 @@ export function MultimediaPreviewer({ fileId, fileName, onClose }: MultimediaPre
         }
         const converted = await filesService.getContentAsMarkdown(fileId);
         if (!cancelled) setMarkdown(converted);
-      } catch {
+      } catch (error) {
+        logger.child('mediaPreview').warn('Failed to load markdown preview', { error, fileId, mimeType });
         if (!cancelled) setMarkdown(null);
       } finally {
         if (!cancelled) setMarkdownLoading(false);

@@ -1,4 +1,7 @@
 import type { StateStorage } from 'zustand/middleware';
+import { logger } from '@/lib/logger';
+
+const idbLog = logger.child('idb');
 
 const DB_NAME = 'mpbd-store';
 const STORE_NAME = 'keyval';
@@ -11,7 +14,10 @@ function openDB(): Promise<IDBDatabase> {
       request.result.createObjectStore(STORE_NAME);
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      idbLog.debug('IndexedDB open failed', { error: String(request.error) });
+      reject(request.error);
+    };
   });
 }
 
@@ -24,7 +30,10 @@ export async function idbGet(name: string): Promise<string | null> {
   return new Promise((resolve, reject) => {
     const req = db.transaction(STORE_NAME).objectStore(STORE_NAME).get(name);
     req.onsuccess = () => resolve(req.result ?? null);
-    req.onerror = () => reject(req.error);
+    req.onerror = () => {
+      idbLog.debug('IndexedDB read failed', { error: String(req.error), key: name });
+      reject(req.error);
+    };
   });
 }
 
@@ -34,7 +43,10 @@ export async function idbSet(name: string, value: string): Promise<void> {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const req = tx.objectStore(STORE_NAME).put(value, name);
     req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
+    req.onerror = () => {
+      idbLog.debug('IndexedDB write failed', { error: String(req.error), key: name });
+      reject(req.error);
+    };
   });
 }
 
@@ -44,7 +56,10 @@ export async function idbRemove(name: string): Promise<void> {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const req = tx.objectStore(STORE_NAME).delete(name);
     req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
+    req.onerror = () => {
+      idbLog.debug('IndexedDB delete failed', { error: String(req.error), key: name });
+      reject(req.error);
+    };
   });
 }
 

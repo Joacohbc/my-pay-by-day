@@ -5,6 +5,7 @@ import { BASE_URL } from '@/services/api';
 import type { AgentTaskWsPayload, AgentTask, AgentTaskStatus } from '@/models/agent-tasks';
 import { agentTaskKeys } from '@/lib/queryKeys';
 import { invalidateDomains, BROAD_FINANCE_DOMAINS } from '@/lib/cacheInvalidation';
+import { logger } from '@/lib/logger';
 
 const TERMINAL_STATUSES = new Set<AgentTaskStatus>([
   'COMPLETED',
@@ -212,8 +213,8 @@ export function useAgentTaskSocket(taskId: string | null) {
             financeInvalidatedOnTerminal = true;
             invalidateDomains(queryClient, BROAD_FINANCE_DOMAINS);
           }
-        } catch {
-          // ignore parse errors
+        } catch (error) {
+          logger.child('agentTasks').debug('SSE payload parse failed', { error });
         }
       };
 
@@ -224,6 +225,7 @@ export function useAgentTaskSocket(taskId: string | null) {
       // backfilling any events missed while the stream was down.
       source.onerror = () => {
         if (source.readyState !== EventSource.CLOSED) return;
+        logger.child('agentTasks').warn('SSE stream closed, reconnecting', { taskId });
         source.close();
         reconnectTimer = setTimeout(connect, RECONNECT_DELAY_MS);
       };

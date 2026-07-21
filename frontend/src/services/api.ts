@@ -1,6 +1,7 @@
 import i18n from '@/lib/i18n';
 import { getCurrency } from '@/lib/format';
 import { fromServerDate, getUserTimezone, toServerDate, transformDates } from '@/lib/utils/dateUtils';
+import { logger } from '@/lib/logger';
 
 // In production (Docker) VITE_API_BASE_URL is injected at container startup
 // via /env.js into window.__env__. In dev, Vite exposes it through import.meta.env.
@@ -51,8 +52,8 @@ async function handleResponse<T>(res: Response): Promise<T> {
     try {
       const body = await res.json();
       message = body.response ?? body.message ?? body.error ?? body.transcription ?? message;
-    } catch {
-      // ignore
+    } catch (error) {
+      logger.child('api').debug('Error response body was not JSON', { error, status: res.status, url: res.url });
     }
     throw new Error(message);
   }

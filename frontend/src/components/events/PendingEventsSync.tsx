@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { CreateEventDto } from '@/models';
+import { logger } from '@/lib/logger';
 
 function subscribe(cb: () => void) {
   window.addEventListener('online', cb);
@@ -71,8 +72,8 @@ export function PendingEventsSync() {
       try {
         await eventsService.create(p.dto);
         removePending(p.localId);
-      } catch {
-        /* keep failed ones in the queue */
+      } catch (error) {
+        logger.child('pendingSync').warn('Pending event sync failed, kept in queue', { error, localId: p.localId });
       }
     }
     invalidateDomains(qc, EVENT_MUTATION_DOMAINS);

@@ -1,4 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { logger } from '@/lib/logger';
+
+const voiceLog = logger.child('voice');
 
 type RecordingState = 'idle' | 'recording' | 'preparing';
 
@@ -49,7 +52,7 @@ export function useVoiceRecorder(onAudioReady: (audioBlob: Blob) => Promise<void
           setPermissionState(status.state as VoicePermissionState);
         };
       })
-      .catch(() => {});
+      .catch((error) => voiceLog.debug('Microphone permission query failed', { error }));
 
     return () => { cancelled = true; };
   }, []);
@@ -65,7 +68,8 @@ export function useVoiceRecorder(onAudioReady: (audioBlob: Blob) => Promise<void
       stream.getTracks().forEach((track) => track.stop());
       setPermissionState('granted');
       return true;
-    } catch {
+    } catch (error) {
+      voiceLog.warn('Microphone permission request denied', { error });
       setPermissionState('denied');
       onError('microphone_denied');
       return false;
@@ -106,6 +110,7 @@ export function useVoiceRecorder(onAudioReady: (audioBlob: Blob) => Promise<void
           const recordedAudioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || 'audio/webm' });
           await onAudioReady(recordedAudioBlob);
         } catch (error) {
+          voiceLog.error('Recorded audio processing failed', { error, mimeType: mediaRecorder.mimeType });
           onError(resolveErrorKey(error));
         } finally {
           setRecordingState('idle');
@@ -118,7 +123,8 @@ export function useVoiceRecorder(onAudioReady: (audioBlob: Blob) => Promise<void
       mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start();
       setRecordingState('recording');
-    } catch {
+    } catch (error) {
+      voiceLog.warn('Start recording failed (microphone denied)', { error });
       setPermissionState('denied');
       onError('microphone_denied');
       setRecordingState('idle');

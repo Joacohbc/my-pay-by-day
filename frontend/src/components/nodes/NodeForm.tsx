@@ -72,8 +72,8 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
         const created = await createNode.mutateAsync(values);
         onSuccess?.(created as unknown as FinanceNode);
       }
-    } catch (error) {
-      console.error(error);
+    } catch {
+      // Save failure is shipped by the global mutation logger; the mutation surfaces it in the UI.
     }
   };
 

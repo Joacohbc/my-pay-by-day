@@ -18,6 +18,9 @@ import { useSendCountdown } from '@/hooks/useSendCountdown';
 import i18n from '@/lib/i18n';
 import type { FileDto } from '@/models';
 import { toDisplayMessage, textOf, imageUrlsOf, attachmentsOf } from '@/lib/chat/toDisplayMessage';
+import { logger } from '@/lib/logger';
+
+const chatLog = logger.child('chat');
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -193,7 +196,8 @@ export function useChatUI() {
     const reloadHistorySafely = async (): Promise<UIMessage[] | undefined> => {
       try {
         return await reloadHistory();
-      } catch {
+      } catch (error) {
+        chatLog.debug('History reload failed', { error, chatId });
         return undefined;
       }
     };
@@ -217,7 +221,8 @@ export function useChatUI() {
         }
         wasBackendGeneratingRef.current = true;
         pollingTimer = setTimeout(pollUntilComplete, 2000);
-      } catch {
+      } catch (error) {
+        chatLog.warn('Chat status poll failed', { error, chatId });
         if (active) setIsBackendGenerating(false);
       }
     };
@@ -307,7 +312,8 @@ export function useChatUI() {
     let uploadedFiles: FileDto[];
     try {
       uploadedFiles = await uploadPendingFiles();
-    } catch {
+    } catch (error) {
+      chatLog.error('Pending file upload failed (quick create)', { error, chatId, pendingCount: pendingFiles.length });
       showError(t('chat.pendingUploadFailed'));
       return;
     }
@@ -332,7 +338,8 @@ export function useChatUI() {
       await extractService.fromText(combinedText, undefined, chatId, payloadFiles.length ? payloadFiles : undefined);
       await reloadHistory();
       invalidateDomains(queryClient, ['drafts', 'events', 'tags', 'categories']);
-    } catch {
+    } catch (error) {
+      chatLog.error('Quick-create extraction failed', { error, chatId, fileCount: currentFiles.length });
       setMessages((prev) => prev.filter((m) => m.id !== optimisticMessage.id));
       setInput(userText);
       setDraftFiles(currentFiles);
@@ -348,7 +355,8 @@ export function useChatUI() {
     let uploadedFiles: FileDto[];
     try {
       uploadedFiles = await uploadPendingFiles();
-    } catch {
+    } catch (error) {
+      chatLog.error('Pending file upload failed (send)', { error, chatId, pendingCount: pendingFiles.length });
       showError(t('chat.pendingUploadFailed'));
       return;
     }
@@ -371,7 +379,7 @@ export function useChatUI() {
     lastScheduledMessageIdRef.current = newMessage.id;
     setMessages((prev) => [...prev, newMessage]);
     scheduleSend(() => sendMessage());
-  }, [input, draftFiles, pendingFiles, uploadPendingFiles, showError, t, setDraftFiles, setMessages, sendMessage, scheduleSend]);
+  }, [input, draftFiles, pendingFiles, uploadPendingFiles, showError, t, setDraftFiles, setMessages, sendMessage, scheduleSend, chatId]);
 
   const handleStop = useCallback(() => {
     if (countdown !== null) {

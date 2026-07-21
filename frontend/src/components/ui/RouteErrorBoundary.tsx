@@ -1,10 +1,11 @@
 import { useRouteError, isRouteErrorResponse } from 'react-router-dom';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Button } from '@/components/ui/Button';
+import { logger } from '@/lib/logger';
 
 export function RouteErrorBoundary() {
   const error = useRouteError();
-  console.error('Route error:', error);
+  logger.child('routeError').error('Route error', { error });
 
   let title = 'Unexpected Application Error!';
   let message = 'An unexpected error occurred.';

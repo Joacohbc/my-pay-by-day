@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { zustandStorage } from '@/lib/idbStorage';
 
-export type ClientErrorKind = 'error' | 'unhandledrejection' | 'react';
+export type ClientErrorKind = 'error' | 'unhandledrejection' | 'react' | 'caught' | 'api';
 
 /**
  * A single unhandled frontend error, carrying its full signature so it can be traced in Loki.
@@ -24,6 +24,12 @@ export interface ClientErrorEntry {
   userAgent: string;
   requestId: string;
   appVersion: string;
+  /**
+   * Structured, low-cardinality context accompanying the error (ids, keys, counts). Only primitive
+   * values survive here — the Error object and nested payloads are stripped before shipping. Rides
+   * in the JSON body so it is queryable in Loki via `| json` even though Alloy does not index it.
+   */
+  context?: Record<string, string | number | boolean>;
 }
 
 /** Cap so a crash loop can never grow the buffer without bound. */

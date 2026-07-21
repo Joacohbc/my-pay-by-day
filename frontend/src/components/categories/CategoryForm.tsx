@@ -61,8 +61,8 @@ export function CategoryForm({ editTarget, onSuccess, onCancel }: CategoryFormPr
         const created = await createCategory.mutateAsync(values);
         onSuccess?.(created as unknown as Category);
       }
-    } catch (error) {
-      console.error(error);
+    } catch {
+      // Save failure is shipped by the global mutation logger; the mutation surfaces it in the UI.
     }
   };
 

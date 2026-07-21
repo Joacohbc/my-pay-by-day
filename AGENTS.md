@@ -548,3 +548,22 @@ Every chatbot request carries the user's context as headers — `X-Timezone`, `X
 * **Display formatting:** `formattingGuidance(lang, currency)` (`chatbot/src/prompts/system.ts`) renders concrete `Intl` examples (e.g. `$1,234.56`, `Jul 12, 2026`) using `localeFor(lang)` — the same `en→en-US` / `es→es-ES` mapping the frontend uses in `@/lib/format` — so amounts and dates in AI replies match what the UI displays. It is included in **every** system prompt: chat, background agent, sub-agent, extraction (via `styleBlock`), form patch, and text actions.
 * **Long-term memory:** `memoriesBlock` injects the user's saved facts into every agentic prompt (chat, background agent, sub-agent, extraction, form patch) with an active instruction to check them *before* asking the user or picking defaults.
 * **Rule:** when adding a new prompt or AI entry point, it **must** include `formattingGuidance` (or `styleBlock`) and, if it acts on the user's data, `memoriesBlock`. A prompt that hardcodes formats or ignores memory is a bug.
+
+---
+
+### Logging & Observability
+
+All three services share **one log-level vocabulary** — `silent | error | warn | info | debug | trace` — with a **unified default of `info`**. The threshold is configured per stack via its own env var, and the names differ only because each stack's tooling forces it:
+
+| Stack | Threshold env var | Notes |
+|---|---|---|
+| Backend (Quarkus) | `APP_LOG_LEVEL` | Bound to `quarkus.log.category."com.mypaybyday".level`. Quarkus emits `UPPERCASE` levels. |
+| Chatbot | `LOG_LEVEL` | Custom logger in `chatbot/src/logging/logger.ts`; `LOG_*` family (format, timestamps, field cap). |
+| Frontend | `VITE_LOG_LEVEL` | Vite requires the `VITE_` prefix. Injected at runtime into `/env.js` by `entrypoint.sh`; read from `import.meta.env` in dev. |
+
+* **Level casing is normalized at ingest, not at the source.** Grafana Alloy (`docker/observability/config.alloy`) lowercases `level` for every service (`ToLower`) so Loki queries filter uniformly (`| level="error"`). Source code and dashboards **must not** assume a casing.
+* **Frontend never uses raw `console.*`.** Use `logger` (or `apiLogger`) from `@/lib/logger` — it mirrors the chatbot logger API (`error/warn/info/debug/trace`, `child(scope)`, `with(fields)`). The **only** exception is `errorReporter`'s own transport-failure log, kept raw so a failed shipment can never re-capture itself into a report storm.
+* **`error`-level frontend events auto-ship to Loki.** Any `logger.error(...)` (and every TanStack query/mutation failure, via the `QueryCache`/`MutationCache` `onError` in `App.tsx` using `apiLogger`) is buffered into `errorLogStore` and POSTed to `/client-logs`, joining the unhandled-error stream. The `kind` field discriminates the source: `error` / `unhandledrejection` / `react` (uncaught) and `caught` / `api` (explicit). New `kind` values flow to Loki as structured metadata with **no pipeline change** — Alloy already extracts `kind` from the frontend JSON.
+* **Log context rides to Loki.** The second arg to `logger.error(msg, fields)` is sanitized (primitives only, the `Error` under `error`/`err` is stripped since it ships as `stack`) into the entry's `context` object. It is not indexed but sits in the JSON body, queryable with `| json`. Pass useful low-cardinality identifiers (`chatId`, `fileId`, `draftCount`, `status`) — never raw DTOs or PII. `warn`/`debug` context stays console-only; only `error` ships.
+* **Avoid double-shipping.** A `catch` around a react-query `useMutation`/`useQuery` must **not** call `logger.error` — the global `onError` already ships it (`kind:'api'`). Add a per-catch `logger.error` only for *direct* calls (services invoked outside a hook, browser APIs, parsing).
+* **Rule:** when adding a new service or a new frontend entry point that can fail, route its errors through the shared logger (never `console.*`), and keep the level default at `info`. Changing the unified default or vocabulary must be done in all three stacks in the same change.

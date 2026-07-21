@@ -59,6 +59,42 @@ export function reportReactError(error: Error, componentStack: string): void {
   });
 }
 
+const MAX_CONTEXT_VALUE_CHARS = 200;
+
+/**
+ * Keeps only primitive context values (string/number/boolean) and caps string length, so the shipped
+ * entry stays small and JSON-safe. The Error object (under `error`/`err`) is dropped here — it is
+ * already captured as `stack` — and nested objects/arrays are skipped to avoid unbounded payloads.
+ */
+function sanitizeContext(context?: Record<string, unknown>): Record<string, string | number | boolean> | undefined {
+  if (!context) return undefined;
+  const sanitized: Record<string, string | number | boolean> = {};
+  for (const [key, value] of Object.entries(context)) {
+    if (key === 'error' || key === 'err' || value == null) continue;
+    if (typeof value === 'string') {
+      sanitized[key] = value.length > MAX_CONTEXT_VALUE_CHARS ? `${value.slice(0, MAX_CONTEXT_VALUE_CHARS)}…` : value;
+    } else if (typeof value === 'number' || typeof value === 'boolean') {
+      sanitized[key] = value;
+    }
+  }
+  return Object.keys(sanitized).length > 0 ? sanitized : undefined;
+}
+
+/**
+ * Captures a *caught* frontend error (catch block, critical function, or a failed api call) so it
+ * ships to Loki alongside the unhandled ones. This is the single entry point `logger.error` and the
+ * TanStack query/mutation `onError` handlers call. `message` carries the human summary; `context`
+ * carries structured fields (ids, keys, counts) that ride in the JSON body for querying in Loki.
+ */
+export function captureError(kind: ClientErrorKind, message: string, error?: unknown, context?: Record<string, unknown>): void {
+  const errorObject = error instanceof Error ? error : undefined;
+  enqueue({
+    ...baseEntry(kind, message),
+    stack: truncate(errorObject?.stack),
+    context: sanitizeContext(context),
+  });
+}
+
 /**
  * Flush the buffer to the nginx sink. Each entry is POSTed as its own request so nginx logs one
  * JSON object per line, which Alloy parses field-by-field into Loki. Transport failures are

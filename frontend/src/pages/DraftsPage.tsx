@@ -23,6 +23,7 @@ import { EventCard } from '@/components/events/EventCard';
 import { BulkActionsModal } from '@/components/events/BulkActionsModal';
 import { EventsListView } from '@/components/events/EventsListView';
 import { DraftsPageActions } from '@/components/events/DraftsPageActions';
+import { logger } from '@/lib/logger';
 
 type DraftSegment = 'RECENT' | 'LINKED' | 'UNLINKED';
 
@@ -152,7 +153,8 @@ export function DraftsPage() {
         invalidateDomains(queryClient, EVENT_MUTATION_DOMAINS);
         exitSelectionMode();
         return result.confirmedEvents.map((event) => event.id);
-      } catch {
+      } catch (error) {
+        logger.child('drafts').error('Batch draft confirm failed', { error, draftCount: draftIds.length, mode });
         return [];
       } finally {
         setIsConfirming(false);

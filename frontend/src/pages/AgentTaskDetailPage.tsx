@@ -28,6 +28,7 @@ import { FileCard } from '@/components/files/FileCard';
 import { Textarea } from '@/components/ui/Textarea';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { filesService } from '@/services/files.service';
+import { logger } from '@/lib/logger';
 import { audioService } from '@/services/audio.service';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -115,8 +116,8 @@ export function AgentTaskDetailPage() {
     try {
       await cancelTask.mutateAsync(id);
       setConfirmCancel(false);
-    } catch (err) {
-      console.error('Cancel failed:', err);
+    } catch {
+      // Shipped by the global mutation logger; UI stays put.
     }
   };
 
@@ -124,8 +125,8 @@ export function AgentTaskDetailPage() {
     if (!id) return;
     try {
       await pauseTask.mutateAsync(id);
-    } catch (err) {
-      console.error('Pause failed:', err);
+    } catch {
+      // Shipped by the global mutation logger; UI stays put.
     }
   };
 
@@ -133,8 +134,8 @@ export function AgentTaskDetailPage() {
     if (!id) return;
     try {
       await resumeTask.mutateAsync(id);
-    } catch (err) {
-      console.error('Resume failed:', err);
+    } catch {
+      // Shipped by the global mutation logger; UI stays put.
     }
   };
 
@@ -169,7 +170,7 @@ export function AgentTaskDetailPage() {
         await handleSendReply(transcriptionText, [uploaded.id]);
       }
     } catch (err) {
-      console.error('Audio transcription/send failed:', err);
+      logger.child('agentTask').error('Audio transcription/send failed', { error: err, taskId: id });
     }
   };
 
@@ -189,8 +190,8 @@ export function AgentTaskDetailPage() {
       await sendMessage.mutateAsync({ id, message: finalMessage, fileIds: fileIds.length > 0 ? fileIds : undefined });
       if (!explicitMessage) setReply('');
       setDraftFiles([]);
-    } catch (err) {
-      console.error('Send message failed:', err);
+    } catch {
+      // Shipped by the global mutation logger; UI stays put.
     }
   };
 

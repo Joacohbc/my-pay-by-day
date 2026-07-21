@@ -6,6 +6,7 @@ import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 import { useAlert } from '@/contexts/AlertContext';
 import { FileUploader } from '@/components/ui/FileUploader';
 import type { FileDto } from '@/models';
+import { logger } from '@/lib/logger';
 
 interface ChatInputProps {
   inputContent: string;
@@ -108,7 +109,8 @@ export function ChatInput({
     async (file: File) => {
       try {
         await onAudioFileSelected?.(file);
-      } catch {
+      } catch (error) {
+        logger.child('chatInput').error('Audio file transcription failed', { error, fileName: file.name, mimeType: file.type, fileSizeBytes: file.size });
         showError(t('chat.transcriptionFailed'));
       }
     },
