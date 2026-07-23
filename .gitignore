@@ -17,6 +17,7 @@ docker/backend/markitdown/.libs/
 .claude/
 .agents/
 SKILLS.md
+TODO.md
 
 # host-mounted service data (backend/chatbot SQLite)
 data/
