@@ -157,8 +157,11 @@ export function ChatMessage({ message, onDelete, onApprove, onAskUserAnswer }: C
         );
       }
       // Resolved: keep the question and the given answer visible instead of letting the card
-      // disappear — `reason` is where the answer travels (see chat.ts's approval handling).
-      const answer = call.approval?.reason;
+      // disappear. The answer travels on the approval `reason`, but the SDK can drop that field
+      // when it transitions the tool part to its output state as the loop continues; askUser's own
+      // output always echoes the answer (see interaction.ts's findAnswer), so fall back to it.
+      const askUserOutput = call.output as { answer?: string } | undefined;
+      const answer = call.approval?.reason ?? askUserOutput?.answer;
       if (answer == null) return null;
       return (
         <InlineQuestionCard

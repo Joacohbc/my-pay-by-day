@@ -13,6 +13,7 @@ import { fileRefsOf, reattachFileRefs } from '@/files/fileRefs.js';
 import { groundingNow } from '@/dates.js';
 import { buildModelContext, compactIfNeeded } from '@/memory/compaction.js';
 import { conversationMemory } from '@/memory/conversation.js';
+import { sanitizeLeakedToolMarkup } from '@/memory/sanitizeAssistantText.js';
 import { toUIParts, type DisplayMessage, type DisplayOverlays, type DisplayPart } from '@/memory/display.js';
 import { chatTitles } from '@/memory/titles.js';
 import { longTermMemory } from '@/memory/longTerm.js';
@@ -225,11 +226,13 @@ chatRoute.post('/', async (c) => {
   // step land in conversationMemory as soon as it completes instead of only once the whole call finishes.
   // This is what lets a client that reloads history mid-generation (e.g. after leaving and returning to the
   // chat view) see everything the model has done so far, not just a blank wait until the very end.
+  const toolNames = Object.keys(chatTools);
   let persistedMessageCount = 0;
   const persistStep = (stepMessages: readonly ModelMessage[], toolResults: readonly { toolCallId: string; output: unknown }[]) => {
     const newMessages = stepMessages.slice(persistedMessageCount);
     if (newMessages.length === 0) return;
     persistedMessageCount = stepMessages.length;
+    sanitizeLeakedToolMarkup(newMessages, toolNames);
     const richOutputsByCallId = new Map<string, unknown>();
     for (const toolResult of toolResults) richOutputsByCallId.set(toolResult.toolCallId, toolResult.output);
     conversationMemory.append(chatId, newMessages, displaysOfResponseMessages(newMessages, richOutputsByCallId));
