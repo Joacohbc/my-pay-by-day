@@ -1,5 +1,7 @@
 core
 .pnpm-store/
+.env
+data/
 
 # devcontainer-cli
 .dc_*/
@@ -14,3 +16,6 @@ docker/backend/markitdown/.libs/
 # agent tooling
 .claude/
 .agents/
+
+# host-mounted service data (backend/chatbot SQLite)
+data/

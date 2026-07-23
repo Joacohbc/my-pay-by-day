@@ -2,7 +2,9 @@ import { errorJson } from '@/i18n.js';
 import { experimental_transcribe as transcribe, generateText } from 'ai';
 import { Hono } from 'hono';
 import { languageName, requestContextFrom } from '@/context.js';
+import { config } from '@/config.js';
 import { logger } from '@/logging/logger.js';
+import { classifyLlmError, costOf, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
 import { audioTranscriptionModel, fastModel } from '@/models.js';
 import { formattingGuidance } from '@/prompts/system.js';
 
@@ -15,6 +17,14 @@ export const audioRoute = new Hono();
  * using a speech-to-text model kept separate from the chat/agent model.
  * Accepts multipart form-data with an `audio` file, matching the previous Java contract.
  */
+async function transcribeOnce(audioBytes: Uint8Array, startedAt: number): Promise<string> {
+  const result = await transcribe({ model: audioTranscriptionModel(), audio: audioBytes });
+  // The OpenRouter whisper endpoint returns plain text only — no usage/cost — so tokens stay unset;
+  // this still tracks call count, latency and failures for the audio flow.
+  logLlmUsage('audio', config.models.audio, Math.round(performance.now() - startedAt));
+  return result.text;
+}
+
 async function transcribeWithRetry(
   audioBytes: Uint8Array,
   maxAttempts = 3,
@@ -23,20 +33,20 @@ async function transcribeWithRetry(
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   let attempt = 1;
   while (attempt < maxAttempts) {
+    const startedAt = performance.now();
     try {
-      const result = await transcribe({ model: audioTranscriptionModel(), audio: audioBytes });
-      return result.text;
+      return await transcribeOnce(audioBytes, startedAt);
     } catch (error) {
       audioLog.warn('audio transcription attempt failed, retrying', {
         attempt,
+        cause: classifyLlmError(error),
         error: (error as Error).message,
       });
       await sleep(delayMs * attempt);
       attempt++;
     }
   }
-  const finalResult = await transcribe({ model: audioTranscriptionModel(), audio: audioBytes });
-  return finalResult.text;
+  return transcribeOnce(audioBytes, performance.now());
 }
 
 audioRoute.post('/transcribe', async (c) => {
@@ -49,11 +59,13 @@ audioRoute.post('/transcribe', async (c) => {
 
   const bytes = new Uint8Array(await file.arrayBuffer());
 
+  const startedAt = performance.now();
   try {
     const text = await transcribeWithRetry(bytes);
     return c.json({ transcription: text });
   } catch (error) {
     audioLog.error('audio transcription failed after all attempts', { error: (error as Error).message });
+    logLlmError('audio', config.models.audio, Math.round(performance.now() - startedAt), error);
     return c.json({ error: (error as Error).message }, 500);
   }
 });
@@ -79,12 +91,19 @@ async function editTextFromDictation(currentText: string, dictation: string, lan
     `DICTATION:\n${dictation}`,
     'Produce the edited text now.',
   ];
-  const { text } = await generateText({
-    model: fastModel(),
-    system: enhancedTranscriptionSystemPrompt(lang, currency),
-    prompt: userParts.join('\n\n'),
-  });
-  return text.trim().replace(/^["']|["']$/g, '');
+  const startedAt = performance.now();
+  try {
+    const { text, usage, response, providerMetadata } = await generateText({
+      model: fastModel(),
+      system: enhancedTranscriptionSystemPrompt(lang, currency),
+      prompt: userParts.join('\n\n'),
+    });
+    logLlmUsage('audioEdit', response.modelId, Math.round(performance.now() - startedAt), usage, costOf(providerMetadata));
+    return text.trim().replace(/^["']|["']$/g, '');
+  } catch (error) {
+    logLlmError('audioEdit', config.models.fast, Math.round(performance.now() - startedAt), error);
+    throw error;
+  }
 }
 
 audioRoute.post('/transcribe-enhanced', async (c) => {
@@ -99,10 +118,12 @@ audioRoute.post('/transcribe-enhanced', async (c) => {
   const bytes = new Uint8Array(await file.arrayBuffer());
 
   let dictation: string;
+  const transcribeStartedAt = performance.now();
   try {
     dictation = await transcribeWithRetry(bytes);
   } catch (error) {
     audioLog.error('audio transcription failed after all attempts', { error: (error as Error).message });
+    logLlmError('audio', config.models.audio, Math.round(performance.now() - transcribeStartedAt), error);
     return c.json({ error: (error as Error).message }, 500);
   }
 

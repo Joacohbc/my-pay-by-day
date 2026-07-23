@@ -47,7 +47,7 @@ export const config = {
 
   log: {
     /** Verbosity threshold: silent | error | warn | info | debug | trace. */
-    level: env('LOG_LEVEL', 'debug'),
+    level: env('LOG_LEVEL', 'info'),
     /**
      * Output format: 'text' (human-readable, for local debugging) or 'json' (structured, one object
      * per line, for prod auditing/aggregation via Loki/Grafana). Defaults to JSON under

@@ -31,6 +31,7 @@ import { useAlert } from '@/contexts/AlertContext';
 import { idbRemove } from '@/lib/idbStorage';
 import { useDismissedBannersStore } from '@/store/dismissedBannersStore';
 import { dataTransferService } from '@/services/data-transfer.service';
+import { logger } from '@/lib/logger';
 import JSZip from 'jszip';
 
 interface SettingRowProps {
@@ -103,15 +104,20 @@ export function SettingsPage() {
   };
 
   const handleExport = async () => {
-    const blob = await dataTransferService.exportAll();
-    const url = URL.createObjectURL(blob);
-    const exportDate = new Date().toISOString().slice(0, 10);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `mypaybyday-export-${exportDate}.zip`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-    success(t('settings.exportSuccess'));
+    try {
+      const blob = await dataTransferService.exportAll();
+      const url = URL.createObjectURL(blob);
+      const exportDate = new Date().toISOString().slice(0, 10);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `mypaybyday-export-${exportDate}.zip`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      success(t('settings.exportSuccess'));
+    } catch (err) {
+      logger.child('settings').error('Data export failed', { error: err });
+      error(err instanceof Error ? err.message : String(err));
+    }
   };
 
   const handleImportFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,6 +156,7 @@ export function SettingsPage() {
       success(`${summary}${skippedSuffix}`);
       queryClient.invalidateQueries();
     } catch (err) {
+      logger.child('settings').error('Data import failed', { error: err, fileName: file.name, fileSizeBytes: file.size });
       error(err instanceof Error ? err.message : String(err));
     } finally {
       setIsImporting(false);

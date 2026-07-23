@@ -9,8 +9,9 @@ sanitize() {
   printf '%s' "$1" | tr -d '\n\r' | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 
-printf 'window.__env__ = { VITE_API_BASE_URL: "%s" };\n' \
+printf 'window.__env__ = { VITE_API_BASE_URL: "%s", VITE_LOG_LEVEL: "%s" };\n' \
   "$(sanitize "${VITE_API_BASE_URL:-/api}")" \
+  "$(sanitize "${VITE_LOG_LEVEL:-info}")" \
   > /usr/share/nginx/html/env.js
 
 exec nginx -g "daemon off;"

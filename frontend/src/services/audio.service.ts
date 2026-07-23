@@ -1,4 +1,4 @@
-import { api } from '@/services/api';
+import { api, type RequestOptions } from '@/services/api';
 import { convertAudioBlobToWav } from '@/lib/audioWav';
 import { Howl, Howler } from 'howler';
 
@@ -37,31 +37,36 @@ export const audioService = {
     Howler.stop();
   },
 
-  transcribeAudio: async (audioBlob: Blob): Promise<AudioTranscriptionResponse> => {
+  transcribeAudio: async (audioBlob: Blob, options?: RequestOptions): Promise<AudioTranscriptionResponse> => {
     const formData = new FormData();
     formData.append('audio', audioBlob, 'recording.wav');
 
-    return api.postForm<AudioTranscriptionResponse>('/ai/audio/transcribe', formData);
+    return api.postForm<AudioTranscriptionResponse>('/ai/audio/transcribe', formData, options);
   },
 
-  transcribeRecordedAudio: async (recordedAudioBlob: Blob): Promise<AudioTranscriptionResponse> => {
+  transcribeRecordedAudio: async (recordedAudioBlob: Blob, options?: RequestOptions): Promise<AudioTranscriptionResponse> => {
     const wavAudioBlob = await convertAudioBlobToWav(recordedAudioBlob);
-    return audioService.transcribeAudio(wavAudioBlob);
+    return audioService.transcribeAudio(wavAudioBlob, options);
   },
 
-  transcribeEnhanced: async (audioBlob: Blob, currentText: string): Promise<AudioTranscriptionResponse> => {
+  transcribeEnhanced: async (
+    audioBlob: Blob,
+    currentText: string,
+    options?: RequestOptions,
+  ): Promise<AudioTranscriptionResponse> => {
     const formData = new FormData();
     formData.append('audio', audioBlob, 'recording.wav');
     formData.append('currentText', currentText);
 
-    return api.postForm<AudioTranscriptionResponse>('/ai/audio/transcribe-enhanced', formData);
+    return api.postForm<AudioTranscriptionResponse>('/ai/audio/transcribe-enhanced', formData, options);
   },
 
   transcribeRecordedAudioEnhanced: async (
     recordedAudioBlob: Blob,
     currentText: string,
+    options?: RequestOptions,
   ): Promise<AudioTranscriptionResponse> => {
     const wavAudioBlob = await convertAudioBlobToWav(recordedAudioBlob);
-    return audioService.transcribeEnhanced(wavAudioBlob, currentText);
+    return audioService.transcribeEnhanced(wavAudioBlob, currentText, options);
   },
 };

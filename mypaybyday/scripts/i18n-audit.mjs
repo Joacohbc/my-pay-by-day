@@ -134,14 +134,22 @@ function parseProperties(filePath) {
 
 // ── Phase 2: Parse MsgKey.java ────────────────────────────────────────────────
 
+function extractEnumConstantList(code) {
+  const enumDeclarationStart = code.search(/\benum\s+MsgKey\s*\{/);
+  if (enumDeclarationStart === -1) return '';
+
+  const bodyStart = code.indexOf('{', enumDeclarationStart) + 1;
+  const constantListEnd = code.indexOf(';', bodyStart);
+  return code.slice(bodyStart, constantListEnd === -1 ? undefined : constantListEnd);
+}
+
 function parseMsgKeyEnum(filePath) {
   const code = readFileSync(filePath, 'utf-8');
   /** @type {Map<string, string>} enumName → propertyKey */
   const entries = new Map();
 
-  // Match:  SOME_CONSTANT("property.key")
-  const re = /(\w+)\s*\(\s*"([^"]+)"\s*\)/g;
-  for (const m of code.matchAll(re)) {
+  const constantDeclarationRe = /\b([A-Z][A-Z0-9_]*)\s*\(\s*"([^"]+)"\s*\)/g;
+  for (const m of extractEnumConstantList(code).matchAll(constantDeclarationRe)) {
     entries.set(m[1], m[2]);
   }
   return entries;

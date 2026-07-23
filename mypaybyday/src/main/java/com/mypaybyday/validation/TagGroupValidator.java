@@ -33,7 +33,7 @@ public class TagGroupValidator {
 
         // Name: required + text rules
         if (entity.name == null || entity.name.isBlank()) {
-            throw new BusinessException(messages.get(MsgKey.TAG_GROUP_NAME_REQUIRED));
+            throw messages.reject(MsgKey.TAG_GROUP_NAME_REQUIRED);
         }
         regexValidator.validateText(entity.name, RegexValidator.SHORT_MAX_LENGTH);
 
@@ -45,7 +45,7 @@ public class TagGroupValidator {
 
         // Tags: at least 2 required
         if (dto.tagIds() == null || dto.tagIds().size() < MIN_TAGS) {
-            throw new BusinessException(messages.get(MsgKey.TAG_GROUP_MIN_TAGS));
+            throw messages.reject(MsgKey.TAG_GROUP_MIN_TAGS);
         }
     }
 }

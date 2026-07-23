@@ -5,6 +5,8 @@ import { languageName, requestContextFrom } from '@/context.js';
 import { fastModel } from '@/models.js';
 import { formattingGuidance } from '@/prompts/system.js';
 import { logger } from '@/logging/logger.js';
+import { costOf, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
+import { config } from '@/config.js';
 
 const textLog = logger.child('text');
 
@@ -41,11 +43,16 @@ textRoute.post('/', async (c) => {
     .filter(Boolean)
     .join('\n\n');
 
+  const startedAt = performance.now();
   try {
-    const { text } = await generateText({ model: fastModel(), system, prompt });
+    const { text, usage, response, providerMetadata } = await generateText({ model: fastModel(), system, prompt });
+    const durationMs = Math.round(performance.now() - startedAt);
+    logLlmUsage('text', response.modelId, durationMs, usage, costOf(providerMetadata), { action: req.action });
     return c.json({ text: text.trim().replace(/^["']|["']$/g, '') });
   } catch (e) {
+    const durationMs = Math.round(performance.now() - startedAt);
     textLog.error('text action failed', { error: (e as Error).message, action: req.action });
+    logLlmError('text', config.models.fast, durationMs, e, { action: req.action });
     return c.json({ error: (e as Error).message }, 400);
   }
 });

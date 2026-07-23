@@ -41,6 +41,15 @@ export function resolveRequestId(c: Context): string {
   return generated;
 }
 
+/**
+ * Correlation ID for a single tool call: the request's own ID (which already starts with the chat
+ * id) plus the tool name and its call id, so a tool's logs and the backend calls it makes are
+ * traceable both on their own and as part of the conversation they belong to.
+ */
+export function toolRequestId(requestId: string, toolName: string, toolCallId?: string): string {
+  return [requestId, toolName, toolCallId].filter(Boolean).join('-');
+}
+
 export function requestContextFrom(c: Context): RequestContext {
   const timezone = c.req.header('X-Timezone') || DEFAULT_TIMEZONE;
   const rawLang = (c.req.header('X-Language') || DEFAULT_LANG).toLowerCase();

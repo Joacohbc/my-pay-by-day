@@ -44,7 +44,7 @@ public class TransactionService {
 	public FinanceTransactionDto findById(Long id) throws BusinessException {
 		FinanceTransactionEntity transaction = transactionRepository.findById(id);
 		if (transaction == null) {
-			throw new BusinessException(messages.get(MsgKey.TRANSACTION_NOT_FOUND));
+			throw messages.reject(MsgKey.TRANSACTION_NOT_FOUND);
 		}
 		return FinanceTransactionDto.from(transaction);
 	}
@@ -72,7 +72,7 @@ public class TransactionService {
 
 		FinanceTransactionEntity transaction = transactionRepository.findById(id);
 		if (transaction == null) {
-			throw new BusinessException(messages.get(MsgKey.TRANSACTION_NOT_FOUND));
+			throw messages.reject(MsgKey.TRANSACTION_NOT_FOUND);
 		}
 
 		transaction.transactionDate = transactionDetails.transactionDate;
@@ -95,7 +95,7 @@ public class TransactionService {
 	public void delete(Long id) throws BusinessException {
 		FinanceTransactionEntity transaction = transactionRepository.findById(id);
 		if (transaction == null) {
-			throw new BusinessException(messages.get(MsgKey.TRANSACTION_NOT_FOUND));
+			throw messages.reject(MsgKey.TRANSACTION_NOT_FOUND);
 		}
 		transactionRepository.delete(transaction);
 		Log.infof("Deleted transaction id=%d", id);

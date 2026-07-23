@@ -44,19 +44,19 @@ public class TransactionValidator {
 	*/
 	public void validateZeroSum(FinanceTransactionEntity transaction) throws BusinessException {
 		if (transaction.lineItems == null || transaction.lineItems.isEmpty()) {
-			throw new BusinessException(messages.get(MsgKey.TRANSACTION_NO_LINE_ITEMS));
+			throw messages.reject(MsgKey.TRANSACTION_NO_LINE_ITEMS);
 		}
 
 		BigDecimal sum = BigDecimal.ZERO;
 		for (FinanceLineItemEntity item : transaction.lineItems) {
 			if (item.amount == null) {
-				throw new BusinessException(messages.get(MsgKey.TRANSACTION_LINE_ITEM_AMOUNT_NULL));
+				throw messages.reject(MsgKey.TRANSACTION_LINE_ITEM_AMOUNT_NULL);
 			}
 			sum = sum.add(item.amount);
 		}
 
 		if (sum.compareTo(BigDecimal.ZERO) != 0) {
-			throw new BusinessException(messages.get(MsgKey.TRANSACTION_ZERO_SUM_VIOLATED, sum));
+			throw messages.reject(MsgKey.TRANSACTION_ZERO_SUM_VIOLATED, sum);
 		}
 	}
 
@@ -72,21 +72,21 @@ public class TransactionValidator {
 		Set<Long> requestedNodeIds = new HashSet<>();
 		for (FinanceLineItemEntity item : transaction.lineItems) {
 			if (item.financeNode == null || item.financeNode.id == null) {
-				throw new BusinessException(messages.get(MsgKey.TRANSACTION_LINE_ITEM_NODES_NOT_FOUND));
+				throw messages.reject(MsgKey.TRANSACTION_LINE_ITEM_NODES_NOT_FOUND);
 			}
 			requestedNodeIds.add(item.financeNode.id);
 		}
 
 		List<FinanceNodeEntity> nodes = financeNodeRepository.list(requestedNodeIds.stream().toList());
 		if(nodes.size() != requestedNodeIds.size()) {
-			throw new BusinessException(messages.get(MsgKey.TRANSACTION_LINE_ITEM_NODES_NOT_FOUND));
+			throw messages.reject(MsgKey.TRANSACTION_LINE_ITEM_NODES_NOT_FOUND);
 		}
 
 		nodes.stream()
 			.filter(node -> node.archived)
 			.findFirst()
 			.ifPresent(node -> {
-				throw new BusinessException(messages.get(MsgKey.NODE_ARCHIVED_IN_USE, node.id));
+				throw messages.reject(MsgKey.NODE_ARCHIVED_IN_USE, node.id);
 			});
 	}
 

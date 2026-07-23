@@ -12,6 +12,7 @@ import { extractRoute } from '@/routes/extract.js';
 import { formChatRoute } from '@/routes/formChat.js';
 import { memoryRoute } from '@/routes/memory.js';
 import { textRoute } from '@/routes/text.js';
+import { startHeartbeat } from '@/logging/heartbeat.js';
 import { logger } from '@/logging/logger.js';
 import { runWithRequestContext } from '@/logging/requestStore.js';
 
@@ -71,6 +72,7 @@ app.route('/agent-tasks', agentTasksRoute);
 function start(): void {
   db();
   recoverTasks();
+  startHeartbeat();
   serve({ fetch: app.fetch, port: config.port }, (info) => {
     logger.info(`listening on :${info.port}`, {
       port: info.port,

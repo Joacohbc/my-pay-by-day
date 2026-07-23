@@ -80,10 +80,10 @@ public class CategoryService {
 	public CategoryEntity findEntityById(Long id, boolean failIfArchived) throws BusinessException {
 		CategoryEntity category = categoryRepository.findById(id);
 		if (category == null) {
-			throw new BusinessException(messages.get(MsgKey.CATEGORY_NOT_FOUND, id));
+			throw messages.reject(MsgKey.CATEGORY_NOT_FOUND, id);
 		}
 		if (failIfArchived && category.archived) {
-			throw new BusinessException(messages.get(MsgKey.CATEGORY_NOT_FOUND_ARCHIVED, id));
+			throw messages.reject(MsgKey.CATEGORY_NOT_FOUND_ARCHIVED, id);
 		}
 		return category;
 	}
@@ -97,12 +97,12 @@ public class CategoryService {
 			return null;
 		}
 		if (catDto.id() == null) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_CATEGORY_ID_REQUIRED));
+			throw messages.reject(MsgKey.EVENT_CATEGORY_ID_REQUIRED);
 		}
 
 		CategoryEntity category = categoryRepository.findById(catDto.id());
 		if (category == null) {
-			throw new BusinessException(messages.get(MsgKey.CATEGORY_NOT_FOUND, catDto.id()));
+			throw messages.reject(MsgKey.CATEGORY_NOT_FOUND, catDto.id());
 		}
 
 		if (category.archived) {
@@ -112,7 +112,7 @@ public class CategoryService {
 				case NOT_ALLOW_ARCHIVED -> false;
 			};
 			if (!allowed) {
-				throw new BusinessException(messages.get(MsgKey.CATEGORY_NOT_FOUND_ARCHIVED, catDto.id()));
+				throw messages.reject(MsgKey.CATEGORY_NOT_FOUND_ARCHIVED, catDto.id());
 			}
 		}
 
@@ -126,7 +126,7 @@ public class CategoryService {
 	@Transactional
 	public CategoryDto create(CategoryDto dto) throws BusinessException {
 		if (dto.name() == null || dto.name().isBlank()) {
-			throw new BusinessException(messages.get(MsgKey.CATEGORY_NAME_REQUIRED));
+			throw messages.reject(MsgKey.CATEGORY_NAME_REQUIRED);
 		}
 		CategoryEntity category = new CategoryEntity();
 		category.name = dto.name();
@@ -146,7 +146,7 @@ public class CategoryService {
 	public CategoryDto update(Long id, CategoryDto dto) throws BusinessException {
 		CategoryEntity category = findEntityById(id, false);
 		if (dto.name() == null || dto.name().isBlank()) {
-			throw new BusinessException(messages.get(MsgKey.CATEGORY_NAME_REQUIRED));
+			throw messages.reject(MsgKey.CATEGORY_NAME_REQUIRED);
 		}
 		category.name = dto.name();
 		category.description = dto.description();
@@ -169,7 +169,7 @@ public class CategoryService {
 
 		if (inUseForRecurring) {
 			Log.warnf("Archive rejected: category id=%d is in use by templates/subscriptions", id);
-			throw new BusinessException(messages.get(MsgKey.CATEGORY_ARCHIVE_IN_USE));
+			throw messages.reject(MsgKey.CATEGORY_ARCHIVE_IN_USE);
 		}
 
 		category.archived = true;
@@ -193,7 +193,7 @@ public class CategoryService {
 
 		if (inUse) {
 			Log.warnf("Delete rejected: category id=%d is in use", id);
-			throw new BusinessException(messages.get(MsgKey.CATEGORY_IN_USE));
+			throw messages.reject(MsgKey.CATEGORY_IN_USE);
 		}
 
 		categoryRepository.delete(category);

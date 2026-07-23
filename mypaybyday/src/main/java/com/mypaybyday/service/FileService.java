@@ -42,7 +42,7 @@ public class FileService {
 
 	public FileDto uploadBase64(Base64FileUploadRequestDto request) throws BusinessException {
 		if (request.base64Content() == null || request.base64Content().isBlank()) {
-			throw new BusinessException(messages.get(MsgKey.FILE_CONTENT_EMPTY));
+			throw messages.reject(MsgKey.FILE_CONTENT_EMPTY);
 		}
 
 		byte[] decodedBytes;
@@ -53,7 +53,7 @@ public class FileService {
 			}
 			decodedBytes = Base64.getDecoder().decode(base64);
 		} catch (IllegalArgumentException e) {
-			throw new BusinessException(messages.get(MsgKey.FILE_CONTENT_INVALID_BASE64));
+			throw messages.reject(MsgKey.FILE_CONTENT_INVALID_BASE64);
 		}
 
 		return saveFile(request.fileName(), request.mimeType(), decodedBytes);
@@ -61,7 +61,7 @@ public class FileService {
 
 	private FileDto saveFile(String fileName, String mimeType, byte[] data) throws BusinessException {
 		if (data.length > maxFileSize) {
-			throw new BusinessException(messages.get(MsgKey.FILE_SIZE_EXCEEDED));
+			throw messages.reject(MsgKey.FILE_SIZE_EXCEEDED);
 		}
 
 		String hash = computeHash(data);
@@ -142,7 +142,7 @@ public class FileService {
 	public FileDto getFileMetadata(Long id) throws BusinessException {
 		FileEntity file = FileEntity.findById(id);
 		if (file == null) {
-			throw new BusinessException(messages.get(MsgKey.FILE_NOT_FOUND));
+			throw messages.reject(MsgKey.FILE_NOT_FOUND);
 		}
 		return FileDto.from(file, isOrphan(id));
 	}
@@ -150,7 +150,7 @@ public class FileService {
 	public FileEntity getFileContent(Long id) throws BusinessException {
 		FileEntity file = FileEntity.findById(id);
 		if (file == null) {
-			throw new BusinessException(messages.get(MsgKey.FILE_NOT_FOUND));
+			throw messages.reject(MsgKey.FILE_NOT_FOUND);
 		}
 		return file;
 	}
@@ -196,7 +196,7 @@ public class FileService {
 	public void deleteFile(Long id) throws BusinessException {
 		FileEntity file = FileEntity.findById(id);
 		if (file == null) {
-			throw new BusinessException(messages.get(MsgKey.FILE_NOT_FOUND));
+			throw messages.reject(MsgKey.FILE_NOT_FOUND);
 		}
 
 		long eventCount = FileEntity.getEntityManager().createQuery(
@@ -206,7 +206,7 @@ public class FileService {
 
 		if (eventCount > 0) {
 			Log.warnf("Delete rejected: file id=%d is used by %d events", id, eventCount);
-			throw new BusinessException(messages.get(MsgKey.FILE_IN_USE));
+			throw messages.reject(MsgKey.FILE_IN_USE);
 		}
 
 		file.delete();

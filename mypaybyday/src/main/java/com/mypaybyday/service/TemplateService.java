@@ -71,7 +71,7 @@ public class TemplateService {
 	TemplateEntity findEntityById(Long id) throws BusinessException {
 		TemplateEntity template = templateRepository.findById(id);
 		if (template == null) {
-			throw new BusinessException(messages.get(MsgKey.TEMPLATE_NOT_FOUND, id));
+			throw messages.reject(MsgKey.TEMPLATE_NOT_FOUND, id);
 		}
 		return template;
 	}
@@ -83,11 +83,11 @@ public class TemplateService {
 	@Transactional
 	public TemplateDto create(TemplateDto dto) throws BusinessException {
 		if (dto.name() == null || dto.name().isBlank()) {
-			throw new BusinessException(messages.get(MsgKey.TEMPLATE_NAME_REQUIRED));
+			throw messages.reject(MsgKey.TEMPLATE_NAME_REQUIRED);
 		}
 		if ((dto.modifierType() != null && dto.modifierValue() == null) ||
 			(dto.modifierType() == null && dto.modifierValue() != null)) {
-			throw new BusinessException(messages.get(MsgKey.TEMPLATE_MODIFIER_VALIDATION));
+			throw messages.reject(MsgKey.TEMPLATE_MODIFIER_VALIDATION);
 		}
 		TemplateEntity template = new TemplateEntity();
 		applyDto(template, dto);
@@ -100,11 +100,11 @@ public class TemplateService {
 	public TemplateDto update(Long id, TemplateDto dto) throws BusinessException {
 		TemplateEntity template = findEntityById(id);
 		if (dto.name() == null || dto.name().isBlank()) {
-			throw new BusinessException(messages.get(MsgKey.TEMPLATE_NAME_REQUIRED));
+			throw messages.reject(MsgKey.TEMPLATE_NAME_REQUIRED);
 		}
 		if ((dto.modifierType() != null && dto.modifierValue() == null) ||
 			(dto.modifierType() == null && dto.modifierValue() != null)) {
-			throw new BusinessException(messages.get(MsgKey.TEMPLATE_MODIFIER_VALIDATION));
+			throw messages.reject(MsgKey.TEMPLATE_MODIFIER_VALIDATION);
 		}
 		applyDto(template, dto);
 		Log.infof("Updated template id=%d", id);

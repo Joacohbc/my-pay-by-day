@@ -88,7 +88,7 @@ public class EventService {
 	public void delete(Long id) throws BusinessException {
 		FinanceEventEntity event = eventRepository.findById(id);
 		if (event == null) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
+			throw messages.reject(MsgKey.EVENT_NOT_FOUND);
 		}
 		entityDraftService.deleteByOriginalEntityId(id, EntityType.FINANCE_EVENT);
 		eventRepository.delete(event);

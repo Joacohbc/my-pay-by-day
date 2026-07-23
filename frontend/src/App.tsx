@@ -1,10 +1,12 @@
-import { QueryClient, defaultShouldDehydrateQuery } from '@tanstack/react-query';
+import { QueryClient, QueryCache, MutationCache, defaultShouldDehydrateQuery } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { RouterProvider } from 'react-router-dom';
 import { router } from '@/router';
 import { AlertProvider } from '@/contexts/AlertContext';
+import { AppErrorBoundary } from '@/components/ui/AppErrorBoundary';
 
+import { apiLogger } from '@/lib/logger';
 import { queryStorage } from '@/lib/idbStorage';
 import {
   eventKeys,
@@ -19,6 +21,20 @@ import {
   duplicateKeys,
 } from '@/lib/queryKeys';
 
+function describeKey(key: unknown): string {
+  try {
+    return JSON.stringify(key);
+  } catch {
+    return String(key);
+  }
+}
+
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+// The single boundary that ships every react-query failure to Loki (kind:'api'). Call sites that
+// wrap a query/mutation only handle UI here — they must not log again, or the error ships twice.
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -27,6 +43,14 @@ const queryClient = new QueryClient({
       gcTime: 1000 * 60 * 60 * 24, // 24h — keep cache for offline use
     },
   },
+  queryCache: new QueryCache({
+    onError: (error, query) =>
+      apiLogger.error(`query failed: ${messageOf(error)}`, { error, queryKey: describeKey(query.queryKey) }),
+  }),
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) =>
+      apiLogger.error(`mutation failed: ${messageOf(error)}`, { error, mutationKey: describeKey(mutation.options.mutationKey) }),
+  }),
 });
 
 const persister = createAsyncStoragePersister({
@@ -61,7 +85,9 @@ function App() {
       }}
     >
       <AlertProvider>
-        <RouterProvider router={router} />
+        <AppErrorBoundary>
+          <RouterProvider router={router} />
+        </AppErrorBoundary>
       </AlertProvider>
     </PersistQueryClientProvider>
   );

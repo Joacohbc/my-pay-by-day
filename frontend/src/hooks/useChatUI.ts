@@ -12,12 +12,16 @@ import { useChatStore, type ChatMessage } from '@/store/chatStore';
 import { useAlert } from '@/contexts/AlertContext';
 import { invalidateDomains } from '@/lib/cacheInvalidation';
 import { invalidateForToolResults } from '@/lib/chat/toolInvalidation';
+import { buildChatRequestId } from '@/lib/chat/requestId';
 import { getUserTimezone } from '@/lib/utils/dateUtils';
 import { getCurrency } from '@/lib/format';
 import { useSendCountdown } from '@/hooks/useSendCountdown';
 import i18n from '@/lib/i18n';
 import type { FileDto } from '@/models';
 import { toDisplayMessage, textOf, imageUrlsOf, attachmentsOf } from '@/lib/chat/toDisplayMessage';
+import { logger } from '@/lib/logger';
+
+const chatLog = logger.child('chat');
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -154,7 +158,7 @@ export function useChatUI() {
             newMessages = lastAssistantIndex === -1 ? messages : messages.slice(messages.length - lastAssistantIndex);
           }
           return {
-            headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency(), 'X-Request-Id': crypto.randomUUID(), 'X-Source': 'frontend' },
+            headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency(), 'X-Request-Id': buildChatRequestId(chatId, lastMessage?.id), 'X-Source': 'frontend' },
             body: { chatId, messages: newMessages },
           };
         },
@@ -181,7 +185,7 @@ export function useChatUI() {
   const wasBackendGeneratingRef = useRef(false);
 
   const reloadHistory = useCallback(async () => {
-    const response = await api.get<UIMessage[]>(`/ai/chat/${chatId}`);
+    const response = await api.get<UIMessage[]>(`/ai/chat/${chatId}`, { requestId: buildChatRequestId(chatId) });
     setMessages(response);
     return response;
   }, [chatId, setMessages]);
@@ -193,7 +197,8 @@ export function useChatUI() {
     const reloadHistorySafely = async (): Promise<UIMessage[] | undefined> => {
       try {
         return await reloadHistory();
-      } catch {
+      } catch (error) {
+        chatLog.debug('History reload failed', { error, chatId });
         return undefined;
       }
     };
@@ -217,7 +222,8 @@ export function useChatUI() {
         }
         wasBackendGeneratingRef.current = true;
         pollingTimer = setTimeout(pollUntilComplete, 2000);
-      } catch {
+      } catch (error) {
+        chatLog.warn('Chat status poll failed', { error, chatId });
         if (active) setIsBackendGenerating(false);
       }
     };
@@ -307,7 +313,8 @@ export function useChatUI() {
     let uploadedFiles: FileDto[];
     try {
       uploadedFiles = await uploadPendingFiles();
-    } catch {
+    } catch (error) {
+      chatLog.error('Pending file upload failed (quick create)', { error, chatId, pendingCount: pendingFiles.length });
       showError(t('chat.pendingUploadFailed'));
       return;
     }
@@ -332,7 +339,8 @@ export function useChatUI() {
       await extractService.fromText(combinedText, undefined, chatId, payloadFiles.length ? payloadFiles : undefined);
       await reloadHistory();
       invalidateDomains(queryClient, ['drafts', 'events', 'tags', 'categories']);
-    } catch {
+    } catch (error) {
+      chatLog.error('Quick-create extraction failed', { error, chatId, fileCount: currentFiles.length });
       setMessages((prev) => prev.filter((m) => m.id !== optimisticMessage.id));
       setInput(userText);
       setDraftFiles(currentFiles);
@@ -348,7 +356,8 @@ export function useChatUI() {
     let uploadedFiles: FileDto[];
     try {
       uploadedFiles = await uploadPendingFiles();
-    } catch {
+    } catch (error) {
+      chatLog.error('Pending file upload failed (send)', { error, chatId, pendingCount: pendingFiles.length });
       showError(t('chat.pendingUploadFailed'));
       return;
     }
@@ -371,7 +380,7 @@ export function useChatUI() {
     lastScheduledMessageIdRef.current = newMessage.id;
     setMessages((prev) => [...prev, newMessage]);
     scheduleSend(() => sendMessage());
-  }, [input, draftFiles, pendingFiles, uploadPendingFiles, showError, t, setDraftFiles, setMessages, sendMessage, scheduleSend]);
+  }, [input, draftFiles, pendingFiles, uploadPendingFiles, showError, t, setDraftFiles, setMessages, sendMessage, scheduleSend, chatId]);
 
   const handleStop = useCallback(() => {
     if (countdown !== null) {
@@ -394,28 +403,30 @@ export function useChatUI() {
 
   const handleAudioRecorded = useCallback(
     async (audioBlob: Blob) => {
-      const { transcription } = await audioService.transcribeRecordedAudio(audioBlob);
+      const { transcription } = await audioService.transcribeRecordedAudio(audioBlob, { requestId: buildChatRequestId(chatId) });
       applyTranscribedText(transcription);
     },
-    [applyTranscribedText],
+    [applyTranscribedText, chatId],
   );
 
   const handleAudioFileSelected = useCallback(
     async (file: File) => {
-      const { transcription } = await audioService.transcribeAudio(file);
+      const { transcription } = await audioService.transcribeAudio(file, { requestId: buildChatRequestId(chatId) });
       applyTranscribedText(transcription);
     },
-    [applyTranscribedText],
+    [applyTranscribedText, chatId],
   );
 
   const handleAudioRecordedEnhanced = useCallback(
     async (audioBlob: Blob, currentText: string) => {
-      const { transcription } = await audioService.transcribeRecordedAudioEnhanced(audioBlob, currentText);
+      const { transcription } = await audioService.transcribeRecordedAudioEnhanced(audioBlob, currentText, {
+        requestId: buildChatRequestId(chatId),
+      });
       const editedText = transcription.trim();
       if (!editedText) throw new Error('transcription_failed');
       setInput(editedText);
     },
-    [setInput],
+    [setInput, chatId],
   );
 
   const handleNewChat = useCallback(() => {

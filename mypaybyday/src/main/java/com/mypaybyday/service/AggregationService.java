@@ -117,7 +117,7 @@ public class AggregationService {
     private TimePeriodEntity findPeriodEntity(Long periodId) throws BusinessException {
         TimePeriodEntity entity = timePeriodRepository.findById(periodId);
         if (entity == null) {
-            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NOT_FOUND));
+            throw messages.reject(MsgKey.TIME_PERIOD_NOT_FOUND);
         }
         return entity;
     }

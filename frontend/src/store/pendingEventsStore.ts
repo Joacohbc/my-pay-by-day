@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { CreateEventDto } from '@/models';
 import { zustandStorage } from '@/lib/idbStorage';
+import { reportOfflineQueue } from '@/lib/rumReporter';
 
 export interface PendingEvent {
   localId: string;
@@ -38,6 +39,16 @@ export const usePendingEventsStore = create<PendingEventsState>()(
     {
       name: 'mpbd-pending-events',
       storage: createJSONStorage(() => zustandStorage),
+      // Rehydration is the one moment the whole queue is known regardless of which page the user
+      // lands on, so it is where a queue that survived previous sessions gets reported.
+      onRehydrateStorage: () => (state) => {
+        const queue = state?.pending ?? [];
+        const oldest = queue.reduce<string | undefined>(
+          (earliest, event) => (!earliest || event.createdAt < earliest ? event.createdAt : earliest),
+          undefined
+        );
+        reportOfflineQueue(queue.length, oldest);
+      },
     }
   )
 );

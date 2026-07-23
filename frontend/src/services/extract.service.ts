@@ -1,4 +1,5 @@
 import { api } from '@/services/api';
+import { buildChatRequestId } from '@/lib/chat/requestId';
 
 export interface FilePayload {
   data: string;
@@ -28,5 +29,10 @@ export const extractService = {
     templateId?: number,
     chatId?: string,
     files?: FilePayload[],
-  ): Promise<ExtractResult> => api.post<ExtractResult>('/ai/extract', { text, templateId, chatId, files }),
+  ): Promise<ExtractResult> =>
+    api.post<ExtractResult>(
+      '/ai/extract',
+      { text, templateId, chatId, files },
+      chatId ? { requestId: buildChatRequestId(chatId) } : undefined,
+    ),
 };

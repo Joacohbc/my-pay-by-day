@@ -1,28 +1,10 @@
 # Local compose: builds every service image from source.
 # For production, use docker-compose.yml, which pulls the pre-built images.
 #
-# ── Security hardening (gateway/frontend/backend/chatbot/markitdown) ──────
-# security_opt: no-new-privileges:true
-#   Bloquea que un proceso dentro del contenedor gane privilegios nuevos vía
-#   setuid/setcap. Aunque el proceso sea comprometido, no puede escalar a root real.
-#
-# cap_drop: ALL
-#   Quita todas las capabilities de Linux que Docker da por defecto (manipular
-#   red, cambiar UID, matar procesos, etc.). Si el proceso es comprometido, no
-#   puede hacer casi nada a nivel kernel aunque corra como root.
-#
-# cap_add (solo gateway/frontend, procesos nginx):
-#   NET_BIND_SERVICE  -> necesaria para bindear el puerto 80 (<1024).
-#   SETUID / SETGID   -> el master de nginx arranca como root para bindear :80,
-#                        pero baja privilegios a los workers vía setuid()/setgid();
-#                        sin estas dos, esa llamada falla y nginx no levanta.
-#   backend/chatbot/markitdown no necesitan cap_add: ya corren como usuario no-root
-#   desde el arranque y no bindean puertos privilegiados.
-#
 # ── Logs ──────────────────────────────────────────────────────────────────
 # Cada service escribe stdout al driver json-file estándar (con rotación).
-# Promtail lee esos logs vía docker.sock y los empuja a Loki; si Loki está
-# caído, promtail reintenta solo y los containers no se ven afectados.
+# Alloy lee esos logs vía docker.sock y los empuja a Loki; si Loki está
+# caído, Alloy reintenta solo y los containers no se ven afectados.
 x-default-logging: &default-logging
   driver: json-file
   options:
@@ -40,15 +22,6 @@ services:
       - MYPAYBYDAY_FILES_MAX_SIZE=${MYPAYBYDAY_FILES_MAX_SIZE:-10485760}
     ports:
       - "80:80"
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - NET_BIND_SERVICE  # bind :80
-      - SETUID            # nginx master drops privilege to the nginx user for workers
-      - SETGID
-    # Not read_only: entrypoint.sh rewrites /etc/nginx/conf.d/default.conf at startup.
     depends_on:
       frontend:
         condition: service_healthy
@@ -63,17 +36,11 @@ services:
     build:
       context: .
       dockerfile: docker/frontend/Dockerfile
+      args:
+        GIT_SHA: ${GIT_SHA:-dev}
     environment:
       - VITE_API_BASE_URL=${VITE_API_BASE_URL:-/api}
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - NET_BIND_SERVICE  # bind :80
-      - SETUID            # nginx master drops privilege to the nginx user for workers
-      - SETGID
-    # Not read_only: entrypoint.sh writes /usr/share/nginx/html/env.js at startup.
+      - VITE_LOG_LEVEL=${VITE_LOG_LEVEL:-info}
     logging: *default-logging
     restart: unless-stopped
 
@@ -90,11 +57,7 @@ services:
       - APP_LOG_LEVEL=${APP_LOG_LEVEL:-INFO}
       - MARKITDOWN_URL=http://markitdown:8590
     volumes:
-      - backend_data:/data
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
+      - ./data/backend:/data
     depends_on:
       markitdown:
         condition: service_healthy
@@ -125,11 +88,7 @@ services:
       - LOG_TIMESTAMPS=${LOG_TIMESTAMPS:-true}
       - CHATBOT_DB_PATH=${CHATBOT_DB_PATH:-/data/chatbot.db}
     volumes:
-      - chatbot_data:/data
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
+      - ./data/chatbot:/data
     depends_on:
       backend:
         condition: service_healthy
@@ -142,38 +101,39 @@ services:
       dockerfile: docker/backend/markitdown/Dockerfile
     environment:
       - PORT=8590
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
     logging: *default-logging
     restart: unless-stopped
 
   # ── Observability stack (logs only) ──────────────────────────────────
-  # Promtail discovers containers via docker.sock, tails their json-file logs
-  # and pushes them to Loki over the compose network. Grafana reads Loki and
-  # lets you trace one request across services by its X-Request-Id.
+  # Alloy discovers containers via docker.sock, tails their json-file logs,
+  # normalizes each format into structured metadata and pushes them to Loki over
+  # the compose network. Grafana reads Loki and lets you trace one request across
+  # services by its X-Request-Id.
   loki:
-    image: grafana/loki:3.3.2
+    image: grafana/loki:3.7.3
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
       - ./docker/observability/loki-config.yml:/etc/loki/loki-config.yml:ro
       - loki_data:/loki
     restart: unless-stopped
 
-  promtail:
-    image: grafana/promtail:3.3.2
-    command: -config.file=/etc/promtail/promtail-config.yml
+  alloy:
+    image: grafana/alloy:v1.10.1
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
     volumes:
-      - ./docker/observability/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - ./docker/observability/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - promtail_positions:/positions
+      - alloy_data:/var/lib/alloy/data
     depends_on:
       - loki
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:11.4.0
+    image: grafana/grafana:13.1.0
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
@@ -188,8 +148,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  backend_data:
-  chatbot_data:
   loki_data:
   grafana_data:
-  promtail_positions:
+  alloy_data:

@@ -158,8 +158,9 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
           base64Content,
         });
         uploadedFiles.push(uploadedFile);
-      } catch (error) {
-        console.error('File upload failed:', error);
+      } catch {
+        // Upload failure is shipped by the global mutation logger (useUploadFile); handle UI only.
+        continue;
       }
     }
 

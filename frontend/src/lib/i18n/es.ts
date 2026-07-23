@@ -788,6 +788,9 @@ const es = {
   errors: {
     eventNotFound: 'Evento no encontrado',
     couldNotLoadPeriod: 'No se pudieron cargar los datos del período',
+    boundaryTitle: 'Algo salió mal',
+    boundaryMessage: 'La aplicación tuvo un error inesperado. Recargar suele solucionarlo.',
+    boundaryReload: 'Recargar',
   },
 } as const;
 

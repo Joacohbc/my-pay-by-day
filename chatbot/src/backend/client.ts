@@ -3,6 +3,7 @@ import { config } from '@/config.js';
 import type { RequestContext } from '@/context.js';
 import type { ServerDateTime } from '@/dates.js';
 import { logger } from '@/logging/logger.js';
+import { currentRequestFields } from '@/logging/requestStore.js';
 import type { components, paths } from '@/backend/schema.js';
 
 function pathOf(url: string): string {
@@ -29,6 +30,16 @@ export type FinanceNodeDto = Schemas['FinanceNodeDto'];
 export type EventType = Schemas['EventType'];
 
 /**
+ * Correlation id for an outgoing backend call: the ambient one when the call runs inside a tool's
+ * scope (so it carries that tool call's id), falling back to the request's own — backend calls made
+ * while streaming a chat run after the request's AsyncLocalStorage scope has exited.
+ */
+function currentRequestId(ctx: RequestContext): string {
+  const ambient = currentRequestFields()?.requestId;
+  return typeof ambient === 'string' ? ambient : ctx.requestId;
+}
+
+/**
  * Wire shape accepted by `PATCH /events/{id}`. The generated `PatchEventDto` describes each field
  * as a `JsonNullable` object (`{ value, isPresent, undefined }`) because SmallRye introspects the
  * Java wrapper type, but jackson-databind-nullable actually deserializes the *raw* value. This type
@@ -53,27 +64,37 @@ export interface EventPatchBody {
  */
 export function createApiClient(ctx: RequestContext): ApiClient {
   const client = createClient<paths>({ baseUrl: config.backendUrl });
-  // Bind the correlation id explicitly: backend calls made while streaming a chat run after the
-  // request's AsyncLocalStorage scope has exited, so the ambient store would no longer carry it.
-  const backendLog = logger.child('backend').with({ requestId: ctx.requestId });
+  const backendLog = logger.child('backend');
   const startTimes = new WeakMap<Request, number>();
+  const requestIds = new WeakMap<Request, string>();
   const contextMiddleware: Middleware = {
     onRequest({ request }) {
+      // Don't return `request`/`response` from these hooks (see onResponse below for why).
+      const requestId = currentRequestId(ctx);
       request.headers.set('X-Timezone', ctx.timezone);
       request.headers.set('X-Language', ctx.lang);
-      request.headers.set('X-Request-Id', ctx.requestId);
+      request.headers.set('X-Request-Id', requestId);
       request.headers.set('X-Source', 'chatbot');
       startTimes.set(request, performance.now());
-      backendLog.debug('backend →', { method: request.method, path: pathOf(request.url) });
-      return request;
+      requestIds.set(request, requestId);
+      backendLog.debug('backend →', { requestId, method: request.method, path: pathOf(request.url) });
     },
     onResponse({ request, response }) {
+      // @hono/node-server swaps in its own `Response` class as soon as the server starts, so
+      // openapi-fetch's "is this really a Response?" check fails on the real one our fetch() call
+      // returns. That check only runs when a middleware hands a value back, so we just don't —
+      // we're only reading the response here, never replacing it.
       const started = startTimes.get(request);
       const ms = started != null ? Math.round(performance.now() - started) : undefined;
-      const fields = { method: request.method, path: pathOf(request.url), status: response.status, ms };
+      const fields = {
+        requestId: requestIds.get(request) ?? ctx.requestId,
+        method: request.method,
+        path: pathOf(request.url),
+        status: response.status,
+        ms,
+      };
       if (response.ok) backendLog.info('backend ←', fields);
       else backendLog.warn('backend ← error', fields);
-      return response;
     },
   };
   client.use(contextMiddleware);
@@ -115,17 +136,18 @@ export function patchEvent(client: ApiClient, eventId: number, body: EventPatchB
 
 /** Fetches a plain-text backend response (e.g. base64 file content) not modelled as JSON. */
 export async function getBackendText(ctx: RequestContext, path: string): Promise<string> {
+  const requestId = currentRequestId(ctx);
   const res = await fetch(`${config.backendUrl}${path}`, {
     headers: {
       Accept: 'text/plain',
       'X-Timezone': ctx.timezone,
       'X-Language': ctx.lang,
-      'X-Request-Id': ctx.requestId,
+      'X-Request-Id': requestId,
       'X-Source': 'chatbot',
     },
   });
   if (!res.ok) {
-    logger.child('backend').with({ requestId: ctx.requestId }).warn('backend ← error', { path, status: res.status });
+    logger.child('backend').warn('backend ← error', { requestId, path, status: res.status });
     throw new BackendError(res.status, `HTTP ${res.status}`);
   }
   return res.text();

@@ -1,4 +1,5 @@
 import { api } from '@/services/api';
+import { buildChatRequestId } from '@/lib/chat/requestId';
 
 export interface ChatSummary {
   chatId: string;
@@ -21,14 +22,14 @@ export const chatService = {
   },
 
   clearMemory: async (chatId: string): Promise<void> => {
-    await api.delete(`/ai/chat/${chatId}`);
+    await api.delete(`/ai/chat/${chatId}`, undefined, { requestId: buildChatRequestId(chatId) });
   },
 
   trimMemory: async (chatId: string, textToMatch: string): Promise<void> => {
-    await api.post(`/ai/chat/${chatId}/trim`, { textToMatch });
+    await api.post(`/ai/chat/${chatId}/trim`, { textToMatch }, { requestId: buildChatRequestId(chatId) });
   },
 
   getStatus: async (chatId: string): Promise<ChatStatus> => {
-    return api.get<ChatStatus>(`/ai/chat/${chatId}/status`);
+    return api.get<ChatStatus>(`/ai/chat/${chatId}/status`, { requestId: buildChatRequestId(chatId) });
   },
 };

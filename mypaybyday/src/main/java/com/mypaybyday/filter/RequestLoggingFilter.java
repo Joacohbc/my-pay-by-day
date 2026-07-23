@@ -1,11 +1,14 @@
 package com.mypaybyday.filter;
 
+import java.lang.reflect.Method;
 import java.time.Instant;
 
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
+import jakarta.ws.rs.container.ResourceInfo;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.ext.Provider;
 
 import org.jboss.logging.Logger;
@@ -19,6 +22,11 @@ import org.jboss.logging.Logger;
 public class RequestLoggingFilter implements ContainerRequestFilter, ContainerResponseFilter {
 
 	private static final Logger LOG = Logger.getLogger(RequestLoggingFilter.class);
+
+	private static final String UNMATCHED_RESOURCE = "unmatched";
+
+	@Context
+	ResourceInfo resourceInfo;
 
 	private static final String PROP_METHOD = "log.method";
 	private static final String PROP_PATH   = "log.path";
@@ -54,7 +62,7 @@ public class RequestLoggingFilter implements ContainerRequestFilter, ContainerRe
 		Object entity = res.getEntity();
 		String size   = entity != null ? entity.toString().length() + "B" : "-";
 
-		LOG.infof("[%s] %s %s | source=%s | ip=%s | origin=%s | status=%d | size=%s | ua=%s | time=%dms",
+		LOG.infof("[%s] %s %s | source=%s | ip=%s | origin=%s | status=%d | size=%s | resource=%s | ua=%s | time=%dms",
 				Instant.now(),
 				method,
 				path,
@@ -63,7 +71,17 @@ public class RequestLoggingFilter implements ContainerRequestFilter, ContainerRe
 				origin != null ? origin : "-",
 				res.getStatus(),
 				size,
+				resolveResource(),
 				ua != null ? ua : "-",
 				elapsedMs);
+	}
+
+	private String resolveResource() {
+		Class<?> resourceClass = resourceInfo.getResourceClass();
+		Method resourceMethod = resourceInfo.getResourceMethod();
+		if (resourceClass == null || resourceMethod == null) {
+			return UNMATCHED_RESOURCE;
+		}
+		return resourceClass.getSimpleName() + "." + resourceMethod.getName();
 	}
 }

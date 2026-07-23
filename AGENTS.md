@@ -548,3 +548,83 @@ Every chatbot request carries the user's context as headers — `X-Timezone`, `X
 * **Display formatting:** `formattingGuidance(lang, currency)` (`chatbot/src/prompts/system.ts`) renders concrete `Intl` examples (e.g. `$1,234.56`, `Jul 12, 2026`) using `localeFor(lang)` — the same `en→en-US` / `es→es-ES` mapping the frontend uses in `@/lib/format` — so amounts and dates in AI replies match what the UI displays. It is included in **every** system prompt: chat, background agent, sub-agent, extraction (via `styleBlock`), form patch, and text actions.
 * **Long-term memory:** `memoriesBlock` injects the user's saved facts into every agentic prompt (chat, background agent, sub-agent, extraction, form patch) with an active instruction to check them *before* asking the user or picking defaults.
 * **Rule:** when adding a new prompt or AI entry point, it **must** include `formattingGuidance` (or `styleBlock`) and, if it acts on the user's data, `memoriesBlock`. A prompt that hardcodes formats or ignores memory is a bug.
+
+---
+
+### Logging & Observability
+
+All three services share **one log-level vocabulary** — `silent | error | warn | info | debug | trace` — with a **unified default of `info`**. The threshold is configured per stack via its own env var, and the names differ only because each stack's tooling forces it:
+
+| Stack | Threshold env var | Notes |
+|---|---|---|
+| Backend (Quarkus) | `APP_LOG_LEVEL` | Bound to `quarkus.log.category."com.mypaybyday".level`. Quarkus emits `UPPERCASE` levels. |
+| Chatbot | `LOG_LEVEL` | Custom logger in `chatbot/src/logging/logger.ts`; `LOG_*` family (format, timestamps, field cap). |
+| Frontend | `VITE_LOG_LEVEL` | Vite requires the `VITE_` prefix. Injected at runtime into `/env.js` by `entrypoint.sh`; read from `import.meta.env` in dev. |
+
+* **Level casing is normalized at ingest, not at the source.** Grafana Alloy (`docker/observability/config.alloy`) lowercases `level` for every service (`ToLower`) so Loki queries filter uniformly (`| level="error"`). Source code and dashboards **must not** assume a casing.
+* **Frontend never uses raw `console.*`.** Use `logger` (or `apiLogger`) from `@/lib/logger` — it mirrors the chatbot logger API (`error/warn/info/debug/trace`, `child(scope)`, `with(fields)`). The **only** exception is `errorReporter`'s own transport-failure log, kept raw so a failed shipment can never re-capture itself into a report storm.
+* **`error`-level frontend events auto-ship to Loki.** Any `logger.error(...)` (and every TanStack query/mutation failure, via the `QueryCache`/`MutationCache` `onError` in `App.tsx` using `apiLogger`) is buffered into `errorLogStore` and POSTed to `/client-logs`, joining the unhandled-error stream. The `kind` field discriminates the source: `error` / `unhandledrejection` / `react` (uncaught) and `caught` / `api` (explicit). New `kind` values flow to Loki as structured metadata with **no pipeline change** — Alloy already extracts `kind` from the frontend JSON.
+* **Log context rides to Loki.** The second arg to `logger.error(msg, fields)` is sanitized (primitives only, the `Error` under `error`/`err` is stripped since it ships as `stack`) into the entry's `context` object. It is not indexed but sits in the JSON body, queryable with `| json`. Pass useful low-cardinality identifiers (`chatId`, `fileId`, `draftCount`, `status`) — never raw DTOs or PII. `warn`/`debug` context stays console-only; only `error` ships.
+* **Avoid double-shipping.** A `catch` around a react-query `useMutation`/`useQuery` must **not** call `logger.error` — the global `onError` already ships it (`kind:'api'`). Add a per-catch `logger.error` only for *direct* calls (services invoked outside a hook, browser APIs, parsing).
+* **Rule:** when adding a new service or a new frontend entry point that can fail, route its errors through the shared logger (never `console.*`), and keep the level default at `info`. Changing the unified default or vocabulary must be done in all three stacks in the same change.
+
+---
+
+
+### Metrics are derived from logs
+
+There is **no metrics backend** — no Prometheus, no Micrometer, no `prom-client`. Loki is the only datasource, and every number on every dashboard is computed with LogQL from a parsed log line. A new numeric signal is therefore a **new log field**, never a new exporter.
+
+#### What is worth measuring here, and what is not
+
+This is a **single-user, self-hosted personal finance app**. That constraint decides what belongs:
+
+* **Measure things that make the ledger wrong.** A subscription that fails to generate its recurring Event silently understates spending. An offline event that never syncs is money the user believes is recorded and is not. These are invisible without instrumentation and cannot be felt by using the app.
+* **Do not measure infrastructure saturation.** Heap, GC, threads, RSS, event-loop lag, disk free, database size. With one user there is no saturation to diagnose, and none of it is actionable from inside the application — a process cannot even log its own `SIGKILL`. That is host monitoring's job.
+* **Do not measure perceived page speed.** Core Web Vitals exist because you cannot feel what thousands of users feel. Here the developer *is* the user and already feels it. Collecting LCP/INP/CLS would be borrowed ceremony from a context this project does not have.
+
+The test for a new signal: *would this number tell me something I cannot already discover by using the app, and would I act on it?* If not, it is noise with a maintenance cost.
+
+#### The rules that keep it cheap
+
+1. **Cardinality discipline.** New discriminators go to `stage.structured_metadata` in `docker/observability/config.alloy`, **never** `stage.labels` — labels create Loki streams. Numeric values stay in the JSON body or structured metadata and are read at query time with `| json` + `unwrap`. Paths and routes are **templated** (`/events/123` → `/events/:id`) before they are ever shipped.
+2. **Ship raw sampled events, not pre-computed percentiles.** A percentile computed per client window cannot be re-aggregated (a p95 of p95s is wrong). Sampled per-event lines plus `quantile_over_time(...)` over an `unwrap` yield a true percentile.
+3. **Never collide with an existing label.** `discovery.relabel` already publishes `job="docker"` for every container, which is why the scheduler summary uses `job_name`. Job duration is `job_time_ms`, not `time_ms`, so it can never be mixed into the request-latency panels.
+4. **Telemetry must never evict errors.** Client telemetry keeps its own in-memory buffer (`rumReporter.ts`), separate from the capped, IndexedDB-persisted error buffer in `errorLogStore`.
+
+#### Heartbeats are liveness, nothing else
+
+`RuntimeHeartbeatLogger` (backend) and `chatbot/src/logging/heartbeat.ts` each emit **one line per minute** carrying only `uptime_s`. Their sole purpose is to make an absence of logs unambiguous: request volume alone cannot distinguish "down" from "nobody used the app", which is why the health dashboard's log-volume panel is hedged. A missing heartbeat still cannot separate "process gone" from "log pipeline broken" — that needs an independent prober, which does not exist.
+
+**Do not hang runtime metrics off the heartbeat.** It is a liveness ping; growing its payload is how it turns back into infrastructure telemetry.
+
+#### Client telemetry (`frontend/src/lib/rumReporter.ts`)
+
+Rides the **existing** `/client-logs` nginx sink — `frontend/nginx.conf` echoes any POSTed JSON body verbatim to stdout, so this needs no new infrastructure. Two shapes, both `level:"info"`, one JSON object per POST:
+
+* `kind:"api-timing"` — one entry per API call as the browser saw it (`method`, templated `path`, `durationMs`, `status`, `ok`). Head-sampled at 10%, but **failures and calls over 1 s always ship**, so those counts are absolute while the overall count is not. `status:0` means the request never reached the server — invisible to the backend, and the reason this exists at all.
+* `kind:"offline-queue"` — reported at startup when the persisted queue is non-empty, from the store's `onRehydrateStorage` (the one point where the whole queue is known regardless of which page loaded). `oldestAgeHours` matters more than `pendingCount`: a queue draining in minutes is normal, one sitting for days is stranded data.
+
+All timings come from the single `timedFetch` chokepoint in `services/api.ts` — instrument there, not at call sites. `VITE_LOG_LEVEL=silent` disables client telemetry entirely.
+
+#### Dashboards
+
+Each dashboard answers exactly one question, and a panel belongs to whichever one it answers:
+
+There are exactly **four**, one per scope. A signal belongs to the dashboard for the service that produces it; only genuinely cross-service views go to `System`.
+
+| Dashboard | Scope |
+|---|---|
+| `MPBD — System` | Everything crossing service boundaries: traffic and errors per service, status codes, a single request traced end to end, and **availability** (heartbeat, uptime, gateway upstream 5xx). Owns the cross-service error and volume cuts — do not duplicate them on a per-service dashboard. |
+| `MPBD — Backend` | Requests, latency and errors per endpoint, plus the **scheduled jobs** whose failures corrupt the ledger. |
+| `MPBD — Chatbot` | Tool calls, token usage and OpenRouter cost, LLM and agent-task failures. |
+| `MPBD — Frontend` | Served requests and JS errors, API latency as the browser sees it, and the **offline event queue**. |
+
+Two of those rows carry signals that no error rate or status code will ever surface, and they are the reason the instrumentation exists at all:
+
+* **Subscription generation failures** (Backend). The scheduler can run on time, report `job_status=completed` and return no HTTP error while every item inside it failed. The recurring Events are silently missing, so reported money stays higher than real money.
+* **Stranded offline events** (Frontend). Events the user recorded and believes are saved, which the server has never received. `oldestAgeHours` is the signal, not the count.
+
+The availability panels on `System` deliberately ignore the `$service` template variable, so filtering can never hide a service that is down.
+
+When adding a signal, **add its field to the Alloy `structured_metadata` block in the same change** or it stays invisible.

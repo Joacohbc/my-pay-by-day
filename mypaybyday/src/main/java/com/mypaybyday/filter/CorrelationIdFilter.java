@@ -33,6 +33,7 @@ public class CorrelationIdFilter implements ContainerRequestFilter, ContainerRes
 	public static final String SOURCE_HEADER = "X-Source";
 	public static final String MDC_KEY = "requestId";
 	public static final String MDC_SOURCE_KEY = "source";
+	public static final String MDC_ERROR_KIND_KEY = "errorKind";
 
 	private static final String UNKNOWN_SOURCE = "unknown";
 
@@ -63,5 +64,6 @@ public class CorrelationIdFilter implements ContainerRequestFilter, ContainerRes
 		}
 		MDC.remove(MDC_KEY);
 		MDC.remove(MDC_SOURCE_KEY);
+		MDC.remove(MDC_ERROR_KIND_KEY);
 	}
 }

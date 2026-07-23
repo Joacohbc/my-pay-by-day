@@ -14,6 +14,7 @@ import { isPauseSignal } from '@/agent/signals.js';
 import { agentStore, type AttachmentContent } from '@/agent/store.js';
 import { TERMINAL_STATUSES } from '@/agent/types.js';
 import { logger } from '@/logging/logger.js';
+import { aggregateStepUsage, classifyLlmError, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
 import { runWithRequestContext } from '@/logging/requestStore.js';
 import { randomUUID } from 'node:crypto';
 
@@ -118,7 +119,7 @@ async function run(taskId: string): Promise<void> {
 
       const toolSet = buildAllTools(ctx, buildAgentTools(taskId));
       const stepBudget = task.step_budget ?? config.agent.maxSteps;
-      agentLog.info('starting agent task', { taskId, mode: task.execution_mode });
+      agentLog.info('starting agent task', { event: 'agent_start', taskId, mode: task.execution_mode });
       agentLog.debug('agent task instruction', { taskId, instruction: task.user_instruction });
       const result = await generateText({
         model: largeModel(),
@@ -141,8 +142,10 @@ async function run(taskId: string): Promise<void> {
       const toolCalls = result.steps.flatMap((step) => step.toolCalls ?? []);
       const tools = [...new Set(toolCalls.map((call) => call.toolName))];
       const durationMs = Math.round(performance.now() - startedAt);
-      agentLog.info('completed agent task', { taskId, steps: result.steps.length, toolCount: toolCalls.length, tools, durationMs });
+      agentLog.info('completed agent task', { event: 'agent_ok', taskId, steps: result.steps.length, toolCount: toolCalls.length, tools, durationMs });
       agentLog.debug('agent task reply', { taskId, reply: result.text });
+      const { usage, costUsd } = aggregateStepUsage(result.steps);
+      logLlmUsage('agent', result.response.modelId, durationMs, usage, costUsd, { taskId, steps: result.steps.length });
       if (result.text.trim()) recordStep(taskId, { type: 'MESSAGE', content: result.text.trim() });
 
       const hitStepLimit = result.steps.length >= stepBudget && result.steps.at(-1)?.finishReason === 'tool-calls';
@@ -157,14 +160,14 @@ async function run(taskId: string): Promise<void> {
         updateStatus(taskId, 'COMPLETED', 100, 'Done');
       }
     } catch (error) {
-      handleError(taskId, error);
+      handleError(taskId, error, Math.round(performance.now() - startedAt));
     } finally {
       running.delete(taskId);
     }
   });
 }
 
-function handleError(taskId: string, error: unknown): void {
+function handleError(taskId: string, error: unknown, durationMs: number): void {
   if (isPauseSignal(error)) return; // status already PAUSED by the tool
   if (isAbort(error)) {
     if (agentStore.isCancelRequested(taskId)) {
@@ -175,7 +178,8 @@ function handleError(taskId: string, error: unknown): void {
     return;
   }
   const message = (error as Error).message ?? 'Unknown error';
-  agentLog.error('agent task failed', { taskId, error: message });
+  agentLog.error('agent task failed', { event: 'agent_failed', taskId, error: message, cause: classifyLlmError(error) });
+  logLlmError('agent', config.models.large, durationMs, error, { taskId });
   recordStep(taskId, { type: 'ERROR', description: 'The agent failed', content: message });
   updateStatus(taskId, 'FAILED', undefined, 'Failed');
 }
