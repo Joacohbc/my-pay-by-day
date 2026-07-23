@@ -103,5 +103,7 @@ function ensureColumn(database: DatabaseSync, table: string, column: string, ddl
 export function runMigrations(database: DatabaseSync): void {
   database.exec(SCHEMA);
   ensureColumn(database, 'agent_task', 'request_id', 'request_id TEXT');
+  ensureColumn(database, 'conversation', 'recap', 'recap TEXT');
+  ensureColumn(database, 'conversation', 'recap_up_to_count', 'recap_up_to_count INTEGER');
   database.exec(BACKFILL_CONVERSATION_FROM_MESSAGES);
 }

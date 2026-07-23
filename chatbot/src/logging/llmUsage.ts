@@ -3,7 +3,7 @@ import { logger, type LogFields } from '@/logging/logger.js';
 
 export type LlmFlow =
   | 'chat' | 'agent' | 'delegate' | 'extraction' | 'formPatch'
-  | 'text' | 'title' | 'compaction' | 'audio' | 'audioEdit';
+  | 'text' | 'title' | 'compaction' | 'recap' | 'audio' | 'audioEdit';
 
 const llmLog = logger.child('llm');
 
