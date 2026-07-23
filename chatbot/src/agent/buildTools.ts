@@ -1,6 +1,7 @@
 import type { Tool } from 'ai';
-import type { RequestContext } from '@/context.js';
+import { toolRequestId, type RequestContext } from '@/context.js';
 import { logger, type Logger } from '@/logging/logger.js';
+import { currentRequestFields, runWithRequestContext } from '@/logging/requestStore.js';
 import { buildCalculatorTools } from '@/tools/calculator.js';
 import { buildDateTools } from '@/tools/dates.js';
 import { buildFinanceTools } from '@/tools/finance.js';
@@ -81,7 +82,7 @@ async function logPromise(callLog: Logger, name: string, startedAt: number, resu
 }
 
 /** Wraps a tool's execute to log its name, input parameters, and result/error with timing. Supports both plain and async-generator (preliminary results) execute functions. */
-function withLogging(name: string, kinded: KindedToolSet[string]): KindedToolSet[string] {
+function withLogging(name: string, kinded: KindedToolSet[string], requestId: string): KindedToolSet[string] {
   const original = kinded.tool.execute;
   if (!original) return kinded;
   const loggedTool: Tool = {
@@ -89,25 +90,30 @@ function withLogging(name: string, kinded: KindedToolSet[string]): KindedToolSet
     execute: ((input: unknown, options: unknown) => {
       const startedAt = Date.now();
       const targetId = targetIdOf(input);
+      const { toolCallId } = (options ?? {}) as { toolCallId?: string };
       // tool + kind + targetId are bound onto every line for this call (including error lines) so
       // dashboards and drill-down can filter/join on them without re-parsing the message string.
       const callLog = toolLog.with({ tool: name, kind: kinded.kind, ...(targetId !== undefined && { targetId }) });
-      // Tool name + kind stay at INFO (so prod shows which tools the bot uses); the raw args
-      // (which can carry user content) drop to DEBUG.
-      callLog.info(`→ ${name}`, { event: 'tool_call' });
-      callLog.debug(`→ ${name} args`, { args: input });
-      const result = (original as (i: unknown, o: unknown) => unknown)(input, options);
-      if (isAsyncIterable(result)) return logIterable(callLog, name, startedAt, result);
-      return logPromise(callLog, name, startedAt, Promise.resolve(result));
+      // The call runs under its own correlation id (still prefixed with the request's, and therefore
+      // with the chat id) so the backend requests it triggers are attributable to this tool call.
+      return runWithRequestContext({ ...currentRequestFields(), requestId: toolRequestId(requestId, name, toolCallId) }, () => {
+        // Tool name + kind stay at INFO (so prod shows which tools the bot uses); the raw args
+        // (which can carry user content) drop to DEBUG.
+        callLog.info(`→ ${name}`, { event: 'tool_call' });
+        callLog.debug(`→ ${name} args`, { args: input });
+        const result = (original as (i: unknown, o: unknown) => unknown)(input, options);
+        if (isAsyncIterable(result)) return logIterable(callLog, name, startedAt, result);
+        return logPromise(callLog, name, startedAt, Promise.resolve(result));
+      });
     }) as Tool['execute'],
   };
   return { ...kinded, tool: loggedTool };
 }
 
-function withToolLogging(toolSet: KindedToolSet): KindedToolSet {
+function withToolLogging(toolSet: KindedToolSet, requestId: string): KindedToolSet {
   const wrapped: KindedToolSet = {};
   for (const [name, entry] of Object.entries(toolSet)) {
-    wrapped[name] = withLogging(name, entry);
+    wrapped[name] = withLogging(name, entry, requestId);
   }
   return wrapped;
 }
@@ -120,7 +126,7 @@ export function buildAllTools(ctx: RequestContext, extra: KindedToolSet = {}): K
     ...buildMemoryTools(),
     ...buildCalculatorTools(),
     ...extra,
-  });
+  }, ctx.requestId);
 }
 
 /** Selects the plain AI SDK tool set available for a given execution mode. */

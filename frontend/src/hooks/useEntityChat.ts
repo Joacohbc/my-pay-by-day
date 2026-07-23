@@ -8,6 +8,7 @@ import { filesService } from '@/services/files.service';
 import { invalidateDomains } from '@/lib/cacheInvalidation';
 import { invalidateForToolResults, domainsForToolName } from '@/lib/chat/toolInvalidation';
 import { CHAT_TOOL_MANIFEST } from '@/lib/chat/toolManifest.generated';
+import { buildChatRequestId } from '@/lib/chat/requestId';
 import { getUserTimezone } from '@/lib/utils/dateUtils';
 import { getCurrency } from '@/lib/format';
 import { useSendCountdown } from '@/hooks/useSendCountdown';
@@ -98,7 +99,7 @@ export function useEntityChat({
         newMessages = lastAssistantIndex === -1 ? messages : messages.slice(messages.length - lastAssistantIndex);
       }
       return {
-        headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency(), 'X-Request-Id': crypto.randomUUID(), 'X-Source': 'frontend' },
+        headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency(), 'X-Request-Id': buildChatRequestId(chatId, lastMessage?.id), 'X-Source': 'frontend' },
         body: {
           chatId,
           messages: newMessages,
@@ -200,28 +201,30 @@ export function useEntityChat({
 
   const handleAudioRecorded = useCallback(
     async (audioBlob: Blob) => {
-      const { transcription } = await audioService.transcribeRecordedAudio(audioBlob);
+      const { transcription } = await audioService.transcribeRecordedAudio(audioBlob, { requestId: buildChatRequestId(chatId) });
       applyTranscribedText(transcription);
     },
-    [applyTranscribedText],
+    [applyTranscribedText, chatId],
   );
 
   const handleAudioFileSelected = useCallback(
     async (file: File) => {
-      const { transcription } = await audioService.transcribeAudio(file);
+      const { transcription } = await audioService.transcribeAudio(file, { requestId: buildChatRequestId(chatId) });
       applyTranscribedText(transcription);
     },
-    [applyTranscribedText],
+    [applyTranscribedText, chatId],
   );
 
   const handleAudioRecordedEnhanced = useCallback(
     async (audioBlob: Blob, currentText: string) => {
-      const { transcription } = await audioService.transcribeRecordedAudioEnhanced(audioBlob, currentText);
+      const { transcription } = await audioService.transcribeRecordedAudioEnhanced(audioBlob, currentText, {
+        requestId: buildChatRequestId(chatId),
+      });
       const editedText = transcription.trim();
       if (!editedText) throw new Error('transcription_failed');
       setInput(editedText);
     },
-    [setInput],
+    [setInput, chatId],
   );
 
   const handleToolApproval = useCallback(

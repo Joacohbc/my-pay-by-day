@@ -31,18 +31,24 @@ function getLang(): string {
   return i18n.language ?? 'en';
 }
 
+/** Lets a caller override the correlation ID, e.g. chat-scoped calls that prefix it with their chat id. */
+export interface RequestOptions {
+  signal?: AbortSignal;
+  requestId?: string;
+}
+
 /**
- * Common context headers sent on every request. `X-Request-Id` is a fresh correlation ID per
- * request that the backend and chatbot echo into their logs, giving an end-to-end trace from the
- * browser through both services.
+ * Common context headers sent on every request. `X-Request-Id` is a correlation ID that the backend
+ * and chatbot echo into their logs, giving an end-to-end trace from the browser through both
+ * services. It is a fresh UUID unless the caller supplies one.
  */
-function contextHeaders(extra: Record<string, string> = {}): Record<string, string> {
+function contextHeaders(extra: Record<string, string> = {}, requestId?: string): Record<string, string> {
   return {
     ...extra,
     'X-Timezone': getUserTimezone(),
     'X-Language': getLang(),
     'X-Currency': getCurrency(),
-    'X-Request-Id': crypto.randomUUID(),
+    'X-Request-Id': requestId ?? crypto.randomUUID(),
     'X-Source': 'frontend',
   };
 }
@@ -88,16 +94,17 @@ async function timedFetch(method: string, path: string, init: RequestInit = {}):
 }
 
 export const api = {
-  get: <T>(path: string): Promise<T> =>
+  get: <T>(path: string, options?: RequestOptions): Promise<T> =>
     timedFetch('GET', path, {
-      headers: contextHeaders({ Accept: 'application/json' }),
+      headers: contextHeaders({ Accept: 'application/json' }, options?.requestId),
+      signal: options?.signal,
     }).then((r) => handleResponse<T>(r)),
 
-  post: <T>(path: string, body?: unknown, options?: { signal?: AbortSignal }): Promise<T> => {
+  post: <T>(path: string, body?: unknown, options?: RequestOptions): Promise<T> => {
     // Transform all local date strings to server timezone before sending to the server
     const transformedBody = body !== undefined ? transformDates(body, toServerDate) : undefined;
     return timedFetch('POST', path, {
-      headers: contextHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+      headers: contextHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }, options?.requestId),
       body: transformedBody !== undefined ? JSON.stringify(transformedBody) : undefined,
       signal: options?.signal,
     }).then((r) => handleResponse<T>(r));
@@ -121,15 +128,15 @@ export const api = {
     }).then((r) => handleResponse<T>(r));
   },
 
-  delete: <T = void>(path: string, body?: unknown): Promise<T> =>
+  delete: <T = void>(path: string, body?: unknown, options?: RequestOptions): Promise<T> =>
     timedFetch('DELETE', path, {
-      headers: contextHeaders({ 'Content-Type': 'application/json' }),
+      headers: contextHeaders({ 'Content-Type': 'application/json' }, options?.requestId),
       body: body ? JSON.stringify(body) : undefined,
     }).then((r) => handleResponse<T>(r)),
 
-  postForm: <T>(path: string, body: FormData): Promise<T> =>
+  postForm: <T>(path: string, body: FormData, options?: RequestOptions): Promise<T> =>
     timedFetch('POST', path, {
-      headers: contextHeaders({ Accept: 'application/json' }),
+      headers: contextHeaders({ Accept: 'application/json' }, options?.requestId),
       body,
     }).then((r) => handleResponse<T>(r)),
 

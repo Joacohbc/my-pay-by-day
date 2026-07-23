@@ -10,6 +10,7 @@ import { useSendCountdown } from '@/hooks/useSendCountdown';
 import i18n from '@/lib/i18n';
 import type { FileDto } from '@/models';
 import { toDisplayMessage, textOf } from '@/lib/chat/toDisplayMessage';
+import { buildChatRequestId } from '@/lib/chat/requestId';
 
 export type FormPatchEntityType = 'category' | 'tag' | 'node' | 'template';
 
@@ -55,8 +56,9 @@ export function useFormPatchChat({
 
   const prepareSendMessagesRequest = useCallback(
     ({ messages }: { messages: UIMessage[] }) => {
+      const lastMessage = messages[messages.length - 1];
       return {
-        headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency(), 'X-Request-Id': crypto.randomUUID(), 'X-Source': 'frontend' },
+        headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency(), 'X-Request-Id': buildChatRequestId(chatId, lastMessage?.id), 'X-Source': 'frontend' },
         body: {
           entityType,
           messages,
@@ -64,7 +66,7 @@ export function useFormPatchChat({
         },
       };
     },
-    [entityType],
+    [chatId, entityType],
   );
 
   // DefaultChatTransport only invokes prepareSendMessagesRequest when a message is actually sent, never during render,
@@ -142,28 +144,30 @@ export function useFormPatchChat({
 
   const handleAudioRecorded = useCallback(
     async (audioBlob: Blob) => {
-      const { transcription } = await audioService.transcribeRecordedAudio(audioBlob);
+      const { transcription } = await audioService.transcribeRecordedAudio(audioBlob, { requestId: buildChatRequestId(chatId) });
       applyTranscribedText(transcription);
     },
-    [applyTranscribedText],
+    [applyTranscribedText, chatId],
   );
 
   const handleAudioFileSelected = useCallback(
     async (file: File) => {
-      const { transcription } = await audioService.transcribeAudio(file);
+      const { transcription } = await audioService.transcribeAudio(file, { requestId: buildChatRequestId(chatId) });
       applyTranscribedText(transcription);
     },
-    [applyTranscribedText],
+    [applyTranscribedText, chatId],
   );
 
   const handleAudioRecordedEnhanced = useCallback(
     async (audioBlob: Blob, currentText: string) => {
-      const { transcription } = await audioService.transcribeRecordedAudioEnhanced(audioBlob, currentText);
+      const { transcription } = await audioService.transcribeRecordedAudioEnhanced(audioBlob, currentText, {
+        requestId: buildChatRequestId(chatId),
+      });
       const editedText = transcription.trim();
       if (!editedText) throw new Error('transcription_failed');
       setInput(editedText);
     },
-    [],
+    [chatId],
   );
 
   const handleAddFile = (file: FileDto) => setDraftFiles((prev) => [...prev, file]);
