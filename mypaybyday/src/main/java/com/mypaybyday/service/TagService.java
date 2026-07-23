@@ -22,6 +22,7 @@ import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.validation.TagValidator;
+import io.quarkus.logging.Log;
 
 @ApplicationScoped
 public class TagService {
@@ -83,10 +84,10 @@ public class TagService {
 	TagEntity findTagEntity(Long id, boolean failIfArchived) throws BusinessException {
 		TagEntity tag = tagRepository.findById(id);
 		if (tag == null) {
-			throw new BusinessException(messages.get(MsgKey.TAG_NOT_FOUND, id));
+			throw messages.reject(MsgKey.TAG_NOT_FOUND, id);
 		}
 		if (failIfArchived && tag.archived) {
-			throw new BusinessException(messages.get(MsgKey.TAG_NOT_FOUND_ARCHIVED, id));
+			throw messages.reject(MsgKey.TAG_NOT_FOUND_ARCHIVED, id);
 		}
 		return tag;
 	}
@@ -100,14 +101,14 @@ public class TagService {
 		if (foundTags.size() != tagIds.size()) {
 			Set<Long> foundIds = foundTags.stream().map(tag -> tag.id).collect(Collectors.toSet());
 			Long missingId = tagIds.stream().filter(tagId -> !foundIds.contains(tagId)).findFirst().orElse(null);
-			throw new BusinessException(messages.get(MsgKey.TAG_NOT_FOUND, missingId));
+			throw messages.reject(MsgKey.TAG_NOT_FOUND, missingId);
 		}
 
 		if (failIfArchived) {
 			foundTags.stream().filter(TagEntity::isArchived)
 			.findFirst()
 			.ifPresent(archivedTag -> {
-				throw new BusinessException(messages.get(MsgKey.TAG_NOT_FOUND_ARCHIVED, archivedTag.id));
+				throw messages.reject(MsgKey.TAG_NOT_FOUND_ARCHIVED, archivedTag.id);
 			});
 		}
 
@@ -126,7 +127,7 @@ public class TagService {
 		Set<Long> requestedTagIds = new HashSet<>();
 		for (TagDto tagDto : tagDtos) {
 			if (tagDto.id() == null) {
-				throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
+				throw messages.reject(MsgKey.EVENT_TAGS_ID_REQUIRED);
 			}
 			requestedTagIds.add(tagDto.id());
 		}
@@ -161,7 +162,7 @@ public class TagService {
 					.filter(t -> t.archived && !existingIds.contains(t.id))
 					.findFirst()
 					.ifPresent(archivedTag -> {
-						throw new BusinessException(messages.get(MsgKey.TAG_NOT_FOUND_ARCHIVED, archivedTag.id));
+						throw messages.reject(MsgKey.TAG_NOT_FOUND_ARCHIVED, archivedTag.id);
 					});
 		}
 
@@ -175,7 +176,7 @@ public class TagService {
 	@Transactional
 	public TagDto create(TagDto dto) throws BusinessException {
 		if (dto.name() == null || dto.name().isBlank()) {
-			throw new BusinessException(messages.get(MsgKey.TAG_NAME_REQUIRED));
+			throw messages.reject(MsgKey.TAG_NAME_REQUIRED);
 		}
 		TagEntity tag = new TagEntity();
 		tag.name = dto.name();
@@ -186,6 +187,7 @@ public class TagService {
 
 		tagRepository.persist(tag);
 		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forTag(tag.id));
+		Log.infof("Created tag id=%d", tag.id);
 		return TagDto.from(tag);
 	}
 
@@ -193,7 +195,7 @@ public class TagService {
 	public TagDto update(Long id, TagDto dto) throws BusinessException {
 		TagEntity tag = findTagEntity(id);
 		if (dto.name() == null || dto.name().isBlank()) {
-			throw new BusinessException(messages.get(MsgKey.TAG_NAME_REQUIRED));
+			throw messages.reject(MsgKey.TAG_NAME_REQUIRED);
 		}
 		tag.name = dto.name();
 		tag.description = dto.description();
@@ -202,6 +204,7 @@ public class TagService {
 		tagValidator.validate(tag);
 
 		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forTag(id));
+		Log.infof("Updated tag id=%d", id);
 		return TagDto.from(tag);
 	}
 
@@ -214,16 +217,19 @@ public class TagService {
 				|| tagGroupRepository.countByTag(tag) > 0;
 
 		if (inUseForRecurring) {
-			throw new BusinessException(messages.get(MsgKey.TAG_ARCHIVE_IN_USE));
+			Log.warnf("Archive rejected: tag id=%d is in use by templates/subscriptions/tag-groups", id);
+			throw messages.reject(MsgKey.TAG_ARCHIVE_IN_USE);
 		}
 
 		tag.archived = true;
+		Log.infof("Archived tag id=%d", id);
 	}
 
 	@Transactional
 	public void unarchive(Long id) throws BusinessException {
 		TagEntity tag = findTagEntity(id, false);
 		tag.archived = false;
+		Log.infof("Unarchived tag id=%d", id);
 	}
 
 	@Transactional
@@ -236,10 +242,12 @@ public class TagService {
 				|| tagGroupRepository.countByTag(tag) > 0;
 
 		if (inUse) {
-			throw new BusinessException(messages.get(MsgKey.TAG_IN_USE));
+			Log.warnf("Delete rejected: tag id=%d is in use", id);
+			throw messages.reject(MsgKey.TAG_IN_USE);
 		}
 
 		tagRepository.delete(tag);
+		Log.infof("Deleted tag id=%d", id);
 	}
 
 }

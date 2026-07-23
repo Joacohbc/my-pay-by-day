@@ -14,6 +14,7 @@ import { extractEntityRefs, toolCallEntityKey, type ChatEntityRef } from '@/comp
 import { getFileIcon, getFileTypeLabel } from '@/lib/fileUtils';
 import { CHAT_TOOL_MANIFEST } from '@/lib/chat/toolManifest.generated';
 import type { ChatMessage as ChatMessageType, ChatMessagePart, ChatToolCall } from '@/store/chatStore';
+import { logger } from '@/lib/logger';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -134,9 +135,12 @@ export function ChatMessage({ message, onDelete, onApprove, onAskUserAnswer }: C
   }, [toolCallCount]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(message.content);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
+    navigator.clipboard.writeText(message.content)
+      .then(() => {
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      })
+      .catch((error) => logger.child('chatMessage').debug('Clipboard copy failed', { error }));
   };
 
   function renderToolPart(call: ChatToolCall, idx: number, seenTaskIds: Set<string>) {

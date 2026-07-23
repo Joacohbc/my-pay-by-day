@@ -29,6 +29,7 @@ import com.mypaybyday.i18n.TimezoneContext;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.service.CategoryService;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
+import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
 
 @ApplicationScoped
@@ -114,6 +115,7 @@ public class EventGetService {
 		boolean hasAmountRange = queryRequest.minAmount() != null || queryRequest.maxAmount() != null;
 
 		if (hasSearch || hasAmountRange) {
+			Log.debugf("Event search using in-memory filtering (search=%b amountRange=%b)", hasSearch, hasAmountRange);
 			String searchLower = hasSearch ? queryRequest.search().toLowerCase() : null;
 			List<FinanceEventEntity> matchingEvents = panacheQuery.stream()
 					.filter(event -> {
@@ -165,7 +167,7 @@ public class EventGetService {
 	public FinanceEventDto findById(Long id) throws BusinessException {
 		FinanceEventEntity event = eventRepository.findById(id);
 		if (event == null) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
+			throw messages.reject(MsgKey.EVENT_NOT_FOUND);
 		}
 		return FinanceEventDto.from(event);
 	}
@@ -205,10 +207,10 @@ public class EventGetService {
 
 	private List<FinanceEventEntity> findEventEntitiesByDateRange(LocalDateTime from, LocalDateTime to) throws BusinessException {
 		if (from == null || to == null) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_DATE_RANGE_NULL));
+			throw messages.reject(MsgKey.EVENT_DATE_RANGE_NULL);
 		}
 		if (from.isAfter(to)) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_DATE_RANGE_INVALID));
+			throw messages.reject(MsgKey.EVENT_DATE_RANGE_INVALID);
 		}
 		return eventRepository.list("transaction.transactionDate >= ?1 and transaction.transactionDate <= ?2", from, to);
 	}
@@ -216,10 +218,10 @@ public class EventGetService {
 	private List<FinanceEventEntity> findEventEntitiesByDateRangeAndCategory(Long categoryId, LocalDateTime from, LocalDateTime to)
 			throws BusinessException {
 		if (from == null || to == null) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_DATE_RANGE_NULL));
+			throw messages.reject(MsgKey.EVENT_DATE_RANGE_NULL);
 		}
 		if (from.isAfter(to)) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_DATE_RANGE_INVALID));
+			throw messages.reject(MsgKey.EVENT_DATE_RANGE_INVALID);
 		}
 		return eventRepository.list(
 				"category.id = ?1 and transaction.transactionDate >= ?2 and transaction.transactionDate <= ?3",

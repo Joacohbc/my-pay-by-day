@@ -1,13 +1,79 @@
+# Production compose: pulls the pre-built images published by
+# .github/workflows/docker-build.yml (ghcr.io) instead of building locally.
+# For local development builds, use docker-compose.local.yml.
+#
+# ── Logs ──────────────────────────────────────────────────────────────────
+# Cada service escribe stdout al driver json-file estándar (con rotación).
+# Alloy lee esos logs vía docker.sock y los empuja a Loki; si Loki está
+# caído, Alloy reintenta solo y los containers no se ven afectados.
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
 
-  4y:
-    image: ghcr.io/joacohbc/my-pay-by-day/full
+  # ── Application services ─────────────────────────────────────────────
+  gateway:
+    image: ghcr.io/joacohbc/my-pay-by-day/gateway:latest
+    environment:
+      - MYPAYBYDAY_FILES_MAX_SIZE=${MYPAYBYDAY_FILES_MAX_SIZE:-10485760}
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      chatbot:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+
+  # Sole ingress. No service publishes ports to the host: the tunnel dials out to
+  # Cloudflare's edge and reaches the gateway over the compose network, so the host
+  # firewall needs no inbound rule at all. A single public hostname pointing at
+  # http://gateway:80 serves everything, Grafana included (under /grafana/).
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      gateway:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/joacohbc/my-pay-by-day/frontend:latest
+    environment:
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-/api}
+      - VITE_LOG_LEVEL=${VITE_LOG_LEVEL:-info}
+    logging: *default-logging
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/joacohbc/my-pay-by-day/backend:latest
     environment:
       - DB_FIELD_ENCRYPTION_KEY=${DB_FIELD_ENCRYPTION_KEY}
       - QUARKUS_DATASOURCE_JDBC_URL=${QUARKUS_DATASOURCE_JDBC_URL:-jdbc:sqlite:/data/mypaybyday.db}
       - TZ=${TZ:-UTC}
       - MYPAYBYDAY_CORS_ORIGINS=${MYPAYBYDAY_CORS_ORIGINS:-}
-      # AI (Node chatbot service via Vercel AI SDK + OpenRouter)
+      - MYPAYBYDAY_FILES_MAX_SIZE=${MYPAYBYDAY_FILES_MAX_SIZE:-10485760}
+      - APP_LOG_LEVEL=${APP_LOG_LEVEL:-INFO}
+      - MARKITDOWN_URL=http://markitdown:8590
+    volumes:
+      - ./data/backend:/data
+    depends_on:
+      markitdown:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+
+  chatbot:
+    image: ghcr.io/joacohbc/my-pay-by-day/chatbot:latest
+    environment:
+      - BACKEND_URL=http://backend:8080
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       - MODEL_LARGE=${MODEL_LARGE:-google/gemini-2.5-flash}
@@ -16,14 +82,75 @@ services:
       - AGENT_MAX_STEPS=${AGENT_MAX_STEPS:-25}
       - SUBAGENT_MAX_STEPS=${SUBAGENT_MAX_STEPS:-12}
       - AGENT_MAX_CHAT_MESSAGES=${AGENT_MAX_CHAT_MESSAGES:-150}
-      - MYPAYBYDAY_FILES_MAX_SIZE=${MYPAYBYDAY_FILES_MAX_SIZE:-10485760}
-      - LOG_LEVEL=${LOG_LEVEL:-debug}
-      - LOG_FORMAT=${LOG_FORMAT:-text}
+      # 'production' makes the chatbot default to JSON logs; keep LOG_LEVEL=info so the
+      # verbose content (prompts/replies/tool args) stays at DEBUG and off prod logs.
+      - NODE_ENV=${NODE_ENV:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
       - LOG_MAX_FIELD_CHARS=${LOG_MAX_FIELD_CHARS:-800}
       - LOG_TIMESTAMPS=${LOG_TIMESTAMPS:-true}
       - CHATBOT_DB_PATH=${CHATBOT_DB_PATH:-/data/chatbot.db}
     volumes:
-      - db_data:/data
+      - ./data/chatbot:/data
+    depends_on:
+      backend:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+
+  markitdown:
+    image: ghcr.io/joacohbc/my-pay-by-day/markitdown:latest
+    environment:
+      - PORT=8590
+    logging: *default-logging
+    restart: unless-stopped
+
+  # ── Observability stack (logs only) ──────────────────────────────────
+  # Alloy discovers containers via docker.sock, tails their json-file logs,
+  # normalizes each format into structured metadata and pushes them to Loki over
+  # the compose network. Grafana reads Loki and lets you trace one request across
+  # services by its X-Request-Id.
+  loki:
+    image: grafana/loki:3.7.3
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./docker/observability/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    restart: unless-stopped
+
+  alloy:
+    image: grafana/alloy:v1.10.1
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
+    volumes:
+      - ./docker/observability/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy/data
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.1.0
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      # Served behind the gateway under /grafana/. The root URL must be the public
+      # one, or Grafana's redirects and asset links point somewhere unreachable.
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost/grafana/}
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    volumes:
+      - ./docker/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - loki
+    restart: unless-stopped
 
 volumes:
-  db_data:
+  loki_data:
+  grafana_data:
+  alloy_data:

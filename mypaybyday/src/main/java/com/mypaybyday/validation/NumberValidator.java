@@ -19,19 +19,19 @@ public class NumberValidator {
 
     public void validatePositive(BigDecimal value) throws BusinessException {
         if (value != null && value.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_NUMBER_POSITIVE));
+            throw messages.reject(MsgKey.VALIDATION_NUMBER_POSITIVE);
         }
     }
 
     public void validateNonNegative(BigDecimal value) throws BusinessException {
         if (value != null && value.compareTo(BigDecimal.ZERO) < 0) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_NUMBER_NON_NEGATIVE));
+            throw messages.reject(MsgKey.VALIDATION_NUMBER_NON_NEGATIVE);
         }
     }
 
     public void validateRange(BigDecimal value, BigDecimal min, BigDecimal max) throws BusinessException {
         if (value != null && (value.compareTo(min) < 0 || value.compareTo(max) > 0)) {
-            throw new BusinessException(messages.get(MsgKey.VALIDATION_NUMBER_RANGE, min, max));
+            throw messages.reject(MsgKey.VALIDATION_NUMBER_RANGE, min, max);
         }
     }
 }

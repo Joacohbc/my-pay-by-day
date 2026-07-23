@@ -21,6 +21,7 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.TimePeriodRepository;
 import com.mypaybyday.service.event.EventService;
+import io.quarkus.logging.Log;
 
 @ApplicationScoped
 public class AggregationService {
@@ -60,6 +61,7 @@ public class AggregationService {
 
     @Transactional
     public BigDecimal nodeBalance(Long nodeId) {
+        Log.debugf("Computing full-history node balance for node id=%d", nodeId);
         var node = financeNodeRepository.findById(nodeId);
         if (node == null) {
             return BigDecimal.ZERO;
@@ -115,7 +117,7 @@ public class AggregationService {
     private TimePeriodEntity findPeriodEntity(Long periodId) throws BusinessException {
         TimePeriodEntity entity = timePeriodRepository.findById(periodId);
         if (entity == null) {
-            throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NOT_FOUND));
+            throw messages.reject(MsgKey.TIME_PERIOD_NOT_FOUND);
         }
         return entity;
     }

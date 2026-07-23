@@ -21,6 +21,8 @@ import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.repository.LineItemRepository;
 import com.mypaybyday.repository.SelectionHistoryRepository;
 
+import io.quarkus.logging.Log;
+
 @ApplicationScoped
 public class SelectionHistoryService {
 
@@ -43,10 +45,10 @@ public class SelectionHistoryService {
 	@Transactional
 	public void recordSelection(RecordSelectionDto dto) throws BusinessException {
 		if (dto.entityType() == null) {
-			throw new BusinessException(messages.get(MsgKey.SELECTION_HISTORY_ENTITY_TYPE_REQUIRED));
+			throw messages.reject(MsgKey.SELECTION_HISTORY_ENTITY_TYPE_REQUIRED);
 		}
 		if (dto.entityId() == null) {
-			throw new BusinessException(messages.get(MsgKey.SELECTION_HISTORY_ENTITY_ID_REQUIRED));
+			throw messages.reject(MsgKey.SELECTION_HISTORY_ENTITY_ID_REQUIRED);
 		}
 
 		Optional<SelectionHistoryEntity> existing = selectionHistoryRepository
@@ -65,6 +67,7 @@ public class SelectionHistoryService {
 					.build();
 			selectionHistoryRepository.persist(entity);
 		}
+		Log.debugf("Recorded selection type=%s id=%d", dto.entityType(), dto.entityId());
 	}
 
 	@Transactional

@@ -179,6 +179,10 @@ public class DataTransferService {
             settingsDto.textSimilarityThresholdScore = settingsEntity.textSimilarityThresholdScore;
         }
 
+        Log.infof("Exported data: tags=%d categories=%d nodes=%d tagGroups=%d events=%d files=%d subscriptions=%d templates=%d timePeriods=%d",
+                tags.size(), categories.size(), nodes.size(), tagGroups.size(), events.size(), files.size(),
+                subscriptions.size(), templates.size(), timePeriods.size());
+
         return new DataTransferDto(
                 DataTransferDto.CURRENT_VERSION,
                 LocalDateTime.now(ZoneOffset.UTC),
@@ -232,7 +236,7 @@ public class DataTransferService {
             }
             return result != null ? result : new DataTransferResult(0, 0, 0, 0, 0, 0, 0, 0, 0, List.of(), Map.of());
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.errorf(e, "Import from zip failed");
             throw new jakarta.ws.rs.WebApplicationException("Error reading zip: " + e.getMessage(), 500);
         }
     }
@@ -246,7 +250,9 @@ public class DataTransferService {
                 java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
                 byte[] hashBytes = md.digest(data);
                 entity.hash = java.util.HexFormat.of().formatHex(hashBytes);
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                Log.warnf(e, "Failed to hash imported file id=%d", newId);
+            }
             FileEntity.getEntityManager().persist(entity);
         }
     }
@@ -279,6 +285,10 @@ public class DataTransferService {
         Map<Long, Long> timePeriodIdMap = importTimePeriods(dto.timePeriods(), categoryIdMap);
         List<String> skippedEvents = new ArrayList<>();
         int eventCount = importEvents(dto.events(), tagIdMap, categoryIdMap, nodeIdMap, fileIdMap, subscriptionIdMap, skippedEvents);
+
+        Log.infof("Imported data: tags=%d categories=%d nodes=%d tagGroups=%d events=%d (skipped=%d) files=%d subscriptions=%d templates=%d timePeriods=%d",
+                tagIdMap.size(), categoryIdMap.size(), nodeIdMap.size(), tagGroupCount, eventCount, skippedEvents.size(),
+                fileIdMap.size(), subscriptionIdMap.size(), templateIdMap.size(), timePeriodIdMap.size());
 
         return new DataTransferResult(
                 tagIdMap.size(),
@@ -446,11 +456,11 @@ public class DataTransferService {
             for (FinanceLineItemDto liDto : dto.lineItems()) {
                 Long newNodeId = nodeIdMap.get(liDto.financeNodeId());
                 if (newNodeId == null) {
-                    throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
+                    throw messages.reject(MsgKey.NODE_NOT_FOUND);
                 }
                 FinanceNodeEntity node = financeNodeRepository.findById(newNodeId);
                 if (node == null) {
-                    throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
+                    throw messages.reject(MsgKey.NODE_NOT_FOUND);
                 }
                 FinanceLineItemEntity li = new FinanceLineItemEntity();
                 li.amount = liDto.amount();

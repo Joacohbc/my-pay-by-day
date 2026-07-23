@@ -5,9 +5,13 @@ import { config } from '@/config.js';
 import type { RequestContext } from '@/context.js';
 import { groundingNow } from '@/dates.js';
 import { longTermMemory } from '@/memory/longTerm.js';
+import { logger } from '@/logging/logger.js';
+import { costOf, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
 import { largeModel } from '@/models.js';
 import { subagentSystemPrompt, type ExecutionMode } from '@/prompts/system.js';
 import type { KindedToolSet } from '@/tools/types.js';
+
+const delegateLog = logger.child('delegate');
 
 const EXECUTION_MODES = ['AUTONOMOUS', 'DRAFT_ONLY', 'READ_ONLY', 'DRAFT_CONFIRMATION'] as const;
 
@@ -52,6 +56,7 @@ export function buildDelegateTools(ctx: RequestContext, parentMode: ExecutionMod
           yield { type: 'progress', title, message: ctx.lang === 'es' ? 'Iniciando subtarea...' : 'Starting subtask...' };
 
           const kindedTools = buildAllTools(ctx);
+          const delegateStartedAt = performance.now();
           const result = streamText({
             model: largeModel(),
             system: subagentSystemPrompt({
@@ -68,6 +73,18 @@ export function buildDelegateTools(ctx: RequestContext, parentMode: ExecutionMod
             tools: toolsForMode(kindedTools, effectiveMode),
             stopWhen: stepCountIs(config.agent.subagentMaxSteps),
             abortSignal,
+            onFinish: ({ response, totalUsage, providerMetadata }) => {
+              const durationMs = Math.round(performance.now() - delegateStartedAt);
+              logLlmUsage('delegate', response.modelId, durationMs, totalUsage, costOf(providerMetadata), { title });
+            },
+            onError: ({ error }) => {
+              const durationMs = Math.round(performance.now() - delegateStartedAt);
+              delegateLog.error('sub-agent stream failed', {
+                title,
+                error: error instanceof Error ? error.message : String(error),
+              });
+              logLlmError('delegate', config.models.large, durationMs, error, { title });
+            },
           });
           
           let lastMsg: UIMessage | undefined;

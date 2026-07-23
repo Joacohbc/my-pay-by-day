@@ -1,5 +1,7 @@
 core
 .pnpm-store/
+.env
+data/
 
 # devcontainer-cli
 .dc_*/
@@ -9,4 +11,13 @@ devcontainer.config.json
 graphify-out/
 
 # markitdown local run deps
-docker/markitdown/.libs/
+docker/backend/markitdown/.libs/
+
+# agent tooling
+.claude/
+.agents/
+SKILLS.md
+TODO.md
+
+# host-mounted service data (backend/chatbot SQLite)
+data/

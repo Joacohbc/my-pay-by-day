@@ -1,5 +1,10 @@
 package com.mypaybyday.exception;
 
+import org.jboss.logging.MDC;
+
+import com.mypaybyday.filter.CorrelationIdFilter;
+
+import io.quarkus.logging.Log;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
@@ -9,6 +14,8 @@ public class BusinessExceptionMapper implements ExceptionMapper<BusinessExceptio
 
 	@Override
 	public Response toResponse(BusinessException exception) {
+		MDC.put(CorrelationIdFilter.MDC_ERROR_KIND_KEY, exception.getKind().name().toLowerCase());
+		Log.warnf("Business rule rejected request: %s", exception.getMessage());
 		return Response.status(Response.Status.BAD_REQUEST)
 				.entity(new ErrorResponse(exception.getMessage()))
 				.build();

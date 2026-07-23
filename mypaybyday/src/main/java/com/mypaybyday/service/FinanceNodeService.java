@@ -17,6 +17,7 @@ import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.LineItemRepository;
 import com.mypaybyday.service.event.TransactionService;
 import com.mypaybyday.validation.FinanceNodeValidator;
+import io.quarkus.logging.Log;
 
 @ApplicationScoped
 public class FinanceNodeService {
@@ -85,7 +86,7 @@ public class FinanceNodeService {
 	FinanceNodeEntity findNodeEntity(Long id) throws BusinessException {
 		FinanceNodeEntity node = financeNodeRepository.findById(id);
 		if (node == null || node.archived) {
-			throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND_ARCHIVED, id));
+			throw messages.reject(MsgKey.NODE_NOT_FOUND_ARCHIVED, id);
 		}
 		return node;
 	}
@@ -102,6 +103,7 @@ public class FinanceNodeService {
 		financeNodeValidator.validate(node);
 
 		financeNodeRepository.persist(node);
+		Log.infof("Created finance-node id=%d type=%s", node.id, node.type);
 		return FinanceNodeDto.from(node);
 	}
 
@@ -109,7 +111,7 @@ public class FinanceNodeService {
 	public FinanceNodeDto update(Long id, FinanceNodeDto dto) throws BusinessException {
 		FinanceNodeEntity node = financeNodeRepository.findById(id);
 		if (node == null || node.archived) {
-			throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND_ARCHIVED_GENERIC));
+			throw messages.reject(MsgKey.NODE_NOT_FOUND_ARCHIVED_GENERIC);
 		}
 		node.name = dto.name();
 		node.type = dto.type();
@@ -119,6 +121,7 @@ public class FinanceNodeService {
 
 		financeNodeValidator.validate(node);
 
+		Log.infof("Updated finance-node id=%d", id);
 		return FinanceNodeDto.from(node);
 	}
 
@@ -126,55 +129,61 @@ public class FinanceNodeService {
 	public void archive(Long id) throws BusinessException {
 		FinanceNodeEntity node = financeNodeRepository.findById(id);
 		if (node == null) {
-			throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
+			throw messages.reject(MsgKey.NODE_NOT_FOUND);
 		}
 
 		boolean inUseForRecurring = financeNodeRepository.countInTemplates(node) > 0
 				|| financeNodeRepository.countInSubscriptions(node) > 0;
 
 		if (inUseForRecurring) {
-			throw new BusinessException(messages.get(MsgKey.NODE_ARCHIVE_IN_USE));
+			Log.warnf("Archive rejected: finance-node id=%d is in use by templates/subscriptions", id);
+			throw messages.reject(MsgKey.NODE_ARCHIVE_IN_USE);
 		}
 
 		// It's always allowed to archive, we just don't physically delete
 		node.archived = true;
+		Log.infof("Archived finance-node id=%d", id);
 	}
 
 	@Transactional
 	public void unarchive(Long id) throws BusinessException {
 		FinanceNodeEntity node = financeNodeRepository.findById(id);
 		if (node == null) {
-			throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
+			throw messages.reject(MsgKey.NODE_NOT_FOUND);
 		}
 		node.archived = false;
+		Log.infof("Unarchived finance-node id=%d", id);
 	}
 
 	@Transactional
 	public void delete(Long id) throws BusinessException {
 		FinanceNodeEntity node = financeNodeRepository.findById(id);
 		if (node == null) {
-			throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
+			throw messages.reject(MsgKey.NODE_NOT_FOUND);
 		}
 
 		boolean inUseForRecurring = financeNodeRepository.countInTemplates(node) > 0
 				|| financeNodeRepository.countInSubscriptions(node) > 0;
 
 		if (inUseForRecurring) {
-			throw new BusinessException(messages.get(MsgKey.NODE_ARCHIVE_IN_USE));
+			Log.warnf("Delete rejected: finance-node id=%d is in use by templates/subscriptions", id);
+			throw messages.reject(MsgKey.NODE_ARCHIVE_IN_USE);
 		}
-		
+
 		long txCount = lineItemRepository.count("financeNode", node);
 		if (txCount > 0) {
-			throw new BusinessException(messages.get(MsgKey.NODE_HAS_TRANSACTIONS));
+			Log.warnf("Delete rejected: finance-node id=%d has %d line items", id, txCount);
+			throw messages.reject(MsgKey.NODE_HAS_TRANSACTIONS);
 		}
 		financeNodeRepository.delete(node);
+		Log.infof("Deleted finance-node id=%d", id);
 	}
 
 	@Transactional
 	public BigDecimal calculateBalance(Long id) throws BusinessException {
 		FinanceNodeEntity node = financeNodeRepository.findById(id);
 		if (node == null) {
-			throw new BusinessException(messages.get(MsgKey.NODE_NOT_FOUND));
+			throw messages.reject(MsgKey.NODE_NOT_FOUND);
 		}
 
 		// Calculate balance on-the-fly summing all amounts for this node
@@ -186,6 +195,7 @@ public class FinanceNodeService {
 				.map(lineItem -> lineItem.amount)
 				.reduce(BigDecimal.ZERO, BigDecimal::add);
 
+		Log.debugf("Calculated balance for finance-node id=%d", id);
 		return total;
 	}
 }

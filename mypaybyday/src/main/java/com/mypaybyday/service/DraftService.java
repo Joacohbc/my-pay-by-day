@@ -101,11 +101,13 @@ public class DraftService {
 				// Use ObjectMapper to serialize the payload to JSON
 				entity.setRawPayloadJson(objectMapper.writeValueAsString(payload));
 			} catch (JsonProcessingException e) {
-				throw new BusinessException(messages.get(MsgKey.DRAFT_INVALID_PAYLOAD));
+				Log.errorf(e, "Failed to serialize draft payload for entityType=%s", entityType);
+				throw messages.reject(MsgKey.DRAFT_INVALID_PAYLOAD);
 			}
 		}
 
 		draftRepository.persist(entity);
+		Log.infof("Created draft id=%d type=%s originalEntity=%s", entity.id, entityType, entity.getOriginalEntityId());
 		return entity;
 	}
 
@@ -122,8 +124,10 @@ public class DraftService {
 			try {
 				entity.setRawPayloadJson(objectMapper.writeValueAsString(payload));
 				draftRepository.persist(entity);
+				Log.infof("Updated draft id=%d", id);
 			} catch (JsonProcessingException e) {
-				throw new BusinessException(messages.get(MsgKey.DRAFT_INVALID_PAYLOAD));
+				Log.errorf(e, "Failed to serialize draft payload for draft id=%d", id);
+				throw messages.reject(MsgKey.DRAFT_INVALID_PAYLOAD);
 			}
 		}
 
@@ -157,8 +161,10 @@ public class DraftService {
 				entity.setOriginalEntityId(updated.id());
 			}
 			draftRepository.persist(entity);
+			Log.infof("Updated finance-event draft id=%d", id);
 		} catch (JsonProcessingException e) {
-			throw new BusinessException(messages.get(MsgKey.DRAFT_INVALID_PAYLOAD));
+			Log.errorf(e, "Failed to serialize finance-event draft id=%d", id);
+			throw messages.reject(MsgKey.DRAFT_INVALID_PAYLOAD);
 		}
 		return entity;
 	}
@@ -171,7 +177,7 @@ public class DraftService {
 	@Transactional
 	public DraftEntity upsertFinanceEventDraftByEventId(Long eventId, FinanceEventDraftInputDto input) throws BusinessException {
 		if (eventId == null || eventId <= 0) {
-			throw new BusinessException(messages.get(MsgKey.DRAFT_EVENT_ID_REQUIRED));
+			throw messages.reject(MsgKey.DRAFT_EVENT_ID_REQUIRED);
 		}
 		Optional<DraftEntity> existing = draftRepository.findByOriginalEntityIdAndType(eventId, EntityType.FINANCE_EVENT);
 		if (existing.isPresent()) {
@@ -225,7 +231,7 @@ public class DraftService {
 	@Transactional
 	public ConfirmDraftsResultDto confirmDraftsBatch(List<Long> draftIds, DraftConfirmMode mode) throws BusinessException {
 		if (draftIds == null || draftIds.isEmpty()) {
-			throw new BusinessException(messages.get(MsgKey.DRAFT_CONFIRM_NO_IDS));
+			throw messages.reject(MsgKey.DRAFT_CONFIRM_NO_IDS);
 		}
 
 		List<FinanceEventDto> confirmedEvents = new ArrayList<>();
@@ -240,6 +246,7 @@ public class DraftService {
 			}
 		}
 
+		Log.infof("Confirmed %d drafts, skipped %d: failed=%s", confirmedEvents.size(), failedDraftIds.size(), failedDraftIds);
 		return new ConfirmDraftsResultDto(confirmedEvents, failedDraftIds);
 	}
 
@@ -263,13 +270,13 @@ public class DraftService {
 				.filter(d -> draftId.equals(d.draftId()))
 				.findFirst()
 				.orElse(null);
-		if (dto == null) throw new BusinessException(messages.get(MsgKey.DRAFT_NOT_FOUND, draftId));
+		if (dto == null) throw messages.reject(MsgKey.DRAFT_NOT_FOUND, draftId);
 		if (dto.name() == null || dto.name().isBlank())
-			throw new BusinessException(messages.get(MsgKey.DRAFT_MISSING_NAME));
+			throw messages.reject(MsgKey.DRAFT_MISSING_NAME);
 		if (dto.transactionDate() == null)
-			throw new BusinessException(messages.get(MsgKey.DRAFT_MISSING_DATE));
+			throw messages.reject(MsgKey.DRAFT_MISSING_DATE);
 		if (dto.lineItems() == null || dto.lineItems().isEmpty())
-			throw new BusinessException(messages.get(MsgKey.DRAFT_MISSING_LINE_ITEMS));
+			throw messages.reject(MsgKey.DRAFT_MISSING_LINE_ITEMS);
 		return dto;
 	}
 
@@ -388,7 +395,8 @@ public class DraftService {
 
 	@Transactional
 	public void deleteFinanceEventDrafts() {
-		draftRepository.delete("entityType", EntityType.FINANCE_EVENT);
+		long deleted = draftRepository.delete("entityType", EntityType.FINANCE_EVENT);
+		Log.infof("Deleted %d finance-event drafts", deleted);
 	}
 
 	@Transactional
@@ -399,7 +407,7 @@ public class DraftService {
 	private DraftEntity findEntityById(Long id) throws BusinessException {
 		DraftEntity entity = draftRepository.findById(id);
 		if (entity == null) {
-			throw new BusinessException(messages.get(MsgKey.DRAFT_NOT_FOUND, id));
+			throw messages.reject(MsgKey.DRAFT_NOT_FOUND, id);
 		}
 		return entity;
 	}
@@ -409,7 +417,8 @@ public class DraftService {
 			FinanceEventDto dto = objectMapper.readValue(entity.getRawPayloadJson(), FinanceEventDto.class);
 			return dto.fromDraft(entity.getOriginalEntityId(), entity.id);
 		} catch (JsonProcessingException e) {
-			throw new BusinessException(messages.get(MsgKey.DRAFT_INVALID_PAYLOAD));
+			Log.errorf(e, "Failed to deserialize stored draft id=%d", entity.id);
+			throw messages.reject(MsgKey.DRAFT_INVALID_PAYLOAD);
 		}
 	}
 

@@ -1,8 +1,17 @@
 import type { ModelMessage } from 'ai';
 import { config } from '@/config.js';
 import { logger } from '@/logging/logger.js';
+import { currentRequestFields } from '@/logging/requestStore.js';
 
 const markdownLog = logger.child('markdown');
+
+/** Correlation headers for internal backend fetches, sourced from the ambient request scope. */
+function backendHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'X-Source': 'chatbot' };
+  const requestId = currentRequestFields()?.requestId;
+  if (typeof requestId === 'string') headers['X-Request-Id'] = requestId;
+  return headers;
+}
 
 const MODEL_NATIVE_MEDIA_TYPE_PREFIXES = ['image/', 'audio/', 'video/'];
 const MODEL_NATIVE_MEDIA_TYPES = new Set(['application/pdf']);
@@ -17,7 +26,9 @@ export function isConvertibleDocument(mediaType: string): boolean {
  * the file has no Markdown (not convertible, conversion failed at upload) or the backend is unreachable. */
 export async function fetchBackendMarkdown(fileId: number): Promise<string | null> {
   try {
-    const response = await fetch(`${config.backendUrl}/files/${fileId}/content/markdown`);
+    const response = await fetch(`${config.backendUrl}/files/${fileId}/content/markdown`, {
+      headers: backendHeaders(),
+    });
     if (response.status === 204) return null;
     if (!response.ok) {
       markdownLog.warn('backend markdown fetch failed', { fileId, status: response.status });

@@ -2,7 +2,17 @@ import createClient, { type Client, type Middleware } from 'openapi-fetch';
 import { config } from '@/config.js';
 import type { RequestContext } from '@/context.js';
 import type { ServerDateTime } from '@/dates.js';
+import { logger } from '@/logging/logger.js';
+import { currentRequestFields } from '@/logging/requestStore.js';
 import type { components, paths } from '@/backend/schema.js';
+
+function pathOf(url: string): string {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return url;
+  }
+}
 
 export class BackendError extends Error {
   constructor(public status: number, message: string) {
@@ -18,6 +28,16 @@ export type FinanceEventDto = Schemas['FinanceEventDto'];
 export type FinanceEventDraftInputDto = Schemas['FinanceEventDraftInputDto'];
 export type FinanceNodeDto = Schemas['FinanceNodeDto'];
 export type EventType = Schemas['EventType'];
+
+/**
+ * Correlation id for an outgoing backend call: the ambient one when the call runs inside a tool's
+ * scope (so it carries that tool call's id), falling back to the request's own — backend calls made
+ * while streaming a chat run after the request's AsyncLocalStorage scope has exited.
+ */
+function currentRequestId(ctx: RequestContext): string {
+  const ambient = currentRequestFields()?.requestId;
+  return typeof ambient === 'string' ? ambient : ctx.requestId;
+}
 
 /**
  * Wire shape accepted by `PATCH /events/{id}`. The generated `PatchEventDto` describes each field
@@ -44,14 +64,40 @@ export interface EventPatchBody {
  */
 export function createApiClient(ctx: RequestContext): ApiClient {
   const client = createClient<paths>({ baseUrl: config.backendUrl });
-  const localeHeaders: Middleware = {
+  const backendLog = logger.child('backend');
+  const startTimes = new WeakMap<Request, number>();
+  const requestIds = new WeakMap<Request, string>();
+  const contextMiddleware: Middleware = {
     onRequest({ request }) {
+      // Don't return `request`/`response` from these hooks (see onResponse below for why).
+      const requestId = currentRequestId(ctx);
       request.headers.set('X-Timezone', ctx.timezone);
       request.headers.set('X-Language', ctx.lang);
-      return request;
+      request.headers.set('X-Request-Id', requestId);
+      request.headers.set('X-Source', 'chatbot');
+      startTimes.set(request, performance.now());
+      requestIds.set(request, requestId);
+      backendLog.debug('backend →', { requestId, method: request.method, path: pathOf(request.url) });
+    },
+    onResponse({ request, response }) {
+      // @hono/node-server swaps in its own `Response` class as soon as the server starts, so
+      // openapi-fetch's "is this really a Response?" check fails on the real one our fetch() call
+      // returns. That check only runs when a middleware hands a value back, so we just don't —
+      // we're only reading the response here, never replacing it.
+      const started = startTimes.get(request);
+      const ms = started != null ? Math.round(performance.now() - started) : undefined;
+      const fields = {
+        requestId: requestIds.get(request) ?? ctx.requestId,
+        method: request.method,
+        path: pathOf(request.url),
+        status: response.status,
+        ms,
+      };
+      if (response.ok) backendLog.info('backend ←', fields);
+      else backendLog.warn('backend ← error', fields);
     },
   };
-  client.use(localeHeaders);
+  client.use(contextMiddleware);
   return client;
 }
 
@@ -90,9 +136,19 @@ export function patchEvent(client: ApiClient, eventId: number, body: EventPatchB
 
 /** Fetches a plain-text backend response (e.g. base64 file content) not modelled as JSON. */
 export async function getBackendText(ctx: RequestContext, path: string): Promise<string> {
+  const requestId = currentRequestId(ctx);
   const res = await fetch(`${config.backendUrl}${path}`, {
-    headers: { Accept: 'text/plain', 'X-Timezone': ctx.timezone, 'X-Language': ctx.lang },
+    headers: {
+      Accept: 'text/plain',
+      'X-Timezone': ctx.timezone,
+      'X-Language': ctx.lang,
+      'X-Request-Id': requestId,
+      'X-Source': 'chatbot',
+    },
   });
-  if (!res.ok) throw new BackendError(res.status, `HTTP ${res.status}`);
+  if (!res.ok) {
+    logger.child('backend').warn('backend ← error', { requestId, path, status: res.status });
+    throw new BackendError(res.status, `HTTP ${res.status}`);
+  }
   return res.text();
 }

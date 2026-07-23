@@ -6,6 +6,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.GIT_SHA ?? 'dev'),
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -49,7 +52,7 @@ export default defineConfig({
       workbox: {
         importScripts: ['/sw-share-target.js'],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        navigateFallbackDenylist: [/^\/api\//, /^\/ws\//],
+        navigateFallbackDenylist: [/^\/api\//, /^\/ws\//, /^\/grafana\//],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

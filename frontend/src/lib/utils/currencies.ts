@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 export interface CurrencyOption {
   code: string;
   label: string;
@@ -38,8 +40,8 @@ export const getSupportedCurrencies = (): CurrencyOption[] => {
       if (currencyPart && currencyPart.value && currencyPart.value !== code) {
         symbol = currencyPart.value;
       }
-    } catch {
-      // Keep default '$' if error
+    } catch (error) {
+      logger.child('currencies').debug('Currency symbol resolution failed, using default', { error, code });
     }
 
     return {

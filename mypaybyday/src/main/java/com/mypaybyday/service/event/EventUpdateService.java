@@ -66,7 +66,7 @@ public class EventUpdateService {
 	public FinanceEventDto update(Long id, PatchEventDto patch) throws BusinessException {
 		FinanceEventEntity event = eventRepository.findById(id);
 		if (event == null) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
+			throw messages.reject(MsgKey.EVENT_NOT_FOUND);
 		}
 
 		if (patch.getName().isPresent()) {
@@ -114,19 +114,21 @@ public class EventUpdateService {
 
 		eventValidator.validate(event);
 		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forEvent(id));
-		Log.infof("Event Bus fired for event: %d", id);
+		Log.infof("Updated event id=%d transaction=%s", id, event.transaction != null ? event.transaction.id : null);
 		return FinanceEventDto.from(event);
 	}
 
 	@Transactional
 	public List<FinanceEventDto> bulkUpdate(BulkPatchEventDto patch) throws BusinessException {
 		if (patch.getEventIds() == null || patch.getEventIds().isEmpty()) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_BULK_NO_IDS));
+			Log.warn("Bulk update rejected: no event ids supplied");
+			throw messages.reject(MsgKey.EVENT_BULK_NO_IDS);
 		}
 
 		List<FinanceEventEntity> events = eventRepository.list("id IN ?1", patch.getEventIds());
 		if (events.size() != patch.getEventIds().size()) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_BULK_EVENTS_NOT_FOUND));
+			Log.warnf("Bulk update rejected: requested %d ids but found %d", patch.getEventIds().size(), events.size());
+			throw messages.reject(MsgKey.EVENT_BULK_EVENTS_NOT_FOUND);
 		}
 
 		boolean applyCategory = patch.getCategory().isPresent();
@@ -163,8 +165,8 @@ public class EventUpdateService {
 
 		for (Long eventId : updatedIds) {
 			duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forEvent(eventId));
-			Log.infof("Event Bus fired for bulk-updated event: %d", eventId);
 		}
+		Log.infof("Bulk updated %d events: ids=%s", updatedIds.size(), updatedIds);
 
 		return events.stream().map(FinanceEventDto::from).toList();
 	}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 export interface SharedFile {
   id: string;
@@ -49,7 +50,7 @@ export function useSharedFiles() {
           });
         }
       } catch (error) {
-        console.error('Error loading shared files from cache:', error);
+        logger.child('sharedFiles').error('Error loading shared files from cache', { error });
       } finally {
         setIsLoading(false);
       }
@@ -63,7 +64,7 @@ export function useSharedFiles() {
       await caches.delete('share-target-cache');
       setSharedData(null);
     } catch (error) {
-      console.error('Error clearing shared files cache:', error);
+      logger.child('sharedFiles').error('Error clearing shared files cache', { error });
     }
   };
 

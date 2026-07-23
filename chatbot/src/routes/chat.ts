@@ -17,6 +17,7 @@ import { toUIParts, type DisplayMessage, type DisplayOverlays, type DisplayPart 
 import { chatTitles } from '@/memory/titles.js';
 import { longTermMemory } from '@/memory/longTerm.js';
 import { logger } from '@/logging/logger.js';
+import { costOf, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
 import { largeModel } from '@/models.js';
 import { chatSystemPrompt, type ExecutionMode } from '@/prompts/system.js';
 import { withSseKeepAlive } from '@/routes/sseKeepAlive.js';
@@ -145,6 +146,7 @@ chatRoute.post('/', async (c) => {
   const chatId = body.chatId ?? body.id;
   if (!chatId) return errorJson(c, 'error.chat_id_required', 400);
   const ctx = { ...requestContextFrom(c), chatId, scope: body.scope };
+  const log = chatLog.with({ requestId: ctx.requestId, chatId });
 
   const chatTools = toolsForModeWithApproval(
     buildAllTools(ctx, {
@@ -163,8 +165,7 @@ chatRoute.post('/', async (c) => {
   if (conversionIsOneToOne) {
     userMessages.forEach((message, index) => reattachFileRefs(message, fileRefsOf(userUIMessages[index])));
   } else if (userUIMessages.length > 0) {
-    chatLog.warn('user message conversion is not 1:1, skipping file ref re-attachment', {
-      chatId,
+    log.warn('user message conversion is not 1:1, skipping file ref re-attachment', {
       uiCount: userUIMessages.length,
       modelCount: userMessages.length,
     });
@@ -185,7 +186,10 @@ chatRoute.post('/', async (c) => {
         return '';
       })
       .join(' ');
-    chatLog.info('chat request', { chatId, tz: ctx.timezone, lang: ctx.lang, user: userText });
+    // Prod (INFO) records that a message arrived and its context, never the content; the user's
+    // text stays at DEBUG. The request source is already bound to the ambient log scope.
+    log.info('chat request', { tz: ctx.timezone, lang: ctx.lang });
+    log.debug('chat request text', { user: userText });
     const displays = conversionIsOneToOne ? userUIMessages.map(displayOfUserMessage) : undefined;
     conversationMemory.append(chatId, userMessages, displays);
   }
@@ -207,13 +211,14 @@ chatRoute.post('/', async (c) => {
         }
       }
     }
-    chatLog.info('chat approval response', { chatId, approvedCount, deniedCount });
+    log.info('chat approval response', { approvedCount, deniedCount });
   }
 
   await compactIfNeeded(chatId, ctx.lang);
   const modelMessages = await replaceDocumentPartsWithMarkdown(buildModelContext(chatId));
 
   const abortController = chatGenerationTracker.startGeneration(chatId);
+  const generationStartedAt = performance.now();
 
   // A StepResult's `response.messages` is cumulative (every prior step's messages plus this one's), so
   // slicing from the running count persisted so far yields exactly this step's new messages — letting each
@@ -248,17 +253,26 @@ chatRoute.post('/', async (c) => {
     stopWhen: stepCountIs(config.agent.maxSteps),
     abortSignal: abortController.signal,
     onStepFinish: (step) => persistStep(step.response.messages, step.toolResults),
-    onFinish: ({ text, steps }) => {
+    onFinish: ({ text, steps, response, totalUsage, providerMetadata }) => {
       chatGenerationTracker.markGenerationComplete(chatId, abortController);
-      chatLog.info('chat finished', { chatId, steps: steps.length, reply: text });
+      const toolCalls = steps.flatMap((step) => step.toolCalls ?? []);
+      const tools = [...new Set(toolCalls.map((call) => call.toolName))];
+      const durationMs = Math.round(performance.now() - generationStartedAt);
+      // Prod (INFO): how many/which tools ran and how long until the answer — never the reply text.
+      log.info('chat finished', { steps: steps.length, toolCount: toolCalls.length, tools, durationMs });
+      log.debug('chat reply', { reply: text });
+      logLlmUsage('chat', response.modelId, durationMs, totalUsage, costOf(providerMetadata), { steps: steps.length });
       void chatTitles.generateIfMissing(chatId, ctx.lang);
     },
     onAbort: () => {
       chatGenerationTracker.markGenerationComplete(chatId, abortController);
-      chatLog.info('chat aborted', { chatId });
+      log.info('chat aborted', { durationMs: Math.round(performance.now() - generationStartedAt) });
     },
-    onError: () => {
+    onError: ({ error }) => {
       chatGenerationTracker.markGenerationComplete(chatId, abortController);
+      const durationMs = Math.round(performance.now() - generationStartedAt);
+      log.error('chat stream failed', { durationMs, error: error instanceof Error ? error.message : String(error) });
+      logLlmError('chat', config.models.large, durationMs, error);
     },
   });
 

@@ -32,13 +32,11 @@ import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.SystemJobRepository;
 import com.mypaybyday.service.event.EventService;
 import com.mypaybyday.validation.SubscriptionValidator;
+import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
-import org.jboss.logging.Logger;
 
 @ApplicationScoped
 public class SubscriptionService {
-
-	private static final Logger LOG = Logger.getLogger(SubscriptionService.class);
 
 	private final SubscriptionRepository subscriptionRepository;
 	private final EventRepository eventRepository;
@@ -86,7 +84,7 @@ public class SubscriptionService {
 	public SubscriptionDto findById(Long id) throws BusinessException {
 		SubscriptionEntity subscription = subscriptionRepository.findById(id);
 		if (subscription == null) {
-			throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NOT_FOUND, id));
+			throw messages.reject(MsgKey.SUBSCRIPTION_NOT_FOUND, id);
 		}
 		return SubscriptionDto.from(subscription);
 	}
@@ -94,13 +92,13 @@ public class SubscriptionService {
 	@Transactional
 	public SubscriptionDto create(SubscriptionDto dto) throws BusinessException {
 		if (dto.name() == null || dto.name().isBlank()) {
-			throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NAME_REQUIRED));
+			throw messages.reject(MsgKey.SUBSCRIPTION_NAME_REQUIRED);
 		}
 		if (dto.nextExecutionDate() == null) {
-			throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NEXT_EXECUTION_DATE_REQUIRED));
+			throw messages.reject(MsgKey.SUBSCRIPTION_NEXT_EXECUTION_DATE_REQUIRED);
 		}
 		if (dto.recurrence() == null) {
-			throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_RECURRENCE_REQUIRED));
+			throw messages.reject(MsgKey.SUBSCRIPTION_RECURRENCE_REQUIRED);
 		}
 
 		SubscriptionEntity subscription = new SubscriptionEntity();
@@ -129,7 +127,7 @@ public class SubscriptionService {
 		if (dto.tags() != null) {
 			for (TagDto tagDto : dto.tags()) {
 				if (tagDto.id() == null) {
-					throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
+					throw messages.reject(MsgKey.EVENT_TAGS_ID_REQUIRED);
 				}
 				TagEntity tag = tagService.findTagEntity(tagDto.id());
 				subscription.tags.add(tag);
@@ -145,6 +143,8 @@ public class SubscriptionService {
 		job.entityId = String.valueOf(subscription.id);
 		systemJobRepository.persist(job);
 
+		Log.infof("Created subscription id=%d recurrence=%s nextExec=%s", subscription.id, subscription.recurrence,
+				subscription.nextExecutionDate);
 		return SubscriptionDto.from(subscription);
 	}
 
@@ -152,7 +152,7 @@ public class SubscriptionService {
 	public SubscriptionDto update(Long id, SubscriptionDto dto) throws BusinessException {
 		SubscriptionEntity subscription = subscriptionRepository.findById(id);
 		if (subscription == null) {
-			throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NOT_FOUND, id));
+			throw messages.reject(MsgKey.SUBSCRIPTION_NOT_FOUND, id);
 		}
 
 		if (dto.name() != null && !dto.name().isBlank()) {
@@ -208,7 +208,7 @@ public class SubscriptionService {
 			subscription.tags = new HashSet<>();
 			for (TagDto tagDto : dto.tags()) {
 				if (tagDto.id() == null) {
-					throw new BusinessException(messages.get(MsgKey.EVENT_TAGS_ID_REQUIRED));
+					throw messages.reject(MsgKey.EVENT_TAGS_ID_REQUIRED);
 				}
 				TagEntity tag = tagService.findTagEntity(tagDto.id());
 				subscription.tags.add(tag);
@@ -235,6 +235,7 @@ public class SubscriptionService {
 			systemJobRepository.persist(job);
 		}
 
+		Log.infof("Updated subscription id=%d status=%s", subscription.id, subscription.status);
 		return SubscriptionDto.from(subscription);
 	}
 
@@ -242,7 +243,7 @@ public class SubscriptionService {
 	public void delete(Long id) throws BusinessException {
 		SubscriptionEntity subscription = subscriptionRepository.findById(id);
 		if (subscription == null) {
-			throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NOT_FOUND, id));
+			throw messages.reject(MsgKey.SUBSCRIPTION_NOT_FOUND, id);
 		}
 
 		SystemJobEntity pendingJob = systemJobRepository.findPendingJobByEntityId(JobCategory.SUBSCRIPTION_PROCESSOR, String.valueOf(subscription.id));
@@ -253,16 +254,18 @@ public class SubscriptionService {
 		}
 
 		subscriptionRepository.delete(subscription);
+		Log.infof("Deleted subscription id=%d", id);
 	}
 
 	@Transactional
 	public SubscriptionDto cancel(Long id) throws BusinessException {
 		SubscriptionEntity subscription = subscriptionRepository.findById(id);
 		if (subscription == null) {
-			throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NOT_FOUND, id));
+			throw messages.reject(MsgKey.SUBSCRIPTION_NOT_FOUND, id);
 		}
 		subscription.status = SubscriptionStatus.CANCELLED;
 		subscriptionRepository.persist(subscription);
+		Log.infof("Cancelled subscription id=%d", id);
 		return findById(id);
 	}
 
@@ -270,11 +273,11 @@ public class SubscriptionService {
 	public void processSubscription(Long subscriptionId) throws BusinessException {
 		SubscriptionEntity sub = subscriptionRepository.findById(subscriptionId);
 		if (sub == null) {
-			throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_NOT_FOUND, subscriptionId));
+			throw messages.reject(MsgKey.SUBSCRIPTION_NOT_FOUND, subscriptionId);
 		}
 
 		if (sub.status != SubscriptionStatus.ACTIVE) {
-			LOG.warnf("Subscription %d is not active, skipping execution.", sub.id);
+			Log.warnf("Subscription %d is not active, skipping execution.", sub.id);
 			return;
 		}
 
@@ -298,15 +301,16 @@ public class SubscriptionService {
 			nextJob.entityId = String.valueOf(sub.id);
 			systemJobRepository.persist(nextJob);
 
+			Log.infof("Processed subscription id=%d, next execution=%s", sub.id, sub.nextExecutionDate);
 		} catch (Exception e) {
-			LOG.errorf(e, "Failed to process subscription ID: %d", sub.id);
-			throw new BusinessException(messages.get(MsgKey.SUBSCRIPTION_PROCESSING_FAILED, e.getMessage()));
+			Log.errorf(e, "Failed to process subscription ID: %d", sub.id);
+			throw messages.reject(MsgKey.SUBSCRIPTION_PROCESSING_FAILED, e.getMessage());
 		}
 	}
 
 	private void createEventFromSubscription(SubscriptionEntity sub) {
 		if (sub.eventType == null || sub.modifierValue == null || sub.originNode == null) {
-			LOG.warnf("Subscription %d is missing required fields (eventType, modifierValue, originNode) for event generation. Skipping.", sub.id);
+			Log.warnf("Subscription %d is missing required fields (eventType, modifierValue, originNode) for event generation. Skipping.", sub.id);
 			return;
 		}
 
@@ -327,7 +331,7 @@ public class SubscriptionService {
 					lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, null, sub.modifierValue.negate()));
 					lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, null, sub.modifierValue));
 				} else {
-					LOG.warnf("Subscription %d is type OTHER but missing destinationNode. Skipping.", sub.id);
+					Log.warnf("Subscription %d is type OTHER but missing destinationNode. Skipping.", sub.id);
 					return;
 				}
 			}
@@ -372,12 +376,13 @@ public class SubscriptionService {
 		}
 
 		FinanceEventDto createdEvent = eventService.create(event);
+		Log.infof("Generated event id=%d from subscription id=%d", createdEvent.id(), sub.id);
 
 		if (previousEvent != null) {
 			try {
 				eventService.addRelations(createdEvent.id(), List.of(previousEvent.id));
 			} catch (BusinessException e) {
-				LOG.warnf(e, "Failed to link subscription event %d to previous event %d", createdEvent.id(), previousEvent.id);
+				Log.warnf(e, "Failed to link subscription event %d to previous event %d", createdEvent.id(), previousEvent.id);
 			}
 		}
 	}

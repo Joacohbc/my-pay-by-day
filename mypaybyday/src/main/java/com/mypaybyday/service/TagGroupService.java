@@ -16,6 +16,7 @@ import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TagGroupRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.validation.TagGroupValidator;
+import io.quarkus.logging.Log;
 
 @ApplicationScoped
 public class TagGroupService {
@@ -59,10 +60,10 @@ public class TagGroupService {
 	private TagGroupEntity findEntityById(Long id, boolean failIfArchived) throws BusinessException {
 		TagGroupEntity entity = tagGroupRepository.findById(id);
 		if (entity == null) {
-			throw new BusinessException(messages.get(MsgKey.TAG_GROUP_NOT_FOUND, id));
+			throw messages.reject(MsgKey.TAG_GROUP_NOT_FOUND, id);
 		}
 		if (failIfArchived && entity.archived) {
-			throw new BusinessException(messages.get(MsgKey.TAG_GROUP_NOT_FOUND_ARCHIVED, id));
+			throw messages.reject(MsgKey.TAG_GROUP_NOT_FOUND_ARCHIVED, id);
 		}
 		return entity;
 	}
@@ -74,6 +75,7 @@ public class TagGroupService {
 		tagGroupValidator.validate(dto, entity);
 
 		tagGroupRepository.persist(entity);
+		Log.infof("Created tag-group id=%d tags=%d", entity.id, entity.tags.size());
 		return TagGroupDto.from(entity);
 	}
 
@@ -83,6 +85,7 @@ public class TagGroupService {
 		entity.tags = tagService.resolveTags(new HashSet<>(dto.tagIds()), TagResolveConfig.forNewEntity());
 		tagGroupValidator.validate(dto, entity);
 
+		Log.infof("Updated tag-group id=%d tags=%d", id, entity.tags.size());
 		return TagGroupDto.from(entity);
 	}
 
@@ -90,17 +93,20 @@ public class TagGroupService {
 	public void archive(Long id) throws BusinessException {
 		TagGroupEntity entity = findEntityById(id, false);
 		entity.archived = true;
+		Log.infof("Archived tag-group id=%d", id);
 	}
 
 	@Transactional
 	public void unarchive(Long id) throws BusinessException {
 		TagGroupEntity entity = findEntityById(id, false);
 		entity.archived = false;
+		Log.infof("Unarchived tag-group id=%d", id);
 	}
 
 	@Transactional
 	public void delete(Long id) throws BusinessException {
 		TagGroupEntity entity = findEntityById(id, false);
 		tagGroupRepository.delete(entity);
+		Log.infof("Deleted tag-group id=%d", id);
 	}
 }

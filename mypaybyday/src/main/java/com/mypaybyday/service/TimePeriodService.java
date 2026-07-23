@@ -34,6 +34,7 @@ import com.mypaybyday.repository.TimePeriodRepository;
 import com.mypaybyday.service.event.EventService;
 import com.mypaybyday.validation.DateValidator;
 import com.mypaybyday.validation.TimePeriodValidator;
+import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
 
 @ApplicationScoped
@@ -163,7 +164,7 @@ public class TimePeriodService {
 	@Transactional
 	public DynamicTimePeriodBalanceDto getDynamicBalance(LocalDateTime startDate, LocalDateTime endDate) throws BusinessException {
 		if (startDate == null || endDate == null) {
-			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_START_DATE_REQUIRED)); // or appropriate generic date message
+			throw messages.reject(MsgKey.TIME_PERIOD_START_DATE_REQUIRED); // or appropriate generic date message
 		}
 		dateValidator.validateDateRange(startDate, endDate);
 
@@ -216,6 +217,7 @@ public class TimePeriodService {
 		}
 		validatePeriod(timePeriod);
 		timePeriodRepository.persist(timePeriod);
+		Log.infof("Created time-period id=%d", timePeriod.id);
 		return TimePeriodDto.from(timePeriod);
 	}
 
@@ -226,7 +228,7 @@ public class TimePeriodService {
 		if (dto.getName().isPresent()) {
 			String name = dto.getName().get();
 			if (name == null || name.isBlank()) {
-				throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NAME_REQUIRED));
+				throw messages.reject(MsgKey.TIME_PERIOD_NAME_REQUIRED);
 			}
 			timePeriod.name = name;
 		}
@@ -261,6 +263,7 @@ public class TimePeriodService {
 
 		validatePeriod(timePeriod);
 
+		Log.infof("Updated time-period id=%d", id);
 		return TimePeriodDto.from(timePeriod);
 	}
 
@@ -268,6 +271,7 @@ public class TimePeriodService {
 	public void delete(Long id) throws BusinessException {
 		TimePeriodEntity timePeriod = findTimePeriodEntity(id);
 		timePeriodRepository.delete(timePeriod);
+		Log.infof("Deleted time-period id=%d", id);
 	}
 
 	// -------------------------------------------------------------------------
@@ -277,23 +281,23 @@ public class TimePeriodService {
 	private TimePeriodEntity findTimePeriodEntity(Long id) throws BusinessException {
 		TimePeriodEntity timePeriod = timePeriodRepository.findById(id);
 		if (timePeriod == null) {
-			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NOT_FOUND, id));
+			throw messages.reject(MsgKey.TIME_PERIOD_NOT_FOUND, id);
 		}
 		return timePeriod;
 	}
 
 	private void validatePeriod(TimePeriodEntity tp) throws BusinessException {
 		if (tp.name == null || tp.name.isBlank()) {
-			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_NAME_REQUIRED));
+			throw messages.reject(MsgKey.TIME_PERIOD_NAME_REQUIRED);
 		}
 
 		timePeriodValidator.validate(tp);
 
 		if (tp.startDate == null) {
-			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_START_DATE_REQUIRED));
+			throw messages.reject(MsgKey.TIME_PERIOD_START_DATE_REQUIRED);
 		}
 		if (tp.endDate == null) {
-			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_END_DATE_REQUIRED));
+			throw messages.reject(MsgKey.TIME_PERIOD_END_DATE_REQUIRED);
 		}
 
 		BigDecimal sumOfCategoryBudgets = tp.budgets.stream()
@@ -303,7 +307,7 @@ public class TimePeriodService {
 		// If the user set 'null' means that user doesn't want to set a budget limit.
 		// If the user set a value, it must be greater than or equal to the sum of category budgets.
 		if (tp.budgetLimit != null && tp.budgetLimit.compareTo(sumOfCategoryBudgets) < 0) {
-			throw new BusinessException(messages.get(MsgKey.TIME_PERIOD_BUDGET_LIMIT_MINIMUM, sumOfCategoryBudgets));
+			throw messages.reject(MsgKey.TIME_PERIOD_BUDGET_LIMIT_MINIMUM, sumOfCategoryBudgets);
 		}
 	}
 }

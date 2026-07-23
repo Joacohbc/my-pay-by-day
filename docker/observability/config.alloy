@@ -1,0 +1,258 @@
+// Grafana Alloy — log collection for the compose stack (replaces the EOL Promtail).
+// Discovers containers via the Docker socket, derives a `service` label, normalizes
+// each service's log format into homogeneous structured metadata, and pushes to Loki.
+
+discovery.docker "containers" {
+	host             = "unix:///var/run/docker.sock"
+	refresh_interval = "5s"
+}
+
+// Derive a stable low-cardinality `service` label from the compose container name
+// (e.g. my-pay-by-day-backend-1 -> backend). Only the five app services match;
+// loki/alloy/grafana get no `service` label and stay out of the per-service dashboards.
+discovery.relabel "containers" {
+	targets = discovery.docker.containers.targets
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(.*)"
+		target_label  = "container_name"
+	}
+
+	rule {
+		target_label = "job"
+		replacement  = "docker"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/.*-(backend|frontend|chatbot|gateway|markitdown)-[0-9]+"
+		target_label  = "service"
+		replacement   = "$1"
+	}
+}
+
+loki.source.docker "containers" {
+	host          = "unix:///var/run/docker.sock"
+	targets       = discovery.docker.containers.targets
+	relabel_rules = discovery.relabel.containers.rules
+	forward_to    = [loki.process.normalize.receiver]
+}
+
+loki.process "normalize" {
+	forward_to = [loki.write.default.receiver]
+
+	// Backend (Quarkus JSON in prod). Promote MDC requestId/source to the top level
+	// and parse the RequestLoggingFilter message into method/path/status/ip/time.
+	stage.match {
+		selector = "{service=\"backend\"}"
+
+		stage.json {
+			expressions = {
+				level     = "level",
+				message   = "message",
+				requestId = "mdc.requestId",
+				source    = "mdc.source",
+				errorKind = "mdc.errorKind",
+			}
+		}
+
+		// `ip=` carries the whole X-Forwarded-For chain, so behind the Cloudflare Tunnel it is
+		// "<client>, <cloudflared>" rather than a single address. Keep the first hop (the real
+		// client) and swallow the rest: a pattern anchored on one address fails to match the
+		// entire line, silently emptying every request panel, not just the IP one.
+		stage.regex {
+			source     = "message"
+			expression = `\] (?P<method>[A-Z]+) (?P<path>\S+) \| source=\S+ \| ip=(?P<ip>[^,|]+?)(?:,[^|]*)? \| origin=\S+ \| status=(?P<status>\d+) \| size=\S+ \| resource=(?P<resource>\S+) \| ua=.* \| time=(?P<time_ms>\d+)ms`
+		}
+
+		// RuntimeHeartbeatLogger, once a minute regardless of traffic. Liveness only: it exists so that
+		// an absence of logs is unambiguous, since request volume alone cannot tell "down" from "idle".
+		// `uptime_s` resetting reveals a restart. Non-heartbeat lines no-op.
+		stage.regex {
+			source     = "message"
+			expression = `heartbeat \| uptime_s=(?P<uptime_s>\d+)`
+		}
+
+		// JobSchedulerService run summary. Two names are deliberate: `job_time_ms` is not `time_ms`
+		// (mixing job duration into the request-latency field would corrupt the latency panels), and
+		// `job_name` is not `job` (discovery.relabel above already publishes `job` as a stream label).
+		stage.regex {
+			source     = "message"
+			expression = `job finished \| job_name=(?P<job_name>\S+) \| job_status=(?P<job_status>\S+) \| processed=(?P<processed>\d+) \| failed=(?P<failed>\d+) \| time=(?P<job_time_ms>\d+)ms`
+		}
+
+		// Unify log levels across services to lowercase (Quarkus emits UPPERCASE).
+		stage.template {
+			source   = "level"
+			template = "{{ ToLower .Value }}"
+		}
+
+		// source/resource/level are the dashboard filter dimensions. They must be indexed stream
+		// labels (not structured metadata) so Grafana's label_values() can populate the dropdowns —
+		// structured metadata is absent from Loki's label API. Cardinality stays bounded.
+		stage.labels {
+			values = {
+				source   = "",
+				resource = "",
+				level    = "",
+			}
+		}
+
+		stage.structured_metadata {
+			values = {
+				requestId = "",
+				status    = "",
+				method    = "",
+				path      = "",
+				ip        = "",
+				errorKind = "",
+				time_ms   = "",
+
+				// Heartbeat (liveness) and scheduled-job fields. Metadata, not labels: these are
+				// aggregation targets for `unwrap`, and indexing them would multiply streams.
+				uptime_s    = "",
+				job_name    = "",
+				job_status  = "",
+				processed   = "",
+				failed      = "",
+				job_time_ms = "",
+			}
+		}
+	}
+
+	// Chatbot (custom JSON). requestId/source already top-level; keep scope for filtering.
+	// event/tool/kind/flow/model/cause/status/ms are the discriminators dashboards filter and
+	// unwrap on directly (as structured metadata, no `| json` needed); high-cardinality or
+	// aggregation-only fields (targetId, tokens, costUsd, durationMs) stay in the JSON body and
+	// are parsed at query time instead.
+	stage.match {
+		selector = "{service=\"chatbot\"}"
+
+		stage.json {
+			expressions = {
+				level     = "level",
+				requestId = "requestId",
+				source    = "source",
+				scope     = "scope",
+				event     = "event",
+				tool      = "tool",
+				kind      = "kind",
+				flow      = "flow",
+				model     = "model",
+				cause     = "cause",
+				status    = "status",
+				ms        = "ms",
+			}
+		}
+
+		stage.template {
+			source   = "level"
+			template = "{{ ToLower .Value }}"
+		}
+
+		stage.labels {
+			values = {
+				source = "",
+				level  = "",
+			}
+		}
+
+		stage.structured_metadata {
+			values = {
+				requestId = "",
+				scope     = "",
+				event     = "",
+				tool      = "",
+				kind      = "",
+				flow      = "",
+				model     = "",
+				cause     = "",
+				status    = "",
+				ms        = "",
+			}
+		}
+	}
+
+	// Gateway (nginx `log_format gateway`, plain text). Extract the edge access fields.
+	stage.match {
+		selector = "{service=\"gateway\"}"
+
+		stage.regex {
+			expression = `^(?P<ip>\S+) \S+ \S+ \[[^\]]*\] "(?P<method>\S+) (?P<path>\S+) [^"]*" (?P<status>\d+) \S+ "[^"]*" "[^"]*" src="(?P<source>[^"]*)" tz="[^"]*" lang="[^"]*" req="(?P<requestId>[^"]*)"`
+		}
+
+		stage.labels {
+			values = {
+				source = "",
+			}
+		}
+
+		stage.structured_metadata {
+			values = {
+				requestId = "",
+				status    = "",
+				ip        = "",
+				method    = "",
+				path      = "",
+			}
+		}
+	}
+
+	// Frontend: three log shapes on one stdout stream.
+	//  1. nginx `combined` access logs -> ip/method/path/status (stage.regex; JSON lines won't match).
+	//  2. client-error JSON posted to /client-logs and echoed by `log_format clientlog` -> parsed by
+	//     stage.json (access lines aren't JSON so they no-op). Unhandled browser errors land here as
+	//     service=frontend | level=error with the full signature in the JSON body.
+	//  3. Client telemetry on the same sink at level=info: kind=api-timing (one entry per API call as
+	//     the browser saw it) and kind=offline-queue (events queued locally that the server has never
+	//     received). Numeric fields stay in the JSON body, read at query time with `| json | unwrap`.
+	stage.match {
+		selector = "{service=\"frontend\"}"
+
+		stage.json {
+			expressions = {
+				level      = "level",
+				source     = "source",
+				kind       = "kind",
+				requestId  = "requestId",
+				route      = "route",
+				appVersion = "appVersion",
+			}
+		}
+
+		stage.regex {
+			expression = `^(?P<ip>\S+) \S+ \S+ \[[^\]]*\] "(?P<method>\S+) (?P<path>\S+) [^"]*" (?P<status>\d+)`
+		}
+
+		stage.template {
+			source   = "level"
+			template = "{{ ToLower .Value }}"
+		}
+
+		stage.labels {
+			values = {
+				source = "",
+				level  = "",
+			}
+		}
+
+		stage.structured_metadata {
+			values = {
+				status    = "",
+				ip        = "",
+				method    = "",
+				path      = "",
+				requestId = "",
+				kind      = "",
+				route     = "",
+			}
+		}
+	}
+}
+
+loki.write "default" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}

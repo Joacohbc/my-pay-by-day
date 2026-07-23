@@ -28,6 +28,7 @@ import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.service.CategoryService;
 import com.mypaybyday.service.DraftService;
 import com.mypaybyday.service.TagService;
+import io.quarkus.logging.Log;
 
 @ApplicationScoped
 public class EventMergeService {
@@ -62,16 +63,16 @@ public class EventMergeService {
 			String description)
 			throws BusinessException {
 		if (sourceIds == null || sourceIds.isEmpty()) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_MERGE_NO_SOURCES));
+			throw messages.reject(MsgKey.EVENT_MERGE_NO_SOURCES);
 		}
 
 		FinanceEventEntity baseEvent = eventRepository.findById(baseEventId);
 		if (baseEvent == null) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
+			throw messages.reject(MsgKey.EVENT_NOT_FOUND);
 		}
 
 		if (sourceIds.contains(baseEventId)) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_MERGE_SELF));
+			throw messages.reject(MsgKey.EVENT_MERGE_SELF);
 		}
 
 		List<FinanceEventEntity> sourceEvents = validateAndFetchRelatedEvents(sourceIds);
@@ -79,7 +80,7 @@ public class EventMergeService {
 
 		boolean sameEventType = sourceEvents.stream().allMatch(source -> source.type == baseEvent.type);
 		if (!sameEventType) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_MERGE_MIXED_TYPES));
+			throw messages.reject(MsgKey.EVENT_MERGE_MIXED_TYPES);
 		}
 
 		Set<Long> groupedNodeIds = groupByNodeIds != null ? new HashSet<>(groupByNodeIds) : new HashSet<>();
@@ -160,6 +161,7 @@ public class EventMergeService {
 			eventRepository.delete(sourceEvent);
 		}
 
+		Log.infof("Merged %d events into base id=%d: sources=%s", sourceIds.size(), baseEventId, sourceIds);
 		return FinanceEventDto.from(baseEvent);
 	}
 
@@ -167,7 +169,7 @@ public class EventMergeService {
 	public FinanceEventDto addRelations(Long eventId, List<Long> relatedIds) throws BusinessException {
 		FinanceEventEntity event = eventRepository.findById(eventId);
 		if (event == null) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
+			throw messages.reject(MsgKey.EVENT_NOT_FOUND);
 		}
 
 		List<FinanceEventEntity> relatedEvents = validateAndFetchRelatedEvents(relatedIds);
@@ -179,6 +181,7 @@ public class EventMergeService {
 			relatedEvent.relatedEvents.add(event);
 		}
 
+		Log.infof("Linked event id=%d related=%s", eventId, relatedIds);
 		return FinanceEventDto.from(event);
 	}
 
@@ -186,7 +189,7 @@ public class EventMergeService {
 	public FinanceEventDto removeRelations(Long eventId, List<Long> relatedIds) throws BusinessException {
 		FinanceEventEntity event = eventRepository.findById(eventId);
 		if (event == null) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_NOT_FOUND));
+			throw messages.reject(MsgKey.EVENT_NOT_FOUND);
 		}
 
 		List<FinanceEventEntity> relatedEvents = validateAndFetchRelatedEvents(relatedIds);
@@ -198,6 +201,7 @@ public class EventMergeService {
 			relatedEvent.relatedEvents.remove(event);
 		}
 
+		Log.infof("Unlinked event id=%d related=%s", eventId, relatedIds);
 		return FinanceEventDto.from(event);
 	}
 
@@ -244,7 +248,7 @@ public class EventMergeService {
 	private List<FinanceEventEntity> validateAndFetchRelatedEvents(List<Long> relatedIds) throws BusinessException {
 		List<FinanceEventEntity> foundEvents = eventRepository.list("id IN ?1", relatedIds);
 		if (foundEvents.size() != relatedIds.size()) {
-			throw new BusinessException(messages.get(MsgKey.EVENT_RELATED_NOT_FOUND));
+			throw messages.reject(MsgKey.EVENT_RELATED_NOT_FOUND);
 		}
 		return foundEvents;
 	}

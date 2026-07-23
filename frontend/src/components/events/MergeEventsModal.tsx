@@ -13,6 +13,7 @@ import { Routes } from '@/lib/routes';
 import { aiService } from '@/services/ai.service';
 import { useAlert } from '@/contexts/AlertContext';
 import type { Category, FinanceEvent, Tag } from '@/models';
+import { logger } from '@/lib/logger';
 
 type MergeStep = 'select-base' | 'select-sources' | 'configure-grouping' | 'configure-meta' | 'confirm';
 
@@ -52,7 +53,7 @@ export function MergeEventsModal({
             setStep('select-sources');
           }
         })
-        .catch(console.error);
+        .catch((error) => logger.child('mergeEvents').error('Failed to load events to merge', { error, mergeIdCount: initialMergeIds.length }));
     }
   }, [open, initialMergeIds, extraEvents.length]);
 
@@ -145,6 +146,7 @@ export function MergeEventsModal({
       });
       setMergedDescription(result.text);
     } catch (err) {
+      logger.child('mergeEvents').error('AI merge-description failed', { error: err, action: 'MERGE_DESCRIPTION', eventCount: sourceEvents.length + 1, baseEventId: baseEvent?.id });
       alert.error(err instanceof Error ? err.message : t('common.error'));
     } finally {
       setIsMergingDescriptions(false);

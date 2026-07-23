@@ -1,5 +1,7 @@
 package com.mypaybyday.i18n;
 
+import com.mypaybyday.enums.ErrorKind;
+
 /**
  * Type-safe enumeration of every i18n message key used in the application.
  * <p>
@@ -114,7 +116,10 @@ public enum MsgKey {
 	SELECTION_HISTORY_ENTITY_ID_REQUIRED("error.selection_history.entity_id_required"),
 
 	// ── Duplicate Settings ───────────────────────────────
-	DUPLICATE_SETTINGS_WEIGHTS_SUM_INVALID("error.duplicate_settings.weights_sum_invalid");
+	DUPLICATE_SETTINGS_WEIGHTS_SUM_INVALID("error.duplicate_settings.weights_sum_invalid"),
+
+	// ── Server ─────────────────────────────────────────────────
+	INTERNAL_SERVER_ERROR("error.server.internal");
 
 
 	/** The property key used to look up this message in the resource bundle. */
@@ -122,5 +127,52 @@ public enum MsgKey {
 
 	MsgKey(String key) {
 		this.key = key;
+	}
+
+	/**
+	 * Classifies this message into a business-meaningful {@link ErrorKind} by inspecting the constant
+	 * name, so a {@code BusinessException} carrying this key can be aggregated by error type in logs
+	 * and dashboards without any per-throw-site annotation. Order matters: the first matching rule wins.
+	 */
+	public ErrorKind errorKind() {
+		String name = name();
+		if (name.contains("NOT_FOUND")) {
+			return ErrorKind.NOT_FOUND;
+		}
+		if (name.contains("IN_USE")) {
+			return ErrorKind.CONFLICT;
+		}
+		if (name.contains("ZERO_SUM") || name.contains("HAS_TRANSACTIONS")) {
+			return ErrorKind.INTEGRITY;
+		}
+		if (name.contains("EXCEEDED") || name.contains("SIZE")) {
+			return ErrorKind.LIMIT;
+		}
+		if (isValidation(name)) {
+			return ErrorKind.VALIDATION;
+		}
+		return ErrorKind.BUSINESS;
+	}
+
+	private static boolean isValidation(String name) {
+		return name.startsWith("VALIDATION_")
+				|| name.contains("VALIDATION")
+				|| name.contains("INVALID")
+				|| name.endsWith("_REQUIRED")
+				|| name.contains("MISSING")
+				|| name.contains("EMPTY")
+				|| name.contains("NULL")
+				|| name.contains("NO_IDS")
+				|| name.contains("NO_LINE_ITEMS")
+				|| name.contains("NO_SOURCES")
+				|| name.contains("MIN_")
+				|| name.contains("MINIMUM")
+				|| name.contains("RANGE")
+				|| name.contains("POSITIVE")
+				|| name.contains("NEGATIVE")
+				|| name.contains("MAX_LENGTH")
+				|| name.contains("WEIGHTS_SUM")
+				|| name.contains("BASE64")
+				|| name.contains("DATE_IN_");
 	}
 }

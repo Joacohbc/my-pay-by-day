@@ -3,6 +3,7 @@ import type { FieldPath, FieldValues, UseFormGetValues, UseFormSetValue } from '
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/contexts/AlertContext';
 import { audioService } from '@/services/audio.service';
+import { logger } from '@/lib/logger';
 
 interface UseAiFieldControllerParams<T extends FieldValues> {
   name: FieldPath<T>;
@@ -45,6 +46,7 @@ export function useAiFieldController<T extends FieldValues>({
       if (!editedText) throw new Error('transcription_failed');
       setValue(name, editedText as never, { shouldDirty });
     } catch (error) {
+      logger.child('aiField').error('Enhanced dictation failed', { error, field: name });
       alert.error(error instanceof Error ? error.message : t('common.error'));
     } finally {
       setIsLoading(false);

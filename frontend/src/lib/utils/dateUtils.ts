@@ -2,6 +2,7 @@
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import type { DynamicPeriodOption } from '@/components/time-periods/DynamicTimePeriodSelector';
 import { getLocalizedNow } from '@/lib/format';
+import { logger } from '@/lib/logger';
 
 const USER_TIMEZONE_KEY = 'user-timezone';
 
@@ -10,7 +11,8 @@ export function getUserTimezone(): string {
   if (stored) return stored;
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
-  } catch {
+  } catch (error) {
+    logger.child('dateUtils').debug('Browser timezone resolution failed, using server timezone', { error });
     return getServerTimezone(); // Fallback to server timezone if user's timezone can't be determined
   }
 }
