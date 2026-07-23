@@ -19,14 +19,27 @@ services:
     image: ghcr.io/joacohbc/my-pay-by-day/gateway:latest
     environment:
       - MYPAYBYDAY_FILES_MAX_SIZE=${MYPAYBYDAY_FILES_MAX_SIZE:-10485760}
-    ports:
-      - "80:80"
     depends_on:
       frontend:
         condition: service_healthy
       backend:
         condition: service_healthy
       chatbot:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+
+  # Sole ingress. No service publishes ports to the host: the tunnel dials out to
+  # Cloudflare's edge and reaches the gateway over the compose network, so the host
+  # firewall needs no inbound rule at all. A single public hostname pointing at
+  # http://gateway:80 serves everything, Grafana included (under /grafana/).
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      gateway:
         condition: service_healthy
     logging: *default-logging
     restart: unless-stopped
@@ -126,11 +139,13 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
+      # Served behind the gateway under /grafana/. The root URL must be the public
+      # one, or Grafana's redirects and asset links point somewhere unreachable.
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost/grafana/}
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
     volumes:
       - ./docker/observability/grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana_data:/var/lib/grafana
-    ports:
-      - "3000:3000"
     depends_on:
       - loki
     restart: unless-stopped
