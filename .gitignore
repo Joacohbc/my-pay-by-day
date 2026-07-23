@@ -16,6 +16,7 @@ docker/backend/markitdown/.libs/
 # agent tooling
 .claude/
 .agents/
+SKILLS.md
 
 # host-mounted service data (backend/chatbot SQLite)
 data/
