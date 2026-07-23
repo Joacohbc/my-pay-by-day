@@ -143,10 +143,16 @@ export const conversationMemory = {
     this.append(chatId, messages, displays);
   },
 
-  /** Removes every message in the chat but keeps the conversation entity (and its title). Used by trim/replace. */
+  clearRecap(chatId: string): void {
+    db().prepare('UPDATE conversation SET recap = NULL, recap_up_to_count = NULL WHERE chat_id = ?').run(chatId);
+  },
+
+  /** Removes every message in the chat but keeps the conversation entity (and its title). Used by trim/replace.
+   * Drops the running summary and the cached recap too, since both describe messages that no longer exist. */
   clearMessages(chatId: string): void {
     db().prepare('DELETE FROM conversation_message WHERE chat_id = ?').run(chatId);
     this.clearSummary(chatId);
+    this.clearRecap(chatId);
   },
 
   /** Deletes the conversation entity along with all of its messages. */
