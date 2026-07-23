@@ -1,127 +1,1210 @@
 {
-  "annotations": { "list": [] },
+  "annotations": {
+    "list": []
+  },
   "editable": true,
   "graphTooltip": 1,
-  "title": "MPBD — Frontend (SPA)",
+  "title": "MPBD \u2014 Frontend (SPA)",
   "uid": "mpbd-frontend",
-  "tags": ["mypaybyday", "frontend"],
+  "tags": [
+    "mypaybyday",
+    "frontend"
+  ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
-  "time": { "from": "now-6h", "to": "now" },
+  "version": 4,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "refresh": "30s",
-  "templating": { "list": [] },
+  "templating": {
+    "list": []
+  },
   "panels": [
     {
       "id": 1,
       "title": "Requests served",
       "type": "stat",
-      "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
-      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "value": null, "color": "blue" } ] } }, "overrides": [] },
-      "options": { "colorMode": "value", "graphMode": "area", "textMode": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
-      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service=\"frontend\"} | status != `` [$__range]))" } ]
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "blue"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum(count_over_time({service=\"frontend\"} | status != `` [$__range]))"
+        }
+      ]
     },
     {
       "id": 2,
       "title": "Client errors 4xx",
       "type": "stat",
-      "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
-      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "value": null, "color": "green" }, { "value": 1, "color": "yellow" }, { "value": 50, "color": "orange" } ] } }, "overrides": [] },
-      "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
-      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service=\"frontend\"} | status =~ `4..` [$__range]))" } ]
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1,
+                "color": "yellow"
+              },
+              {
+                "value": 50,
+                "color": "orange"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum(count_over_time({service=\"frontend\"} | status =~ `4..` [$__range]))"
+        }
+      ]
     },
     {
       "id": 3,
       "title": "Server errors 5xx",
       "type": "stat",
-      "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
-      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "value": null, "color": "green" }, { "value": 1, "color": "red" } ] } }, "overrides": [] },
-      "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
-      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service=\"frontend\"} | status =~ `5..` [$__range]))" } ]
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1,
+                "color": "red"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum(count_over_time({service=\"frontend\"} | status =~ `5..` [$__range]))"
+        }
+      ]
     },
     {
       "id": 4,
       "title": "Not found 404",
       "type": "stat",
-      "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
-      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "value": null, "color": "green" }, { "value": 1, "color": "yellow" } ] } }, "overrides": [] },
-      "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
-      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service=\"frontend\"} | status = `404` [$__range]))" } ]
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1,
+                "color": "yellow"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum(count_over_time({service=\"frontend\"} | status = `404` [$__range]))"
+        }
+      ]
     },
     {
       "id": 5,
       "title": "Request rate",
       "type": "timeseries",
-      "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
-      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 15 } }, "overrides": [] },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
-      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "expr": "sum(count_over_time({service=\"frontend\"} | status != `` [$__auto]))", "legendFormat": "requests" } ]
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "sum(count_over_time({service=\"frontend\"} | status != `` [$__auto]))",
+          "legendFormat": "requests"
+        }
+      ]
     },
     {
       "id": 6,
       "title": "Status codes",
       "type": "barchart",
-      "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
-      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "palette-classic" } }, "overrides": [] },
-      "options": { "orientation": "horizontal", "legend": { "displayMode": "list", "placement": "bottom" }, "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false } },
-      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum by (status) (count_over_time({service=\"frontend\"} | status != `` [$__range]))", "legendFormat": "{{status}}" } ]
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum by (status) (count_over_time({service=\"frontend\"} | status != `` [$__range]))",
+          "legendFormat": "{{status}}"
+        }
+      ]
     },
     {
       "id": 7,
       "title": "Top paths",
       "type": "table",
-      "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 9, "w": 8, "x": 0, "y": 12 },
-      "fieldConfig": { "defaults": { "unit": "short", "custom": { "align": "auto" } }, "overrides": [] },
-      "options": { "showHeader": true, "sortBy": [ { "displayName": "Requests", "desc": true } ] },
-      "transformations": [ { "id": "labelsToFields", "options": {} }, { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "path": "Path", "Value": "Requests" } } } ],
-      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "topk(15, sum by (path) (count_over_time({service=\"frontend\"} | path != `` [$__range])))", "legendFormat": "{{path}}" } ]
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 0,
+        "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Requests",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "path": "Path",
+              "Value": "Requests"
+            }
+          }
+        }
+      ],
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "topk(15, sum by (path) (count_over_time({service=\"frontend\"} | path != `` [$__range])))",
+          "legendFormat": "{{path}}"
+        }
+      ]
     },
     {
       "id": 8,
       "title": "Top failing paths (4xx/5xx)",
       "type": "table",
-      "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 9, "w": 8, "x": 8, "y": 12 },
-      "fieldConfig": { "defaults": { "unit": "short", "custom": { "align": "auto" } }, "overrides": [] },
-      "options": { "showHeader": true, "sortBy": [ { "displayName": "Requests", "desc": true } ] },
-      "transformations": [ { "id": "labelsToFields", "options": {} }, { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "status": "Status", "path": "Path", "Value": "Requests" } } } ],
-      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "topk(15, sum by (status, path) (count_over_time({service=\"frontend\"} | status =~ `[45]..` [$__range])))", "legendFormat": "{{status}} {{path}}" } ]
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 8,
+        "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Requests",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "status": "Status",
+              "path": "Path",
+              "Value": "Requests"
+            }
+          }
+        }
+      ],
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "topk(15, sum by (status, path) (count_over_time({service=\"frontend\"} | status =~ `[45]..` [$__range])))",
+          "legendFormat": "{{status}} {{path}}"
+        }
+      ]
     },
     {
       "id": 9,
       "title": "Top client IPs",
       "type": "table",
-      "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 12 },
-      "fieldConfig": { "defaults": { "unit": "short", "custom": { "align": "auto" } }, "overrides": [] },
-      "options": { "showHeader": true, "sortBy": [ { "displayName": "Requests", "desc": true } ] },
-      "transformations": [ { "id": "labelsToFields", "options": {} }, { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "ip": "IP", "Value": "Requests" } } } ],
-      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "topk(15, sum by (ip) (count_over_time({service=\"frontend\"} | ip != `` [$__range])))", "legendFormat": "{{ip}}" } ]
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Requests",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "ip": "IP",
+              "Value": "Requests"
+            }
+          }
+        }
+      ],
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "topk(15, sum by (ip) (count_over_time({service=\"frontend\"} | ip != `` [$__range])))",
+          "legendFormat": "{{ip}}"
+        }
+      ]
     },
     {
       "id": 10,
       "title": "Recent failures (raw)",
       "type": "logs",
-      "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 21 },
-      "options": { "showTime": true, "wrapLogMessage": true, "dedupStrategy": "none", "enableLogDetails": true, "sortOrder": "Descending" },
-      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "expr": "{service=\"frontend\"} | status =~ `[45]..`" } ]
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "{service=\"frontend\"} | status =~ `[45]..`"
+        }
+      ]
     },
     {
       "id": 11,
       "title": "Unhandled JS errors (click to expand full signature)",
       "type": "logs",
-      "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 30 },
-      "options": { "showTime": true, "wrapLogMessage": true, "dedupStrategy": "none", "enableLogDetails": true, "sortOrder": "Descending" },
-      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "expr": "{service=\"frontend\", level=\"error\"} | json | line_format `{{.kind}} {{.route}} — {{.message}}`" } ]
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 30
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "{service=\"frontend\", level=\"error\"} | json | line_format `{{.kind}} {{.route}} \u2014 {{.message}}`"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "collapsed": false,
+      "title": "API as the browser sees it (sampled 10%; failures and slow calls always ship)",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 60
+      },
+      "panels": []
+    },
+    {
+      "id": 13,
+      "title": "Network failures (never reached the server)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 61
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1,
+                "color": "orange"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "sum(count_over_time({service=\"frontend\"} | kind=\"api-timing\" | json | status=\"0\" [$__range]))",
+          "queryType": "instant"
+        }
+      ],
+      "description": "The fetch rejected outright: offline, DNS, CORS or aborted. Completely invisible to the backend, and the reason this panel exists \u2014 in an app that queues events offline, a call that never landed can mean a recorded action the server never saw."
+    },
+    {
+      "id": 14,
+      "title": "Failed calls (any cause)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 61
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1,
+                "color": "orange"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "sum(count_over_time({service=\"frontend\"} | kind=\"api-timing\" | json | ok=\"false\" [$__range]))",
+          "queryType": "instant"
+        }
+      ],
+      "description": "Always shipped in full, never sampled, so this count is absolute."
+    },
+    {
+      "id": 15,
+      "title": "Slow calls (\u22651s)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 61
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "blue"
+              },
+              {
+                "value": 1,
+                "color": "orange"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "sum(count_over_time({service=\"frontend\"} | kind=\"api-timing\" | json | durationMs >= 1000 [$__range]))",
+          "queryType": "instant"
+        }
+      ],
+      "description": "Also bypasses the sampler, so this count is absolute."
+    },
+    {
+      "id": 16,
+      "title": "Client-observed latency p50 / p95",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 66
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "fillOpacity": 8,
+            "showPoints": "auto",
+            "lineWidth": 2
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "quantile_over_time(0.50, {service=\"frontend\"} | kind=\"api-timing\" | json | unwrap durationMs [$__auto])",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "quantile_over_time(0.95, {service=\"frontend\"} | kind=\"api-timing\" | json | unwrap durationMs [$__auto])",
+          "legendFormat": "p95"
+        }
+      ],
+      "description": "Includes network, TLS and proxy time, which the backend's own latency panel does not. The gap between the two is the cost of everything outside the application."
+    },
+    {
+      "id": 17,
+      "title": "Slowest endpoints (client p95)",
+      "type": "table",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 66
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Value",
+            "desc": true
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "topk(10, quantile_over_time(0.95, {service=\"frontend\"} | kind=\"api-timing\" | json | unwrap durationMs [$__range]) by (method, path))",
+          "queryType": "instant"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "level": true,
+              "source": true,
+              "kind": true,
+              "service": true
+            }
+          }
+        }
+      ],
+      "description": "Paths are templated (/events/:id) so entity ids never become separate series."
+    },
+    {
+      "id": 18,
+      "type": "row",
+      "collapsed": false,
+      "title": "Offline queue \u2014 events recorded here that the server never received",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 74
+      },
+      "panels": []
+    },
+    {
+      "id": 19,
+      "title": "Events stranded (latest report)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 75
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1,
+                "color": "orange"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "max(max_over_time({service=\"frontend\"} | kind=\"offline-queue\" | json | unwrap pendingCount [$__range]))",
+          "queryType": "instant"
+        }
+      ],
+      "description": "Reported when the app starts with a non-empty queue. These are events saved locally while offline: the user believes they are recorded, but they appear in no balance until they sync."
+    },
+    {
+      "id": 20,
+      "title": "Age of the oldest stranded event",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 75
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 24,
+                "color": "orange"
+              },
+              {
+                "value": 168,
+                "color": "red"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "max(max_over_time({service=\"frontend\"} | kind=\"offline-queue\" | json | unwrap oldestAgeHours [$__range]))",
+          "queryType": "instant"
+        }
+      ],
+      "description": "This is the number that matters, not the count. A queue draining in minutes is normal operation; anything sitting for days is data the user has quietly lost track of."
+    },
+    {
+      "id": 21,
+      "title": "Times the app started with a queue",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 75
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "blue"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "sum(count_over_time({service=\"frontend\"} | kind=\"offline-queue\" [$__range]))",
+          "queryType": "instant"
+        }
+      ],
+      "description": "Repeated reports mean the queue is not draining between sessions."
+    },
+    {
+      "id": 22,
+      "title": "Stranded events over time",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 80
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 8,
+            "showPoints": "auto",
+            "lineWidth": 2
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "max_over_time({service=\"frontend\"} | kind=\"offline-queue\" | json | unwrap pendingCount [$__auto])",
+          "legendFormat": "pending"
+        },
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "max_over_time({service=\"frontend\"} | kind=\"offline-queue\" | json | unwrap oldestAgeHours [$__auto])",
+          "legendFormat": "oldest (h)"
+        }
+      ]
     }
   ]
 }

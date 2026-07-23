@@ -33,7 +33,10 @@ function normalizeLevel(value: unknown): LogLevel | undefined {
   return level in LEVEL_ORDER ? level : undefined;
 }
 
-const threshold = LEVEL_ORDER[resolveLogLevel()];
+/** The threshold this build runs at. `silent` also acts as the opt-out switch for RUM telemetry. */
+export const activeLogLevel: LogLevel = resolveLogLevel();
+
+const threshold = LEVEL_ORDER[activeLogLevel];
 
 function errorFrom(fields?: LogFields): Error | undefined {
   const candidate = fields?.error ?? fields?.err;

@@ -62,6 +62,22 @@ loki.process "normalize" {
 			expression = `\] (?P<method>[A-Z]+) (?P<path>\S+) \| source=\S+ \| ip=(?P<ip>\S+) \| origin=\S+ \| status=(?P<status>\d+) \| size=\S+ \| resource=(?P<resource>\S+) \| ua=.* \| time=(?P<time_ms>\d+)ms`
 		}
 
+		// RuntimeHeartbeatLogger, once a minute regardless of traffic. Liveness only: it exists so that
+		// an absence of logs is unambiguous, since request volume alone cannot tell "down" from "idle".
+		// `uptime_s` resetting reveals a restart. Non-heartbeat lines no-op.
+		stage.regex {
+			source     = "message"
+			expression = `heartbeat \| uptime_s=(?P<uptime_s>\d+)`
+		}
+
+		// JobSchedulerService run summary. Two names are deliberate: `job_time_ms` is not `time_ms`
+		// (mixing job duration into the request-latency field would corrupt the latency panels), and
+		// `job_name` is not `job` (discovery.relabel above already publishes `job` as a stream label).
+		stage.regex {
+			source     = "message"
+			expression = `job finished \| job_name=(?P<job_name>\S+) \| job_status=(?P<job_status>\S+) \| processed=(?P<processed>\d+) \| failed=(?P<failed>\d+) \| time=(?P<job_time_ms>\d+)ms`
+		}
+
 		// Unify log levels across services to lowercase (Quarkus emits UPPERCASE).
 		stage.template {
 			source   = "level"
@@ -88,6 +104,15 @@ loki.process "normalize" {
 				ip        = "",
 				errorKind = "",
 				time_ms   = "",
+
+				// Heartbeat (liveness) and scheduled-job fields. Metadata, not labels: these are
+				// aggregation targets for `unwrap`, and indexing them would multiply streams.
+				uptime_s    = "",
+				job_name    = "",
+				job_status  = "",
+				processed   = "",
+				failed      = "",
+				job_time_ms = "",
 			}
 		}
 	}
@@ -170,11 +195,14 @@ loki.process "normalize" {
 		}
 	}
 
-	// Frontend: two log shapes on one stdout stream.
+	// Frontend: three log shapes on one stdout stream.
 	//  1. nginx `combined` access logs -> ip/method/path/status (stage.regex; JSON lines won't match).
 	//  2. client-error JSON posted to /client-logs and echoed by `log_format clientlog` -> parsed by
 	//     stage.json (access lines aren't JSON so they no-op). Unhandled browser errors land here as
 	//     service=frontend | level=error with the full signature in the JSON body.
+	//  3. Client telemetry on the same sink at level=info: kind=api-timing (one entry per API call as
+	//     the browser saw it) and kind=offline-queue (events queued locally that the server has never
+	//     received). Numeric fields stay in the JSON body, read at query time with `| json | unwrap`.
 	stage.match {
 		selector = "{service=\"frontend\"}"
 
@@ -213,6 +241,7 @@ loki.process "normalize" {
 				path      = "",
 				requestId = "",
 				kind      = "",
+				route     = "",
 			}
 		}
 	}

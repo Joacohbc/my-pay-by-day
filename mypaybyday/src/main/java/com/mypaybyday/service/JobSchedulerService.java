@@ -25,6 +25,28 @@ public class JobSchedulerService {
 
 	private static final Logger LOG = Logger.getLogger(JobSchedulerService.class);
 
+	private static final String JOB_SUBSCRIPTION_PROCESSOR = "subscription-processor";
+	private static final String JOB_DUPLICATE_DETECTION = "duplicate-detection";
+
+	/** The run reached the end of its queue; individual item failures are counted separately. */
+	private static final String JOB_STATUS_COMPLETED = "completed";
+
+	/** The run aborted before processing its queue, so its counts say nothing about the backlog. */
+	private static final String JOB_STATUS_SKIPPED = "skipped";
+
+	/**
+	 * Closing line of every scheduled run, in the same {@code key=value} shape as the request log so
+	 * Alloy parses it with one regex. This is what makes job success rate and duration queryable —
+	 * prose log lines are not.
+	 *
+	 * <p>The key is {@code job_name} rather than {@code job} because Alloy already publishes a
+	 * {@code job} stream label for every container; reusing the name would collide in Loki.
+	 */
+	private void logJobSummary(String jobName, String status, int processed, int failed, long startedAtMillis) {
+		LOG.infof("job finished | job_name=%s | job_status=%s | processed=%d | failed=%d | time=%dms",
+				jobName, status, processed, failed, System.currentTimeMillis() - startedAtMillis);
+	}
+
 	/**
 	 * Background jobs run outside any HTTP request, so the request-scoped MDC is empty. Stamp a
 	 * synthetic {@code job-<uuid>} correlation id (and a {@code source}) so their log lines are
@@ -59,12 +81,16 @@ public class JobSchedulerService {
 
 	private void runSubscriptionsJob() {
 		LOG.info("Starting subscription processor job...");
+		long startedAtMillis = System.currentTimeMillis();
+		int processedCount = 0;
+		int failedCount = 0;
 
 		List<SystemJobEntity> pendingJobs;
 		try {
 			pendingJobs = systemJobRepository.findPendingJobsByCategory(JobCategory.SUBSCRIPTION_PROCESSOR);
 		} catch (RuntimeException exception) {
 			LOG.warn("Skipping subscription processor job due to temporary database unavailability.", exception);
+			logJobSummary(JOB_SUBSCRIPTION_PROCESSOR, JOB_STATUS_SKIPPED, processedCount, failedCount, startedAtMillis);
 			return;
 		}
 
@@ -91,9 +117,14 @@ public class JobSchedulerService {
 			}
 
 			systemJobRepository.persist(job);
+			if (job.status == JobStatus.COMPLETED) {
+				processedCount++;
+			} else {
+				failedCount++;
+			}
 		}
 
-		LOG.info("Subscription processor job completed.");
+		logJobSummary(JOB_SUBSCRIPTION_PROCESSOR, JOB_STATUS_COMPLETED, processedCount, failedCount, startedAtMillis);
 	}
 
 	@Scheduled(every = "1h", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
@@ -104,6 +135,9 @@ public class JobSchedulerService {
 
 	private void runDuplicateDetectionJob() {
 		LOG.info("Starting duplicate detection job...");
+		long startedAtMillis = System.currentTimeMillis();
+		int processedCount = 0;
+		int failedCount = 0;
 
 		List<SystemJobEntity> pendingJobs = systemJobRepository.findPendingJobsByCategory(JobCategory.DUPLICATE_DETECTION);
 
@@ -142,9 +176,14 @@ public class JobSchedulerService {
 			}
 
 			systemJobRepository.persist(job);
+			if (job.status == JobStatus.COMPLETED) {
+				processedCount++;
+			} else {
+				failedCount++;
+			}
 		}
 
-		LOG.info("Duplicate detection job completed.");
+		logJobSummary(JOB_DUPLICATE_DETECTION, JOB_STATUS_COMPLETED, processedCount, failedCount, startedAtMillis);
 	}
 
 	@Transactional

@@ -12,5 +12,5 @@ datasources:
       derivedFields:
         - name: Request trace
           matcherRegex: '"requestId":"([^"]+)"'
-          url: '/d/mpbd-transversal?var-requestId=${__value.raw}'
+          url: '/d/mpbd-system?var-requestId=${__value.raw}'
           urlDisplayLabel: View request trace

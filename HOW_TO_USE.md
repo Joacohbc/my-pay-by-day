@@ -67,13 +67,16 @@ Los dashboards se cargan solos (auto-provisionados). Disponibles:
 
 | Dashboard | Qué muestra |
 |---|---|
-| **MPBD — Transversal** | Visión del sistema: requests y errores totales, status codes, top endpoints, y **trace de un request** cruzando todos los servicios (pegá un `X-Request-Id` en la variable `requestId`). |
-| **MPBD — Backend** | Requests, endpoint más solicitado, qué app usa más el backend (por `source`), errores por status/mensaje, latencia, filtros por `source` e IP. |
+| **MPBD — System** | Visión del sistema: requests y errores totales, status codes, top endpoints, **trace de un request** cruzando todos los servicios (pegá un `X-Request-Id` en la variable `requestId`), y **disponibilidad**: heartbeat de backend y chatbot, uptime, y caídas de upstream del gateway (502/503/504). |
+| **MPBD — Backend** | Requests, endpoint más solicitado, qué app usa más el backend (por `source`), errores por status/mensaje, latencia, filtros por `source` e IP. Además los **jobs programados**: cuántas suscripciones generaron su Event recurrente y cuántas **fallaron**. |
 | **MPBD — Chatbot** | Tool calls por tipo, latencia de tools y del backend-client, tasks en background, errores del agente. |
-| **MPBD — Frontend** | Requests servidos, status codes, top paths, fallos 4xx/5xx. |
-| **MPBD — Health** | Actividad por servicio (timeline), tasa de errores y caídas de upstream (gateway 5xx) como señal de servicio caído. |
+| **MPBD — Frontend** | Requests servidos, status codes, top paths, fallos 4xx/5xx, la latencia de las llamadas a la API **medida desde el navegador** (incluye red y proxy, cosa que la latencia del backend no ve), y la **cola offline**: eventos que guardaste sin conexión y el servidor nunca recibió. |
 
-> **Nota:** el health se **deriva de los logs**, no hay probes activos. Un servicio sin tráfico no emite logs y aparece "sin datos" — eso no significa que esté caído. La señal más fiable de una caída real es el `5xx` de upstream del gateway.
+> **Nota:** todo esto se **deriva de los logs**, no hay probes activos ni backend de métricas.
+>
+> Backend y chatbot emiten un *heartbeat* cada minuto, haya tráfico o no — por eso en esos dos un hueco en el timeline sí significa algo (proceso caído, trabado, o pipeline de logs roto; no distingue entre esos casos). Para `gateway`, `frontend` y `markitdown` no hay heartbeat: no tienen dónde correrlo, y su señal de caída sigue siendo el `5xx` de upstream del gateway.
+>
+> Lo que **no** vas a encontrar acá: CPU, memoria, reinicios de contenedor ni disco. Un proceso no puede loguear su propio `SIGKILL`. Eso es monitoreo de host y queda fuera a propósito.
 
 Las versiones de las imágenes de observabilidad (`grafana/loki`, `grafana/alloy`, `grafana/grafana`) están fijadas a la última versión soportada. Ninguno de estos proyectos publica un track "LTS" formal: el modelo es rolling (se soportan las últimas 1-2 minors), así que conviene bumpear estos tags periódicamente.
 

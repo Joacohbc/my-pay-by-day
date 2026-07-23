@@ -4,7 +4,7 @@
   },
   "editable": true,
   "graphTooltip": 1,
-  "title": "MPBD — Backend (API)",
+  "title": "MPBD \u2014 Backend (API)",
   "uid": "mpbd-backend",
   "tags": [
     "mypaybyday",
@@ -12,7 +12,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 6,
   "time": {
     "from": "now-6h",
     "to": "now"
@@ -1057,7 +1057,7 @@
     },
     {
       "id": 17,
-      "title": "Source × IP",
+      "title": "Source \u00d7 IP",
       "type": "table",
       "datasource": {
         "type": "loki",
@@ -1246,7 +1246,401 @@
           },
           "editorMode": "code",
           "queryType": "range",
-          "expr": "{service=\"backend\"} | level =~ `(?i)error|warn` | json | line_format `{{.mdc_errorKind}} req={{.mdc_requestId}} — {{.message}}`"
+          "expr": "{service=\"backend\"} | level =~ `(?i)error|warn` | json | line_format `{{.mdc_errorKind}} req={{.mdc_requestId}} \u2014 {{.message}}`"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "row",
+      "collapsed": false,
+      "title": "Scheduled jobs \u2014 recurring events the ledger depends on",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 67
+      },
+      "panels": []
+    },
+    {
+      "id": 22,
+      "title": "Subscription events generated",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 68
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "blue"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "sum(sum_over_time({service=\"backend\", source=~\"scheduler:.+\"} | job_name != `` | job_name=\"subscription-processor\" | unwrap processed [$__range]))",
+          "queryType": "instant"
+        }
+      ],
+      "description": "Each one is a recurring expense or income written into the ledger on the user's behalf."
+    },
+    {
+      "id": 23,
+      "title": "Subscriptions that FAILED to generate",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 68
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1,
+                "color": "red"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "sum(sum_over_time({service=\"backend\", source=~\"scheduler:.+\"} | job_name != `` | job_name=\"subscription-processor\" | unwrap failed [$__range]))",
+          "queryType": "instant"
+        }
+      ],
+      "description": "The one number here that means the balances are wrong. A subscription that fails to process silently omits a recurring charge, so reported money stays higher than real money until someone notices by hand. Nothing else on this dashboard catches it: the run itself still reports job_status=completed and returns no HTTP error."
+    },
+    {
+      "id": 24,
+      "title": "Runs skipped (database unavailable)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 68
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1,
+                "color": "orange"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "sum(count_over_time({service=\"backend\", source=~\"scheduler:.+\"} | job_name != `` | job_status=\"skipped\" [$__range]))",
+          "queryType": "instant"
+        }
+      ],
+      "description": "The run aborted before touching its queue, so the backlog kept growing. Harmless once, a problem if it repeats."
+    },
+    {
+      "id": 25,
+      "title": "Runs completed",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 68
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "blue"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "sum(count_over_time({service=\"backend\", source=~\"scheduler:.+\"} | job_name != `` [$__range]))",
+          "queryType": "instant"
+        }
+      ],
+      "description": "Both schedulers fire hourly. Far fewer runs than hours in the range means the scheduler is stuck or the service was down."
+    },
+    {
+      "id": 26,
+      "title": "Items processed vs failed",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 73
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 8,
+            "showPoints": "auto",
+            "lineWidth": 2
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "sum(sum_over_time({service=\"backend\", source=~\"scheduler:.+\"} | job_name != `` | unwrap processed [$__auto])) by (job_name)",
+          "legendFormat": "{{job_name}} ok"
+        },
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "sum(sum_over_time({service=\"backend\", source=~\"scheduler:.+\"} | job_name != `` | unwrap failed [$__auto])) by (job_name)",
+          "legendFormat": "{{job_name}} failed"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "title": "Job duration",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 73
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "fillOpacity": 8,
+            "showPoints": "auto",
+            "lineWidth": 2
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "max_over_time({service=\"backend\", source=~\"scheduler:.+\"} | job_name != `` | unwrap job_time_ms [$__auto]) by (job_name)",
+          "legendFormat": "{{job_name}}"
+        }
+      ],
+      "description": "Duration climbing while the processed count stays flat means each item is getting slower \u2014 usually SQLite write contention."
+    },
+    {
+      "id": 28,
+      "title": "Scheduled run summaries (raw)",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 81
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "{service=\"backend\", source=~\"scheduler:.+\"} | job_name != ``"
         }
       ]
     }

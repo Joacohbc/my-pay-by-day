@@ -217,7 +217,7 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 44 },
       "fieldConfig": { "defaults": { "unit": "short", "custom": { "align": "auto" } }, "overrides": [
-        { "matcher": { "id": "byName", "options": "Request Id" }, "properties": [ { "id": "links", "value": [ { "title": "View trace", "url": "/d/mpbd-transversal?var-requestId=${__data.fields[\"Request Id\"]}&from=${__from}&to=${__to}" } ] } ] }
+        { "matcher": { "id": "byName", "options": "Request Id" }, "properties": [ { "id": "links", "value": [ { "title": "View trace", "url": "/d/mpbd-system?var-requestId=${__data.fields[\"Request Id\"]}&from=${__from}&to=${__to}" } ] } ] }
       ] },
       "options": { "showHeader": true, "sortBy": [ { "displayName": "Total tokens", "desc": true } ] },
       "transformations": [
