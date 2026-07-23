@@ -57,9 +57,13 @@ loki.process "normalize" {
 			}
 		}
 
+		// `ip=` carries the whole X-Forwarded-For chain, so behind the Cloudflare Tunnel it is
+		// "<client>, <cloudflared>" rather than a single address. Keep the first hop (the real
+		// client) and swallow the rest: a pattern anchored on one address fails to match the
+		// entire line, silently emptying every request panel, not just the IP one.
 		stage.regex {
 			source     = "message"
-			expression = `\] (?P<method>[A-Z]+) (?P<path>\S+) \| source=\S+ \| ip=(?P<ip>\S+) \| origin=\S+ \| status=(?P<status>\d+) \| size=\S+ \| resource=(?P<resource>\S+) \| ua=.* \| time=(?P<time_ms>\d+)ms`
+			expression = `\] (?P<method>[A-Z]+) (?P<path>\S+) \| source=\S+ \| ip=(?P<ip>[^,|]+?)(?:,[^|]*)? \| origin=\S+ \| status=(?P<status>\d+) \| size=\S+ \| resource=(?P<resource>\S+) \| ua=.* \| time=(?P<time_ms>\d+)ms`
 		}
 
 		// RuntimeHeartbeatLogger, once a minute regardless of traffic. Liveness only: it exists so that
