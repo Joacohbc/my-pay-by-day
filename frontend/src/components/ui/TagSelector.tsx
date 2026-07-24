@@ -152,11 +152,18 @@ export function TagSelector({
           {filteredTags.map((tag) => {
             const selected = value?.includes(String(tag.id));
             const colorStyle = tag.color
-              ? {
-                  color: tag.color,
-                  backgroundColor: `${tag.color}${selected ? '33' : '1A'}`,
-                  borderColor: `${tag.color}${selected ? '4D' : '26'}`,
-                }
+              ? selected
+                ? {
+                    color: tag.color,
+                    backgroundColor: `${tag.color}33`,
+                    borderColor: tag.color,
+                    boxShadow: `0 0 0 1px ${tag.color}`,
+                  }
+                : {
+                    color: tag.color,
+                    backgroundColor: `${tag.color}1A`,
+                    borderColor: `${tag.color}26`,
+                  }
               : undefined;
             return (
               <button
@@ -165,7 +172,7 @@ export function TagSelector({
                 onClick={() => handleToggleTag(tag)}
                 style={colorStyle}
                 className={[
-                  'px-3 py-1.5 rounded-pill text-xs font-medium border transition-all cursor-pointer',
+                  'px-3 py-1.5 rounded-pill text-xs font-medium border transition-all cursor-pointer inline-flex items-center gap-1',
                   colorStyle
                     ? ''
                     : selected
@@ -173,6 +180,7 @@ export function TagSelector({
                       : 'bg-dn-surface-low border-white/5 text-dn-text-muted hover:border-white/10',
                 ].join(' ')}
               >
+                {selected && <Icon name="check" className="text-sm" />}
                 #{tag.name}
               </button>
             );
