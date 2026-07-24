@@ -22,6 +22,13 @@ export interface ConversationSummary {
   upToSequence: number;
 }
 
+/** Cached fast-model recap of an entire conversation, plus the message count it was generated from
+ * (used to detect staleness — regenerate only once new messages arrive beyond that count). */
+export interface ConversationRecap {
+  recap: string;
+  upToCount: number;
+}
+
 export interface ChatSummary {
   chatId: string;
   title: string | null;
@@ -77,6 +84,21 @@ export const conversationMemory = {
     db().prepare('UPDATE conversation SET summary = NULL, summary_up_to_sequence = NULL WHERE chat_id = ?').run(chatId);
   },
 
+  getRecap(chatId: string): ConversationRecap | null {
+    const row = db()
+      .prepare('SELECT recap, recap_up_to_count AS upTo FROM conversation WHERE chat_id = ?')
+      .get(chatId) as { recap: string | null; upTo: number | null } | undefined;
+    if (!row || row.recap == null || row.upTo == null) return null;
+    return { recap: row.recap, upToCount: row.upTo };
+  },
+
+  setRecap(chatId: string, recap: string, upToCount: number): void {
+    db()
+      .prepare('INSERT INTO conversation (chat_id, created_at) VALUES (?, ?) ON CONFLICT(chat_id) DO NOTHING')
+      .run(chatId, nowIso());
+    db().prepare('UPDATE conversation SET recap = ?, recap_up_to_count = ? WHERE chat_id = ?').run(recap, upToCount, chatId);
+  },
+
   /** Loads messages together with their persisted display representation (null for legacy rows and tool rows). */
   loadWithDisplay(chatId: string): StoredMessage[] {
     const rows = db()
@@ -121,10 +143,16 @@ export const conversationMemory = {
     this.append(chatId, messages, displays);
   },
 
-  /** Removes every message in the chat but keeps the conversation entity (and its title). Used by trim/replace. */
+  clearRecap(chatId: string): void {
+    db().prepare('UPDATE conversation SET recap = NULL, recap_up_to_count = NULL WHERE chat_id = ?').run(chatId);
+  },
+
+  /** Removes every message in the chat but keeps the conversation entity (and its title). Used by trim/replace.
+   * Drops the running summary and the cached recap too, since both describe messages that no longer exist. */
   clearMessages(chatId: string): void {
     db().prepare('DELETE FROM conversation_message WHERE chat_id = ?').run(chatId);
     this.clearSummary(chatId);
+    this.clearRecap(chatId);
   },
 
   /** Deletes the conversation entity along with all of its messages. */

@@ -3,6 +3,7 @@ import { toolRequestId, type RequestContext } from '@/context.js';
 import { logger, type Logger } from '@/logging/logger.js';
 import { currentRequestFields, runWithRequestContext } from '@/logging/requestStore.js';
 import { buildCalculatorTools } from '@/tools/calculator.js';
+import { buildConversationTools } from '@/tools/conversations.js';
 import { buildDateTools } from '@/tools/dates.js';
 import { buildFinanceTools } from '@/tools/finance.js';
 import { buildMemoryTools } from '@/tools/memory.js';
@@ -124,6 +125,7 @@ export function buildAllTools(ctx: RequestContext, extra: KindedToolSet = {}): K
     ...buildDateTools(ctx),
     ...buildFinanceTools(ctx),
     ...buildMemoryTools(),
+    ...buildConversationTools(ctx),
     ...buildCalculatorTools(),
     ...extra,
   }, ctx.requestId);

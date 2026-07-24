@@ -4,6 +4,7 @@ import { buildAgentTools } from '@/agent/agentTools.js';
 import type { RequestContext } from '@/context.js';
 import { buildBackgroundTools } from '@/tools/background.js';
 import { buildCalculatorTools } from '@/tools/calculator.js';
+import { buildConversationTools } from '@/tools/conversations.js';
 import { buildDateTools } from '@/tools/dates.js';
 import { buildDelegateTools } from '@/tools/delegate.js';
 import { buildFinanceTools } from '@/tools/finance.js';
@@ -20,6 +21,7 @@ function collectAllTools(): KindedToolSet {
     ...buildDateTools(stubContext),
     ...buildFinanceTools(stubContext),
     ...buildMemoryTools(),
+    ...buildConversationTools(stubContext),
     ...buildCalculatorTools(),
     ...buildInteractionTools(),
     ...buildDelegateTools(stubContext, 'AUTONOMOUS'),

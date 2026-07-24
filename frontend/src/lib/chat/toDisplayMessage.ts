@@ -1,6 +1,7 @@
 import type { FileUIPart, UIMessage } from 'ai';
 import type { ChatMessage, ChatMessagePart, ChatToolCall } from '@/store/chatStore';
 import { filesService } from '@/services/files.service';
+import { sanitizeAssistantText } from '@/lib/chat/sanitizeAssistantText';
 
 type FileRefPart = FileUIPart & { fileId?: number; typeLabel?: string };
 
@@ -33,20 +34,11 @@ function toChatToolCall(part: ToolLikeUIPart, isFinished: boolean): ChatToolCall
   };
 }
 
-/** Some models leak their tool-call syntax as plain text (e.g. `<tool_call><function=askUser…`)
- * alongside the real, native tool call. The native call already renders as a tool part, so the
- * leaked markup is pure noise and is stripped from the displayed text. */
-const LEAKED_TOOL_CALL_MARKUP = /<tool_call>[\s\S]*?(?:<\/tool_call>|$)/g;
-
-function stripLeakedToolCallMarkup(text: string): string {
-  return text.replace(LEAKED_TOOL_CALL_MARKUP, '');
-}
-
 export function partsOf(message: UIMessage, isFinished: boolean): ChatMessagePart[] {
   const parts: ChatMessagePart[] = [];
   for (const part of message.parts) {
     if (part.type === 'text') {
-      const text = message.role === 'assistant' ? stripLeakedToolCallMarkup(part.text) : part.text;
+      const text = message.role === 'assistant' ? sanitizeAssistantText(part.text) : part.text;
       if (text.trim()) parts.push({ type: 'text', text });
       continue;
     }
