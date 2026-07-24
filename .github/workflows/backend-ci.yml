@@ -10,6 +10,9 @@ on:
     paths:
       - 'mypaybyday/**'
 
+permissions:
+  contents: read
+
 defaults:
   run:
     working-directory: mypaybyday

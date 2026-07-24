@@ -18,6 +18,9 @@ on:
       - 'mypaybyday/scripts/verify-schema-baseline.sh'
       - '.github/workflows/schema-baseline-ci.yml'
 
+permissions:
+  contents: read
+
 jobs:
   verify-baseline:
     name: Migrations Apply & No Drift

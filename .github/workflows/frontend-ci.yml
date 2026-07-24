@@ -10,6 +10,9 @@ on:
     paths:
       - 'frontend/**'
 
+permissions:
+  contents: read
+
 defaults:
   run:
     working-directory: frontend
