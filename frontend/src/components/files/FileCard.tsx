@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';

@@ -1,4 +1,4 @@
-import { useLocation, useNavigate, type NavigateOptions } from 'react-router-dom';
+import { useLocation, useNavigate, type NavigateOptions } from 'react-router';
 import type { FinanceEvent, Template } from '@/models';
 
 const MAX_BACK_STACK_DEPTH = 10;

@@ -1,7 +1,7 @@
 import { QueryClient, QueryCache, MutationCache, defaultShouldDehydrateQuery } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import { RouterProvider } from 'react-router-dom';
+import { RouterProvider } from 'react-router/dom';
 import { router } from '@/router';
 import { AlertProvider } from '@/contexts/AlertContext';
 import { AppErrorBoundary } from '@/components/ui/AppErrorBoundary';

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import { normalizeText } from '@/lib/utils/textUtils';
 import { useTranslation } from 'react-i18next';
 import { useAppNavigation } from '@/hooks/useAppNavigation';

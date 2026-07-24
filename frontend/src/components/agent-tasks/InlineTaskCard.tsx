@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useAgentTask, useAgentTaskSocket, useApproveAction, useRejectAction } from '@/hooks/useAgentTasks';
 import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';

@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { Routes, saveEventsSearch } from '@/lib/routes';
 import { useEvents } from '@/hooks/useEvents';
 import { useAppNavigation } from '@/hooks/useAppNavigation';

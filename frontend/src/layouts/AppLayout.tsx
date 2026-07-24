@@ -1,4 +1,4 @@
-import { Outlet, ScrollRestoration } from 'react-router-dom';
+import { Outlet, ScrollRestoration } from 'react-router';
 import { BottomNav } from '@/components/navigation/BottomNav';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { SharedFilesHandler } from '@/components/chat/SharedFilesHandler';
