@@ -44,10 +44,11 @@ export function parseDisplayJson(displayJson: string | null): DisplayMessage | n
 }
 
 function toolPartToUI(part: Extract<DisplayPart, { type: 'tool' }>, overlays: DisplayOverlays): Record<string, unknown> {
-  const resolvedLater = part.state === 'approval-requested' && overlays.outputsByCallId.has(part.toolCallId);
-  const state = resolvedLater ? 'result' : part.state;
-  const output = part.output ?? overlays.outputsByCallId.get(part.toolCallId);
   const approvalId = part.approval?.id ?? overlays.pendingApprovalsByToolCallId.get(part.toolCallId);
+  const isResponded = part.state === 'approval-requested' && approvalId != null && overlays.approvalReasonsByApprovalId.has(approvalId);
+  const resolvedLater = part.state === 'approval-requested' && overlays.outputsByCallId.has(part.toolCallId);
+  const state = resolvedLater ? 'result' : isResponded ? 'approval-responded' : part.state;
+  const output = part.output ?? overlays.outputsByCallId.get(part.toolCallId);
 
   const approval =
     approvalId == null
