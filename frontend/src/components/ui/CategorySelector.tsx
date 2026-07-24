@@ -242,7 +242,10 @@ export function CategorySelector(props: CategorySelectorProps) {
                 category={cat}
                 size="lg"
                 colorClass={selected ? 'bg-dn-primary text-dn-bg' : 'bg-dn-surface text-dn-text-muted'}
-                className="transition-all active:scale-95"
+                className={[
+                  'transition-all active:scale-95',
+                  selected ? 'ring-2 ring-dn-primary ring-offset-2 ring-offset-dn-bg' : '',
+                ].join(' ')}
               />
               <span
                 className={[
