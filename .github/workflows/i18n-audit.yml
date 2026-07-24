@@ -28,6 +28,9 @@ on:
       - 'chatbot/src/**/*.ts'
       - 'chatbot/scripts/i18n-audit.mjs'
 
+permissions:
+  contents: read
+
 jobs:
   frontend:
     name: Frontend i18n
