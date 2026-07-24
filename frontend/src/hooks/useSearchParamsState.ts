@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 
 // The three primitive types a URL param can represent after parsing.
 // We keep it narrow on purpose: dates, arrays, objects etc. don't round-trip

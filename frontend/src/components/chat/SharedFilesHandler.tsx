@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useSharedFiles } from '@/hooks/useSharedFiles';
 import { useChatStore } from '@/store/chatStore';
 import { Routes } from '@/lib/routes';

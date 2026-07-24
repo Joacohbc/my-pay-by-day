@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import { eventsRoute, similarEventsRoute } from '@/lib/routes';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useEvent, useDeleteEvent, useUpdateEvent } from '@/hooks/useEvents';

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Routes } from '@/lib/routes';
 import { EventCard } from '@/components/events/EventCard';

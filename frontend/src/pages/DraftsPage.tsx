@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { normalizeText } from '@/lib/utils/textUtils';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { Routes } from '@/lib/routes';
 import { useDebounce } from '@/hooks/useDebounce';
