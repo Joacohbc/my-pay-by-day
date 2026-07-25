@@ -51,6 +51,7 @@ export const nodeKeys = {
   list: (archived?: boolean, type?: FinanceNodeType) => [...nodeKeys.all, archived, type] as const,
   detail: (id: number) => [...nodeKeys.all, id] as const,
   balance: (id: number) => [...nodeKeys.all, id, 'balance'] as const,
+  balanceSummary: (id: number) => [...nodeKeys.all, id, 'balanceSummary'] as const,
 };
 
 export const timePeriodKeys = {

@@ -6,6 +6,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import com.mypaybyday.dto.FinanceNodeBalanceSummaryDto;
 import com.mypaybyday.dto.FinanceNodeDto;
 import com.mypaybyday.enums.FinanceNodeType;
 import com.mypaybyday.exception.BusinessException;
@@ -143,5 +144,23 @@ public class FinanceNodeResource {
 	throws BusinessException {
 	BigDecimal balance = financeNodeService.calculateBalance(id);
 	return Response.ok(balance).build();
+    }
+
+    @GET
+    @Path("/{id}/balance-summary")
+    @Operation(summary = "Summarise a node's balance against its declared capabilities",
+	description = "Derives the node's balance plus whatever its optional capabilities allow: how much is left " +
+		"before reaching its balance limit, and the balances of its closed and open cycles. Fields belonging " +
+		"to a capability the node does not declare are returned as null — a node with neither a limit nor a " +
+		"cycle is still summarised successfully. Nothing is persisted; every figure is computed on request.")
+    @APIResponses({
+	@APIResponse(responseCode = "200", description = "Derived balance summary",
+		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceNodeBalanceSummaryDto.class))),
+	@APIResponse(responseCode = "404", description = "Node not found")
+    })
+    public Response getBalanceSummary(
+	@Parameter(description = "ID of the finance node", required = true) @PathParam("id") Long id)
+	throws BusinessException {
+	return Response.ok(financeNodeService.getBalanceSummary(id)).build();
     }
 }

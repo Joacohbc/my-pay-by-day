@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { normalizeText } from '@/lib/utils/textUtils';
 import { useTranslation } from 'react-i18next';
-import { useNodes, useArchiveNode, useUnarchiveNode, useDeleteNode, useNodeBalance } from '@/hooks/useNodes';
+import { useNodes, useArchiveNode, useUnarchiveNode, useDeleteNode, useNodeBalance, useNodeBalanceSummary } from '@/hooks/useNodes';
 import { formatCurrency, formatCompactCurrency, formatCompactWitNotCurrency, getCurrency } from '@/lib/format';
 import { NodeCard } from '@/components/nodes/NodeCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -28,6 +28,35 @@ function NodeBalanceBadge({ nodeId }: { nodeId: number }) {
       </span>
       <span className="hidden xs:inline sm:hidden">{formatCompactCurrency(balance)}</span>
       <span className="hidden sm:inline">{balance >= 0 ? '+' : ''}{formatCurrency(balance)}</span>
+    </span>
+  );
+}
+
+/**
+ * Shows how much room the node has left before reaching its limit.
+ *
+ * The wording follows the direction of the limit rather than the node's type: a floor
+ * (negative limit) is credit still available, a ceiling (positive) is the distance left to
+ * a target. Renders nothing for a node that declares no limit.
+ */
+function NodeLimitBadge({ node }: { node: FinanceNode }) {
+  const { t } = useTranslation();
+  const { data: summary } = useNodeBalanceSummary(node.id);
+
+  if (node.balanceLimit == null || summary?.remaining == null) return null;
+
+  const isTarget = node.balanceLimit > 0;
+  const isExceeded = summary.limitExceeded === true;
+  const label = isExceeded
+    ? t('nodes.limitExceeded')
+    : isTarget
+      ? t('nodes.remainingToTarget')
+      : t('nodes.remainingAvailable');
+
+  return (
+    <span className={`text-xs whitespace-nowrap ${isExceeded ? 'text-dn-error' : 'text-dn-text-muted'}`}>
+      <span className="hidden sm:inline">{label}: </span>
+      <span className="font-mono">{formatCompactCurrency(Math.abs(summary.remaining))}</span>
     </span>
   );
 }
@@ -281,6 +310,7 @@ export function NodesPage() {
                   hideTypeBadge
                   actions={
                     <div className="flex items-center gap-2">
+                      <NodeLimitBadge node={node} />
                       <NodeBalanceBadge nodeId={node.id} />
                       <NodeActionMenu
                         node={node}

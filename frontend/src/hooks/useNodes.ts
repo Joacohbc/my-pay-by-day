@@ -33,6 +33,15 @@ export function useNodeBalance(id: number) {
   });
 }
 
+export function useNodeBalanceSummary(id: number) {
+  return useQuery({
+    queryKey: nodeKeys.balanceSummary(id),
+    queryFn: () => nodesService.getBalanceSummary(id),
+    enabled: !!id,
+    ...cachePolicy.derived,
+  });
+}
+
 export function useCreateNode() {
   const qc = useQueryClient();
   const alert = useAlert();

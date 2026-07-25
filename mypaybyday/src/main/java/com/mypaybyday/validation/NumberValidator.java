@@ -29,6 +29,12 @@ public class NumberValidator {
         }
     }
 
+    public void validateNonZero(BigDecimal value) throws BusinessException {
+        if (value != null && value.compareTo(BigDecimal.ZERO) == 0) {
+            throw messages.reject(MsgKey.VALIDATION_NUMBER_NON_ZERO);
+        }
+    }
+
     public void validateRange(BigDecimal value, BigDecimal min, BigDecimal max) throws BusinessException {
         if (value != null && (value.compareTo(min) < 0 || value.compareTo(max) > 0)) {
             throw messages.reject(MsgKey.VALIDATION_NUMBER_RANGE, min, max);

@@ -1,6 +1,7 @@
 package com.mypaybyday.entity;
 
 import jakarta.persistence.Convert;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -47,5 +48,18 @@ public class FinanceNodeEntity extends BaseEntity {
 
 	@Builder.Default
 	public boolean archived = false;
+
+	/**
+	* Optional capabilities declared by this node (balance limit and/or cycle).
+	*
+	* <p>
+	* May be {@code null} for a node that declares neither, and Hibernate may equally
+	* materialise an all-null embeddable as a non-null instance. Neither case is a
+	* reliable signal, so capability checks must go through
+	* {@link NodeProfile#hasLimit()} / {@link NodeProfile#hasCycle()} on a non-null
+	* profile, never a null check on this field alone.
+	*/
+	@Embedded
+	public NodeProfile profile;
 
 }

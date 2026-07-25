@@ -355,6 +355,7 @@ public class DataTransferService {
             entity.icon = dto.icon();
             entity.color = dto.color();
             entity.archived = dto.archived();
+            entity.profile = dto.toProfile();
             financeNodeValidator.validate(entity);
             financeNodeRepository.persist(entity);
             if (dto.id() != null) {

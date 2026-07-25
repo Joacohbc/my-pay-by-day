@@ -1968,6 +1968,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/finance-nodes/{id}/balance-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Summarise a node's balance against its declared capabilities
+         * @description Derives the node's balance plus whatever its optional capabilities allow: how much is left before reaching its balance limit, and the balances of its closed and open cycles. Fields belonging to a capability the node does not declare are returned as null — a node with neither a limit nor a cycle is still summarised successfully. Nothing is persisted; every figure is computed on request.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID of the finance node */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Derived balance summary */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FinanceNodeBalanceSummaryDto"];
+                    };
+                };
+                /** @description Node not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/finance-nodes/{id}/unarchive": {
         parameters: {
             query?: never;
@@ -3819,6 +3868,17 @@ export interface components {
             financeNode: components["schemas"]["FinanceNodeEntity"];
             amount: number;
         };
+        FinanceNodeBalanceSummaryDto: {
+            currentBalance?: number;
+            balanceLimit?: number;
+            remaining?: number;
+            limitExceeded?: boolean;
+            closedCycleBalance?: number;
+            openCycleBalance?: number;
+            lastCycleClose?: components["schemas"]["LocalDate"];
+            nextCycleClose?: components["schemas"]["LocalDate"];
+            nextSettlement?: components["schemas"]["LocalDate"];
+        };
         FinanceNodeDto: {
             /** Format: int64 */
             id?: number;
@@ -3828,6 +3888,11 @@ export interface components {
             icon?: string;
             color?: string;
             archived?: boolean;
+            balanceLimit?: number;
+            /** Format: int32 */
+            cycleDay?: number;
+            /** Format: int32 */
+            settlementDay?: number;
         };
         FinanceNodeEntity: {
             /** Format: int64 */
@@ -3840,6 +3905,7 @@ export interface components {
             icon?: string;
             color?: string;
             archived?: boolean;
+            profile?: components["schemas"]["NodeProfile"];
         };
         FinanceNodeRef: {
             /** Format: int64 */
@@ -3918,6 +3984,11 @@ export interface components {
             amount?: number;
         };
         /**
+         * Format: date
+         * @example 2022-03-10
+         */
+        LocalDate: string;
+        /**
          * Format: date-time
          * @example 2022-03-10T12:15:50
          */
@@ -3933,6 +4004,13 @@ export interface components {
         };
         /** @enum {string} */
         ModifierType: "FIXED" | "PERCENTAGE";
+        NodeProfile: {
+            balanceLimit?: number;
+            /** Format: int32 */
+            cycleDay?: number;
+            /** Format: int32 */
+            settlementDay?: number;
+        };
         PagedResponse: {
             content?: unknown[];
             /** Format: int32 */

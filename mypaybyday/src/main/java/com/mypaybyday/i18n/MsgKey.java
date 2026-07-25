@@ -54,6 +54,8 @@ public enum MsgKey {
 	NODE_HAS_TRANSACTIONS("error.node.has_transactions"),
 	NODE_ARCHIVED_IN_USE("error.node.archived_in_use"),
 	NODE_ARCHIVE_IN_USE("error.node.archive_in_use"),
+	NODE_CYCLE_INCOMPLETE("error.node.cycle_incomplete"),
+	NODE_BALANCE_LIMIT_EXCEEDED("warning.node.balance_limit_exceeded"),
 
 	// ── TemplateEntity ──────────────────────────────────────────
 	TEMPLATE_NOT_FOUND("error.template.not_found"),
@@ -109,6 +111,7 @@ public enum MsgKey {
 	VALIDATION_DATE_IN_PAST("error.validation.date_in_past"),
 	VALIDATION_NUMBER_POSITIVE("error.validation.number_positive"),
 	VALIDATION_NUMBER_NON_NEGATIVE("error.validation.number_non_negative"),
+	VALIDATION_NUMBER_NON_ZERO("error.validation.number_non_zero"),
 	VALIDATION_NUMBER_RANGE("error.validation.number_range"),
 
 	// ── Selection History ────────────────────────────────

@@ -62,9 +62,39 @@ export interface FinanceNode extends Identifiable {
   icon?: string;
   color?: string;
   archived: boolean;
+  /**
+   * Signed boundary the balance should stay within: negative for a floor to stay above
+   * (a credit line, an overdraft, a lending cap), positive for a ceiling to reach
+   * (a savings target). Absent when the node declares no limit.
+   */
+  balanceLimit?: number;
+  /** Day of the month the node's cycle closes. Absent when it declares no cycle. */
+  cycleDay?: number;
+  /** Day of the month a closed cycle is settled. Paired with `cycleDay`. */
+  settlementDay?: number;
 }
 
 export type CreateFinanceNodeDto = Omit<FinanceNode, 'id' | 'archived'>;
+
+/**
+ * Figures derived from a node's line items, limited to what its declared capabilities
+ * allow. Fields for a capability the node does not declare come back null.
+ *
+ * `remaining` is intentionally unnamed as to meaning: it reads as available credit on a
+ * node used as a credit card and as the amount left to save on a savings target. The UI
+ * picks the wording from the sign of `balanceLimit`.
+ */
+export interface FinanceNodeBalanceSummary {
+  currentBalance: number;
+  balanceLimit: number | null;
+  remaining: number | null;
+  limitExceeded: boolean | null;
+  closedCycleBalance: number | null;
+  openCycleBalance: number | null;
+  lastCycleClose: string | null;
+  nextCycleClose: string | null;
+  nextSettlement: string | null;
+}
 
 // ─── FinanceLineItem ──────────────────────────────────────────────────────────
 

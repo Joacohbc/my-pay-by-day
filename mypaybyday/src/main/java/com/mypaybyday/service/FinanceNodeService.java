@@ -1,14 +1,19 @@
 package com.mypaybyday.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
+import com.mypaybyday.dto.FinanceNodeBalanceSummaryDto;
 import com.mypaybyday.dto.FinanceNodeDto;
+import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
+import com.mypaybyday.entity.NodeProfile;
 import com.mypaybyday.enums.FinanceNodeType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
@@ -99,6 +104,7 @@ public class FinanceNodeService {
 		node.description = dto.description();
 		node.icon = dto.icon();
 		node.color = dto.color();
+		node.profile = dto.toProfile();
 
 		financeNodeValidator.validate(node);
 
@@ -118,6 +124,7 @@ public class FinanceNodeService {
 		node.description = dto.description();
 		node.icon = dto.icon();
 		node.color = dto.color();
+		node.profile = dto.toProfile();
 
 		financeNodeValidator.validate(node);
 
@@ -197,5 +204,103 @@ public class FinanceNodeService {
 
 		Log.debugf("Calculated balance for finance-node id=%d", id);
 		return total;
+	}
+
+	/**
+	* Summarises everything the node's declared capabilities allow the system to derive.
+	*
+	* <p>
+	* A node without a limit or without a cycle is not an error — the corresponding fields
+	* simply come back {@code null}. Every figure is computed on the fly; nothing is stored.
+	*/
+	@Transactional
+	public FinanceNodeBalanceSummaryDto getBalanceSummary(Long id) throws BusinessException {
+		FinanceNodeEntity node = financeNodeRepository.findById(id);
+		if (node == null) {
+			throw messages.reject(MsgKey.NODE_NOT_FOUND);
+		}
+
+		NodeProfile profile = node.profile != null ? node.profile : new NodeProfile();
+		BigDecimal currentBalance = sumAmounts(lineItemRepository.find("financeNode", node).list());
+
+		BigDecimal remaining = profile.hasLimit() ? computeRemaining(profile.balanceLimit, currentBalance) : null;
+		StatementCycle cycle = profile.hasCycle() ? computeCycle(node, profile) : null;
+
+		Log.debugf("Summarised finance-node id=%d remaining=%s cycle=%s", id, remaining, cycle);
+		return new FinanceNodeBalanceSummaryDto(
+				currentBalance,
+				profile.balanceLimit,
+				remaining,
+				remaining == null ? null : remaining.signum() < 0,
+				cycle == null ? null : cycle.closedBalance(),
+				cycle == null ? null : cycle.openBalance(),
+				cycle == null ? null : cycle.lastClose(),
+				cycle == null ? null : cycle.nextClose(),
+				cycle == null ? null : cycle.nextSettlement());
+	}
+
+	/**
+	* Distance from the current balance to the limit, measured in the direction the limit
+	* points. A negative result means the limit has been passed.
+	*
+	* <p>
+	* The sign of the limit carries its meaning, which is what lets one field serve both
+	* directions: a negative limit is a floor to stay above (a liability such as a credit
+	* line), a positive one is a ceiling to climb towards (a savings target). Note this is
+	* deliberately not {@code limit - abs(balance)}, which would misreport a node whose
+	* balance sits on the opposite side of zero from its limit.
+	*/
+	private BigDecimal computeRemaining(BigDecimal balanceLimit, BigDecimal currentBalance) {
+		boolean isFloor = balanceLimit.signum() < 0;
+		return isFloor ? currentBalance.subtract(balanceLimit) : balanceLimit.subtract(currentBalance);
+	}
+
+	private StatementCycle computeCycle(FinanceNodeEntity node, NodeProfile profile) {
+		LocalDate today = LocalDate.now();
+		LocalDate lastClose = mostRecentDayOnOrBefore(today, profile.cycleDay);
+		LocalDate nextClose = lastClose.plusMonths(1);
+		LocalDate nextSettlement = firstDayStrictlyAfter(lastClose, profile.settlementDay);
+
+		BigDecimal closedBalance = sumAmounts(lineItemRepository.findByNodeUpTo(node, lastClose.atTime(LocalTime.MAX)));
+		BigDecimal openBalance = sumAmounts(lineItemRepository.findByNodeBetween(
+				node, lastClose.atTime(LocalTime.MAX), nextClose.atTime(LocalTime.MAX)));
+
+		return new StatementCycle(lastClose, nextClose, nextSettlement, closedBalance.negate(), openBalance.negate());
+	}
+
+	private LocalDate mostRecentDayOnOrBefore(LocalDate reference, int dayOfMonth) {
+		LocalDate candidate = reference.withDayOfMonth(dayOfMonth);
+		return candidate.isAfter(reference) ? candidate.minusMonths(1) : candidate;
+	}
+
+	private LocalDate firstDayStrictlyAfter(LocalDate reference, int dayOfMonth) {
+		LocalDate candidate = reference.withDayOfMonth(dayOfMonth);
+		return candidate.isAfter(reference) ? candidate : candidate.plusMonths(1);
+	}
+
+	/**
+	* Amounts are encrypted at rest, so they cannot be aggregated in SQL and are summed
+	* here instead.
+	*/
+	private BigDecimal sumAmounts(List<FinanceLineItemEntity> lineItems) {
+		return lineItems.stream()
+				.map(lineItem -> lineItem.amount)
+				.reduce(BigDecimal.ZERO, BigDecimal::add);
+	}
+
+	/**
+	* The dates and figures of the node's current cycle, kept together so the summary is
+	* assembled from one coherent snapshot.
+	*
+	* <p>
+	* Balances are stored sign-flipped relative to the ledger so that an outstanding debt
+	* reads as a positive amount owed, which is how a settlement is presented.
+	*/
+	private record StatementCycle(
+			LocalDate lastClose,
+			LocalDate nextClose,
+			LocalDate nextSettlement,
+			BigDecimal closedBalance,
+			BigDecimal openBalance) {
 	}
 }
