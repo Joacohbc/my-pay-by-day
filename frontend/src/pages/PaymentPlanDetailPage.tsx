@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { PaymentPlanItemForm } from '@/components/paymentPlans/PaymentPlanItemForm';
+import { itemStatusVariants } from '@/components/paymentPlans/itemStatusVariants';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -18,7 +19,7 @@ import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { formatCurrency, formatDateFromParts } from '@/lib/format';
-import type { FinanceEvent, PaymentPlan, PaymentPlanItem, PaymentPlanItemStatus, PaymentPlanStatus } from '@/models';
+import type { FinanceEvent, PaymentPlan, PaymentPlanItem, PaymentPlanStatus } from '@/models';
 
 const statusBadgeVariants: Record<PaymentPlanStatus, 'income' | 'indigo' | 'gray'> = {
   ACTIVE: 'income',
@@ -32,14 +33,6 @@ const statusIcons: Record<PaymentPlanStatus, string> = {
   COMPLETED: 'task_alt',
   PAUSED: 'pause_circle',
   CANCELLED: 'cancel',
-};
-
-const itemStatusVariants: Record<PaymentPlanItemStatus, 'income' | 'expense' | 'indigo' | 'gray'> = {
-  PAID: 'income',
-  OVERDUE: 'expense',
-  DRAFTED: 'indigo',
-  PENDING: 'gray',
-  SKIPPED: 'gray',
 };
 
 export function PaymentPlanDetailPage() {

@@ -17,6 +17,7 @@ import { formatCurrency, formatDateTime, eventNetAmount } from '@/lib/format';
 import { useState } from 'react';
 import { RelatedEventsSection } from '@/components/events/RelatedEventsSection';
 import { EventDuplicatesSection } from '@/components/events/EventDuplicatesSection';
+import { EventPaymentPlansSection } from '@/components/paymentPlans/EventPaymentPlansSection';
 import { CloneEventModal } from '@/components/events/CloneEventModal';
 import { FileUploader } from '@/components/ui/FileUploader';
 import type { FileDto } from '@/models';
@@ -294,6 +295,9 @@ export function EventDetailPage() {
 
       {/* Related Events */}
       <RelatedEventsSection event={event} />
+
+      {/* Payment Plans */}
+      <EventPaymentPlansSection event={event} />
 
       {/* Duplicates */}
       <EventDuplicatesSection event={event} />
