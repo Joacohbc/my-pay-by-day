@@ -7,6 +7,12 @@
       "skillPath": "skills/accessibility/SKILL.md",
       "computedHash": "10e83284d3395ab5ec2f2db602b663480a37a4ff404d16510eefe86b034fcc1a"
     },
+    "agent-browser": {
+      "source": "vercel-labs/agent-browser",
+      "sourceType": "github",
+      "skillPath": "skills/agent-browser/SKILL.md",
+      "computedHash": "a674b7d81066e3cc471a7512ddb4ae724418cbfefa75cbb050b0dc430e4d57a0"
+    },
     "ai-sdk": {
       "source": "vercel/ai",
       "sourceType": "github",
@@ -25,17 +31,35 @@
       "skillPath": ".claude/skills/brand/SKILL.md",
       "computedHash": "3c7acb846082f9e4cc873f1cf85bd57ade027206e18c7c050797f815e3a56af7"
     },
+    "code-design": {
+      "source": "Joacohbc/code-design",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "429767f88b6d4277a786a5b8df2eddfda7a5afc8b0ec58eecbbb81f6a326c859"
+    },
     "design": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
       "sourceType": "github",
       "skillPath": ".claude/skills/design/SKILL.md",
       "computedHash": "4e0412d29df74e6153e4944b367459a28cf52e3e81c7f45c1ecf4c2a8b21907c"
     },
+    "design-doc-mermaid": {
+      "source": "spillwavesolutions/design-doc-mermaid",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "362eecfd376c8932aa86d366a6406bf389ac4f2f52d93e5892adf8c963392afe"
+    },
     "design-system": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
       "sourceType": "github",
       "skillPath": ".claude/skills/design-system/SKILL.md",
       "computedHash": "a05715299135276628f53519484e1267ec8ad111e6355a09c2da1cf66aee2cc3"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "computedHash": "b146008599c31057cef1c145774cea5d5afb30e8f43fa802e47a4b461419aaaf"
     },
     "frontend-design": {
       "source": "anthropics/skills",
@@ -72,6 +96,12 @@
       "sourceType": "github",
       "skillPath": "skills/nodejs-best-practices/SKILL.md",
       "computedHash": "3e025f24a1948fcbfe666eabc757f5b426271b08a420a86dba1ea7518cc7b369"
+    },
+    "quarkus-patterns": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "skillPath": "skills/quarkus-patterns/SKILL.md",
+      "computedHash": "bca30bd2dc7abca7268247659c4f58eb1c1c33ce2edc2dae92d9ef578b100c5e"
     },
     "react-hook-form": {
       "source": "pproenca/dot-skills",
@@ -126,6 +156,12 @@
       "sourceType": "github",
       "skillPath": "skills/vite/SKILL.md",
       "computedHash": "867ff66238f3152e9c494339ad08dc432dd0df5bcf5cc7a00b61a72b580eb908"
+    },
+    "wayfinder": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/wayfinder/SKILL.md",
+      "computedHash": "c9e18cefd77b6b5b0ee35f59ce2fd96359aa2d2f02e3479e12c873c5402d9d43"
     },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",
