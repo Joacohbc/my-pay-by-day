@@ -1,9 +1,8 @@
-import type { Category, FinanceNode, Tag } from '@/models';
+import type { Category, FinanceNode, RecurrenceFrequency, Tag } from '@/models';
 
-export type PaymentPlanType = 'RECURRING' | 'INSTALLMENT' | 'CUSTOM';
+export type PaymentPlanType = 'RECURRING' | 'INSTALLMENT' | 'CUSTOM' | 'GROUP';
 export type PaymentPlanStatus = 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
 export type PaymentPlanItemStatus = 'PENDING' | 'DRAFTED' | 'PAID' | 'SKIPPED' | 'OVERDUE';
-export type RecurrenceFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
 
 export interface PaymentPlanItem {
   id: number;

@@ -14,6 +14,7 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatCurrencyShort } from '@/lib/format';
+import { isGroupPlan, planTypeIcons } from '@/components/paymentPlans/planPresentation';
 import { useBanner, BANNER_IDS } from '@/store/dismissedBannersStore';
 
 type PlanFilter = 'ALL' | PaymentPlanType;
@@ -50,6 +51,7 @@ export function PaymentPlansPage() {
     { key: 'ALL', label: t('paymentPlans.filterAll') },
     { key: 'INSTALLMENT', label: t('paymentPlans.filterInstallment') },
     { key: 'RECURRING', label: t('paymentPlans.filterRecurring') },
+    { key: 'GROUP', label: t('paymentPlans.filterGroup') },
   ];
 
   const createAction = (
@@ -136,7 +138,9 @@ function PaymentPlanCard({ plan }: { readonly plan: PaymentPlan }) {
   const { linkStateFromHere } = useAppNavigation();
 
   const isInstallment = plan.planType === 'INSTALLMENT';
+  const isGroup = isGroupPlan(plan.planType);
   const isActive = plan.status === 'ACTIVE';
+  const groupedEventsCount = (plan.items ?? []).filter((item) => item.eventId != null).length;
   const progressPercent =
     plan.totalInstallments && plan.totalInstallments > 0
       ? Math.min(100, Math.round((plan.completedInstallments / plan.totalInstallments) * 100))
@@ -154,7 +158,7 @@ function PaymentPlanCard({ plan }: { readonly plan: PaymentPlan }) {
             <CategoryIcon category={plan.category} size="lg" shape="rounded-full" />
           ) : (
             <div className="w-12 h-12 flex items-center justify-center rounded-full bg-dn-primary/10 text-dn-primary shrink-0">
-              <Icon name={isInstallment ? 'credit_card' : 'sync'} className="text-xl" />
+              <Icon name={planTypeIcons[plan.planType]} className="text-xl" />
             </div>
           )}
 
@@ -162,8 +166,7 @@ function PaymentPlanCard({ plan }: { readonly plan: PaymentPlan }) {
             <span className="text-base font-medium text-dn-text-main truncate">{plan.name}</span>
             <span className="text-xs text-dn-text-muted truncate">
               {t(`paymentPlans.types.${plan.planType}`)}
-              {' · '}
-              {t(`subscriptions.recurrence.${plan.frequency}`)}
+              {!isGroup && ` · ${t(`subscriptions.recurrence.${plan.frequency}`)}`}
             </span>
           </div>
 
@@ -178,13 +181,20 @@ function PaymentPlanCard({ plan }: { readonly plan: PaymentPlan }) {
 
         <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/5">
           <span className="text-sm font-mono text-dn-primary whitespace-nowrap">
-            {plan.installmentAmount ? formatCurrency(plan.installmentAmount) : '—'}
+            {isGroup ? formatCurrency(plan.paidAmount) : plan.installmentAmount ? formatCurrency(plan.installmentAmount) : '—'}
           </span>
 
-          <span className="flex items-center gap-1.5 text-xs text-dn-text-muted">
-            <Icon name={plan.isAutomated ? 'smart_toy' : 'touch_app'} className="text-sm" />
-            {plan.isAutomated ? t('paymentPlans.automated') : t('paymentPlans.manual')}
-          </span>
+          {isGroup ? (
+            <span className="flex items-center gap-1.5 text-xs text-dn-text-muted">
+              <Icon name="receipt_long" className="text-sm" />
+              {t('paymentPlans.groupedEventsCount', { count: groupedEventsCount })}
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-xs text-dn-text-muted">
+              <Icon name={plan.isAutomated ? 'smart_toy' : 'touch_app'} className="text-sm" />
+              {plan.isAutomated ? t('paymentPlans.automated') : t('paymentPlans.manual')}
+            </span>
+          )}
         </div>
 
         {isInstallment && !!plan.totalInstallments && (

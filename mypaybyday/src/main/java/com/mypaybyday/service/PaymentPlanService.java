@@ -130,6 +130,8 @@ public class PaymentPlanService {
 			entity.tags = tags;
 		}
 
+		applyGroupPlanRules(entity);
+
 		boolean shouldGenerateItems = dto.generateItems() == null || Boolean.TRUE.equals(dto.generateItems());
 		if (shouldGenerateItems && entity.totalInstallments != null && entity.totalInstallments > 0) {
 			preGenerateItems(entity);
@@ -140,6 +142,17 @@ public class PaymentPlanService {
 
 		Log.infof("Created payment plan id=%d name=%s type=%s", entity.id, entity.name, entity.planType);
 		return PaymentPlanDto.from(entity);
+	}
+
+	private void applyGroupPlanRules(PaymentPlanEntity entity) {
+		if (entity.planType != PaymentPlanType.GROUP) {
+			return;
+		}
+		entity.frequency = RecurrenceFrequency.INSTANT;
+		entity.nextDueDate = null;
+		entity.totalInstallments = null;
+		entity.isAutomated = false;
+		entity.autoCreateDraft = false;
 	}
 
 	private void preGenerateItems(PaymentPlanEntity plan) {
@@ -164,6 +177,7 @@ public class PaymentPlanService {
 			case WEEKLY -> date.plusWeeks(1);
 			case MONTHLY -> date.plusMonths(1);
 			case YEARLY -> date.plusYears(1);
+			case INSTANT -> date;
 		};
 	}
 
@@ -182,7 +196,7 @@ public class PaymentPlanService {
 		entity.name = dto.name();
 		entity.description = dto.description();
 		entity.planType = dto.planType();
-		entity.frequency = dto.frequency();
+		entity.frequency = dto.frequency() != null ? dto.frequency() : entity.frequency;
 		entity.startDate = dto.startDate();
 		entity.isAutomated = dto.isAutomated() != null ? dto.isAutomated() : true;
 		entity.autoCreateDraft = dto.autoCreateDraft() != null ? dto.autoCreateDraft() : true;
@@ -217,6 +231,8 @@ public class PaymentPlanService {
 			entity.tags.clear();
 		}
 
+		applyGroupPlanRules(entity);
+
 		paymentPlanValidator.validate(entity);
 		paymentPlanRepository.persist(entity);
 		Log.infof("Updated payment plan id=%d name=%s", entity.id, entity.name);
@@ -240,11 +256,13 @@ public class PaymentPlanService {
 	@Transactional
 	public PaymentPlanItemDto createItem(Long planId, CreatePaymentPlanItemDto dto) throws BusinessException {
 		PaymentPlanEntity plan = findEntityById(planId);
+		requireUserComposedPlan(plan);
 
 		PaymentPlanItemEntity item = new PaymentPlanItemEntity();
 		item.paymentPlan = plan;
 		item.installmentNumber = dto.installmentNumber() != null ? dto.installmentNumber() : nextInstallmentNumber(plan);
-		applyItemValues(item, dto, plan.installmentAmount);
+		applyScheduleValues(item, dto, plan.installmentAmount);
+		applyLinkValues(item, dto);
 
 		paymentPlanItemValidator.validate(item);
 		plan.items.add(item);
@@ -258,10 +276,13 @@ public class PaymentPlanService {
 	public PaymentPlanItemDto updateItem(Long planId, Long itemId, CreatePaymentPlanItemDto dto) throws BusinessException {
 		PaymentPlanItemEntity item = findItemEntityById(planId, itemId);
 
-		if (dto.installmentNumber() != null) {
-			item.installmentNumber = dto.installmentNumber();
+		if (isUserComposedPlan(item.paymentPlan)) {
+			if (dto.installmentNumber() != null) {
+				item.installmentNumber = dto.installmentNumber();
+			}
+			applyScheduleValues(item, dto, item.expectedAmount);
 		}
-		applyItemValues(item, dto, item.expectedAmount);
+		applyLinkValues(item, dto);
 
 		paymentPlanItemValidator.validate(item);
 		paymentPlanItemRepository.persist(item);
@@ -273,17 +294,31 @@ public class PaymentPlanService {
 	@Transactional
 	public void deleteItem(Long planId, Long itemId) throws BusinessException {
 		PaymentPlanItemEntity item = findItemEntityById(planId, itemId);
+		requireUserComposedPlan(item.paymentPlan);
 		item.paymentPlan.items.remove(item);
 		paymentPlanItemRepository.delete(item);
 		Log.infof("Deleted payment plan item id=%d for plan id=%d", itemId, planId);
 	}
 
-	private void applyItemValues(PaymentPlanItemEntity item, CreatePaymentPlanItemDto dto, BigDecimal fallbackAmount) {
+	private void applyScheduleValues(PaymentPlanItemEntity item, CreatePaymentPlanItemDto dto, BigDecimal fallbackAmount) {
 		item.expectedDate = dto.expectedDate();
 		item.expectedAmount = dto.expectedAmount() != null ? dto.expectedAmount() : fallbackAmount;
+	}
+
+	private void applyLinkValues(PaymentPlanItemEntity item, CreatePaymentPlanItemDto dto) {
 		item.itemStatus = dto.itemStatus() != null ? dto.itemStatus() : PaymentPlanItemStatus.PENDING;
 		item.event = dto.eventId() != null ? eventRepository.findById(dto.eventId()) : null;
 		item.draft = dto.draftId() != null ? entityDraftRepository.findById(dto.draftId()) : null;
+	}
+
+	private boolean isUserComposedPlan(PaymentPlanEntity plan) {
+		return plan.planType == PaymentPlanType.CUSTOM || plan.planType == PaymentPlanType.GROUP;
+	}
+
+	private void requireUserComposedPlan(PaymentPlanEntity plan) throws BusinessException {
+		if (!isUserComposedPlan(plan)) {
+			throw messages.reject(MsgKey.PAYMENT_PLAN_ITEMS_NOT_COMPOSABLE);
+		}
 	}
 
 	private int nextInstallmentNumber(PaymentPlanEntity plan) {
@@ -303,6 +338,9 @@ public class PaymentPlanService {
 		List<PaymentPlanItemEntity> dueItems = paymentPlanItemRepository.findDueItems(LocalDate.now());
 		for (PaymentPlanItemEntity item : dueItems) {
 			if (item.paymentPlan == null || !item.paymentPlan.isAutomated() || item.paymentPlan.status != PaymentPlanStatus.ACTIVE) {
+				continue;
+			}
+			if (item.paymentPlan.planType == PaymentPlanType.GROUP) {
 				continue;
 			}
 			try {

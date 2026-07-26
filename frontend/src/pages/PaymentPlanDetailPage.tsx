@@ -10,7 +10,13 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { PaymentPlanItemForm } from '@/components/paymentPlans/PaymentPlanItemForm';
-import { itemStatusVariants } from '@/components/paymentPlans/itemStatusVariants';
+import {
+  isGroupPlan,
+  isUserComposedPlan,
+  itemModalTitleKey,
+  itemStatusVariants,
+  planTypeIcons,
+} from '@/components/paymentPlans/planPresentation';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -59,7 +65,10 @@ export function PaymentPlanDetailPage() {
   if (!plan) return <ErrorState message={t('paymentPlans.noPlans')} />;
 
   const isInstallment = plan.planType === 'INSTALLMENT';
+  const isGroup = isGroupPlan(plan.planType);
   const isActive = plan.status === 'ACTIVE';
+  const groupedEventsCount = (plan.items ?? []).filter((item) => item.eventId != null).length;
+  const canComposeItems = isUserComposedPlan(plan.planType);
 
   const confirmCancel = async () => {
     await cancelPlan.mutateAsync(plan.id);
@@ -82,6 +91,7 @@ export function PaymentPlanDetailPage() {
   const closeItemModal = () => navigate(Routes.PAYMENT_PLAN_DETAIL(plan.id));
   const editedItem = plan.items?.find((item) => String(item.id) === itemId);
   const nextInstallmentNumber = (plan.items ?? []).reduce((max, item) => Math.max(max, item.installmentNumber), 0) + 1;
+  const itemModalTitle = t(itemModalTitleKey(plan.planType, !!editedItem));
 
   return (
     <div className="space-y-5">
@@ -96,17 +106,14 @@ export function PaymentPlanDetailPage() {
         loading={cancelPlan.isPending}
       />
 
-      <Modal
-        open={!!itemId}
-        onClose={closeItemModal}
-        title={editedItem ? t('paymentPlans.itemEditTitle') : t('paymentPlans.itemNewTitle')}
-      >
+      <Modal open={!!itemId} onClose={closeItemModal} title={itemModalTitle}>
         <PaymentPlanItemForm
           key={itemId}
           planId={plan.id}
+          planType={plan.planType}
           editTarget={editedItem}
           nextInstallmentNumber={nextInstallmentNumber}
-          defaultAmount={plan.installmentAmount}
+          defaultAmount={plan.installmentAmount ?? undefined}
           onCancel={closeItemModal}
           onSuccess={closeItemModal}
         />
@@ -148,7 +155,7 @@ export function PaymentPlanDetailPage() {
           <CategoryIcon category={plan.category} size="lg" shape="rounded-full" className="w-16 h-16 text-3xl mb-4" />
         ) : (
           <div className="w-16 h-16 flex items-center justify-center rounded-full bg-dn-primary/10 text-dn-primary mb-4">
-            <Icon name={isInstallment ? 'credit_card' : 'sync'} className="text-3xl" />
+            <Icon name={planTypeIcons[plan.planType]} className="text-3xl" />
           </div>
         )}
 
@@ -156,10 +163,12 @@ export function PaymentPlanDetailPage() {
         {plan.description && <p className="text-sm text-dn-text-muted mt-1">{plan.description}</p>}
 
         <p className="text-4xl font-mono font-bold tracking-tight mt-3 text-dn-primary break-all">
-          {plan.installmentAmount ? formatCurrency(plan.installmentAmount) : '—'}
+          {isGroup ? formatCurrency(plan.paidAmount) : plan.installmentAmount ? formatCurrency(plan.installmentAmount) : '—'}
         </p>
         <p className="text-xs text-dn-text-muted mt-1">
-          {t('paymentPlans.cycleAmount')} · {t(`subscriptions.recurrence.${plan.frequency}`)}
+          {isGroup
+            ? t('paymentPlans.groupedEventsCount', { count: groupedEventsCount })
+            : `${t('paymentPlans.cycleAmount')} · ${t(`subscriptions.recurrence.${plan.frequency}`)}`}
         </p>
 
         <div className="flex flex-wrap justify-center gap-2 mt-3">
@@ -167,19 +176,21 @@ export function PaymentPlanDetailPage() {
             <Icon name={statusIcons[plan.status]} className="text-[13px]" />
             {t(`paymentPlans.status.${plan.status}`)}
           </Badge>
-          <button
-            type="button"
-            onClick={toggleAutomation}
-            disabled={updatePlan.isPending}
-            title={plan.isAutomated ? t('paymentPlans.switchToManual') : t('paymentPlans.switchToAutomated')}
-            className="rounded-pill transition-opacity hover:opacity-80 disabled:opacity-50"
-          >
-            <Badge variant="neutral" className="gap-1">
-              <Icon name={plan.isAutomated ? 'smart_toy' : 'touch_app'} className="text-[13px]" />
-              {plan.isAutomated ? t('paymentPlans.automated') : t('paymentPlans.manual')}
-              <Icon name="swap_horiz" className="text-[13px] text-dn-text-muted" />
-            </Badge>
-          </button>
+          {!isGroup && (
+            <button
+              type="button"
+              onClick={toggleAutomation}
+              disabled={updatePlan.isPending}
+              title={plan.isAutomated ? t('paymentPlans.switchToManual') : t('paymentPlans.switchToAutomated')}
+              className="rounded-pill transition-opacity hover:opacity-80 disabled:opacity-50"
+            >
+              <Badge variant="neutral" className="gap-1">
+                <Icon name={plan.isAutomated ? 'smart_toy' : 'touch_app'} className="text-[13px]" />
+                {plan.isAutomated ? t('paymentPlans.automated') : t('paymentPlans.manual')}
+                <Icon name="swap_horiz" className="text-[13px] text-dn-text-muted" />
+              </Badge>
+            </button>
+          )}
           <Badge>{t(`paymentPlans.types.${plan.planType}`)}</Badge>
           {plan.tags?.map((tag) => (
             <Badge key={tag.id} variant="indigo">#{tag.name}</Badge>
@@ -219,14 +230,16 @@ export function PaymentPlanDetailPage() {
       <div className="px-5 pb-8">
         <div className="flex items-center justify-between gap-3 mb-3">
           <h3 className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">
-            {t('paymentPlans.itemsList')}
+            {isGroup ? t('paymentPlans.groupedEventsList') : t('paymentPlans.itemsList')}
           </h3>
-          <Link to={Routes.PAYMENT_PLAN_ITEM_NEW(plan.id)} state={linkStateFromHere()}>
-            <Button size="sm" variant="secondary">
-              <Icon name="add" className="text-sm" />
-              {t('paymentPlans.addItem')}
-            </Button>
-          </Link>
+          {canComposeItems && (
+            <Link to={Routes.PAYMENT_PLAN_ITEM_NEW(plan.id)} state={linkStateFromHere()}>
+              <Button size="sm" variant="secondary">
+                <Icon name="add" className="text-sm" />
+                {isGroup ? t('paymentPlans.addGroupItem') : t('paymentPlans.addItem')}
+              </Button>
+            </Link>
+          )}
         </div>
 
         {plan.items?.length ? (
@@ -237,14 +250,16 @@ export function PaymentPlanDetailPage() {
           </Card>
         ) : (
           <EmptyState
-            title={t('paymentPlans.noItems')}
+            title={isGroup ? t('paymentPlans.noGroupedEvents') : t('paymentPlans.noItems')}
             action={
-              <Link to={Routes.PAYMENT_PLAN_ITEM_NEW(plan.id)} state={linkStateFromHere()}>
-                <Button size="sm">
-                  <Icon name="add" className="text-sm" />
-                  {t('paymentPlans.addItem')}
-                </Button>
-              </Link>
+              canComposeItems ? (
+                <Link to={Routes.PAYMENT_PLAN_ITEM_NEW(plan.id)} state={linkStateFromHere()}>
+                  <Button size="sm">
+                    <Icon name="add" className="text-sm" />
+                    {isGroup ? t('paymentPlans.addGroupItem') : t('paymentPlans.addItem')}
+                  </Button>
+                </Link>
+              ) : undefined
             }
           />
         )}

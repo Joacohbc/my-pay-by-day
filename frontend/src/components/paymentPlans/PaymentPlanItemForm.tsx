@@ -1,9 +1,16 @@
 import { useMemo, useState } from 'react';
-import { useForm, Controller, useWatch } from 'react-hook-form';
+import { useForm, Controller, useWatch, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
 import { useTranslation } from 'react-i18next';
-import type { CreatePaymentPlanItemDto, FinanceEvent, PaymentPlanItem, PaymentPlanItemStatus } from '@/models';
+import { useAlert } from '@/contexts/AlertContext';
+import type {
+  CreatePaymentPlanItemDto,
+  FinanceEvent,
+  PaymentPlanItem,
+  PaymentPlanItemStatus,
+  PaymentPlanType,
+} from '@/models';
 import {
   useCreatePaymentPlanItem,
   useDeletePaymentPlanItem,
@@ -18,6 +25,9 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useEvent, useEvents } from '@/hooks/useEvents';
 import { useFinanceEventDrafts } from '@/hooks/useDrafts';
 import { eventNetAmount, formatCurrency, formatDate, getLocalizedTodayString } from '@/lib/format';
+import { isGroupPlan, isUserComposedPlan } from '@/components/paymentPlans/planPresentation';
+import { optionalAmountField, requiredCountField, toOptionalNumber } from '@/lib/validation';
+import { findFirstFieldErrorMessage } from '@/lib/formErrors';
 
 const ITEM_STATUSES: PaymentPlanItemStatus[] = ['PENDING', 'DRAFTED', 'PAID', 'SKIPPED', 'OVERDUE'];
 const SELECTABLE_EVENTS_PAGE_SIZE = 50;
@@ -31,9 +41,9 @@ function describeEvent(event: FinanceEvent): string {
 function buildSchema(t: (key: string) => string) {
   return z
     .object({
-      installmentNumber: z.number().min(1, t('common.required')),
+      installmentNumber: requiredCountField(t),
       expectedDate: z.string().min(1, t('common.required')),
-      expectedAmount: z.number().optional(),
+      expectedAmount: optionalAmountField(t),
       itemStatus: z.enum(['PENDING', 'DRAFTED', 'PAID', 'SKIPPED', 'OVERDUE'], { error: t('common.required') }),
       linkKind: z.enum(['NONE', 'EVENT', 'DRAFT']),
       linkedId: z.number().nullable(),
@@ -54,6 +64,7 @@ function resolveLinkKind(item?: PaymentPlanItem | null): 'NONE' | 'EVENT' | 'DRA
 
 interface PaymentPlanItemFormProps {
   planId: number;
+  planType: PaymentPlanType;
   editTarget?: PaymentPlanItem | null;
   nextInstallmentNumber?: number;
   defaultAmount?: number;
@@ -63,6 +74,7 @@ interface PaymentPlanItemFormProps {
 
 export function PaymentPlanItemForm({
   planId,
+  planType,
   editTarget,
   nextInstallmentNumber = 1,
   defaultAmount,
@@ -70,6 +82,7 @@ export function PaymentPlanItemForm({
   onSuccess,
 }: PaymentPlanItemFormProps) {
   const { t } = useTranslation();
+  const alert = useAlert();
   const createItem = useCreatePaymentPlanItem(planId);
   const updateItem = useUpdatePaymentPlanItem(planId);
   const deleteItem = useDeletePaymentPlanItem(planId);
@@ -114,6 +127,12 @@ export function PaymentPlanItemForm({
   });
 
   const linkKind = useWatch({ control, name: 'linkKind' });
+  const canEditSchedule = isUserComposedPlan(planType);
+  const isGroup = isGroupPlan(planType);
+
+  const reportInvalidSubmit = (fieldErrors: FieldErrors<FormValues>) => {
+    alert.error(findFirstFieldErrorMessage(fieldErrors) ?? t('common.validationError'));
+  };
 
   const submitItem = (values: FormValues) => {
     const dto: CreatePaymentPlanItemDto = {
@@ -142,7 +161,7 @@ export function PaymentPlanItemForm({
   const isPending = createItem.isPending || updateItem.isPending;
 
   return (
-    <form onSubmit={handleSubmit(submitItem)} className="space-y-4">
+    <form onSubmit={handleSubmit(submitItem, reportInvalidSubmit)} className="space-y-4">
       <ConfirmModal
         open={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
@@ -155,10 +174,11 @@ export function PaymentPlanItemForm({
       />
       <div className="grid grid-cols-2 gap-3">
         <Input
-          label={t('paymentPlans.itemNumberLabel')}
+          label={isGroup ? t('paymentPlans.groupItemNumberLabel') : t('paymentPlans.itemNumberLabel')}
           type="number"
+          disabled={!canEditSchedule}
           error={errors.installmentNumber?.message}
-          {...register('installmentNumber', { valueAsNumber: true })}
+          {...register('installmentNumber', { setValueAs: toOptionalNumber })}
         />
         <Controller
           name="expectedDate"
@@ -167,6 +187,7 @@ export function PaymentPlanItemForm({
             <Input
               label={t('paymentPlans.expectedDate')}
               type="date"
+              disabled={!canEditSchedule}
               error={errors.expectedDate?.message}
               name={field.name}
               ref={field.ref}
@@ -182,9 +203,14 @@ export function PaymentPlanItemForm({
         label={t('paymentPlans.expectedAmount')}
         type="number"
         step="0.01"
+        disabled={!canEditSchedule}
         error={errors.expectedAmount?.message}
-        {...register('expectedAmount', { valueAsNumber: true })}
+        {...register('expectedAmount', { setValueAs: toOptionalNumber })}
       />
+
+      {!canEditSchedule && (
+        <p className="text-xs text-dn-text-muted leading-relaxed">{t('paymentPlans.scheduleLockedHint')}</p>
+      )}
 
       <Controller
         name="itemStatus"
@@ -241,7 +267,7 @@ export function PaymentPlanItemForm({
       )}
 
       <div className="flex items-center justify-between gap-2 pt-2">
-        {editTarget ? (
+        {editTarget && canEditSchedule ? (
           <Button
             type="button"
             variant="danger"

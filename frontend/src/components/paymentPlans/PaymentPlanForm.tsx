@@ -1,9 +1,10 @@
 import { useEffect, useMemo } from 'react';
-import { useForm, Controller, useWatch } from 'react-hook-form';
+import { useForm, Controller, useWatch, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
 import { useTranslation } from 'react-i18next';
-import type { PaymentPlan, CreatePaymentPlanDto } from '@/models';
+import { useAlert } from '@/contexts/AlertContext';
+import type { PaymentPlan, CreatePaymentPlanDto, PaymentPlanStatus, RecurrenceFrequency } from '@/models';
 import { useCreatePaymentPlan, useUpdatePaymentPlan } from '@/hooks/usePaymentPlans';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
@@ -15,21 +16,36 @@ import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { nameField, descriptionField } from '@/lib/validation';
+import {
+  nameField,
+  descriptionField,
+  optionalAmountField,
+  optionalNumberField,
+  toOptionalNumber,
+} from '@/lib/validation';
+import { findFirstFieldErrorMessage } from '@/lib/formErrors';
 import { prependMissingArchived } from '@/lib/prependMissingArchived';
 import { getLocalizedTodayString } from '@/lib/format';
+import { isGroupPlan, isUserComposedPlan } from '@/components/paymentPlans/planPresentation';
 
 const DEFAULT_TOTAL_INSTALLMENTS = 12;
+const DEFAULT_FREQUENCY: RecurrenceFrequency = 'MONTHLY';
+const PLAN_STATUSES: PaymentPlanStatus[] = ['ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED'];
+
+function recurringFrequency(frequency: RecurrenceFrequency): RecurrenceFrequency {
+  return frequency === 'INSTANT' ? DEFAULT_FREQUENCY : frequency;
+}
 
 function buildSchema(t: (key: string) => string) {
   return z.object({
     name: nameField(t),
     description: descriptionField(t),
-    planType: z.enum(['RECURRING', 'INSTALLMENT', 'CUSTOM'], { error: t('common.required') }),
-    frequency: z.enum(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'], { error: t('common.required') }),
-    totalInstallments: z.number().optional(),
-    totalAmount: z.number().optional(),
-    installmentAmount: z.number().optional(),
+    planType: z.enum(['RECURRING', 'INSTALLMENT', 'CUSTOM', 'GROUP'], { error: t('common.required') }),
+    status: z.enum(['ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED'], { error: t('common.required') }),
+    frequency: z.enum(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY', 'INSTANT'], { error: t('common.required') }),
+    totalInstallments: optionalNumberField(t),
+    totalAmount: optionalAmountField(t),
+    installmentAmount: optionalAmountField(t),
     startDate: z.string().min(1, t('common.required')),
     isAutomated: z.boolean(),
     autoCreateDraft: z.boolean(),
@@ -49,6 +65,7 @@ function toFormValues(plan?: PaymentPlan | null): FormValues {
       name: '',
       description: '',
       planType: 'INSTALLMENT',
+      status: 'ACTIVE',
       frequency: 'MONTHLY',
       totalInstallments: DEFAULT_TOTAL_INSTALLMENTS,
       totalAmount: undefined,
@@ -68,10 +85,11 @@ function toFormValues(plan?: PaymentPlan | null): FormValues {
     name: plan.name,
     description: plan.description ?? '',
     planType: plan.planType,
+    status: plan.status,
     frequency: plan.frequency,
-    totalInstallments: plan.totalInstallments,
-    totalAmount: plan.totalAmount,
-    installmentAmount: plan.installmentAmount,
+    totalInstallments: plan.totalInstallments ?? undefined,
+    totalAmount: plan.totalAmount ?? undefined,
+    installmentAmount: plan.installmentAmount ?? undefined,
     startDate: plan.startDate,
     isAutomated: plan.isAutomated,
     autoCreateDraft: plan.autoCreateDraft,
@@ -85,19 +103,21 @@ function toFormValues(plan?: PaymentPlan | null): FormValues {
 
 function toCreateDto(values: FormValues): CreatePaymentPlanDto {
   const isInstallment = values.planType === 'INSTALLMENT';
+  const isGroup = isGroupPlan(values.planType);
 
   return {
     name: values.name,
     description: values.description || undefined,
     planType: values.planType,
-    frequency: values.frequency,
+    status: isUserComposedPlan(values.planType) ? values.status : undefined,
+    frequency: isGroup ? 'INSTANT' : recurringFrequency(values.frequency),
     totalInstallments: isInstallment ? values.totalInstallments : undefined,
     totalAmount: isInstallment ? values.totalAmount : undefined,
-    installmentAmount: values.installmentAmount,
+    installmentAmount: isGroup ? undefined : values.installmentAmount,
     startDate: values.startDate,
-    isAutomated: values.isAutomated,
-    autoCreateDraft: values.autoCreateDraft,
-    generateItems: values.generateItems,
+    isAutomated: !isGroup && values.isAutomated,
+    autoCreateDraft: !isGroup && values.autoCreateDraft,
+    generateItems: !isGroup && values.generateItems,
     originNodeId: values.originNodeId ?? undefined,
     destinationNodeId: values.destinationNodeId ?? undefined,
     categoryId: values.categoryId ?? undefined,
@@ -113,6 +133,7 @@ interface PaymentPlanFormProps {
 
 export function PaymentPlanForm({ editTarget, onCancel, onSuccess }: PaymentPlanFormProps) {
   const { t } = useTranslation();
+  const alert = useAlert();
   const createPlan = useCreatePaymentPlan();
   const updatePlan = useUpdatePaymentPlan();
 
@@ -154,6 +175,12 @@ export function PaymentPlanForm({ editTarget, onCancel, onSuccess }: PaymentPlan
 
   const selectedPlanType = useWatch({ control, name: 'planType' });
   const isAutomated = useWatch({ control, name: 'isAutomated' });
+  const isGroup = isGroupPlan(selectedPlanType);
+  const canChooseStatus = !!editTarget && isUserComposedPlan(selectedPlanType);
+
+  const reportInvalidSubmit = (fieldErrors: FieldErrors<FormValues>) => {
+    alert.error(findFirstFieldErrorMessage(fieldErrors) ?? t('common.validationError'));
+  };
 
   const submitPlan = (values: FormValues) => {
     const dto = toCreateDto(values);
@@ -168,7 +195,7 @@ export function PaymentPlanForm({ editTarget, onCancel, onSuccess }: PaymentPlan
   const isPending = createPlan.isPending || updatePlan.isPending;
 
   return (
-    <form onSubmit={handleSubmit(submitPlan)} className="space-y-4">
+    <form onSubmit={handleSubmit(submitPlan, reportInvalidSubmit)} className="space-y-4">
       <Input
         label={t('paymentPlans.nameLabel')}
         placeholder={t('paymentPlans.namePlaceholder')}
@@ -182,7 +209,7 @@ export function PaymentPlanForm({ editTarget, onCancel, onSuccess }: PaymentPlan
         {...register('description')}
       />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className={isGroup ? '' : 'grid grid-cols-2 gap-3'}>
         <Controller
           name="planType"
           control={control}
@@ -192,6 +219,7 @@ export function PaymentPlanForm({ editTarget, onCancel, onSuccess }: PaymentPlan
               options={[
                 { value: 'INSTALLMENT', label: t('paymentPlans.types.INSTALLMENT') },
                 { value: 'RECURRING', label: t('paymentPlans.types.RECURRING') },
+                { value: 'GROUP', label: t('paymentPlans.types.GROUP') },
                 { value: 'CUSTOM', label: t('paymentPlans.types.CUSTOM') },
               ]}
               error={errors.planType?.message}
@@ -200,40 +228,65 @@ export function PaymentPlanForm({ editTarget, onCancel, onSuccess }: PaymentPlan
             />
           )}
         />
+        {!isGroup && (
+          <Controller
+            name="frequency"
+            control={control}
+            render={({ field }) => (
+              <SearchableSelect
+                label={t('paymentPlans.frequencyLabel')}
+                options={[
+                  { value: 'DAILY', label: t('subscriptions.recurrence.DAILY') },
+                  { value: 'WEEKLY', label: t('subscriptions.recurrence.WEEKLY') },
+                  { value: 'MONTHLY', label: t('subscriptions.recurrence.MONTHLY') },
+                  { value: 'YEARLY', label: t('subscriptions.recurrence.YEARLY') },
+                ]}
+                error={errors.frequency?.message}
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
+          />
+        )}
+      </div>
+
+      {isGroup && <p className="text-xs text-dn-text-muted leading-relaxed">{t('paymentPlans.groupHint')}</p>}
+
+      {canChooseStatus && (
         <Controller
-          name="frequency"
+          name="status"
           control={control}
           render={({ field }) => (
             <SearchableSelect
-              label={t('paymentPlans.frequencyLabel')}
-              options={[
-                { value: 'DAILY', label: t('subscriptions.recurrence.DAILY') },
-                { value: 'WEEKLY', label: t('subscriptions.recurrence.WEEKLY') },
-                { value: 'MONTHLY', label: t('subscriptions.recurrence.MONTHLY') },
-                { value: 'YEARLY', label: t('subscriptions.recurrence.YEARLY') },
-              ]}
-              error={errors.frequency?.message}
+              label={t('paymentPlans.statusLabel')}
+              options={PLAN_STATUSES.map((status) => ({
+                value: status,
+                label: t(`paymentPlans.status.${status}`),
+              }))}
+              error={errors.status?.message}
               value={field.value}
               onChange={field.onChange}
             />
           )}
         />
-      </div>
+      )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <Input
-          label={t('paymentPlans.installmentAmountLabel')}
-          type="number"
-          step="0.01"
-          error={errors.installmentAmount?.message}
-          {...register('installmentAmount', { valueAsNumber: true })}
-        />
+      <div className={isGroup ? '' : 'grid grid-cols-2 gap-3'}>
+        {!isGroup && (
+          <Input
+            label={t('paymentPlans.installmentAmountLabel')}
+            type="number"
+            step="0.01"
+            error={errors.installmentAmount?.message}
+            {...register('installmentAmount', { setValueAs: toOptionalNumber })}
+          />
+        )}
         <Controller
           name="startDate"
           control={control}
           render={({ field }) => (
             <Input
-              label={t('paymentPlans.startDateLabel')}
+              label={isGroup ? t('paymentPlans.groupDateLabel') : t('paymentPlans.startDateLabel')}
               type="date"
               error={errors.startDate?.message}
               name={field.name}
@@ -252,14 +305,14 @@ export function PaymentPlanForm({ editTarget, onCancel, onSuccess }: PaymentPlan
             label={t('paymentPlans.installmentsLabel')}
             type="number"
             error={errors.totalInstallments?.message}
-            {...register('totalInstallments', { valueAsNumber: true })}
+            {...register('totalInstallments', { setValueAs: toOptionalNumber })}
           />
           <Input
             label={t('paymentPlans.totalAmountLabel')}
             type="number"
             step="0.01"
             error={errors.totalAmount?.message}
-            {...register('totalAmount', { valueAsNumber: true })}
+            {...register('totalAmount', { setValueAs: toOptionalNumber })}
           />
         </div>
       )}
@@ -320,23 +373,25 @@ export function PaymentPlanForm({ editTarget, onCancel, onSuccess }: PaymentPlan
         )}
       />
 
-      <Controller
-        name="isAutomated"
-        control={control}
-        render={({ field }) => (
-          <SegmentedControl
-            label={t('paymentPlans.isAutomated')}
-            options={[
-              { value: 'AUTOMATED', label: t('paymentPlans.automated') },
-              { value: 'MANUAL', label: t('paymentPlans.manual') },
-            ]}
-            value={field.value ? 'AUTOMATED' : 'MANUAL'}
-            onChange={(value) => field.onChange(value === 'AUTOMATED')}
-          />
-        )}
-      />
+      {!isGroup && (
+        <Controller
+          name="isAutomated"
+          control={control}
+          render={({ field }) => (
+            <SegmentedControl
+              label={t('paymentPlans.isAutomated')}
+              options={[
+                { value: 'AUTOMATED', label: t('paymentPlans.automated') },
+                { value: 'MANUAL', label: t('paymentPlans.manual') },
+              ]}
+              value={field.value ? 'AUTOMATED' : 'MANUAL'}
+              onChange={(value) => field.onChange(value === 'AUTOMATED')}
+            />
+          )}
+        />
+      )}
 
-      {isAutomated && (
+      {!isGroup && isAutomated && (
         <label className="flex items-center gap-3 bg-dn-surface-low rounded-input px-4 py-3 cursor-pointer select-none">
           <input
             type="checkbox"

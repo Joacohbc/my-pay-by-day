@@ -94,6 +94,7 @@ public enum MsgKey {
 	PAYMENT_PLAN_ITEM_NUMBER_DUPLICATED("error.payment_plan_item.number_duplicated"),
 	PAYMENT_PLAN_ITEM_AMOUNT_INVALID("error.payment_plan_item.amount_invalid"),
 	PAYMENT_PLAN_ITEM_LINK_NOT_EXCLUSIVE("error.payment_plan_item.link_not_exclusive"),
+	PAYMENT_PLAN_ITEMS_NOT_COMPOSABLE("error.payment_plan_item.not_composable"),
 
 	// ── Event Draft ──────────────────────────────────────
 	DRAFT_NOT_FOUND("error.draft.not_found"),

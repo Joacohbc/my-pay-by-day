@@ -12,7 +12,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { formatDateFromParts } from '@/lib/format';
-import { itemStatusVariants } from '@/components/paymentPlans/itemStatusVariants';
+import { itemNumberKey, itemStatusVariants, planTypeIcons } from '@/components/paymentPlans/planPresentation';
 import { AssignEventToPlanModal } from '@/components/paymentPlans/AssignEventToPlanModal';
 
 interface PlanAssignment {
@@ -98,12 +98,12 @@ function AssignedPlanRow({ plan, item }: PlanAssignment) {
         className="flex items-center gap-3 min-w-0 flex-1"
       >
         <span className="w-8 h-8 shrink-0 rounded-full bg-dn-primary/10 text-dn-primary flex items-center justify-center">
-          <Icon name={plan.planType === 'INSTALLMENT' ? 'credit_card' : 'sync'} className="text-base" />
+          <Icon name={planTypeIcons[plan.planType]} className="text-base" />
         </span>
         <div className="flex flex-col min-w-0">
           <span className="text-sm text-dn-text-main truncate">{plan.name}</span>
           <span className="text-xs text-dn-text-muted font-mono truncate">
-            {t('paymentPlans.itemNumber', { number: item.installmentNumber })}
+            {t(itemNumberKey(plan.planType), { number: item.installmentNumber })}
             {' · '}
             {formatDateFromParts(item.expectedDate)}
           </span>

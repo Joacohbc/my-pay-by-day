@@ -23,6 +23,7 @@ import com.mypaybyday.entity.SystemJobEntity;
 import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.enums.JobCategory;
 import com.mypaybyday.enums.JobStatus;
+import com.mypaybyday.enums.RecurrenceFrequency;
 import com.mypaybyday.enums.SubscriptionStatus;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
@@ -285,13 +286,14 @@ public class SubscriptionService {
 			// Generate the event
 			createEventFromSubscription(sub);
 
-			// Update next execution date based on recurrence
-			switch (sub.recurrence) {
-				case DAILY -> sub.nextExecutionDate = sub.nextExecutionDate.plusDays(1);
-				case WEEKLY -> sub.nextExecutionDate = sub.nextExecutionDate.plusWeeks(1);
-				case MONTHLY -> sub.nextExecutionDate = sub.nextExecutionDate.plusMonths(1);
-				case YEARLY -> sub.nextExecutionDate = sub.nextExecutionDate.plusYears(1);
+			if (sub.recurrence == RecurrenceFrequency.INSTANT) {
+				sub.status = SubscriptionStatus.CANCELLED;
+				subscriptionRepository.persist(sub);
+				Log.infof("Processed one-off subscription id=%d, no further executions scheduled", sub.id);
+				return;
 			}
+
+			sub.nextExecutionDate = nextExecutionDateAfter(sub.nextExecutionDate, sub.recurrence);
 			subscriptionRepository.persist(sub);
 
 			SystemJobEntity nextJob = new SystemJobEntity();
@@ -306,6 +308,16 @@ public class SubscriptionService {
 			Log.errorf(e, "Failed to process subscription ID: %d", sub.id);
 			throw messages.reject(MsgKey.SUBSCRIPTION_PROCESSING_FAILED, e.getMessage());
 		}
+	}
+
+	private LocalDateTime nextExecutionDateAfter(LocalDateTime date, RecurrenceFrequency recurrence) {
+		return switch (recurrence) {
+			case DAILY -> date.plusDays(1);
+			case WEEKLY -> date.plusWeeks(1);
+			case MONTHLY -> date.plusMonths(1);
+			case YEARLY -> date.plusYears(1);
+			case INSTANT -> date;
+		};
 	}
 
 	private void createEventFromSubscription(SubscriptionEntity sub) {

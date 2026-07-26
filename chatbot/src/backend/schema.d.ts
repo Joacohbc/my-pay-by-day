@@ -2015,6 +2015,433 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/payment-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all payment plans
+         * @description Retrieves a list of all active, completed, or paused payment plans.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description List of payment plans retrieved successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaymentPlanDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a new payment plan
+         * @description Creates a new payment plan and pre-generates its scheduled items.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreatePaymentPlanDto"];
+                };
+            };
+            responses: {
+                /** @description Payment plan created successfully */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaymentPlanDto"];
+                    };
+                };
+                /** @description Invalid payment plan data */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payment-plans/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a payment plan by ID
+         * @description Retrieves details of a specific payment plan including pre-generated items.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Payment plan found */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaymentPlanDto"];
+                    };
+                };
+                /** @description Payment plan not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        /**
+         * Update a payment plan
+         * @description Updates details of an existing payment plan.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreatePaymentPlanDto"];
+                };
+            };
+            responses: {
+                /** @description Payment plan updated successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaymentPlanDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Payment plan not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payment-plans/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a payment plan
+         * @description Marks a payment plan as cancelled.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Payment plan cancelled successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaymentPlanDto"];
+                    };
+                };
+                /** @description Payment plan not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payment-plans/{id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the items of a payment plan
+         * @description Retrieves every scheduled item / cuota of a payment plan, ordered by installment number.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Items retrieved successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaymentPlanItemDto"];
+                    };
+                };
+                /** @description Payment plan not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a payment plan item
+         * @description Adds a scheduled item / cuota to a payment plan. The installment number is assigned automatically when omitted.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreatePaymentPlanItemDto"];
+                };
+            };
+            responses: {
+                /** @description Item created successfully */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaymentPlanItemDto"];
+                    };
+                };
+                /** @description Invalid item data */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Payment plan not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payment-plans/{id}/items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a payment plan item by ID
+         * @description Retrieves a single scheduled item / cuota of a payment plan.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    itemId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Item found */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaymentPlanItemDto"];
+                    };
+                };
+                /** @description Payment plan or item not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        /**
+         * Update a payment plan item
+         * @description Updates a scheduled item / cuota of a payment plan.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    itemId: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreatePaymentPlanItemDto"];
+                };
+            };
+            responses: {
+                /** @description Item updated successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaymentPlanItemDto"];
+                    };
+                };
+                /** @description Invalid item data */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Payment plan or item not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete a payment plan item
+         * @description Removes a scheduled item / cuota from a payment plan.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    itemId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Item deleted successfully */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Payment plan or item not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/selection-history": {
         parameters: {
             query?: never;
@@ -3658,6 +4085,46 @@ export interface components {
             confirmedEvents: components["schemas"]["FinanceEventDto"][];
             failedDraftIds: number[];
         };
+        /** @description DTO for creating or updating a Payment Plan */
+        CreatePaymentPlanDto: {
+            name: string;
+            description?: string;
+            planType: components["schemas"]["PaymentPlanType"];
+            /** Format: int32 */
+            totalInstallments?: number;
+            totalAmount?: number;
+            installmentAmount?: number;
+            frequency: components["schemas"]["RecurrenceFrequency"];
+            startDate: components["schemas"]["LocalDate"];
+            isAutomated?: boolean;
+            autoCreateDraft?: boolean;
+            /** @description When false, the plan is created without its scheduled items so they can be added manually. Defaults to true. */
+            generateItems?: boolean;
+            status?: components["schemas"]["PaymentPlanStatus"];
+            /** Format: int64 */
+            originNodeId?: number;
+            /** Format: int64 */
+            destinationNodeId?: number;
+            /** Format: int64 */
+            categoryId?: number;
+            tagIds?: number[];
+        };
+        /** @description DTO for creating or updating an individual payment plan item / cuota */
+        CreatePaymentPlanItemDto: {
+            /**
+             * Format: int32
+             * @description Installment number within the plan. Assigned automatically when omitted.
+             */
+            installmentNumber?: number;
+            expectedDate: components["schemas"]["LocalDate"];
+            expectedAmount?: number;
+            /** @description Defaults to PENDING when omitted. */
+            itemStatus?: components["schemas"]["PaymentPlanItemStatus"];
+            /** Format: int64 */
+            eventId?: number;
+            /** Format: int64 */
+            draftId?: number;
+        };
         DataTransferResult: {
             /** Format: int32 */
             importedTags?: number;
@@ -3918,6 +4385,11 @@ export interface components {
             amount?: number;
         };
         /**
+         * Format: date
+         * @example 2022-03-10
+         */
+        LocalDate: string;
+        /**
          * Format: date-time
          * @example 2022-03-10T12:15:50
          */
@@ -3965,6 +4437,55 @@ export interface components {
             transactionDate?: components["schemas"]["LocalDateTime"];
             lineItems?: components["schemas"]["LineItemDto"][];
         };
+        /** @description Data transfer object representing a Payment Plan */
+        PaymentPlanDto: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            description?: string;
+            planType: components["schemas"]["PaymentPlanType"];
+            status: components["schemas"]["PaymentPlanStatus"];
+            /** Format: int32 */
+            totalInstallments?: number;
+            totalAmount?: number;
+            installmentAmount?: number;
+            frequency: components["schemas"]["RecurrenceFrequency"];
+            startDate: components["schemas"]["LocalDate"];
+            nextDueDate?: components["schemas"]["LocalDate"];
+            isAutomated?: boolean;
+            autoCreateDraft?: boolean;
+            originNode?: components["schemas"]["FinanceNodeDto"];
+            destinationNode?: components["schemas"]["FinanceNodeDto"];
+            category?: components["schemas"]["CategoryDto"];
+            tags?: components["schemas"]["TagDto"][];
+            items?: components["schemas"]["PaymentPlanItemDto"][];
+            /** Format: int32 */
+            completedInstallments?: number;
+            paidAmount?: number;
+            remainingAmount?: number;
+        };
+        /** @description Data transfer object for a individual payment plan item / cuota */
+        PaymentPlanItemDto: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            paymentPlanId: number;
+            /** Format: int32 */
+            installmentNumber: number;
+            expectedDate: components["schemas"]["LocalDate"];
+            expectedAmount?: number;
+            /** Format: int64 */
+            eventId?: number;
+            /** Format: int64 */
+            draftId?: number;
+            itemStatus: components["schemas"]["PaymentPlanItemStatus"];
+        };
+        /** @enum {string} */
+        PaymentPlanItemStatus: "PENDING" | "DRAFTED" | "PAID" | "SKIPPED" | "OVERDUE";
+        /** @enum {string} */
+        PaymentPlanStatus: "ACTIVE" | "PAUSED" | "COMPLETED" | "CANCELLED";
+        /** @enum {string} */
+        PaymentPlanType: "RECURRING" | "INSTALLMENT" | "CUSTOM" | "GROUP";
         /** @description Payload to record a UI selection event */
         RecordSelectionDto: {
             /** @description Type of the entity being selected */
@@ -3976,7 +4497,7 @@ export interface components {
             entityId: number;
         };
         /** @enum {string} */
-        RecurrenceFrequency: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+        RecurrenceFrequency: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | "INSTANT";
         RelatedEventDto: {
             /** Format: int64 */
             id?: number;

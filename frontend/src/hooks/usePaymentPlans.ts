@@ -1,7 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { useAlert } from '@/contexts/AlertContext';
 import { paymentPlanKeys } from '@/lib/queryKeys';
+import { invalidateDomains } from '@/lib/cacheInvalidation';
 import { paymentPlansService } from '@/services/paymentPlans.service';
 import type { CreatePaymentPlanDto, CreatePaymentPlanItemDto } from '@/models';
+
+function usePaymentPlanMutationFeedback() {
+  const queryClient = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+
+  return {
+    onSuccess: () => {
+      invalidateDomains(queryClient, ['paymentPlans']);
+      alert.success(t('common.saved'));
+    },
+    onError: (error: unknown) => alert.error(error instanceof Error ? error.message : t('common.error')),
+  };
+}
 
 export function usePaymentPlans() {
   return useQuery({
@@ -19,36 +36,24 @@ export function usePaymentPlan(id: number) {
 }
 
 export function useCreatePaymentPlan() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (data: CreatePaymentPlanDto) => paymentPlansService.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: paymentPlanKeys.all });
-    },
+    ...usePaymentPlanMutationFeedback(),
   });
 }
 
 export function useCancelPaymentPlan() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (id: number) => paymentPlansService.cancel(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: paymentPlanKeys.all });
-    },
+    ...usePaymentPlanMutationFeedback(),
   });
 }
 
 export function useUpdatePaymentPlan() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({ id, dto }: { id: number; dto: CreatePaymentPlanDto }) =>
       paymentPlansService.update(id, dto),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: paymentPlanKeys.all });
-    },
+    ...usePaymentPlanMutationFeedback(),
   });
 }
 
@@ -61,35 +66,23 @@ export function usePaymentPlanItem(planId: number, itemId: number) {
 }
 
 export function useCreatePaymentPlanItem(planId: number) {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (dto: CreatePaymentPlanItemDto) => paymentPlansService.createItem(planId, dto),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: paymentPlanKeys.all });
-    },
+    ...usePaymentPlanMutationFeedback(),
   });
 }
 
 export function useUpdatePaymentPlanItem(planId: number) {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({ itemId, dto }: { itemId: number; dto: CreatePaymentPlanItemDto }) =>
       paymentPlansService.updateItem(planId, itemId, dto),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: paymentPlanKeys.all });
-    },
+    ...usePaymentPlanMutationFeedback(),
   });
 }
 
 export function useDeletePaymentPlanItem(planId: number) {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (itemId: number) => paymentPlansService.deleteItem(planId, itemId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: paymentPlanKeys.all });
-    },
+    ...usePaymentPlanMutationFeedback(),
   });
 }
