@@ -129,6 +129,18 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       }),
     },
 
+    listPaymentPlans: {
+      kind: 'READ',
+      ui: { invalidates: [], label: { en: 'Checking payment plans & cuotas...', es: 'Consultando planes de pago y cuotas...' } },
+      tool: tool({
+        description:
+          'List active and completed payment plans, subscriptions, and installment plans (cuotas). Use this to check installment progress (e.g. 3/12 cuotas), remaining balance, or recurring agreement status.',
+        inputSchema: z.object({}),
+        execute: () =>
+          safe(async () => unwrap(client.GET('/payment-plans'))),
+      }),
+    },
+
     // ===================== READ: events =====================
     searchEvents: {
       kind: 'READ',

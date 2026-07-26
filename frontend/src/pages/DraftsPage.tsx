@@ -3,7 +3,7 @@ import { normalizeText } from '@/lib/utils/textUtils';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
-import { Routes } from '@/lib/routes';
+import { Routes, draftRoute } from '@/lib/routes';
 import { useDebounce } from '@/hooks/useDebounce';
 import {
   useFinanceEventDrafts,
@@ -33,9 +33,6 @@ const getDraftSelectionId = (draft: FinanceEvent) => draft.draftId ?? draft.id;
 
 const isLinkedDraft = (draft: FinanceEvent) =>
   typeof draft.id === 'number' && draft.id > 0;
-
-const draftTargetRoute = (draft: FinanceEvent) =>
-  isLinkedDraft(draft) ? Routes.EVENT_EDIT(draft.id) : Routes.EVENT_NEW;
 
 
 export function DraftsPage() {
@@ -234,7 +231,7 @@ export function DraftsPage() {
   const renderDraftItem = (draft: FinanceEvent) => {
     const selectionId = getDraftSelectionId(draft);
     const isSelected = selectedDraftIds.has(selectionId);
-    const targetRoute = draftTargetRoute(draft);
+    const targetRoute = draftRoute(draft);
 
     const handleClick = (event: React.MouseEvent) => {
       if (longPressFiredRef.current) {

@@ -303,6 +303,7 @@ export interface DynamicTimePeriodBalance {
 }
 
 export * from './drafts';
+export * from './paymentPlan';
 
 // ─── Tag Group ────────────────────────────────────────────────────────────────
 

@@ -9,7 +9,7 @@ const navItems = [
   { to: Routes.EVENTS, labelKey: 'nav.activity', icon: 'pie_chart' },
   { to: Routes.CHAT, labelKey: 'nav.chat', icon: 'chat' },
   { to: Routes.PERIODS, labelKey: 'nav.periods', icon: 'calendar_month' },
-  { to: Routes.SUBSCRIPTIONS, labelKey: 'nav.subs', icon: 'repeat' },
+  { to: Routes.PAYMENT_PLANS, labelKey: 'nav.plans', icon: 'payments' },
   { to: Routes.SETTINGS, labelKey: 'nav.profile', icon: 'person' },
 ];
 

@@ -13,6 +13,7 @@ import {
   agentTaskKeys,
   subscriptionKeys,
   templateKeys,
+  paymentPlanKeys,
 } from '@/lib/queryKeys';
 
 export type CacheDomain =
@@ -28,7 +29,8 @@ export type CacheDomain =
   | 'aiMemory'
   | 'agentTasks'
   | 'subscriptions'
-  | 'templates';
+  | 'templates'
+  | 'paymentPlans';
 
 const domainRootKeys: Record<CacheDomain, readonly unknown[]> = {
   events: eventKeys.all,
@@ -44,6 +46,7 @@ const domainRootKeys: Record<CacheDomain, readonly unknown[]> = {
   agentTasks: agentTaskKeys.all,
   subscriptions: subscriptionKeys.all,
   templates: templateKeys.all,
+  paymentPlans: paymentPlanKeys.all,
 };
 
 export function invalidateDomains(
