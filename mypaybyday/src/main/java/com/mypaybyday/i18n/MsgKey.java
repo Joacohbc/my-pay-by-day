@@ -81,6 +81,20 @@ public enum MsgKey {
 	SUBSCRIPTION_RECURRENCE_REQUIRED("error.subscription.recurrence_required"),
 	SUBSCRIPTION_PROCESSING_FAILED("error.subscription.processing_failed"),
 
+	// ── PaymentPlanEntity ──────────────────────────────────────
+	PAYMENT_PLAN_NOT_FOUND("error.payment_plan.not_found"),
+	PAYMENT_PLAN_NAME_REQUIRED("error.payment_plan.name_required"),
+	PAYMENT_PLAN_START_DATE_REQUIRED("error.payment_plan.start_date_required"),
+	PAYMENT_PLAN_FREQUENCY_REQUIRED("error.payment_plan.frequency_required"),
+
+	// ── PaymentPlanItemEntity ──────────────────────────────────
+	PAYMENT_PLAN_ITEM_NOT_FOUND("error.payment_plan_item.not_found"),
+	PAYMENT_PLAN_ITEM_EXPECTED_DATE_REQUIRED("error.payment_plan_item.expected_date_required"),
+	PAYMENT_PLAN_ITEM_NUMBER_INVALID("error.payment_plan_item.number_invalid"),
+	PAYMENT_PLAN_ITEM_NUMBER_DUPLICATED("error.payment_plan_item.number_duplicated"),
+	PAYMENT_PLAN_ITEM_AMOUNT_INVALID("error.payment_plan_item.amount_invalid"),
+	PAYMENT_PLAN_ITEM_LINK_NOT_EXCLUSIVE("error.payment_plan_item.link_not_exclusive"),
+
 	// ── Event Draft ──────────────────────────────────────
 	DRAFT_NOT_FOUND("error.draft.not_found"),
 	DRAFT_INVALID_PAYLOAD("error.draft.invalid_payload"),

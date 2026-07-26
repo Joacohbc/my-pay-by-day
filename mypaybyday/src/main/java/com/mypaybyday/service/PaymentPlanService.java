@@ -1,0 +1,349 @@
+package com.mypaybyday.service;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mypaybyday.dto.CategoryDto;
+import com.mypaybyday.dto.CreatePaymentPlanDto;
+import com.mypaybyday.dto.CreatePaymentPlanItemDto;
+import com.mypaybyday.dto.FinanceEventDraftInputDto;
+import com.mypaybyday.dto.FinanceLineItemDto;
+import com.mypaybyday.dto.PaymentPlanDto;
+import com.mypaybyday.dto.PaymentPlanItemDto;
+
+import com.mypaybyday.entity.CategoryEntity;
+import com.mypaybyday.entity.DraftEntity;
+import com.mypaybyday.entity.FinanceNodeEntity;
+import com.mypaybyday.entity.PaymentPlanEntity;
+import com.mypaybyday.entity.PaymentPlanItemEntity;
+import com.mypaybyday.entity.TagEntity;
+import com.mypaybyday.enums.EntityType;
+import com.mypaybyday.enums.EventType;
+import com.mypaybyday.enums.PaymentPlanItemStatus;
+import com.mypaybyday.enums.PaymentPlanStatus;
+import com.mypaybyday.enums.PaymentPlanType;
+import com.mypaybyday.enums.RecurrenceFrequency;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
+import com.mypaybyday.repository.CategoryRepository;
+import com.mypaybyday.repository.EntityDraftRepository;
+import com.mypaybyday.repository.EventRepository;
+import com.mypaybyday.repository.FinanceNodeRepository;
+import com.mypaybyday.repository.PaymentPlanItemRepository;
+import com.mypaybyday.repository.PaymentPlanRepository;
+import com.mypaybyday.repository.TagRepository;
+import com.mypaybyday.validation.PaymentPlanItemValidator;
+import com.mypaybyday.validation.PaymentPlanValidator;
+import io.quarkus.logging.Log;
+
+@ApplicationScoped
+public class PaymentPlanService {
+
+	private final PaymentPlanRepository paymentPlanRepository;
+	private final PaymentPlanItemRepository paymentPlanItemRepository;
+	private final FinanceNodeRepository financeNodeRepository;
+	private final CategoryRepository categoryRepository;
+	private final TagRepository tagRepository;
+	private final EventRepository eventRepository;
+	private final EntityDraftRepository entityDraftRepository;
+	private final PaymentPlanValidator paymentPlanValidator;
+	private final PaymentPlanItemValidator paymentPlanItemValidator;
+	private final DraftService draftService;
+	private final Messages messages;
+
+	public PaymentPlanService(
+			PaymentPlanRepository paymentPlanRepository,
+			PaymentPlanItemRepository paymentPlanItemRepository,
+			FinanceNodeRepository financeNodeRepository,
+			CategoryRepository categoryRepository,
+			TagRepository tagRepository,
+			EventRepository eventRepository,
+			EntityDraftRepository entityDraftRepository,
+			PaymentPlanValidator paymentPlanValidator,
+			PaymentPlanItemValidator paymentPlanItemValidator,
+			DraftService draftService,
+			Messages messages) {
+		this.paymentPlanRepository = paymentPlanRepository;
+		this.paymentPlanItemRepository = paymentPlanItemRepository;
+		this.financeNodeRepository = financeNodeRepository;
+		this.categoryRepository = categoryRepository;
+		this.tagRepository = tagRepository;
+		this.eventRepository = eventRepository;
+		this.entityDraftRepository = entityDraftRepository;
+		this.paymentPlanValidator = paymentPlanValidator;
+		this.paymentPlanItemValidator = paymentPlanItemValidator;
+		this.draftService = draftService;
+		this.messages = messages;
+	}
+
+	@Transactional
+	public List<PaymentPlanDto> listAll() {
+		return paymentPlanRepository.listAll().stream().map(PaymentPlanDto::from).toList();
+	}
+
+	@Transactional
+	public PaymentPlanDto findById(Long id) throws BusinessException {
+		PaymentPlanEntity entity = findEntityById(id);
+		return PaymentPlanDto.from(entity);
+	}
+
+	@Transactional
+	public PaymentPlanDto create(CreatePaymentPlanDto dto) throws BusinessException {
+		PaymentPlanEntity entity = new PaymentPlanEntity();
+		entity.name = dto.name();
+		entity.description = dto.description();
+		entity.planType = dto.planType() != null ? dto.planType() : PaymentPlanType.RECURRING;
+		entity.status = PaymentPlanStatus.ACTIVE;
+		entity.totalInstallments = dto.totalInstallments();
+		entity.totalAmount = dto.totalAmount();
+		entity.installmentAmount = dto.installmentAmount();
+		entity.frequency = dto.frequency() != null ? dto.frequency() : RecurrenceFrequency.MONTHLY;
+		entity.startDate = dto.startDate() != null ? dto.startDate() : LocalDate.now();
+		entity.nextDueDate = entity.startDate;
+		entity.isAutomated = Boolean.TRUE.equals(dto.isAutomated());
+		entity.autoCreateDraft = dto.autoCreateDraft() == null || Boolean.TRUE.equals(dto.autoCreateDraft());
+
+		if (dto.originNodeId() != null) {
+			entity.originNode = financeNodeRepository.findById(dto.originNodeId());
+		}
+		if (dto.destinationNodeId() != null) {
+			entity.destinationNode = financeNodeRepository.findById(dto.destinationNodeId());
+		}
+		if (dto.categoryId() != null) {
+			entity.category = categoryRepository.findById(dto.categoryId());
+		}
+
+		if (dto.tagIds() != null && !dto.tagIds().isEmpty()) {
+			Set<TagEntity> tags = new HashSet<>();
+			for (Long tagId : dto.tagIds()) {
+				TagEntity tag = tagRepository.findById(tagId);
+				if (tag != null) tags.add(tag);
+			}
+			entity.tags = tags;
+		}
+
+		boolean shouldGenerateItems = dto.generateItems() == null || Boolean.TRUE.equals(dto.generateItems());
+		if (shouldGenerateItems && entity.totalInstallments != null && entity.totalInstallments > 0) {
+			preGenerateItems(entity);
+		}
+
+		paymentPlanValidator.validate(entity);
+		paymentPlanRepository.persist(entity);
+
+		Log.infof("Created payment plan id=%d name=%s type=%s", entity.id, entity.name, entity.planType);
+		return PaymentPlanDto.from(entity);
+	}
+
+	private void preGenerateItems(PaymentPlanEntity plan) {
+		LocalDate currentDueDate = plan.startDate;
+		for (int i = 1; i <= plan.totalInstallments; i++) {
+			PaymentPlanItemEntity item = new PaymentPlanItemEntity();
+			item.paymentPlan = plan;
+			item.installmentNumber = i;
+			item.expectedDate = currentDueDate;
+			item.expectedAmount = plan.installmentAmount;
+			item.itemStatus = PaymentPlanItemStatus.PENDING;
+			plan.items.add(item);
+
+			currentDueDate = calculateNextDate(currentDueDate, plan.frequency);
+		}
+	}
+
+	private LocalDate calculateNextDate(LocalDate date, RecurrenceFrequency frequency) {
+		if (frequency == null) return date.plusMonths(1);
+		return switch (frequency) {
+			case DAILY -> date.plusDays(1);
+			case WEEKLY -> date.plusWeeks(1);
+			case MONTHLY -> date.plusMonths(1);
+			case YEARLY -> date.plusYears(1);
+		};
+	}
+
+	@Transactional
+	public PaymentPlanDto cancel(Long id) throws BusinessException {
+		PaymentPlanEntity entity = findEntityById(id);
+		entity.status = PaymentPlanStatus.CANCELLED;
+		paymentPlanRepository.persist(entity);
+		Log.infof("Cancelled payment plan id=%d", id);
+		return PaymentPlanDto.from(entity);
+	}
+
+	@Transactional
+	public PaymentPlanDto update(Long id, CreatePaymentPlanDto dto) throws BusinessException {
+		PaymentPlanEntity entity = findEntityById(id);
+		entity.name = dto.name();
+		entity.description = dto.description();
+		entity.planType = dto.planType();
+		entity.frequency = dto.frequency();
+		entity.startDate = dto.startDate();
+		entity.isAutomated = dto.isAutomated() != null ? dto.isAutomated() : true;
+		entity.autoCreateDraft = dto.autoCreateDraft() != null ? dto.autoCreateDraft() : true;
+		if (dto.status() != null) {
+			entity.status = dto.status();
+		}
+		entity.installmentAmount = dto.installmentAmount();
+		entity.totalAmount = dto.totalAmount();
+		entity.totalInstallments = dto.totalInstallments();
+
+		if (dto.originNodeId() != null) {
+			entity.originNode = financeNodeRepository.findById(dto.originNodeId());
+		} else {
+			entity.originNode = null;
+		}
+
+		if (dto.destinationNodeId() != null) {
+			entity.destinationNode = financeNodeRepository.findById(dto.destinationNodeId());
+		} else {
+			entity.destinationNode = null;
+		}
+
+		if (dto.categoryId() != null) {
+			entity.category = categoryRepository.findById(dto.categoryId());
+		} else {
+			entity.category = null;
+		}
+
+		if (dto.tagIds() != null && !dto.tagIds().isEmpty()) {
+			entity.tags = new java.util.HashSet<>(tagRepository.list("id in ?1", dto.tagIds()));
+		} else {
+			entity.tags.clear();
+		}
+
+		paymentPlanValidator.validate(entity);
+		paymentPlanRepository.persist(entity);
+		Log.infof("Updated payment plan id=%d name=%s", entity.id, entity.name);
+		return PaymentPlanDto.from(entity);
+	}
+
+	@Transactional
+	public List<PaymentPlanItemDto> listItems(Long planId) throws BusinessException {
+		PaymentPlanEntity plan = findEntityById(planId);
+		return plan.items.stream()
+			.sorted((left, right) -> Integer.compare(left.installmentNumber, right.installmentNumber))
+			.map(PaymentPlanItemDto::from)
+			.toList();
+	}
+
+	@Transactional
+	public PaymentPlanItemDto findItemById(Long planId, Long itemId) throws BusinessException {
+		return PaymentPlanItemDto.from(findItemEntityById(planId, itemId));
+	}
+
+	@Transactional
+	public PaymentPlanItemDto createItem(Long planId, CreatePaymentPlanItemDto dto) throws BusinessException {
+		PaymentPlanEntity plan = findEntityById(planId);
+
+		PaymentPlanItemEntity item = new PaymentPlanItemEntity();
+		item.paymentPlan = plan;
+		item.installmentNumber = dto.installmentNumber() != null ? dto.installmentNumber() : nextInstallmentNumber(plan);
+		applyItemValues(item, dto, plan.installmentAmount);
+
+		paymentPlanItemValidator.validate(item);
+		plan.items.add(item);
+		paymentPlanItemRepository.persist(item);
+
+		Log.infof("Created payment plan item id=%d (cuota %d) for plan id=%d", item.id, item.installmentNumber, planId);
+		return PaymentPlanItemDto.from(item);
+	}
+
+	@Transactional
+	public PaymentPlanItemDto updateItem(Long planId, Long itemId, CreatePaymentPlanItemDto dto) throws BusinessException {
+		PaymentPlanItemEntity item = findItemEntityById(planId, itemId);
+
+		if (dto.installmentNumber() != null) {
+			item.installmentNumber = dto.installmentNumber();
+		}
+		applyItemValues(item, dto, item.expectedAmount);
+
+		paymentPlanItemValidator.validate(item);
+		paymentPlanItemRepository.persist(item);
+
+		Log.infof("Updated payment plan item id=%d for plan id=%d", itemId, planId);
+		return PaymentPlanItemDto.from(item);
+	}
+
+	@Transactional
+	public void deleteItem(Long planId, Long itemId) throws BusinessException {
+		PaymentPlanItemEntity item = findItemEntityById(planId, itemId);
+		item.paymentPlan.items.remove(item);
+		paymentPlanItemRepository.delete(item);
+		Log.infof("Deleted payment plan item id=%d for plan id=%d", itemId, planId);
+	}
+
+	private void applyItemValues(PaymentPlanItemEntity item, CreatePaymentPlanItemDto dto, BigDecimal fallbackAmount) {
+		item.expectedDate = dto.expectedDate();
+		item.expectedAmount = dto.expectedAmount() != null ? dto.expectedAmount() : fallbackAmount;
+		item.itemStatus = dto.itemStatus() != null ? dto.itemStatus() : PaymentPlanItemStatus.PENDING;
+		item.event = dto.eventId() != null ? eventRepository.findById(dto.eventId()) : null;
+		item.draft = dto.draftId() != null ? entityDraftRepository.findById(dto.draftId()) : null;
+	}
+
+	private int nextInstallmentNumber(PaymentPlanEntity plan) {
+		return plan.items.stream().mapToInt(item -> item.installmentNumber).max().orElse(0) + 1;
+	}
+
+	private PaymentPlanItemEntity findItemEntityById(Long planId, Long itemId) throws BusinessException {
+		PaymentPlanEntity plan = findEntityById(planId);
+		return plan.items.stream()
+			.filter(item -> item.id.equals(itemId))
+			.findFirst()
+			.orElseThrow(() -> messages.reject(MsgKey.PAYMENT_PLAN_ITEM_NOT_FOUND, itemId));
+	}
+
+	@Transactional
+	public void processDueItems() {
+		List<PaymentPlanItemEntity> dueItems = paymentPlanItemRepository.findDueItems(LocalDate.now());
+		for (PaymentPlanItemEntity item : dueItems) {
+			if (item.paymentPlan == null || !item.paymentPlan.isAutomated() || item.paymentPlan.status != PaymentPlanStatus.ACTIVE) {
+				continue;
+			}
+			try {
+				// Job's sole responsibility: Create a DraftEntity for the due item
+				List<FinanceLineItemDto> lineItems = List.of();
+				if (item.paymentPlan.originNode != null && item.paymentPlan.destinationNode != null && item.expectedAmount != null) {
+					lineItems = List.of(
+						new FinanceLineItemDto(item.paymentPlan.originNode.id, null, null, item.expectedAmount.negate()),
+						new FinanceLineItemDto(item.paymentPlan.destinationNode.id, null, null, item.expectedAmount)
+					);
+				}
+
+				String draftName = item.paymentPlan.name + " (" + item.installmentNumber + "/" + (item.paymentPlan.totalInstallments != null ? item.paymentPlan.totalInstallments : "∞") + ")";
+				FinanceEventDraftInputDto draftInput = new FinanceEventDraftInputDto(
+					null,
+					draftName,
+					item.paymentPlan.description,
+					EventType.OUTBOUND,
+					item.expectedDate.atStartOfDay(),
+					item.paymentPlan.category != null ? item.paymentPlan.category.id : null,
+					item.paymentPlan.tags != null ? item.paymentPlan.tags.stream().map(t -> t.id).toList() : List.of(),
+					lineItems
+				);
+
+				DraftEntity draft = draftService.createStandaloneFinanceEventDraft(draftInput);
+				item.draft = draft;
+				item.itemStatus = PaymentPlanItemStatus.DRAFTED;
+				paymentPlanItemRepository.persist(item);
+
+				Log.infof("Job created draft id=%d for payment plan item id=%d (cuota %d)", draft.id, item.id, item.installmentNumber);
+			} catch (Exception e) {
+				Log.errorf(e, "Failed to process due payment plan item id=%d", item.id);
+			}
+		}
+	}
+
+	private PaymentPlanEntity findEntityById(Long id) throws BusinessException {
+		PaymentPlanEntity entity = paymentPlanRepository.findById(id);
+		if (entity == null) {
+			throw messages.reject(MsgKey.PAYMENT_PLAN_NOT_FOUND, id);
+		}
+		return entity;
+	}
+}
