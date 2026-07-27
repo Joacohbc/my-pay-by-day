@@ -10,6 +10,7 @@ import { buildDelegateTools } from '@/tools/delegate.js';
 import { buildFinanceTools } from '@/tools/finance.js';
 import { buildInteractionTools } from '@/tools/interaction.js';
 import { buildMemoryTools } from '@/tools/memory.js';
+import { buildPaymentPlanTools } from '@/tools/paymentPlans.js';
 import type { KindedToolSet } from '@/tools/types.js';
 
 const OUTPUT_PATH = resolve(import.meta.dirname, '../../frontend/src/lib/chat/toolManifest.generated.ts');
@@ -20,6 +21,7 @@ function collectAllTools(): KindedToolSet {
   return {
     ...buildDateTools(stubContext),
     ...buildFinanceTools(stubContext),
+    ...buildPaymentPlanTools(stubContext),
     ...buildMemoryTools(),
     ...buildConversationTools(stubContext),
     ...buildCalculatorTools(),

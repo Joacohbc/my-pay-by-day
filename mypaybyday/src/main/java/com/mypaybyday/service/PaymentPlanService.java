@@ -191,6 +191,16 @@ public class PaymentPlanService {
 	}
 
 	@Transactional
+	public void delete(Long id) throws BusinessException {
+		PaymentPlanEntity entity = findEntityById(id);
+		if (entity.status != PaymentPlanStatus.CANCELLED) {
+			throw messages.reject(MsgKey.PAYMENT_PLAN_NOT_CANCELLED_FOR_DELETE);
+		}
+		paymentPlanRepository.delete(entity);
+		Log.infof("Deleted payment plan id=%d", id);
+	}
+
+	@Transactional
 	public PaymentPlanDto update(Long id, CreatePaymentPlanDto dto) throws BusinessException {
 		PaymentPlanEntity entity = findEntityById(id);
 		entity.name = dto.name();

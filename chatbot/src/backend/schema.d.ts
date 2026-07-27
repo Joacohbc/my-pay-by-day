@@ -2041,7 +2041,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["PaymentPlanDto"];
+                        "application/json": components["schemas"]["PaymentPlanDto"][];
                     };
                 };
             };
@@ -2172,8 +2172,40 @@ export interface paths {
                 };
             };
         };
-        post?: never;
-        delete?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Payment plan deleted successfully */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Payment plan is not cancelled */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Payment plan not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -2255,7 +2287,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["PaymentPlanItemDto"];
+                        "application/json": components["schemas"]["PaymentPlanItemDto"][];
                     };
                 };
                 /** @description Payment plan not found */

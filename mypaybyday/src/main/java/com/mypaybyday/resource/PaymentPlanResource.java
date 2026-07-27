@@ -12,7 +12,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.CreatePaymentPlanDto;
 import com.mypaybyday.dto.CreatePaymentPlanItemDto;
@@ -20,12 +19,13 @@ import com.mypaybyday.dto.PaymentPlanDto;
 import com.mypaybyday.dto.PaymentPlanItemDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.PaymentPlanService;
+import io.quarkus.logging.Log;
 import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.eclipse.microprofile.openapi.annotations.media.Content;
-import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponseSchema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.jboss.resteasy.reactive.ResponseStatus;
 
 @Path("/payment-plans")
 @Produces(MediaType.APPLICATION_JSON)
@@ -42,40 +42,34 @@ public class PaymentPlanResource {
 
 	@GET
 	@Operation(summary = "List all payment plans", description = "Retrieves a list of all active, completed, or paused payment plans.")
-	@APIResponses({
-		@APIResponse(responseCode = "200", description = "List of payment plans retrieved successfully", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PaymentPlanDto.class)))
-	})
-	public Response listAll() {
-		List<PaymentPlanDto> plans = paymentPlanService.listAll();
-		return Response.ok(plans).build();
+	@APIResponse(responseCode = "200", description = "List of payment plans retrieved successfully")
+	public List<PaymentPlanDto> listAll() {
+		return paymentPlanService.listAll();
 	}
 
 	@GET
 	@Path("/{id}")
 	@Operation(summary = "Get a payment plan by ID", description = "Retrieves details of a specific payment plan including pre-generated items.")
 	@APIResponses({
-		@APIResponse(responseCode = "200", description = "Payment plan found", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PaymentPlanDto.class))),
+		@APIResponse(responseCode = "200", description = "Payment plan found"),
 		@APIResponse(responseCode = "404", description = "Payment plan not found")
 	})
-	public Response findById(@PathParam("id") Long id) throws BusinessException {
-		PaymentPlanDto plan = paymentPlanService.findById(id);
-		return Response.ok(plan).build();
+	public PaymentPlanDto findById(@PathParam("id") Long id) throws BusinessException {
+		return paymentPlanService.findById(id);
 	}
 
 	@POST
 	@Operation(summary = "Create a new payment plan", description = "Creates a new payment plan and pre-generates its scheduled items.")
-	@APIResponses({
-		@APIResponse(responseCode = "201", description = "Payment plan created successfully", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PaymentPlanDto.class))),
-		@APIResponse(responseCode = "400", description = "Invalid payment plan data")
-	})
-	public Response create(CreatePaymentPlanDto dto) throws BusinessException {
+	@APIResponseSchema(value = PaymentPlanDto.class, responseCode = "201", responseDescription = "Payment plan created successfully")
+	@APIResponse(responseCode = "400", description = "Invalid payment plan data")
+	@ResponseStatus(201)
+	public PaymentPlanDto create(CreatePaymentPlanDto dto) throws BusinessException {
 		try {
-			PaymentPlanDto created = paymentPlanService.create(dto);
-			return Response.status(Response.Status.CREATED).entity(created).build();
+			return paymentPlanService.create(dto);
 		} catch (BusinessException e) {
 			throw e;
 		} catch (Exception e) {
-			io.quarkus.logging.Log.error("Error creating payment plan", e);
+			Log.error("Error creating payment plan", e);
 			throw new RuntimeException(e);
 		}
 	}
@@ -84,75 +78,82 @@ public class PaymentPlanResource {
 	@Path("/{id}/cancel")
 	@Operation(summary = "Cancel a payment plan", description = "Marks a payment plan as cancelled.")
 	@APIResponses({
-		@APIResponse(responseCode = "200", description = "Payment plan cancelled successfully", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PaymentPlanDto.class))),
+		@APIResponse(responseCode = "200", description = "Payment plan cancelled successfully"),
 		@APIResponse(responseCode = "404", description = "Payment plan not found")
 	})
-	public Response cancel(@PathParam("id") Long id) throws BusinessException {
-		PaymentPlanDto cancelled = paymentPlanService.cancel(id);
-		return Response.ok(cancelled).build();
+	public PaymentPlanDto cancel(@PathParam("id") Long id) throws BusinessException {
+		return paymentPlanService.cancel(id);
+	}
+
+	@DELETE
+	@Path("/{id}")
+	@Operation(summary = "Delete a payment plan", description = "Deletes a payment plan. Only allowed if status is CANCELLED.")
+	@APIResponses({
+		@APIResponse(responseCode = "204", description = "Payment plan deleted successfully"),
+		@APIResponse(responseCode = "400", description = "Payment plan is not cancelled"),
+		@APIResponse(responseCode = "404", description = "Payment plan not found")
+	})
+	public void delete(@PathParam("id") Long id) throws BusinessException {
+		paymentPlanService.delete(id);
 	}
 
 	@PUT
 	@Path("/{id}")
 	@Operation(summary = "Update a payment plan", description = "Updates details of an existing payment plan.")
 	@APIResponses({
-		@APIResponse(responseCode = "200", description = "Payment plan updated successfully", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PaymentPlanDto.class))),
+		@APIResponse(responseCode = "200", description = "Payment plan updated successfully"),
 		@APIResponse(responseCode = "404", description = "Payment plan not found")
 	})
-	public Response update(@PathParam("id") Long id, CreatePaymentPlanDto dto) throws BusinessException {
-		PaymentPlanDto updated = paymentPlanService.update(id, dto);
-		return Response.ok(updated).build();
+	public PaymentPlanDto update(@PathParam("id") Long id, CreatePaymentPlanDto dto) throws BusinessException {
+		return paymentPlanService.update(id, dto);
 	}
 
 	@GET
 	@Path("/{id}/items")
 	@Operation(summary = "List the items of a payment plan", description = "Retrieves every scheduled item / cuota of a payment plan, ordered by installment number.")
 	@APIResponses({
-		@APIResponse(responseCode = "200", description = "Items retrieved successfully", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PaymentPlanItemDto.class))),
+		@APIResponse(responseCode = "200", description = "Items retrieved successfully"),
 		@APIResponse(responseCode = "404", description = "Payment plan not found")
 	})
-	public Response listItems(@PathParam("id") Long id) throws BusinessException {
-		List<PaymentPlanItemDto> items = paymentPlanService.listItems(id);
-		return Response.ok(items).build();
+	public List<PaymentPlanItemDto> listItems(@PathParam("id") Long id) throws BusinessException {
+		return paymentPlanService.listItems(id);
 	}
 
 	@GET
 	@Path("/{id}/items/{itemId}")
 	@Operation(summary = "Get a payment plan item by ID", description = "Retrieves a single scheduled item / cuota of a payment plan.")
 	@APIResponses({
-		@APIResponse(responseCode = "200", description = "Item found", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PaymentPlanItemDto.class))),
+		@APIResponse(responseCode = "200", description = "Item found"),
 		@APIResponse(responseCode = "404", description = "Payment plan or item not found")
 	})
-	public Response findItemById(@PathParam("id") Long id, @PathParam("itemId") Long itemId) throws BusinessException {
-		PaymentPlanItemDto item = paymentPlanService.findItemById(id, itemId);
-		return Response.ok(item).build();
+	public PaymentPlanItemDto findItemById(@PathParam("id") Long id, @PathParam("itemId") Long itemId) throws BusinessException {
+		return paymentPlanService.findItemById(id, itemId);
 	}
 
 	@POST
 	@Path("/{id}/items")
 	@Operation(summary = "Create a payment plan item", description = "Adds a scheduled item / cuota to a payment plan. The installment number is assigned automatically when omitted.")
+	@APIResponseSchema(value = PaymentPlanItemDto.class, responseCode = "201", responseDescription = "Item created successfully")
 	@APIResponses({
-		@APIResponse(responseCode = "201", description = "Item created successfully", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PaymentPlanItemDto.class))),
 		@APIResponse(responseCode = "400", description = "Invalid item data"),
 		@APIResponse(responseCode = "404", description = "Payment plan not found")
 	})
-	public Response createItem(@PathParam("id") Long id, CreatePaymentPlanItemDto dto) throws BusinessException {
-		PaymentPlanItemDto created = paymentPlanService.createItem(id, dto);
-		return Response.status(Response.Status.CREATED).entity(created).build();
+	@ResponseStatus(201)
+	public PaymentPlanItemDto createItem(@PathParam("id") Long id, CreatePaymentPlanItemDto dto) throws BusinessException {
+		return paymentPlanService.createItem(id, dto);
 	}
 
 	@PUT
 	@Path("/{id}/items/{itemId}")
 	@Operation(summary = "Update a payment plan item", description = "Updates a scheduled item / cuota of a payment plan.")
 	@APIResponses({
-		@APIResponse(responseCode = "200", description = "Item updated successfully", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PaymentPlanItemDto.class))),
+		@APIResponse(responseCode = "200", description = "Item updated successfully"),
 		@APIResponse(responseCode = "400", description = "Invalid item data"),
 		@APIResponse(responseCode = "404", description = "Payment plan or item not found")
 	})
-	public Response updateItem(@PathParam("id") Long id, @PathParam("itemId") Long itemId, CreatePaymentPlanItemDto dto)
+	public PaymentPlanItemDto updateItem(@PathParam("id") Long id, @PathParam("itemId") Long itemId, CreatePaymentPlanItemDto dto)
 			throws BusinessException {
-		PaymentPlanItemDto updated = paymentPlanService.updateItem(id, itemId, dto);
-		return Response.ok(updated).build();
+		return paymentPlanService.updateItem(id, itemId, dto);
 	}
 
 	@DELETE
@@ -162,8 +163,7 @@ public class PaymentPlanResource {
 		@APIResponse(responseCode = "204", description = "Item deleted successfully"),
 		@APIResponse(responseCode = "404", description = "Payment plan or item not found")
 	})
-	public Response deleteItem(@PathParam("id") Long id, @PathParam("itemId") Long itemId) throws BusinessException {
+	public void deleteItem(@PathParam("id") Long id, @PathParam("itemId") Long itemId) throws BusinessException {
 		paymentPlanService.deleteItem(id, itemId);
-		return Response.noContent().build();
 	}
 }

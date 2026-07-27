@@ -489,6 +489,9 @@ const en = {
     nextDueDateLabel: 'Next Due Date',
     nodesLabel: 'Nodes',
     cancelPlan: 'Cancel Plan',
+    deletePlan: 'Delete Plan',
+    deleteConfirm: 'Are you sure you want to delete this payment plan? This action cannot be undone.',
+    deleteOnlyCancelled: 'Only cancelled payment plans can be deleted.',
     activate: 'Activate',
     schedule: 'Schedule',
     types: {

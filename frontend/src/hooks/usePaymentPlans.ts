@@ -49,6 +49,13 @@ export function useCancelPaymentPlan() {
   });
 }
 
+export function useDeletePaymentPlan() {
+  return useMutation({
+    mutationFn: (id: number) => paymentPlansService.delete(id),
+    ...usePaymentPlanMutationFeedback(),
+  });
+}
+
 export function useUpdatePaymentPlan() {
   return useMutation({
     mutationFn: ({ id, dto }: { id: number; dto: CreatePaymentPlanDto }) =>

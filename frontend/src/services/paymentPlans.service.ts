@@ -7,6 +7,7 @@ export const paymentPlansService = {
   create: (data: CreatePaymentPlanDto): Promise<PaymentPlan> => api.post<PaymentPlan>('/payment-plans', data),
   update: (id: number, data: CreatePaymentPlanDto): Promise<PaymentPlan> => api.put<PaymentPlan>(`/payment-plans/${id}`, data),
   cancel: (id: number): Promise<PaymentPlan> => api.post<PaymentPlan>(`/payment-plans/${id}/cancel`),
+  delete: (id: number): Promise<void> => api.delete<void>(`/payment-plans/${id}`),
 
   listItems: (planId: number): Promise<PaymentPlanItem[]> =>
     api.get<PaymentPlanItem[]>(`/payment-plans/${planId}/items`),

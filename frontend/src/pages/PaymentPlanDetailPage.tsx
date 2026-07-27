@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { usePaymentPlan, usePaymentPlans, useCancelPaymentPlan, useUpdatePaymentPlan } from '@/hooks/usePaymentPlans';
+import { usePaymentPlan, usePaymentPlans, useCancelPaymentPlan, useDeletePaymentPlan, useUpdatePaymentPlan } from '@/hooks/usePaymentPlans';
 import { useFinanceEventDrafts } from '@/hooks/useDrafts';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { Routes, draftRoute } from '@/lib/routes';
@@ -58,8 +58,10 @@ export function PaymentPlanDetailPage() {
   );
 
   const cancelPlan = useCancelPaymentPlan();
+  const deletePlan = useDeletePaymentPlan();
   const updatePlan = useUpdatePaymentPlan();
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   if (isDetailLoading && !plan) return <FullPageSpinner />;
   if (!plan) return <ErrorState message={t('paymentPlans.noPlans')} />;
@@ -67,12 +69,19 @@ export function PaymentPlanDetailPage() {
   const isInstallment = plan.planType === 'INSTALLMENT';
   const isGroup = isGroupPlan(plan.planType);
   const isActive = plan.status === 'ACTIVE';
+  const isCancelled = plan.status === 'CANCELLED';
   const groupedEventsCount = (plan.items ?? []).filter((item) => item.eventId != null).length;
   const canComposeItems = isUserComposedPlan(plan.planType);
 
   const confirmCancel = async () => {
     await cancelPlan.mutateAsync(plan.id);
-    setIsConfirmOpen(false);
+    setIsCancelConfirmOpen(false);
+    goBack();
+  };
+
+  const confirmDelete = async () => {
+    await deletePlan.mutateAsync(plan.id);
+    setIsDeleteConfirmOpen(false);
     goBack();
   };
 
@@ -96,14 +105,25 @@ export function PaymentPlanDetailPage() {
   return (
     <div className="space-y-5">
       <ConfirmModal
-        open={isConfirmOpen}
-        onClose={() => setIsConfirmOpen(false)}
+        open={isCancelConfirmOpen}
+        onClose={() => setIsCancelConfirmOpen(false)}
         onConfirm={confirmCancel}
         title={t('paymentPlans.cancelPlan')}
         message={t('paymentPlans.cancelConfirm')}
         confirmLabel={t('paymentPlans.cancelPlan')}
         variant="danger"
         loading={cancelPlan.isPending}
+      />
+
+      <ConfirmModal
+        open={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title={t('paymentPlans.deletePlan')}
+        message={t('paymentPlans.deleteConfirm')}
+        confirmLabel={t('paymentPlans.deletePlan')}
+        variant="danger"
+        loading={deletePlan.isPending}
       />
 
       <Modal open={!!itemId} onClose={closeItemModal} title={itemModalTitle}>
@@ -124,28 +144,41 @@ export function PaymentPlanDetailPage() {
         back={goBack}
         action={
           <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              title={isActive ? t('common.pause') : t('paymentPlans.activate')}
-              onClick={toggleStatus}
-              loading={updatePlan.isPending}
-            >
-              <Icon name={isActive ? 'pause' : 'play_arrow'} className="text-base" />
-            </Button>
+            {!isCancelled && (
+              <Button
+                variant="secondary"
+                size="sm"
+                title={isActive ? t('common.pause') : t('paymentPlans.activate')}
+                onClick={toggleStatus}
+                loading={updatePlan.isPending}
+              >
+                <Icon name={isActive ? 'pause' : 'play_arrow'} className="text-base" />
+              </Button>
+            )}
             <Link to={Routes.PAYMENT_PLAN_EDIT(plan.id)} state={linkStateFromHere()}>
               <Button variant="secondary" size="sm" title={t('common.edit')}>
                 <Icon name="edit" className="text-base" />
               </Button>
             </Link>
-            <Button
-              variant="danger"
-              size="sm"
-              title={t('paymentPlans.cancelPlan')}
-              onClick={() => setIsConfirmOpen(true)}
-            >
-              <Icon name="delete" className="text-base" />
-            </Button>
+            {isCancelled ? (
+              <Button
+                variant="danger"
+                size="sm"
+                title={t('paymentPlans.deletePlan')}
+                onClick={() => setIsDeleteConfirmOpen(true)}
+              >
+                <Icon name="delete" className="text-base" />
+              </Button>
+            ) : (
+              <Button
+                variant="danger"
+                size="sm"
+                title={t('paymentPlans.cancelPlan')}
+                onClick={() => setIsCancelConfirmOpen(true)}
+              >
+                <Icon name="block" className="text-base" />
+              </Button>
+            )}
           </div>
         }
       />

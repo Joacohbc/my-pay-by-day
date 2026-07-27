@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { EVENT_TYPES } from '@/backend/enums.js';
+import {
+  EVENT_TYPES,
+  PAYMENT_PLAN_ITEM_STATUSES,
+  PAYMENT_PLAN_STATUSES,
+  RECURRENCE_FREQUENCIES,
+  SCHEDULABLE_FREQUENCIES,
+} from '@/backend/enums.js';
 
 export type BotEventType = (typeof EVENT_TYPES)[number];
 
@@ -133,3 +139,80 @@ export const botEventFilterSchema = z.object({
 
 export type BotEventPatch = z.infer<typeof botEventPatchSchema>;
 export type BotDraftPatch = z.infer<typeof botDraftPatchSchema>;
+
+/**
+ * The three payment plans the bot may create, one schema each. Splitting them by use case is
+ * deliberate: a single schema with a planType discriminator let the model mix fields that don't
+ * belong together (a cadence on a one-off group, a group with no events) and made the required
+ * fields of each case unenforceable. CUSTOM is intentionally absent — it exists for schedules the
+ * user hand-builds in the UI, and the bot has no way to know that shape.
+ */
+export const botEventGroupInputSchema = z.object({
+  name: z.string().describe('What the group is: "Bariloche trip", "Ana\'s birthday".'),
+  description: z.string().nullish(),
+  date: z.string().describe('YYYY-MM-DD in the user timezone. The day the group covers.'),
+  eventIds: numericIdArray.nullish().describe('Existing events to bundle into the group right away.'),
+  draftIds: numericIdArray.nullish().describe('Existing drafts to bundle into the group right away.'),
+  categoryId: numericId.nullish(),
+  tagIds: numericIdArray.nullish(),
+});
+
+export const botInstallmentPlanInputSchema = z.object({
+  name: z.string().describe('What was bought: "Fridge in 12 cuotas".'),
+  description: z.string().nullish(),
+  startDate: z.string().describe('YYYY-MM-DD of the first cuota, in the user timezone.'),
+  totalInstallments: numericId.describe('How many cuotas in total. The backend pre-generates one item each.'),
+  installmentAmount: z.number().describe('Amount of a single cuota.'),
+  totalAmount: z.number().nullish().describe('Full price. Used to report the remaining balance.'),
+  frequency: z.enum(SCHEDULABLE_FREQUENCIES).default('MONTHLY').describe('How often a cuota falls due.'),
+  categoryId: numericId.nullish(),
+  tagIds: numericIdArray.nullish(),
+  originNodeId: numericId.nullish(),
+  destinationNodeId: numericId.nullish(),
+});
+
+export const botRecurringPlanInputSchema = z.object({
+  name: z.string().describe('The recurring agreement: "Netflix", "Rent".'),
+  description: z.string().nullish(),
+  startDate: z.string().describe('YYYY-MM-DD of the first charge, in the user timezone.'),
+  frequency: z.enum(SCHEDULABLE_FREQUENCIES).default('MONTHLY').describe('How often it is charged.'),
+  installmentAmount: z.number().nullish().describe('Amount charged each cycle.'),
+  isAutomated: lenientBoolean
+    .nullish()
+    .describe('When true the backend generates the event on each cycle by itself.'),
+  categoryId: numericId.nullish(),
+  tagIds: numericIdArray.nullish(),
+  originNodeId: numericId.nullish(),
+  destinationNodeId: numericId.nullish(),
+});
+
+/** Partial edit of an existing payment plan. Omitted fields keep their current value. */
+export const botPaymentPlanPatchSchema = z.object({
+  planId: numericId,
+  name: z.string().nullish(),
+  description: z.string().nullish(),
+  status: z.enum(PAYMENT_PLAN_STATUSES).nullish(),
+  startDate: z.string().nullish(),
+  frequency: z.enum(RECURRENCE_FREQUENCIES).nullish(),
+  totalInstallments: numericId.nullish(),
+  totalAmount: z.number().nullish(),
+  installmentAmount: z.number().nullish(),
+  isAutomated: lenientBoolean.nullish(),
+  categoryId: numericId.nullish(),
+  tagIds: numericIdArray.nullish(),
+  originNodeId: numericId.nullish(),
+  destinationNodeId: numericId.nullish(),
+});
+
+/** Partial edit of a plan item. Links are changed with addToPaymentPlan / removeFromPaymentPlan instead. */
+export const botPaymentPlanItemPatchSchema = z.object({
+  planId: numericId,
+  itemId: numericId,
+  expectedDate: z.string().nullish(),
+  expectedAmount: z.number().nullish(),
+  installmentNumber: numericId.nullish(),
+  itemStatus: z.enum(PAYMENT_PLAN_ITEM_STATUSES).nullish(),
+});
+
+export type BotPaymentPlanPatch = z.infer<typeof botPaymentPlanPatchSchema>;
+export type BotPaymentPlanItemPatch = z.infer<typeof botPaymentPlanItemPatchSchema>;

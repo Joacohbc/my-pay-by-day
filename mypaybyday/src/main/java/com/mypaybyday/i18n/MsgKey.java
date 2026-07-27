@@ -86,6 +86,7 @@ public enum MsgKey {
 	PAYMENT_PLAN_NAME_REQUIRED("error.payment_plan.name_required"),
 	PAYMENT_PLAN_START_DATE_REQUIRED("error.payment_plan.start_date_required"),
 	PAYMENT_PLAN_FREQUENCY_REQUIRED("error.payment_plan.frequency_required"),
+	PAYMENT_PLAN_NOT_CANCELLED_FOR_DELETE("error.payment_plan.not_cancelled_for_delete"),
 
 	// ── PaymentPlanItemEntity ──────────────────────────────────
 	PAYMENT_PLAN_ITEM_NOT_FOUND("error.payment_plan_item.not_found"),

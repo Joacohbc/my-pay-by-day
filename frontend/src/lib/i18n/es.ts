@@ -488,6 +488,9 @@ const es = {
     nextDueDateLabel: 'Próximo Vencimiento',
     nodesLabel: 'Nodos',
     cancelPlan: 'Cancelar Plan',
+    deletePlan: 'Eliminar Plan',
+    deleteConfirm: '¿Estás seguro de que deseas eliminar este plan de pago? Esta acción no se puede deshacer.',
+    deleteOnlyCancelled: 'Solo los planes de pago cancelados se pueden eliminar.',
     activate: 'Activar',
     schedule: 'Cronograma',
     types: {
