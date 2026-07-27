@@ -15,7 +15,12 @@ export type BotEventType = (typeof EVENT_TYPES)[number];
  * model into a retry loop that burns its step budget on the same mistake. These coerce the common
  * stringified shapes back into the expected type before validation.
  */
-const numericId = z.preprocess((value) => (typeof value === 'string' && value.trim() !== '' ? Number(value) : value), z.number());
+export const lenientNumber = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() !== '' ? Number(value) : value),
+  z.number(),
+);
+
+export const NumericId = lenientNumber;
 
 /** Coerces a JSON-stringified array (e.g. "[4, 41]" or '["a", "b"]') back into a real array before validating it. */
 export function stringifiedArray<T extends z.ZodTypeAny>(arraySchema: T) {
@@ -29,7 +34,7 @@ export function stringifiedArray<T extends z.ZodTypeAny>(arraySchema: T) {
   }, arraySchema);
 }
 
-const numericIdArray = stringifiedArray(z.array(numericId));
+const NumericIdArray = stringifiedArray(z.array(NumericId));
 
 /** Coerces stringified booleans (including Python-style "True"/"False") back into real booleans. */
 export const lenientBoolean = z.preprocess((value) => {
@@ -42,8 +47,8 @@ export const lenientBoolean = z.preprocess((value) => {
 /** One movement in a transaction: positive amount = inflow to the node, negative = outflow. A transaction is a
  * list of these (2 for a simple purchase, 3+ for a split bill or multi-party settlement) that must sum to zero. */
 export const botLineItemSchema = z.object({
-  nodeId: z.number().nullable(),
-  amount: z.number(),
+  nodeId: NumericId.nullable(),
+  amount: lenientNumber,
 });
 export type BotLineItem = z.infer<typeof botLineItemSchema>;
 const botLineItemsField = z
@@ -93,33 +98,33 @@ export const botEventInputSchema = z.object({
   description: z.string().nullish(),
   type: z.enum(EVENT_TYPES).default('OUTBOUND'),
   lineItems: botLineItemsField,
-  categoryId: numericId.nullish(),
-  tagIds: numericIdArray.nullish(),
+  categoryId: NumericId.nullish(),
+  tagIds: NumericIdArray.nullish(),
   date: z.string().nullish().describe('YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss in the user timezone.'),
 });
 
 /** Partial edit of an existing event. Every field except `eventId` is optional. */
 export const botEventPatchSchema = z.object({
-  eventId: z.number(),
+  eventId: NumericId,
   name: z.string().nullish(),
   description: z.string().nullish(),
   type: z.enum(EVENT_TYPES).nullish(),
   lineItems: botLineItemsField.nullish(),
-  categoryId: numericId.nullish(),
-  tagIds: numericIdArray.nullish(),
+  categoryId: NumericId.nullish(),
+  tagIds: NumericIdArray.nullish(),
   date: z.string().nullish(),
 });
 
 /** Partial edit of an existing draft. Every field except `draftId` is optional; omitted fields are preserved. */
 export const botDraftPatchSchema = z.object({
-  draftId: z.number(),
-  targetEventId: z.number().nullish(),
+  draftId: NumericId,
+  targetEventId: NumericId.nullish(),
   name: z.string().nullish(),
   description: z.string().nullish(),
   type: z.enum(EVENT_TYPES).nullish(),
   lineItems: botLineItemsField.nullish(),
-  categoryId: numericId.nullish(),
-  tagIds: numericIdArray.nullish(),
+  categoryId: NumericId.nullish(),
+  tagIds: NumericIdArray.nullish(),
   date: z.string().nullish(),
 });
 
@@ -128,13 +133,13 @@ export const botEventFilterSchema = z.object({
   startDate: z.string().nullish(),
   endDate: z.string().nullish(),
   type: z.enum(EVENT_TYPES).nullish(),
-  categoryId: numericId.nullish(),
-  tagId: numericId.nullish(),
-  nodeId: numericId.nullish(),
-  minAmount: z.number().nullish(),
-  maxAmount: z.number().nullish(),
-  limit: z.number().min(1).max(50).default(50),
-  page: z.number().min(0).default(0),
+  categoryId: NumericId.nullish(),
+  tagId: NumericId.nullish(),
+  nodeId: NumericId.nullish(),
+  minAmount: lenientNumber.nullish(),
+  maxAmount: lenientNumber.nullish(),
+  limit: z.preprocess((v) => (typeof v === 'string' && v.trim() !== '' ? Number(v) : v), z.number().min(1).max(50).default(50)),
+  page: z.preprocess((v) => (typeof v === 'string' && v.trim() !== '' ? Number(v) : v), z.number().min(0).default(0)),
 });
 
 export type BotEventPatch = z.infer<typeof botEventPatchSchema>;
@@ -151,24 +156,24 @@ export const botEventGroupInputSchema = z.object({
   name: z.string().describe('What the group is: "Bariloche trip", "Ana\'s birthday".'),
   description: z.string().nullish(),
   date: z.string().describe('YYYY-MM-DD in the user timezone. The day the group covers.'),
-  eventIds: numericIdArray.nullish().describe('Existing events to bundle into the group right away.'),
-  draftIds: numericIdArray.nullish().describe('Existing drafts to bundle into the group right away.'),
-  categoryId: numericId.nullish(),
-  tagIds: numericIdArray.nullish(),
+  eventIds: NumericIdArray.nullish().describe('Existing events to bundle into the group right away.'),
+  draftIds: NumericIdArray.nullish().describe('Existing drafts to bundle into the group right away.'),
+  categoryId: NumericId.nullish(),
+  tagIds: NumericIdArray.nullish(),
 });
 
 export const botInstallmentPlanInputSchema = z.object({
   name: z.string().describe('What was bought: "Fridge in 12 cuotas".'),
   description: z.string().nullish(),
   startDate: z.string().describe('YYYY-MM-DD of the first cuota, in the user timezone.'),
-  totalInstallments: numericId.describe('How many cuotas in total. The backend pre-generates one item each.'),
-  installmentAmount: z.number().describe('Amount of a single cuota.'),
-  totalAmount: z.number().nullish().describe('Full price. Used to report the remaining balance.'),
+  totalInstallments: NumericId.describe('How many cuotas in total. The backend pre-generates one item each.'),
+  installmentAmount: lenientNumber.describe('Amount of a single cuota.'),
+  totalAmount: lenientNumber.nullish().describe('Full price. Used to report the remaining balance.'),
   frequency: z.enum(SCHEDULABLE_FREQUENCIES).default('MONTHLY').describe('How often a cuota falls due.'),
-  categoryId: numericId.nullish(),
-  tagIds: numericIdArray.nullish(),
-  originNodeId: numericId.nullish(),
-  destinationNodeId: numericId.nullish(),
+  categoryId: NumericId.nullish(),
+  tagIds: NumericIdArray.nullish(),
+  originNodeId: NumericId.nullish(),
+  destinationNodeId: NumericId.nullish(),
 });
 
 export const botRecurringPlanInputSchema = z.object({
@@ -176,41 +181,41 @@ export const botRecurringPlanInputSchema = z.object({
   description: z.string().nullish(),
   startDate: z.string().describe('YYYY-MM-DD of the first charge, in the user timezone.'),
   frequency: z.enum(SCHEDULABLE_FREQUENCIES).default('MONTHLY').describe('How often it is charged.'),
-  installmentAmount: z.number().nullish().describe('Amount charged each cycle.'),
+  installmentAmount: lenientNumber.nullish().describe('Amount charged each cycle.'),
   isAutomated: lenientBoolean
     .nullish()
     .describe('When true the backend generates the event on each cycle by itself.'),
-  categoryId: numericId.nullish(),
-  tagIds: numericIdArray.nullish(),
-  originNodeId: numericId.nullish(),
-  destinationNodeId: numericId.nullish(),
+  categoryId: NumericId.nullish(),
+  tagIds: NumericIdArray.nullish(),
+  originNodeId: NumericId.nullish(),
+  destinationNodeId: NumericId.nullish(),
 });
 
 /** Partial edit of an existing payment plan. Omitted fields keep their current value. */
 export const botPaymentPlanPatchSchema = z.object({
-  planId: numericId,
+  planId: NumericId,
   name: z.string().nullish(),
   description: z.string().nullish(),
   status: z.enum(PAYMENT_PLAN_STATUSES).nullish(),
   startDate: z.string().nullish(),
   frequency: z.enum(RECURRENCE_FREQUENCIES).nullish(),
-  totalInstallments: numericId.nullish(),
-  totalAmount: z.number().nullish(),
-  installmentAmount: z.number().nullish(),
+  totalInstallments: NumericId.nullish(),
+  totalAmount: lenientNumber.nullish(),
+  installmentAmount: lenientNumber.nullish(),
   isAutomated: lenientBoolean.nullish(),
-  categoryId: numericId.nullish(),
-  tagIds: numericIdArray.nullish(),
-  originNodeId: numericId.nullish(),
-  destinationNodeId: numericId.nullish(),
+  categoryId: NumericId.nullish(),
+  tagIds: NumericIdArray.nullish(),
+  originNodeId: NumericId.nullish(),
+  destinationNodeId: NumericId.nullish(),
 });
 
 /** Partial edit of a plan item. Links are changed with addToPaymentPlan / removeFromPaymentPlan instead. */
 export const botPaymentPlanItemPatchSchema = z.object({
-  planId: numericId,
-  itemId: numericId,
+  planId: NumericId,
+  itemId: NumericId,
   expectedDate: z.string().nullish(),
-  expectedAmount: z.number().nullish(),
-  installmentNumber: numericId.nullish(),
+  expectedAmount: lenientNumber.nullish(),
+  installmentNumber: NumericId.nullish(),
   itemStatus: z.enum(PAYMENT_PLAN_ITEM_STATUSES).nullish(),
 });
 

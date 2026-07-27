@@ -7,6 +7,7 @@ import {
   botPaymentPlanItemPatchSchema,
   botPaymentPlanPatchSchema,
   botRecurringPlanInputSchema,
+  NumericId,
 } from '@/bot/dto.js';
 import type { RequestContext } from '@/context.js';
 import type { CacheDomain, KindedToolSet } from '@/tools/types.js';
@@ -218,7 +219,7 @@ export function buildPaymentPlanTools(ctx: RequestContext): KindedToolSet {
         description:
           'Read one payment plan with its full item list, including which event or draft each item is linked to. ' +
           'Call this before editing items so you know their itemId, number, date and current link.',
-        inputSchema: z.object({ planId: z.number() }),
+        inputSchema: z.object({ planId: NumericId }),
         execute: ({ planId }) => safe(async () => describePlan(await fetchPlan(client, planId))),
       }),
     },
@@ -368,10 +369,10 @@ export function buildPaymentPlanTools(ctx: RequestContext): KindedToolSet {
           '"this payment covers cuota 3".',
         inputSchema: z
           .object({
-            planId: z.number(),
-            eventId: z.number().nullish(),
-            draftId: z.number().nullish(),
-            itemId: z.number().nullish().describe('The specific entry to fill. Defaults to the first one with no event.'),
+            planId: NumericId,
+            eventId: NumericId.nullish(),
+            draftId: NumericId.nullish(),
+            itemId: NumericId.nullish().describe('The specific entry to fill. Defaults to the first one with no event.'),
           })
           .refine((input) => (input.eventId == null) !== (input.draftId == null), {
             error: 'Pass exactly one of eventId or draftId.',
@@ -417,10 +418,10 @@ export function buildPaymentPlanTools(ctx: RequestContext): KindedToolSet {
           'meaningless; in a cuota or recurring plan the cuota stays and goes back to pending, because the schedule belongs ' +
           'to the backend. Identify the entry by itemId, or by the eventId/draftId it holds.',
         inputSchema: z.object({
-          planId: z.number(),
-          itemId: z.number().nullish(),
-          eventId: z.number().nullish(),
-          draftId: z.number().nullish(),
+          planId: NumericId,
+          itemId: NumericId.nullish(),
+          eventId: NumericId.nullish(),
+          draftId: NumericId.nullish(),
         }),
         execute: ({ planId, itemId, eventId, draftId }) =>
           safe(async () => {

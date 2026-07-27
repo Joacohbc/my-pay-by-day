@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { BackendError, createApiClient, patchEvent, unwrap, type FinanceEventDto } from '@/backend/client.js';
-import { botDraftPatchSchema, botEventFilterSchema, botEventInputSchema, botEventPatchSchema, lenientBoolean } from '@/bot/dto.js';
+import { botDraftPatchSchema, botEventFilterSchema, botEventInputSchema, botEventPatchSchema, lenientBoolean, NumericId } from '@/bot/dto.js';
 import { toBotDraft, toBotEvent, toDraftPatchPayload, toDraftPayload, toEventPatch, toServerDateBoundary } from '@/bot/mappers.js';
 import type { RequestContext } from '@/context.js';
 import { EVENT_MUTATION_DOMAINS, type KindedToolSet } from '@/tools/types.js';
@@ -174,7 +174,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       ui: { invalidates: [], label: { en: 'Retrieving transaction details...', es: 'Obteniendo detalles del movimiento...' } },
       tool: tool({
         description: 'Get a single finance event by its ID as a flat event.',
-        inputSchema: z.object({ id: z.number() }),
+        inputSchema: z.object({ id: NumericId }),
         execute: ({ id }) =>
           safe(async () => toBotEvent(await unwrap(client.GET('/events/{id}', { params: { path: { id } } })))),
       }),
@@ -198,7 +198,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       ui: { invalidates: [], label: { en: 'Retrieving draft details...', es: 'Obteniendo borrador...' } },
       tool: tool({
         description: 'Get a single draft finance event by its draftId.',
-        inputSchema: z.object({ draftId: z.number() }),
+        inputSchema: z.object({ draftId: NumericId }),
         execute: ({ draftId }) =>
           safe(async () => {
             const drafts = await unwrap(client.GET('/drafts/finance-events'));
@@ -217,7 +217,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
           'Show an event, draft, tag or category to the user as a clickable card in the chat, so they can open it directly. ' +
           'Call this any time you mention a specific entity the user might want to view — after searching, reading, creating or ' +
           'editing it — not only right after a write. For drafts, id is the draftId (not the original event id).',
-        inputSchema: z.object({ entityType: z.enum(['event', 'draft', 'tag', 'category']), id: z.number() }),
+        inputSchema: z.object({ entityType: z.enum(['event', 'draft', 'tag', 'category']), id: NumericId }),
         execute: ({ entityType, id }) =>
           safe(async () => {
             if (entityType === 'event') {
@@ -252,8 +252,11 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
           'no-op — confirming that draft creates a brand-new duplicate event instead of updating the original. ' +
           'If you are unsure whether you are editing or creating, resolve the event id first (searchEvents/getEvent) ' +
           'and pass targetEventId. Provide the full lineItems list (2 for a simple purchase, 3+ for a split), ' +
-          'category, tags and date.',
-        inputSchema: botEventInputSchema.extend({ targetEventId: z.number().nullish() }),
+          'category, tags and date. ' +
+          'CRITICAL FOR PAYMENT PLANS & GROUPS: Creating a draft does NOT automatically assign it to a payment plan, ' +
+          'group, or installment (cuota). If this draft belongs to a payment plan or group, you MUST also call addToPaymentPlan ' +
+          'with planId and draftId (or eventId once confirmed) to assign it to that group/plan/cuota.',
+        inputSchema: botEventInputSchema.extend({ targetEventId: NumericId.nullish() }),
         execute: ({ targetEventId, ...input }) =>
           safe(async () => {
             // A draft is already open in the form: never spawn a second one, always fold the request into it.
@@ -297,7 +300,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       ui: { invalidates: ['drafts'], label: { en: 'Deleting draft event...', es: 'Eliminando borrador...' } },
       tool: tool({
         description: 'Delete a draft finance event that is incorrect, duplicate or not needed.',
-        inputSchema: z.object({ draftId: z.number() }),
+        inputSchema: z.object({ draftId: NumericId }),
         execute: ({ draftId }) =>
           safe(async () => {
             await unwrap(client.DELETE('/drafts/{id}', { params: { path: { id: draftId } } }));
@@ -315,7 +318,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
           'Check a draft for validation errors (missing name/date, unbalanced line items, missing/archived ' +
           'finance nodes, future date) WITHOUT confirming it. Use this before confirmDraft when unsure the draft ' +
           'is complete, or when the user asks whether a draft is ready.',
-        inputSchema: z.object({ draftId: z.number() }),
+        inputSchema: z.object({ draftId: NumericId }),
         execute: ({ draftId }) =>
           safe(() => unwrap(client.POST('/drafts/finance-events/{id}/validate', { params: { path: { id: draftId } } }))),
       }),
@@ -329,7 +332,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
         description:
           'Confirm a draft, publishing it as a real finance event. MERGE (default) updates the linked event in ' +
           'place when the draft has one (originalEventId set); CREATE_ONLY always creates a brand new event instead.',
-        inputSchema: z.object({ draftId: z.number(), mode: z.enum(['MERGE', 'CREATE_ONLY']).nullish() }),
+        inputSchema: z.object({ draftId: NumericId, mode: z.enum(['MERGE', 'CREATE_ONLY']).nullish() }),
         execute: ({ draftId, mode }) =>
           safe(async () => {
             const result = await unwrap(
@@ -354,7 +357,10 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
           'Edit an existing finance event in place. Only the provided fields change; supports name, description, ' +
           'type, category, tags, date and lineItems. To change the amount or a node, send the FULL lineItems list ' +
           '(fetch it with getEvent first if you only need to tweak one item) — it always replaces the current list ' +
-          'wholesale, it does not merge item-by-item.',
+          'wholesale, it does not merge item-by-item. ' +
+          'CRITICAL FOR PAYMENT PLANS & GROUPS: Updating or creating an event does NOT automatically assign it to a ' +
+          'payment plan, group, or installment (cuota). If this event belongs to a group or payment plan, you MUST call ' +
+          'addToPaymentPlan to assign it.',
         inputSchema: botEventPatchSchema,
         execute: ({ eventId, ...patch }) =>
           safe(async () => {

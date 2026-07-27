@@ -1,5 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import { NumericId } from '@/bot/dto.js';
 import { longTermMemory } from '@/memory/longTerm.js';
 import type { KindedToolSet } from '@/tools/types.js';
 
@@ -41,7 +42,7 @@ export function buildMemoryTools(): KindedToolSet {
       ui: { invalidates: ['aiMemory'], label: { en: 'Forgetting memory...', es: 'Olvidando memoria...' } },
       tool: tool({
         description: 'Delete a remembered fact by its memory ID when it is no longer true.',
-        inputSchema: z.object({ id: z.number() }),
+        inputSchema: z.object({ id: NumericId }),
         execute: async ({ id }) => {
           longTermMemory.remove(id);
           return { deleted: true };
