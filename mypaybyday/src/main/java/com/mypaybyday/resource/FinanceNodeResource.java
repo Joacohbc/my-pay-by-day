@@ -1,16 +1,17 @@
 package com.mypaybyday.resource;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.FinanceNodeDto;
 import com.mypaybyday.enums.FinanceNodeType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.FinanceNodeService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
@@ -33,10 +34,10 @@ public class FinanceNodeResource {
     @GET
     @Operation(summary = "List finance nodes")
     @APIResponse(responseCode = "200", description = "List of finance nodes")
-    public Response getAll(
+    public RestResponse<List<FinanceNodeDto>> getAll(
 	@Parameter(description = "Filter by archived status") @QueryParam("archived") Boolean archived,
 	@Parameter(description = "Filter by node type") @QueryParam("type") FinanceNodeType type) {
-	return Response.ok(financeNodeService.listAll(archived, type)).build();
+	return RestResponse.ok(financeNodeService.listAll(archived, type));
     }
 
     @GET
@@ -47,13 +48,13 @@ public class FinanceNodeResource {
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceNodeDto.class))),
 	@APIResponse(responseCode = "404", description = "Node not found or archived")
     })
-    public Response getById(
+    public RestResponse<FinanceNodeDto> getById(
 	@Parameter(description = "ID of the finance node", required = true) @PathParam("id") Long id) {
 	FinanceNodeDto node = financeNodeService.findById(id);
 	if (node == null) {
-	return Response.status(Response.Status.NOT_FOUND).build();
+	return RestResponse.status(RestResponse.Status.NOT_FOUND);
 	}
-	return Response.ok(node).build();
+	return RestResponse.ok(node);
     }
 
     @POST
@@ -63,8 +64,8 @@ public class FinanceNodeResource {
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceNodeDto.class))),
 	@APIResponse(responseCode = "400", description = "Validation error")
     })
-    public Response create(FinanceNodeDto node) {
-	return Response.status(Response.Status.CREATED).entity(financeNodeService.create(node)).build();
+    public RestResponse<FinanceNodeDto> create(FinanceNodeDto node) {
+	return RestResponse.status(RestResponse.Status.CREATED, financeNodeService.create(node));
     }
 
     @PUT
@@ -76,10 +77,10 @@ public class FinanceNodeResource {
 	@APIResponse(responseCode = "400", description = "Validation error"),
 	@APIResponse(responseCode = "404", description = "Node not found or archived")
     })
-    public Response update(
+    public RestResponse<FinanceNodeDto> update(
 	@Parameter(description = "ID of the finance node", required = true) @PathParam("id") Long id,
 	FinanceNodeDto nodeDetails) throws BusinessException {
-	return Response.ok(financeNodeService.update(id, nodeDetails)).build();
+	return RestResponse.ok(financeNodeService.update(id, nodeDetails));
     }
 
     @POST
@@ -91,11 +92,11 @@ public class FinanceNodeResource {
 	@APIResponse(responseCode = "204", description = "Node archived"),
 	@APIResponse(responseCode = "404", description = "Node not found")
     })
-    public Response archive(
+    public RestResponse<Void> archive(
 	@Parameter(description = "ID of the finance node", required = true) @PathParam("id") Long id)
 	throws BusinessException {
 	financeNodeService.archive(id);
-	return Response.noContent().build();
+	return RestResponse.noContent();
     }
 
     @POST
@@ -106,11 +107,11 @@ public class FinanceNodeResource {
 	@APIResponse(responseCode = "204", description = "Node unarchived"),
 	@APIResponse(responseCode = "404", description = "Node not found")
     })
-    public Response unarchive(
+    public RestResponse<Void> unarchive(
 	@Parameter(description = "ID of the finance node", required = true) @PathParam("id") Long id)
 	throws BusinessException {
 	financeNodeService.unarchive(id);
-	return Response.noContent().build();
+	return RestResponse.noContent();
     }
 
     @DELETE
@@ -122,11 +123,11 @@ public class FinanceNodeResource {
 	@APIResponse(responseCode = "400", description = "Node has associated transactions; archive it instead"),
 	@APIResponse(responseCode = "404", description = "Node not found")
     })
-    public Response delete(
+    public RestResponse<Void> delete(
 	@Parameter(description = "ID of the finance node", required = true) @PathParam("id") Long id)
 	throws BusinessException {
 	financeNodeService.delete(id);
-	return Response.noContent().build();
+	return RestResponse.noContent();
     }
 
     @GET
@@ -138,10 +139,10 @@ public class FinanceNodeResource {
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = BigDecimal.class))),
 	@APIResponse(responseCode = "404", description = "Node not found")
     })
-    public Response getBalance(
+    public RestResponse<BigDecimal> getBalance(
 	@Parameter(description = "ID of the finance node", required = true) @PathParam("id") Long id)
 	throws BusinessException {
 	BigDecimal balance = financeNodeService.calculateBalance(id);
-	return Response.ok(balance).build();
+	return RestResponse.ok(balance);
     }
 }

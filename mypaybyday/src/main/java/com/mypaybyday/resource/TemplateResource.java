@@ -2,13 +2,13 @@ package com.mypaybyday.resource;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TemplateDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TemplateService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
@@ -32,10 +32,10 @@ public class TemplateResource {
     @Operation(summary = "List templates (paginated)")
     @APIResponse(responseCode = "200", description = "Paginated list of templates",
 	content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
-    public Response getAll(
+    public RestResponse<PagedResponse<TemplateDto>> getAll(
 	@Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
 	@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
-	return Response.ok(templateService.listAll(page, size)).build();
+	return RestResponse.ok(templateService.listAll(page, size));
     }
 
     @GET
@@ -46,10 +46,10 @@ public class TemplateResource {
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TemplateDto.class))),
 	@APIResponse(responseCode = "404", description = "Template not found")
     })
-    public Response getById(
+    public RestResponse<TemplateDto> getById(
 	@Parameter(description = "ID of the template", required = true) @PathParam("id") Long id)
 	throws BusinessException {
-	return Response.ok(templateService.findById(id)).build();
+	return RestResponse.ok(templateService.findById(id));
     }
 
     @POST
@@ -60,8 +60,8 @@ public class TemplateResource {
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TemplateDto.class))),
 	@APIResponse(responseCode = "400", description = "Validation error")
     })
-    public Response create(TemplateDto dto) throws BusinessException {
-	return Response.status(Response.Status.CREATED).entity(templateService.create(dto)).build();
+    public RestResponse<TemplateDto> create(TemplateDto dto) throws BusinessException {
+	return RestResponse.status(RestResponse.Status.CREATED, templateService.create(dto));
     }
 
     @PUT
@@ -73,10 +73,10 @@ public class TemplateResource {
 	@APIResponse(responseCode = "400", description = "Validation error"),
 	@APIResponse(responseCode = "404", description = "Template not found")
     })
-    public Response update(
+    public RestResponse<TemplateDto> update(
 	@Parameter(description = "ID of the template", required = true) @PathParam("id") Long id,
 	TemplateDto dto) throws BusinessException {
-	return Response.ok(templateService.update(id, dto)).build();
+	return RestResponse.ok(templateService.update(id, dto));
     }
 
     @DELETE
@@ -87,10 +87,10 @@ public class TemplateResource {
 	@APIResponse(responseCode = "400", description = "Template is in use by a subscription"),
 	@APIResponse(responseCode = "404", description = "Template not found")
     })
-    public Response delete(
+    public RestResponse<Void> delete(
 	@Parameter(description = "ID of the template", required = true) @PathParam("id") Long id)
 	throws BusinessException {
 	templateService.delete(id);
-	return Response.noContent().build();
+	return RestResponse.noContent();
     }
 }

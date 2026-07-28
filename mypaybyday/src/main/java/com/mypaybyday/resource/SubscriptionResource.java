@@ -2,13 +2,13 @@ package com.mypaybyday.resource;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.SubscriptionDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.SubscriptionService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
@@ -32,10 +32,10 @@ public class SubscriptionResource {
     @Operation(summary = "List subscriptions (paginated)")
     @APIResponse(responseCode = "200", description = "Paginated list of subscriptions",
 	content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
-    public Response getAll(
+    public RestResponse<PagedResponse<SubscriptionDto>> getAll(
 	@Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
 	@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
-	return Response.ok(subscriptionService.listAll(page, size)).build();
+	return RestResponse.ok(subscriptionService.listAll(page, size));
     }
 
     @GET
@@ -46,10 +46,10 @@ public class SubscriptionResource {
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SubscriptionDto.class))),
 	@APIResponse(responseCode = "404", description = "Subscription not found")
     })
-    public Response getById(
+    public RestResponse<SubscriptionDto> getById(
 	@Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id)
 	throws BusinessException {
-	return Response.ok(subscriptionService.findById(id)).build();
+	return RestResponse.ok(subscriptionService.findById(id));
     }
 
     @POST
@@ -60,10 +60,8 @@ public class SubscriptionResource {
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SubscriptionDto.class))),
 	@APIResponse(responseCode = "400", description = "Validation error")
     })
-    public Response create(SubscriptionDto subscription) throws BusinessException {
-	return Response.status(Response.Status.CREATED)
-		.entity(subscriptionService.create(subscription))
-		.build();
+    public RestResponse<SubscriptionDto> create(SubscriptionDto subscription) throws BusinessException {
+	return RestResponse.status(RestResponse.Status.CREATED, subscriptionService.create(subscription));
     }
 
     @PATCH
@@ -75,10 +73,10 @@ public class SubscriptionResource {
 	@APIResponse(responseCode = "400", description = "Validation error"),
 	@APIResponse(responseCode = "404", description = "Subscription not found")
     })
-    public Response update(
+    public RestResponse<SubscriptionDto> update(
 	@Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id,
 	SubscriptionDto subscriptionDetails) throws BusinessException {
-	return Response.ok(subscriptionService.update(id, subscriptionDetails)).build();
+	return RestResponse.ok(subscriptionService.update(id, subscriptionDetails));
     }
 
     @DELETE
@@ -88,11 +86,11 @@ public class SubscriptionResource {
 	@APIResponse(responseCode = "204", description = "Subscription deleted"),
 	@APIResponse(responseCode = "404", description = "Subscription not found")
     })
-    public Response delete(
+    public RestResponse<Void> delete(
 	@Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id)
 	throws BusinessException {
 	subscriptionService.delete(id);
-	return Response.noContent().build();
+	return RestResponse.noContent();
     }
 
     @POST
@@ -102,11 +100,11 @@ public class SubscriptionResource {
 	@APIResponse(responseCode = "200", description = "Subscription executed"),
 	@APIResponse(responseCode = "404", description = "Subscription not found")
     })
-    public Response execute(
+    public RestResponse<Void> execute(
 	@Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id)
 	throws BusinessException {
 	subscriptionService.processSubscription(id);
-	return Response.ok().build();
+	return RestResponse.ok();
     }
 
     @POST
@@ -117,9 +115,9 @@ public class SubscriptionResource {
 	    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SubscriptionDto.class))),
 	@APIResponse(responseCode = "404", description = "Subscription not found")
     })
-    public Response cancel(
+    public RestResponse<SubscriptionDto> cancel(
 	@Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id)
 	throws BusinessException {
-	return Response.ok(subscriptionService.cancel(id)).build();
+	return RestResponse.ok(subscriptionService.cancel(id));
     }
 }

@@ -131,6 +131,9 @@ public enum MsgKey {
 	SELECTION_HISTORY_ENTITY_TYPE_REQUIRED("error.selection_history.entity_type_required"),
 	SELECTION_HISTORY_ENTITY_ID_REQUIRED("error.selection_history.entity_id_required"),
 
+	// ── Duplicates ───────────────────────────────────────
+	DUPLICATES_TYPE_AND_STATUS_REQUIRED("error.duplicates.type_and_status_required"),
+
 	// ── Duplicate Settings ───────────────────────────────
 	DUPLICATE_SETTINGS_WEIGHTS_SUM_INVALID("error.duplicate_settings.weights_sum_invalid"),
 

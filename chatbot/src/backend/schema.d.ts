@@ -30,7 +30,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["CategoryDto"][];
                     };
                 };
             };
@@ -294,7 +294,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Config */
+        /**
+         * Get server configuration
+         * @description Returns server-side configuration the frontend needs to align date/time handling, such as the server timezone
+         */
         get: {
             parameters: {
                 query?: never;
@@ -304,7 +307,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description Configuration retrieved successfully */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -558,7 +561,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["FinanceEventDto"];
                     };
                 };
                 /** @description No draft found for this entity */
@@ -808,7 +811,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Duplicates */
+        /**
+         * List duplicates by type and status
+         * @description Returns the duplicate records detected for an entity type, filtered by resolution status
+         */
         get: {
             parameters: {
                 query?: {
@@ -821,14 +827,21 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description Duplicates found */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["DuplicateRecordDto"][];
                     };
+                };
+                /** @description Missing type or status query parameter */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -847,7 +860,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Duplicates For Entity */
+        /**
+         * List duplicates for a specific entity
+         * @description Returns the duplicate records involving a given entity, filtered by resolution status (defaults to PENDING)
+         */
         get: {
             parameters: {
                 query?: {
@@ -862,13 +878,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description Duplicates found */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["DuplicateRecordDto"][];
                     };
                 };
             };
@@ -890,7 +906,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Resolve Duplicate */
+        /**
+         * Resolve a duplicate
+         * @description Marks a detected duplicate as merged or not-a-duplicate
+         */
         post: {
             parameters: {
                 query?: never;
@@ -906,14 +925,12 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description OK */
-                200: {
+                /** @description Duplicate resolved successfully */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content: {
-                        "application/json": unknown;
-                    };
+                    content?: never;
                 };
                 /** @description Bad Request */
                 400: {
@@ -1550,7 +1567,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": unknown;
+                        "text/plain": string;
                     };
                 };
                 /** @description File not found */
@@ -1599,7 +1616,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": unknown;
+                        "*/*": string;
                     };
                 };
                 /** @description File not found */
@@ -1648,7 +1665,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/markdown": unknown;
+                        "text/markdown": string;
                     };
                 };
                 /** @description File is not convertible or the conversion service is unavailable */
@@ -1703,7 +1720,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["FinanceNodeDto"][];
                     };
                 };
             };
@@ -2172,6 +2189,11 @@ export interface paths {
                 };
             };
         };
+        post?: never;
+        /**
+         * Delete a payment plan
+         * @description Deletes a payment plan. Only allowed if status is CANCELLED.
+         */
         delete: {
             parameters: {
                 query?: never;
@@ -2554,7 +2576,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Settings */
+        /**
+         * Get duplicate detection settings
+         * @description Returns the current weights and thresholds used to score potential duplicates
+         */
         get: {
             parameters: {
                 query?: never;
@@ -2564,18 +2589,21 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
+                /** @description Settings retrieved successfully */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["DuplicateDetectionSettingsDto"];
                     };
                 };
             };
         };
-        /** Update Settings */
+        /**
+         * Update duplicate detection settings
+         * @description Updates only the provided weight/threshold fields; the weights must sum to 1.0
+         */
         put: {
             parameters: {
                 query?: never;
@@ -2589,16 +2617,16 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description OK */
+                /** @description Settings updated successfully */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["DuplicateDetectionSettingsDto"];
                     };
                 };
-                /** @description Bad Request */
+                /** @description Weights do not sum to 1.0 */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -2623,7 +2651,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Trigger Scan All */
+        /**
+         * Trigger a full duplicate scan
+         * @description Starts an asynchronous scan for duplicates across all entities
+         */
         post: {
             parameters: {
                 query?: never;
@@ -2633,14 +2664,12 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
-                200: {
+                /** @description Scan started successfully */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content: {
-                        "application/json": unknown;
-                    };
+                    content?: never;
                 };
             };
         };
@@ -2913,9 +2942,7 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content: {
-                        "application/json": unknown;
-                    };
+                    content?: never;
                 };
                 /** @description Subscription not found */
                 404: {
@@ -2958,7 +2985,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["TagGroupDto"][];
                     };
                 };
             };
@@ -3231,7 +3258,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["TagDto"][];
                     };
                 };
             };
@@ -4217,6 +4244,21 @@ export interface components {
             eventTotalThresholdScore?: number;
             /** Format: double */
             textSimilarityThresholdScore?: number;
+        };
+        DuplicateRecordDto: {
+            /** Format: int64 */
+            id?: number;
+            entityType?: components["schemas"]["EntityType"];
+            /** Format: int64 */
+            entityId1?: number;
+            /** Format: int64 */
+            entityId2?: number;
+            status?: components["schemas"]["DuplicateRecordStatus"];
+            /** Format: double */
+            score?: number;
+            calculatedAt?: components["schemas"]["Instant"];
+            entity1?: unknown;
+            entity2?: unknown;
         };
         /** @enum {string} */
         DuplicateRecordStatus: "PENDING" | "RESOLVED_MERGED" | "ACCEPTED_NOT_DUPLICATE" | "AUTO_RESOLVED_NOT_DUPLICATED";

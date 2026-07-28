@@ -2,7 +2,6 @@ package com.mypaybyday.resource;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.DynamicTimePeriodBalanceDto;
 import com.mypaybyday.dto.PagedResponse;
@@ -12,6 +11,7 @@ import com.mypaybyday.dto.TimePeriodDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TimePeriodService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
@@ -35,10 +35,10 @@ public class TimePeriodResource {
     @Operation(summary = "List time periods (paginated)")
     @APIResponse(responseCode = "200", description = "Paginated list of time periods",
 	content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
-    public Response getAll(
+    public RestResponse<PagedResponse<TimePeriodDto>> getAll(
 	@Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
 	@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size) {
-	return Response.ok(timePeriodService.listAll(page, size)).build();
+	return RestResponse.ok(timePeriodService.listAll(page, size));
     }
 
     @GET
@@ -49,10 +49,10 @@ public class TimePeriodResource {
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriodDto.class))),
 	@APIResponse(responseCode = "404", description = "Time period not found")
     })
-    public Response getById(
+    public RestResponse<TimePeriodDto> getById(
 	@Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id)
 	throws BusinessException {
-	return Response.ok(timePeriodService.findById(id)).build();
+	return RestResponse.ok(timePeriodService.findById(id));
     }
 
     @GET
@@ -65,10 +65,10 @@ public class TimePeriodResource {
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriodBalanceDto.class))),
 	@APIResponse(responseCode = "404", description = "Time period not found")
     })
-    public Response getBalance(
+    public RestResponse<TimePeriodBalanceDto> getBalance(
 	@Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id)
 	throws BusinessException {
-	return Response.ok(timePeriodService.getBalance(id)).build();
+	return RestResponse.ok(timePeriodService.getBalance(id));
     }
 
     @GET
@@ -80,11 +80,11 @@ public class TimePeriodResource {
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = DynamicTimePeriodBalanceDto.class))),
 	@APIResponse(responseCode = "400", description = "Validation error")
     })
-    public Response getDynamicBalance(
+    public RestResponse<DynamicTimePeriodBalanceDto> getDynamicBalance(
 	@Parameter(description = "Start date (YYYY-MM-DDTHH:mm:ss)", required = true) @QueryParam("startDate") java.time.LocalDateTime startDate,
 	@Parameter(description = "End date (YYYY-MM-DDTHH:mm:ss)", required = true) @QueryParam("endDate") java.time.LocalDateTime endDate)
 	throws BusinessException {
-	return Response.ok(timePeriodService.getDynamicBalance(startDate, endDate)).build();
+	return RestResponse.ok(timePeriodService.getDynamicBalance(startDate, endDate));
     }
 
     @POST
@@ -95,8 +95,8 @@ public class TimePeriodResource {
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriodDto.class))),
 	@APIResponse(responseCode = "400", description = "Validation error")
     })
-    public Response create(TimePeriodDto timePeriod) throws BusinessException {
-	return Response.status(Response.Status.CREATED).entity(timePeriodService.create(timePeriod)).build();
+    public RestResponse<TimePeriodDto> create(TimePeriodDto timePeriod) throws BusinessException {
+	return RestResponse.status(RestResponse.Status.CREATED, timePeriodService.create(timePeriod));
     }
 
     @PATCH
@@ -109,10 +109,10 @@ public class TimePeriodResource {
 	@APIResponse(responseCode = "400", description = "Validation error"),
 	@APIResponse(responseCode = "404", description = "Time period not found")
     })
-    public Response update(
+    public RestResponse<TimePeriodDto> update(
 	@Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id,
 	PatchTimePeriodDto timePeriodDetails) throws BusinessException {
-	return Response.ok(timePeriodService.patch(id, timePeriodDetails)).build();
+	return RestResponse.ok(timePeriodService.patch(id, timePeriodDetails));
     }
 
     @DELETE
@@ -122,10 +122,10 @@ public class TimePeriodResource {
 	@APIResponse(responseCode = "204", description = "Time period deleted"),
 	@APIResponse(responseCode = "404", description = "Time period not found")
     })
-    public Response delete(
+    public RestResponse<Void> delete(
 	@Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id)
 	throws BusinessException {
 	timePeriodService.delete(id);
-	return Response.noContent().build();
+	return RestResponse.noContent();
     }
 }
