@@ -33,18 +33,14 @@ import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.entity.FinanceTransactionEntity;
-import com.mypaybyday.entity.PaymentPlanItemEntity;
 import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.enums.DraftConfirmMode;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.enums.EventType;
-import com.mypaybyday.enums.PaymentPlanItemStatus;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EntityDraftRepository;
-import com.mypaybyday.repository.EventRepository;
-import com.mypaybyday.repository.PaymentPlanItemRepository;
 import com.mypaybyday.service.event.EventCreateService;
 import com.mypaybyday.service.event.EventUpdateService;
 import com.mypaybyday.validation.TransactionValidator;
@@ -60,22 +56,19 @@ public class DraftService {
 	private final EventCreateService eventCreateService;
 	private final EventUpdateService eventUpdateService;
 	private final TransactionValidator transactionValidator;
-	private final PaymentPlanItemRepository paymentPlanItemRepository;
-	private final EventRepository eventRepository;
+	private final PaymentPlanService paymentPlanService;
 
 	@Inject
 	public DraftService(EntityDraftRepository draftRepository, Messages messages, ObjectMapper objectMapper,
 			EventCreateService eventCreateService, EventUpdateService eventUpdateService,
-			TransactionValidator transactionValidator, PaymentPlanItemRepository paymentPlanItemRepository,
-			EventRepository eventRepository) {
+			TransactionValidator transactionValidator, PaymentPlanService paymentPlanService) {
 		this.draftRepository = draftRepository;
 		this.messages = messages;
 		this.objectMapper = objectMapper;
 		this.eventCreateService = eventCreateService;
 		this.eventUpdateService = eventUpdateService;
 		this.transactionValidator = transactionValidator;
-		this.paymentPlanItemRepository = paymentPlanItemRepository;
-		this.eventRepository = eventRepository;
+		this.paymentPlanService = paymentPlanService;
 	}
 
 	public List<DraftEntity> listAll() {
@@ -228,6 +221,7 @@ public class DraftService {
 	public void delete(Long id) {
 		DraftEntity entity = draftRepository.findById(id);
 		if (entity != null) {
+			paymentPlanService.unlinkDraft(id);
 			draftRepository.delete(entity);
 		}
 	}
@@ -269,23 +263,9 @@ public class DraftService {
 			result = eventCreateService.create(buildEventEntityFromDraftDto(dto));
 		}
 
-		relinkPaymentPlanItem(draftId, result.id());
+		paymentPlanService.relinkDraftToEvent(draftId, result.id());
 		delete(draftId);
 		return result;
-	}
-
-	/**
-	 * A payment plan item may point at a draft (draft_id has ON DELETE SET NULL). Deleting the
-	 * draft on confirm would otherwise silently null that link out instead of following it to the
-	 * event just created, dropping the item out of its plan.
-	 */
-	private void relinkPaymentPlanItem(Long draftId, Long eventId) {
-		PaymentPlanItemEntity item = paymentPlanItemRepository.find("draft.id", draftId).firstResult();
-		if (item == null) return;
-
-		item.draft = null;
-		item.event = eventRepository.findById(eventId);
-		item.itemStatus = PaymentPlanItemStatus.PAID;
 	}
 
 	private FinanceEventDto getConfirmableDraftDto(Long draftId) throws BusinessException {

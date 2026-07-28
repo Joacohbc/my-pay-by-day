@@ -27,6 +27,7 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.service.CategoryService;
 import com.mypaybyday.service.DraftService;
+import com.mypaybyday.service.PaymentPlanService;
 import com.mypaybyday.service.TagService;
 import io.quarkus.logging.Log;
 
@@ -37,6 +38,7 @@ public class EventMergeService {
 	private final CategoryService categoryService;
 	private final TagService tagService;
 	private final DraftService entityDraftService;
+	private final PaymentPlanService paymentPlanService;
 	private final Messages messages;
 
 	public EventMergeService(
@@ -44,11 +46,13 @@ public class EventMergeService {
 			CategoryService categoryService,
 			TagService tagService,
 			DraftService entityDraftService,
+			PaymentPlanService paymentPlanService,
 			Messages messages) {
 		this.eventRepository = eventRepository;
 		this.categoryService = categoryService;
 		this.tagService = tagService;
 		this.entityDraftService = entityDraftService;
+		this.paymentPlanService = paymentPlanService;
 		this.messages = messages;
 	}
 
@@ -156,6 +160,7 @@ public class EventMergeService {
 				.forEach(relatedEvent -> relatedEvent.relatedEvents.removeAll(sourceEventSet));
 		sourceEvents.forEach(sourceEvent -> sourceEvent.relatedEvents.clear());
 
+		paymentPlanService.relinkMergedEvents(baseEventId, sourceIds);
 		for (FinanceEventEntity sourceEvent : sourceEvents) {
 			entityDraftService.deleteByOriginalEntityId(sourceEvent.id, EntityType.FINANCE_EVENT);
 			eventRepository.delete(sourceEvent);

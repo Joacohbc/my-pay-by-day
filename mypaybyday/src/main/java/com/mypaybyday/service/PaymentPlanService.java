@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -20,6 +21,7 @@ import com.mypaybyday.dto.PaymentPlanItemDto;
 
 import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.DraftEntity;
+import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.entity.PaymentPlanEntity;
 import com.mypaybyday.entity.PaymentPlanItemEntity;
@@ -308,6 +310,57 @@ public class PaymentPlanService {
 		item.paymentPlan.items.remove(item);
 		paymentPlanItemRepository.delete(item);
 		Log.infof("Deleted payment plan item id=%d for plan id=%d", itemId, planId);
+	}
+
+	/**
+	 * The counterpart of confirming a draft into an event: any item still pointing at the draft
+	 * follows it to the event that replaced it instead of losing the link when the draft is deleted.
+	 */
+	@Transactional
+	public void relinkDraftToEvent(Long draftId, Long eventId) {
+		FinanceEventEntity event = eventRepository.findById(eventId);
+		for (PaymentPlanItemEntity item : paymentPlanItemRepository.list("draft.id", draftId)) {
+			item.draft = null;
+			item.event = event;
+			item.itemStatus = PaymentPlanItemStatus.PAID;
+		}
+	}
+
+	/** Called before a draft is deleted outright (not confirmed), so no item is left pointing at it. */
+	@Transactional
+	public void unlinkDraft(Long draftId) {
+		detachItems(paymentPlanItemRepository.list("draft.id", draftId), item -> item.draft = null);
+	}
+
+	/** Called before an event is deleted outright, so no item is left pointing at it. */
+	@Transactional
+	public void unlinkEvent(Long eventId) {
+		detachItems(paymentPlanItemRepository.list("event.id", eventId), item -> item.event = null);
+	}
+
+	/** Called before the source events of a merge are deleted, so their items follow to the survivor. */
+	@Transactional
+	public void relinkMergedEvents(Long baseEventId, List<Long> sourceEventIds) {
+		FinanceEventEntity baseEvent = eventRepository.findById(baseEventId);
+		for (PaymentPlanItemEntity item : paymentPlanItemRepository.list("event.id IN ?1", sourceEventIds)) {
+			item.event = baseEvent;
+		}
+	}
+
+	/**
+	 * A group/custom entry without a link is meaningless, so it is deleted outright; a
+	 * system-generated cuota keeps its slot in the schedule and simply goes back to pending.
+	 */
+	private void detachItems(List<PaymentPlanItemEntity> items, Consumer<PaymentPlanItemEntity> clearLink) {
+		for (PaymentPlanItemEntity item : items) {
+			if (isUserComposedPlan(item.paymentPlan)) {
+				item.paymentPlan.items.remove(item);
+				paymentPlanItemRepository.delete(item);
+			} else {
+				clearLink.accept(item);
+				item.itemStatus = PaymentPlanItemStatus.PENDING;
+			}
+		}
 	}
 
 	private void applyScheduleValues(PaymentPlanItemEntity item, CreatePaymentPlanItemDto dto, BigDecimal fallbackAmount) {

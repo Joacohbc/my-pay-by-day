@@ -19,6 +19,7 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.service.DraftService;
+import com.mypaybyday.service.PaymentPlanService;
 import io.quarkus.logging.Log;
 
 @ApplicationScoped
@@ -31,6 +32,7 @@ public class EventService {
 	private final EventRepository eventRepository;
 	private final Messages messages;
 	private final DraftService entityDraftService;
+	private final PaymentPlanService paymentPlanService;
 
 	public EventService(
 			EventGetService eventGetService,
@@ -39,7 +41,8 @@ public class EventService {
 			EventMergeService eventMergeService,
 			EventRepository eventRepository,
 			Messages messages,
-			DraftService entityDraftService) {
+			DraftService entityDraftService,
+			PaymentPlanService paymentPlanService) {
 		this.eventGetService = eventGetService;
 		this.eventCreateService = eventCreateService;
 		this.eventUpdateService = eventUpdateService;
@@ -47,6 +50,7 @@ public class EventService {
 		this.eventRepository = eventRepository;
 		this.messages = messages;
 		this.entityDraftService = entityDraftService;
+		this.paymentPlanService = paymentPlanService;
 	}
 
 	@Transactional
@@ -91,6 +95,7 @@ public class EventService {
 			throw messages.reject(MsgKey.EVENT_NOT_FOUND);
 		}
 		entityDraftService.deleteByOriginalEntityId(id, EntityType.FINANCE_EVENT);
+		paymentPlanService.unlinkEvent(id);
 		eventRepository.delete(event);
 		Log.infof("Deleted event id=%d", id);
 	}
