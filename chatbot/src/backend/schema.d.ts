@@ -2192,7 +2192,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a payment plan
-         * @description Deletes a payment plan. Only allowed if status is CANCELLED.
+         * @description Deletes a payment plan. GROUP plans can be deleted directly; other kinds require status CANCELLED first.
          */
         delete: {
             parameters: {
