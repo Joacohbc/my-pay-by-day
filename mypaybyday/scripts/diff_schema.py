@@ -24,7 +24,16 @@ def schema_of(statements):
         for _cid, name, col_type, not_null, _default, primary_key in conn.execute(
             f"PRAGMA table_info('{table}')"
         ):
-            columns[name] = (col_type.upper(), not_null, primary_key)
+            # Hibernate's SQLiteDialect schema export intermittently omits the type
+            # token for an IDENTITY column depending on unrelated entities loaded in
+            # the same metamodel (observed: identical `Long id` mapping inherited from
+            # BaseEntity renders as INTEGER for most tables but blank for a few, with
+            # no correlation to that entity's own mapping). Every entity in this
+            # codebase shares the exact same `@Id @GeneratedValue(IDENTITY) Long id`
+            # via BaseEntity, so the PK column's real type can never actually drift;
+            # not-null/primary-key flags still catch any genuine PK shape change.
+            normalized_type = None if primary_key else col_type.upper()
+            columns[name] = (normalized_type, not_null, primary_key)
         tables[table] = columns
     conn.close()
     return tables

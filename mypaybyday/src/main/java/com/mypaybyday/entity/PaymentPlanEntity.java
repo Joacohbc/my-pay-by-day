@@ -20,6 +20,7 @@ import jakarta.persistence.OneToMany;
 import com.mypaybyday.enums.PaymentPlanStatus;
 import com.mypaybyday.enums.PaymentPlanType;
 import com.mypaybyday.enums.RecurrenceFrequency;
+import com.mypaybyday.validation.RegexValidator;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -37,7 +38,7 @@ public class PaymentPlanEntity extends BaseEntity {
 	@Column(nullable = false, length = 255)
 	public String name;
 
-	@Column(length = 5100)
+	@Column(length = RegexValidator.LONG_MAX_LENGTH)
 	public String description;
 
 	@Enumerated(EnumType.STRING)

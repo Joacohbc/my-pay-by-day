@@ -1,5 +1,6 @@
 package com.mypaybyday.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -9,6 +10,7 @@ import jakarta.validation.constraints.NotNull;
 
 import com.mypaybyday.crypto.StringEncryptionConverter;
 import com.mypaybyday.enums.FinanceNodeType;
+import com.mypaybyday.validation.RegexValidator;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -43,6 +45,7 @@ public class FinanceNodeEntity extends BaseEntity {
 
 	public String icon;
 
+	@Column(length = RegexValidator.COLOR_MAX_LENGTH)
 	public String color;
 
 	@Builder.Default

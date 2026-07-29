@@ -385,7 +385,7 @@ The database schema is owned by **Flyway**, not Hibernate. `quarkus.hibernate-or
 
 When creating or updating entities in the backend service layer (e.g., `CategoryService`, `FinanceNodeService`, `EventService`), you **must** call the respective `*Validator.validate(entity)` method from `com.mypaybyday.validation` before persisting or saving the data.
 
-String fields like names and descriptions are strictly validated for regex and max length (Names: 255 chars, alphanumeric/spaces/dashes/dots; Descriptions: 5100 chars, alphanumeric/spaces/punctuation).
+String fields like names and descriptions are strictly validated for regex and max length (Names: 255 chars, alphanumeric/spaces/dashes/dots; Descriptions: 32000 chars, alphanumeric/spaces/punctuation).
 
 #### Data Transfer Import
 

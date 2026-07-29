@@ -12,7 +12,7 @@ import com.mypaybyday.i18n.MsgKey;
 public class RegexValidator {
 
     public static final int SHORT_MAX_LENGTH = 255;
-    public static final int LONG_MAX_LENGTH = 5100;
+    public static final int LONG_MAX_LENGTH = 32000;
     public static final int ICON_MAX_LENGTH = 255;
     public static final int COLOR_MAX_LENGTH = 7;
 

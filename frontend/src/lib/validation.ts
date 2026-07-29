@@ -5,7 +5,7 @@ import { z } from 'zod/v4';
 // mypaybyday/src/main/java/com/mypaybyday/validation/RegexValidator.java
 
 export const SHORT_MAX_LENGTH = 255;
-export const LONG_MAX_LENGTH = 5100;
+export const LONG_MAX_LENGTH = 32000;
 
 export const GENERAL_TEXT_REGEX = /^[\p{L}\p{N}\s\p{P}\p{S}]+$/u;
 

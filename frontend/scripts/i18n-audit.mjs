@@ -158,6 +158,9 @@ function scanFile(filePath) {
   const indirectRe = /[Kk]ey['"]*\s*[:=]\s*['"]([a-zA-Z_][\w]*(?:\.\w+)+)['"]/g;
   // Ternary inside t():  t(cond ? 'key.a' : 'key.b')
   const ternaryRe = /\bt\(\s*[^)]*\?\s*['"]([a-zA-Z_][\w]*(?:\.\w+)+)['"]\s*:\s*['"]([a-zA-Z_][\w]*(?:\.\w+)+)['"]/g;
+  // Returned key (helper functions that hand a key back to a caller's t()):
+  //   return cond ? 'key.a' : 'key.b';   return 'key.a';
+  const returnKeyRe = /\breturn\s+(?:[^;?]*\?\s*)?['"]([a-zA-Z_][\w]*(?:\.\w+)+)['"](?:\s*:\s*['"]([a-zA-Z_][\w]*(?:\.\w+)+)['"])?\s*;/g;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -180,6 +183,15 @@ function scanFile(filePath) {
       const key = m[1];
       if (!staticKeys.has(key)) staticKeys.set(key, []);
       staticKeys.get(key).push(lineNo);
+    }
+
+    // Returned key: return cond ? 'key.a' : 'key.b';  /  return 'key.a';
+    for (const m of line.matchAll(returnKeyRe)) {
+      for (const key of [m[1], m[2]]) {
+        if (!key) continue;
+        if (!staticKeys.has(key)) staticKeys.set(key, []);
+        staticKeys.get(key).push(lineNo);
+      }
     }
 
     // Ternary inside t():  t(cond ? 'key.a' : 'key.b')
@@ -263,8 +275,15 @@ function run() {
 
   // 3. Determine which keys are used
   //    A key is "used" if it appears in usageMap OR if it falls under a dynamic prefix
+  // i18next CLDR plural suffixes: a defined `foo_one`/`foo_other`/... key is used
+  // whenever the base key `foo` is passed to t() with a `count` interpolation —
+  // the suffix is resolved by i18next at runtime, never spelled out in source.
+  const PLURAL_SUFFIX_RE = /_(zero|one|two|few|many|other)$/;
+
   function isUsed(key) {
     if (usageMap.has(key)) return true;
+    const pluralMatch = key.match(PLURAL_SUFFIX_RE);
+    if (pluralMatch && usageMap.has(key.slice(0, -pluralMatch[0].length))) return true;
     for (const prefix of allDynamicPrefixes) {
       if (key.startsWith(prefix + '.')) return true;
     }
