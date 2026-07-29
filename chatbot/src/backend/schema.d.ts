@@ -4167,6 +4167,10 @@ export interface components {
             /** Format: int64 */
             categoryId?: number;
             tagIds?: number[];
+            /** @description GROUP plans only: existing finance events to link as already-settled members of the group. */
+            eventIds?: number[];
+            /** @description GROUP plans only: existing drafts to link as pending members of the group. */
+            draftIds?: number[];
         };
         /** @description DTO for creating or updating an individual payment plan item / cuota */
         CreatePaymentPlanItemDto: {

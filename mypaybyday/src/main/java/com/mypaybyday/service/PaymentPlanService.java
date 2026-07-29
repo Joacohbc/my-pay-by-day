@@ -138,6 +138,9 @@ public class PaymentPlanService {
 		if (shouldGenerateItems && entity.totalInstallments != null && entity.totalInstallments > 0) {
 			preGenerateItems(entity);
 		}
+		if (entity.planType == PaymentPlanType.GROUP) {
+			linkGroupMembers(entity, dto.eventIds(), dto.draftIds());
+		}
 
 		paymentPlanValidator.validate(entity);
 		paymentPlanRepository.persist(entity);
@@ -172,6 +175,38 @@ public class PaymentPlanService {
 		}
 	}
 
+	/**
+	 * Links pre-existing events/drafts as group members in one shot, so the Group creation UI
+	 * never forces the user through the per-item add flow. Linked events are already-settled
+	 * money movements (PAID); linked drafts are still pending confirmation (DRAFTED). Drafts have
+	 * no structured date of their own (raw JSON payload), so members fall back to the group's date.
+	 */
+	private void linkGroupMembers(PaymentPlanEntity plan, List<Long> eventIds, List<Long> draftIds) {
+		int installmentNumber = 1;
+		for (Long eventId : eventIds != null ? eventIds : List.<Long>of()) {
+			FinanceEventEntity event = eventRepository.findById(eventId);
+			if (event == null) continue;
+			PaymentPlanItemEntity item = new PaymentPlanItemEntity();
+			item.paymentPlan = plan;
+			item.installmentNumber = installmentNumber++;
+			item.expectedDate = event.transaction != null ? event.transaction.transactionDate.toLocalDate() : plan.startDate;
+			item.itemStatus = PaymentPlanItemStatus.PAID;
+			item.event = event;
+			plan.items.add(item);
+		}
+		for (Long draftId : draftIds != null ? draftIds : List.<Long>of()) {
+			DraftEntity draft = entityDraftRepository.findById(draftId);
+			if (draft == null) continue;
+			PaymentPlanItemEntity item = new PaymentPlanItemEntity();
+			item.paymentPlan = plan;
+			item.installmentNumber = installmentNumber++;
+			item.expectedDate = plan.startDate;
+			item.itemStatus = PaymentPlanItemStatus.DRAFTED;
+			item.draft = draft;
+			plan.items.add(item);
+		}
+	}
+
 	private LocalDate calculateNextDate(LocalDate date, RecurrenceFrequency frequency) {
 		if (frequency == null) return date.plusMonths(1);
 		return switch (frequency) {
@@ -192,10 +227,15 @@ public class PaymentPlanService {
 		return PaymentPlanDto.from(entity);
 	}
 
+	/**
+	 * GROUP plans are never automated, so there is no in-flight schedule a delete could
+	 * silently orphan — they can be removed directly. The other kinds still require CANCELLED
+	 * first as a deliberate two-step confirmation before losing an automated plan's history.
+	 */
 	@Transactional
 	public void delete(Long id) throws BusinessException {
 		PaymentPlanEntity entity = findEntityById(id);
-		if (entity.status != PaymentPlanStatus.CANCELLED) {
+		if (entity.planType != PaymentPlanType.GROUP && entity.status != PaymentPlanStatus.CANCELLED) {
 			throw messages.reject(MsgKey.PAYMENT_PLAN_NOT_CANCELLED_FOR_DELETE);
 		}
 		paymentPlanRepository.delete(entity);

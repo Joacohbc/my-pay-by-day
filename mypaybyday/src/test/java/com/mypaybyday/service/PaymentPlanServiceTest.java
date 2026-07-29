@@ -46,6 +46,8 @@ class PaymentPlanServiceTest {
 			null,
 			null,
 			null,
+			null,
+			null,
 			null
 		);
 

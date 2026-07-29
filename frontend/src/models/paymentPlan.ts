@@ -56,6 +56,10 @@ export interface CreatePaymentPlanDto {
   categoryId?: number;
   tagIds?: number[];
   generateItems?: boolean;
+  /** GROUP plans only: existing finance events to link as already-settled members of the group. */
+  eventIds?: number[];
+  /** GROUP plans only: existing drafts to link as pending members of the group. */
+  draftIds?: number[];
 }
 
 export interface CreatePaymentPlanItemDto {

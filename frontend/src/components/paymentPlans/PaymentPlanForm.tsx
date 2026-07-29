@@ -219,7 +219,9 @@ export function PaymentPlanForm({ editTarget, onCancel, onSuccess }: PaymentPlan
               options={[
                 { value: 'INSTALLMENT', label: t('paymentPlans.types.INSTALLMENT') },
                 { value: 'RECURRING', label: t('paymentPlans.types.RECURRING') },
-                { value: 'GROUP', label: t('paymentPlans.types.GROUP') },
+                // Grupos now has its own dedicated creation flow (Routes.PAYMENT_PLAN_NEW_GROUP);
+                // this generic form only still offers GROUP when editing one that already exists.
+                ...(editTarget?.planType === 'GROUP' ? [{ value: 'GROUP', label: t('paymentPlans.types.GROUP') }] : []),
                 { value: 'CUSTOM', label: t('paymentPlans.types.CUSTOM') },
               ]}
               error={errors.planType?.message}

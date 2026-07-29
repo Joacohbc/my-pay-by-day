@@ -31,5 +31,8 @@ public class PaymentPlanValidator {
 		if (requiresRecurrence && entity.frequency == null) {
 			throw messages.reject(MsgKey.PAYMENT_PLAN_FREQUENCY_REQUIRED);
 		}
+		if (entity.status != null && !entity.planType.allowsStatus(entity.status)) {
+			throw messages.reject(MsgKey.PAYMENT_PLAN_STATUS_NOT_ALLOWED_FOR_TYPE, entity.status, entity.planType);
+		}
 	}
 }

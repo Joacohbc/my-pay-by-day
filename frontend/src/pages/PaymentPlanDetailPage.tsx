@@ -24,7 +24,8 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import { formatCurrency, formatDateFromParts } from '@/lib/format';
+import { eventNetAmount, formatCurrency, formatCurrencyShort, formatDateFromParts, formatDateShort } from '@/lib/format';
+import { useEvent } from '@/hooks/useEvents';
 import type { FinanceEvent, PaymentPlan, PaymentPlanItem, PaymentPlanStatus } from '@/models';
 
 const statusBadgeVariants: Record<PaymentPlanStatus, 'income' | 'indigo' | 'gray'> = {
@@ -144,7 +145,7 @@ export function PaymentPlanDetailPage() {
         back={goBack}
         action={
           <div className="flex gap-2">
-            {!isCancelled && (
+            {!isGroup && !isCancelled && (
               <Button
                 variant="secondary"
                 size="sm"
@@ -160,7 +161,7 @@ export function PaymentPlanDetailPage() {
                 <Icon name="edit" className="text-base" />
               </Button>
             </Link>
-            {isCancelled ? (
+            {isGroup || isCancelled ? (
               <Button
                 variant="danger"
                 size="sm"
@@ -340,6 +341,11 @@ function InstallmentProgress({ plan }: { readonly plan: PaymentPlan }) {
 function PaymentPlanItemRow({ item, draft }: { readonly item: PaymentPlanItem; readonly draft?: FinanceEvent }) {
   const { t } = useTranslation();
   const { linkStateFromHere } = useAppNavigation();
+  const { data: linkedEvent } = useEvent(item.eventId ?? 0);
+  const linkedRecord = linkedEvent ?? draft;
+
+  const eventAmount = linkedRecord ? Math.abs(eventNetAmount(linkedRecord)) : undefined;
+  const expectedDateLabel = formatDateFromParts(item.expectedDate);
 
   function buildLinkedTarget() {
     if (item.eventId) {
@@ -385,9 +391,26 @@ function PaymentPlanItemRow({ item, draft }: { readonly item: PaymentPlanItem; r
           {item.installmentNumber}
         </span>
         <div className="flex flex-col min-w-0">
-          <span className="text-sm text-dn-text-main font-mono">{formatDateFromParts(item.expectedDate)}</span>
-          {item.expectedAmount != null && (
-            <span className="text-xs text-dn-text-muted font-mono">{formatCurrency(item.expectedAmount)}</span>
+          <span className="text-sm text-dn-text-main truncate">
+            {linkedRecord?.name ?? expectedDateLabel}
+          </span>
+          <span
+            className="inline-flex items-center gap-1 text-xs text-dn-text-muted font-mono truncate"
+            title={t('paymentPlans.expectedDate')}
+          >
+            <Icon name="event" className="text-[13px] shrink-0" />
+            {formatDateShort(item.expectedDate)} -{' '}
+            {item.expectedAmount != null ? formatCurrencyShort(item.expectedAmount) : t('common.none')}
+          </span>
+          {linkedRecord && (
+            <span
+              className="inline-flex items-center gap-1 text-xs text-dn-text-muted font-mono truncate"
+              title={t('paymentPlans.eventDateLabel')}
+            >
+              <Icon name="receipt_long" className="text-[13px] shrink-0" />
+              {formatDateShort(linkedRecord.transactionDate)} -{' '}
+              {eventAmount != null ? formatCurrencyShort(eventAmount) : t('common.none')}
+            </span>
           )}
         </div>
       </Link>

@@ -86,7 +86,7 @@ public class PaymentPlanResource {
 
 	@DELETE
 	@Path("/{id}")
-	@Operation(summary = "Delete a payment plan", description = "Deletes a payment plan. Only allowed if status is CANCELLED.")
+	@Operation(summary = "Delete a payment plan", description = "Deletes a payment plan. GROUP plans can be deleted directly; other kinds require status CANCELLED first.")
 	@APIResponses({
 		@APIResponse(responseCode = "204", description = "Payment plan deleted successfully"),
 		@APIResponse(responseCode = "400", description = "Payment plan is not cancelled"),

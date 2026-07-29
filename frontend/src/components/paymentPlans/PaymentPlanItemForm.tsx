@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/contexts/AlertContext';
 import type {
   CreatePaymentPlanItemDto,
-  FinanceEvent,
   PaymentPlanItem,
   PaymentPlanItemStatus,
   PaymentPlanType,
@@ -24,19 +23,13 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useEvent, useEvents } from '@/hooks/useEvents';
 import { useFinanceEventDrafts } from '@/hooks/useDrafts';
-import { eventNetAmount, formatCurrency, formatDate, getLocalizedTodayString } from '@/lib/format';
+import { describeFinanceEvent, getLocalizedTodayString } from '@/lib/format';
 import { isGroupPlan, isUserComposedPlan } from '@/components/paymentPlans/planPresentation';
 import { optionalAmountField, requiredCountField, toOptionalNumber } from '@/lib/validation';
 import { findFirstFieldErrorMessage } from '@/lib/formErrors';
 
 const ITEM_STATUSES: PaymentPlanItemStatus[] = ['PENDING', 'DRAFTED', 'PAID', 'SKIPPED', 'OVERDUE'];
 const SELECTABLE_EVENTS_PAGE_SIZE = 50;
-
-function describeEvent(event: FinanceEvent): string {
-  const amount = formatCurrency(Math.abs(eventNetAmount(event)));
-  const date = formatDate(event.transactionDate);
-  return date ? `${event.name} · ${date} · ${amount}` : `${event.name} · ${amount}`;
-}
 
 function buildSchema(t: (key: string) => string) {
   return z
@@ -97,14 +90,14 @@ export function PaymentPlanItemForm({
     const isLinkedEventMissing = linkedEvent && !selectable.some((event) => event.id === linkedEvent.id);
     const events = isLinkedEventMissing ? [linkedEvent, ...selectable] : selectable;
 
-    return events.map((event) => ({ value: String(event.id), label: describeEvent(event) }));
+    return events.map((event) => ({ value: String(event.id), label: describeFinanceEvent(event) }));
   }, [recentEvents, linkedEvent]);
 
   const draftOptions = useMemo(
     () =>
       (drafts ?? [])
         .filter((draft) => draft.draftId != null)
-        .map((draft) => ({ value: String(draft.draftId), label: describeEvent(draft) })),
+        .map((draft) => ({ value: String(draft.draftId), label: describeFinanceEvent(draft) })),
     [drafts]
   );
 

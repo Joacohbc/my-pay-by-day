@@ -151,25 +151,14 @@ export function buildPaymentPlanTools(ctx: RequestContext): KindedToolSet {
   }
 
   /**
-   * The backend silently stores a null link when the referenced event or draft does not exist,
-   * so the created item is read back and any id that failed to attach is reported rather than
-   * leaving the group looking complete.
+   * The backend silently skips an eventId/draftId that does not exist, so the created plan is
+   * read back and any id missing from its items is reported rather than leaving the group
+   * looking complete.
    */
-  async function fillGroup(planId: number, date: string, eventIds: number[], draftIds: number[]) {
-    const linked: number[] = [];
-    const missing: number[] = [];
-    let position = 1;
-
-    for (const eventId of eventIds) {
-      const created = await createItem(planId, { installmentNumber: position++, expectedDate: date, itemStatus: 'PAID', eventId });
-      (created.eventId != null ? linked : missing).push(eventId);
-    }
-    for (const draftId of draftIds) {
-      const created = await createItem(planId, { installmentNumber: position++, expectedDate: date, itemStatus: 'DRAFTED', draftId });
-      (created.draftId != null ? linked : missing).push(draftId);
-    }
-
-    return { linked, missing };
+  function missingGroupMembers(plan: PaymentPlan, eventIds: number[], draftIds: number[]) {
+    const linkedEventIds = new Set((plan.items ?? []).map((item) => item.eventId).filter((id): id is number => id != null));
+    const linkedDraftIds = new Set((plan.items ?? []).map((item) => item.draftId).filter((id): id is number => id != null));
+    return [...eventIds.filter((id) => !linkedEventIds.has(id)), ...draftIds.filter((id) => !linkedDraftIds.has(id))];
   }
 
   async function resolveTargetItem(plan: PaymentPlan, itemId: number | null | undefined) {
@@ -237,6 +226,8 @@ export function buildPaymentPlanTools(ctx: RequestContext): KindedToolSet {
         inputSchema: botEventGroupInputSchema,
         execute: (input) =>
           safe(async () => {
+            const eventIds = input.eventIds ?? [];
+            const draftIds = input.draftIds ?? [];
             const plan = await unwrap(
               client.POST('/payment-plans', {
                 body: {
@@ -249,18 +240,19 @@ export function buildPaymentPlanTools(ctx: RequestContext): KindedToolSet {
                   generateItems: false,
                   categoryId: input.categoryId ?? undefined,
                   tagIds: input.tagIds ?? undefined,
+                  eventIds: eventIds.length > 0 ? eventIds : undefined,
+                  draftIds: draftIds.length > 0 ? draftIds : undefined,
                 },
               }),
             );
 
-            const { linked, missing } = await fillGroup(plan.id, input.date, input.eventIds ?? [], input.draftIds ?? []);
-            const filled = await fetchPlan(client, plan.id);
+            const missing = missingGroupMembers(plan, eventIds, draftIds);
 
             return {
-              ...describePlan(filled),
-              linkedCount: linked.length,
+              ...describePlan(plan),
+              linkedCount: (plan.items ?? []).length,
               ...(missing.length > 0 && {
-                warning: `These ids do not exist and were added as empty entries: ${missing.join(', ')}`,
+                warning: `These ids do not exist and were not linked: ${missing.join(', ')}`,
               }),
             };
           }),

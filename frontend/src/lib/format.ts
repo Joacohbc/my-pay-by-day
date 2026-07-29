@@ -107,6 +107,20 @@ export function formatServerDate(serverDateTime: string | undefined | null): str
   return formatDate(localDateStr);
 }
 
+/** Compact numeric date (e.g. "27/07/26") for tight rows where the full month name doesn't fit. */
+export function formatDateShort(input: string | Date | undefined | null): string {
+  if (!input) return '';
+  const dateStr = typeof input === 'string' && !input.includes('T') ? `${input}T00:00:00Z` : input;
+  const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+  if (isNaN(date.getTime())) return typeof input === 'string' ? input : '';
+  return new Intl.DateTimeFormat(locale(), {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    timeZone: typeof input === 'string' && !input.includes('T') ? getServerTimezone() : getUserTimezone(),
+  }).format(date);
+}
+
 export function formatDateFromParts(dateOnly: string | undefined | null): string {
   if (!dateOnly) return '';
   const dateStr = dateOnly.includes('T') ? dateOnly : `${dateOnly}T00:00:00Z`;
@@ -178,6 +192,13 @@ export function eventNetAmount(event: FinanceEvent): number {
   }
   // OTHER
   return items.reduce((s, li) => s + Math.abs(Number(li.amount)), 0) / 2;
+}
+
+/** One-line label for pickers/selects that need to identify an event or draft at a glance. */
+export function describeFinanceEvent(event: FinanceEvent): string {
+  const amount = formatCurrency(Math.abs(eventNetAmount(event)));
+  const date = formatDate(event.transactionDate);
+  return date ? `${event.name} · ${date} · ${amount}` : `${event.name} · ${amount}`;
 }
 
 export function toLocalDateTimeString(input: string | Date): string {
