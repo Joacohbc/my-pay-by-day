@@ -10,10 +10,10 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.Base64FileUploadRequestDto;
 import com.mypaybyday.dto.FileDto;
+import com.mypaybyday.dto.FileWithEventDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.exception.BusinessException;
@@ -25,6 +25,7 @@ import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.jboss.resteasy.reactive.RestResponse;
 
 @Path("/files")
 @Produces(MediaType.APPLICATION_JSON)
@@ -46,20 +47,20 @@ public class FileResource {
 				content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FileDto.class))),
 		@APIResponse(responseCode = "400", description = "Validation error or file too large")
 	})
-	public Response uploadBase64(Base64FileUploadRequestDto request) throws BusinessException {
-		return Response.status(Response.Status.CREATED).entity(fileService.uploadBase64(request)).build();
+	public RestResponse<FileDto> uploadBase64(Base64FileUploadRequestDto request) throws BusinessException {
+		return RestResponse.status(RestResponse.Status.CREATED, fileService.uploadBase64(request));
 	}
 
 	@GET
 	@Operation(summary = "List files (paginated)", description = "Returns a paginated list of files with optional filter by orphaned status")
 	@APIResponse(responseCode = "200", description = "Paginated list of files",
 			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
-	public Response getAll(
+	public RestResponse<PagedResponse<FileWithEventDto>> getAll(
 			@Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
 			@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size,
 			@Parameter(description = "Filter by orphaned status (true=only orphans, false=only linked, omitted=all)") @QueryParam("orphaned") Boolean orphaned) {
 
-		return Response.ok(fileService.listFiles(page, size, orphaned)).build();
+		return RestResponse.ok(fileService.listFiles(page, size, orphaned));
 	}
 
 	@GET
@@ -70,10 +71,10 @@ public class FileResource {
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FileDto.class))),
 			@APIResponse(responseCode = "404", description = "File not found")
 	})
-	public Response getById(
+	public RestResponse<FileDto> getById(
 			@Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
 			throws BusinessException {
-		return Response.ok(fileService.getFileMetadata(id)).build();
+		return RestResponse.ok(fileService.getFileMetadata(id));
 	}
 
 	@GET
@@ -84,11 +85,11 @@ public class FileResource {
 			@APIResponse(responseCode = "200", description = "File content stream"),
 			@APIResponse(responseCode = "404", description = "File not found")
 	})
-	public Response getContentBinary(
+	public RestResponse<byte[]> getContentBinary(
 			@Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		FileEntity file = fileService.getFileContent(id);
-		return Response.ok(file.data)
+		return RestResponse.ResponseBuilder.ok(file.data)
 				.type(file.mimeType)
 				.header("Content-Disposition", "inline; filename=\"" + file.fileName + "\"")
 				.build();
@@ -103,14 +104,14 @@ public class FileResource {
 			@APIResponse(responseCode = "204", description = "File is not convertible or the conversion service is unavailable"),
 			@APIResponse(responseCode = "404", description = "File not found")
 	})
-	public Response getContentMarkdown(
+	public RestResponse<String> getContentMarkdown(
 			@Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		String markdown = fileService.getMarkdownContent(id);
 		if (markdown == null) {
-			return Response.noContent().build();
+			return RestResponse.noContent();
 		}
-		return Response.ok(markdown).build();
+		return RestResponse.ok(markdown);
 	}
 
 	@GET
@@ -121,11 +122,11 @@ public class FileResource {
 			@APIResponse(responseCode = "200", description = "File content as Base64 string"),
 			@APIResponse(responseCode = "404", description = "File not found")
 	})
-	public Response getContentBase64(
+	public RestResponse<String> getContentBase64(
 			@Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		String dataUri = fileService.getFileContentAsBase64(id);
-		return Response.ok(dataUri).build();
+		return RestResponse.ok(dataUri);
 	}
 
 	@DELETE
@@ -136,10 +137,10 @@ public class FileResource {
 			@APIResponse(responseCode = "400", description = "File is still in use"),
 			@APIResponse(responseCode = "404", description = "File not found")
 	})
-	public Response delete(
+	public RestResponse<Void> delete(
 			@Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		fileService.deleteFile(id);
-		return Response.noContent().build();
+		return RestResponse.noContent();
 	}
 }

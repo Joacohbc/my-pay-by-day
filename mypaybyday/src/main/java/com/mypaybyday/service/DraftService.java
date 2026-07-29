@@ -56,17 +56,19 @@ public class DraftService {
 	private final EventCreateService eventCreateService;
 	private final EventUpdateService eventUpdateService;
 	private final TransactionValidator transactionValidator;
+	private final PaymentPlanService paymentPlanService;
 
 	@Inject
 	public DraftService(EntityDraftRepository draftRepository, Messages messages, ObjectMapper objectMapper,
 			EventCreateService eventCreateService, EventUpdateService eventUpdateService,
-			TransactionValidator transactionValidator) {
+			TransactionValidator transactionValidator, PaymentPlanService paymentPlanService) {
 		this.draftRepository = draftRepository;
 		this.messages = messages;
 		this.objectMapper = objectMapper;
 		this.eventCreateService = eventCreateService;
 		this.eventUpdateService = eventUpdateService;
 		this.transactionValidator = transactionValidator;
+		this.paymentPlanService = paymentPlanService;
 	}
 
 	public List<DraftEntity> listAll() {
@@ -219,6 +221,7 @@ public class DraftService {
 	public void delete(Long id) {
 		DraftEntity entity = draftRepository.findById(id);
 		if (entity != null) {
+			paymentPlanService.unlinkDraft(id);
 			draftRepository.delete(entity);
 		}
 	}
@@ -260,6 +263,7 @@ public class DraftService {
 			result = eventCreateService.create(buildEventEntityFromDraftDto(dto));
 		}
 
+		paymentPlanService.relinkDraftToEvent(draftId, result.id());
 		delete(draftId);
 		return result;
 	}

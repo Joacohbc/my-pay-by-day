@@ -28,7 +28,8 @@ export type CacheDomain =
   | 'aiMemory'
   | 'agentTasks'
   | 'subscriptions'
-  | 'templates';
+  | 'templates'
+  | 'paymentPlans';
 
 export const EVENT_MUTATION_DOMAINS: readonly CacheDomain[] = [
   'events',

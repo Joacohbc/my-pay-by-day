@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/contexts/AlertContext';
+import { findFirstFieldErrorMessage } from '@/lib/formErrors';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/Button';
@@ -153,19 +154,7 @@ export function EventForm({
   };
 
   const handleInvalidSubmit = (fieldErrors: Record<string, unknown>) => {
-    const findFirstMessage = (value: unknown): string | undefined => {
-      if (!value || typeof value !== 'object') return undefined;
-      if ('message' in value && typeof (value as { message: unknown }).message === 'string') {
-        return (value as { message: string }).message;
-      }
-      for (const child of Object.values(value as object)) {
-        const found = findFirstMessage(child);
-        if (found) return found;
-      }
-      return undefined;
-    };
-    const errorMessage = findFirstMessage(fieldErrors) ?? t('common.validationError');
-    alert.error(errorMessage);
+    alert.error(findFirstFieldErrorMessage(fieldErrors) ?? t('common.validationError'));
   };
 
   const hasUserInteracted = useRef(false);

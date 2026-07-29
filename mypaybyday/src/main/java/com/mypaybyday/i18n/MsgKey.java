@@ -81,6 +81,23 @@ public enum MsgKey {
 	SUBSCRIPTION_RECURRENCE_REQUIRED("error.subscription.recurrence_required"),
 	SUBSCRIPTION_PROCESSING_FAILED("error.subscription.processing_failed"),
 
+	// ── PaymentPlanEntity ──────────────────────────────────────
+	PAYMENT_PLAN_NOT_FOUND("error.payment_plan.not_found"),
+	PAYMENT_PLAN_NAME_REQUIRED("error.payment_plan.name_required"),
+	PAYMENT_PLAN_START_DATE_REQUIRED("error.payment_plan.start_date_required"),
+	PAYMENT_PLAN_FREQUENCY_REQUIRED("error.payment_plan.frequency_required"),
+	PAYMENT_PLAN_NOT_CANCELLED_FOR_DELETE("error.payment_plan.not_cancelled_for_delete"),
+	PAYMENT_PLAN_STATUS_NOT_ALLOWED_FOR_TYPE("error.payment_plan.status_not_allowed_for_type"),
+
+	// ── PaymentPlanItemEntity ──────────────────────────────────
+	PAYMENT_PLAN_ITEM_NOT_FOUND("error.payment_plan_item.not_found"),
+	PAYMENT_PLAN_ITEM_EXPECTED_DATE_REQUIRED("error.payment_plan_item.expected_date_required"),
+	PAYMENT_PLAN_ITEM_NUMBER_INVALID("error.payment_plan_item.number_invalid"),
+	PAYMENT_PLAN_ITEM_NUMBER_DUPLICATED("error.payment_plan_item.number_duplicated"),
+	PAYMENT_PLAN_ITEM_AMOUNT_INVALID("error.payment_plan_item.amount_invalid"),
+	PAYMENT_PLAN_ITEM_LINK_NOT_EXCLUSIVE("error.payment_plan_item.link_not_exclusive"),
+	PAYMENT_PLAN_ITEMS_NOT_COMPOSABLE("error.payment_plan_item.not_composable"),
+
 	// ── Event Draft ──────────────────────────────────────
 	DRAFT_NOT_FOUND("error.draft.not_found"),
 	DRAFT_INVALID_PAYLOAD("error.draft.invalid_payload"),
@@ -114,6 +131,9 @@ public enum MsgKey {
 	// ── Selection History ────────────────────────────────
 	SELECTION_HISTORY_ENTITY_TYPE_REQUIRED("error.selection_history.entity_type_required"),
 	SELECTION_HISTORY_ENTITY_ID_REQUIRED("error.selection_history.entity_id_required"),
+
+	// ── Duplicates ───────────────────────────────────────
+	DUPLICATES_TYPE_AND_STATUS_REQUIRED("error.duplicates.type_and_status_required"),
 
 	// ── Duplicate Settings ───────────────────────────────
 	DUPLICATE_SETTINGS_WEIGHTS_SUM_INVALID("error.duplicate_settings.weights_sum_invalid"),

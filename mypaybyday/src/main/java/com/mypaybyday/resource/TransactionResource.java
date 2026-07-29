@@ -1,14 +1,16 @@
 package com.mypaybyday.resource;
 
+import java.util.List;
+
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.FinanceTransactionDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.event.TransactionService;
 
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
@@ -32,8 +34,8 @@ public class TransactionResource {
 	@Operation(summary = "List all transactions", description = "Returns every Transaction with its LineItems. Read-only audit endpoint.")
 	@APIResponse(responseCode = "200", description = "List of transactions",
 			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceTransactionDto.class)))
-	public Response getAll() {
-		return Response.ok(transactionService.listAll()).build();
+	public RestResponse<List<FinanceTransactionDto>> getAll() {
+		return RestResponse.ok(transactionService.listAll());
 	}
 
 	@GET
@@ -44,9 +46,9 @@ public class TransactionResource {
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceTransactionDto.class))),
 			@APIResponse(responseCode = "404", description = "Transaction not found")
 	})
-	public Response getById(
+	public RestResponse<FinanceTransactionDto> getById(
 			@Parameter(description = "ID of the transaction", required = true) @PathParam("id") Long id)
 			throws BusinessException {
-		return Response.ok(transactionService.findById(id)).build();
+		return RestResponse.ok(transactionService.findById(id));
 	}
 }

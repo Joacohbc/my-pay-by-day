@@ -2,7 +2,6 @@ package com.mypaybyday.resource;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -19,6 +18,7 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.event.EventService;
 
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
@@ -42,7 +42,7 @@ public class EventResource {
     @Operation(summary = "List events (paginated)", description = "Returns a paginated page of FinanceEvents with optional filtering.")
     @APIResponse(responseCode = "200", description = "Paginated list of events",
 	content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
-    public Response getAll(
+    public RestResponse<PagedResponse<FinanceEventDto>> getAll(
 	@Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
 	@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size,
 	@Parameter(description = "Filter by text in name or description") @QueryParam("search") String search,
@@ -58,13 +58,13 @@ public class EventResource {
 	@Parameter(description = "Filter by minimum total amount (inclusive)") @QueryParam("minAmount") BigDecimal minAmount,
 	@Parameter(description = "Filter by maximum total amount (inclusive)") @QueryParam("maxAmount") BigDecimal maxAmount) {
 
-	return Response.ok(eventService.listAll(EventQuery.builder()
+	return RestResponse.ok(eventService.listAll(EventQuery.builder()
 		.page(page).size(size)
 		.search(search).startDate(startDate).endDate(endDate).dateField(dateField)
 		.type(type).categoryId(categoryId).tagId(tagId)
 		.categoryIds(categoryIds).tagIds(tagIds).nodeId(nodeId)
 		.minAmount(minAmount).maxAmount(maxAmount)
-		.build())).build();
+		.build()));
     }
 
     @GET
@@ -75,10 +75,10 @@ public class EventResource {
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
 	@APIResponse(responseCode = "404", description = "Event not found")
     })
-    public Response getById(
+    public RestResponse<FinanceEventDto> getById(
 	@Parameter(description = "ID of the event", required = true) @PathParam("id") Long id)
 	throws BusinessException {
-	return Response.ok(eventService.findById(id)).build();
+	return RestResponse.ok(eventService.findById(id));
     }
 
     @POST
@@ -91,8 +91,8 @@ public class EventResource {
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
 	@APIResponse(responseCode = "400", description = "Validation error (e.g. zero-sum violated)")
     })
-    public Response create(FinanceEventEntity event) throws BusinessException {
-	return Response.status(Response.Status.CREATED).entity(eventService.create(event)).build();
+    public RestResponse<FinanceEventDto> create(FinanceEventEntity event) throws BusinessException {
+	return RestResponse.status(RestResponse.Status.CREATED, eventService.create(event));
     }
 
     @PATCH
@@ -106,10 +106,10 @@ public class EventResource {
 	@APIResponse(responseCode = "400", description = "Validation error"),
 	@APIResponse(responseCode = "404", description = "Event not found")
     })
-    public Response update(
+    public RestResponse<FinanceEventDto> update(
 	@Parameter(description = "ID of the event", required = true) @PathParam("id") Long id,
 	PatchEventDto patch) throws BusinessException {
-	return Response.ok(eventService.update(id, patch)).build();
+	return RestResponse.ok(eventService.update(id, patch));
     }
 
     @PATCH
@@ -123,8 +123,8 @@ public class EventResource {
             content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
         @APIResponse(responseCode = "400", description = "Validation error (e.g., event not found, archived category/tag)")
     })
-    public Response bulkUpdate(BulkPatchEventDto patch) throws BusinessException {
-        return Response.ok(eventService.bulkUpdate(patch)).build();
+    public RestResponse<List<FinanceEventDto>> bulkUpdate(BulkPatchEventDto patch) throws BusinessException {
+        return RestResponse.ok(eventService.bulkUpdate(patch));
     }
 
     @DELETE
@@ -134,11 +134,11 @@ public class EventResource {
 	@APIResponse(responseCode = "204", description = "Event deleted"),
 	@APIResponse(responseCode = "404", description = "Event not found")
     })
-    public Response delete(
+    public RestResponse<Void> delete(
 	@Parameter(description = "ID of the event", required = true) @PathParam("id") Long id)
 	throws BusinessException {
 	eventService.delete(id);
-	return Response.noContent().build();
+	return RestResponse.noContent();
     }
 
     @POST
@@ -149,11 +149,11 @@ public class EventResource {
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
 	@APIResponse(responseCode = "404", description = "Event not found")
     })
-    public Response addRelations(
+    public RestResponse<FinanceEventDto> addRelations(
 	@Parameter(description = "ID of the event", required = true) @PathParam("id") Long id,
-	@Parameter(description = "List of related event IDs", required = true) java.util.List<Long> relatedIds)
+	@Parameter(description = "List of related event IDs", required = true) List<Long> relatedIds)
 	throws BusinessException {
-	return Response.ok(eventService.addRelations(id, relatedIds)).build();
+	return RestResponse.ok(eventService.addRelations(id, relatedIds));
     }
 
     @DELETE
@@ -164,11 +164,11 @@ public class EventResource {
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
 	@APIResponse(responseCode = "404", description = "Event not found")
     })
-    public Response removeRelations(
+    public RestResponse<FinanceEventDto> removeRelations(
 	@Parameter(description = "ID of the event", required = true) @PathParam("id") Long id,
-	@Parameter(description = "List of related event IDs to remove", required = true) java.util.List<Long> relatedIds)
+	@Parameter(description = "List of related event IDs to remove", required = true) List<Long> relatedIds)
 	throws BusinessException {
-	return Response.ok(eventService.removeRelations(id, relatedIds)).build();
+	return RestResponse.ok(eventService.removeRelations(id, relatedIds));
     }
 
     @POST
@@ -183,10 +183,10 @@ public class EventResource {
 	@APIResponse(responseCode = "400", description = "Validation error (e.g. mixed types, self-merge)"),
 	@APIResponse(responseCode = "404", description = "Base or source event not found")
     })
-    public Response mergeEvents(
+    public RestResponse<FinanceEventDto> mergeEvents(
 	@Parameter(description = "ID of the base event", required = true) @PathParam("id") Long id,
 	MergeEventsRequestDto request)
 	throws BusinessException {
-	return Response.ok(eventService.mergeEvents(id, request.sourceIds, request.groupByNodeIds, request.categoryId, request.tagIds, request.name, request.description)).build();
+	return RestResponse.ok(eventService.mergeEvents(id, request.sourceIds, request.groupByNodeIds, request.categoryId, request.tagIds, request.name, request.description));
     }
 }

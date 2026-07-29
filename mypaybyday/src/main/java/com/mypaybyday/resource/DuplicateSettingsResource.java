@@ -9,7 +9,6 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.DuplicateDetectionSettingsDto;
 import com.mypaybyday.entity.DuplicateDetectionSettingsEntity;
@@ -18,7 +17,11 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.DuplicateDetectionSettingsRepository;
 import com.mypaybyday.service.duplicate.DuplicateDetectionService;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.jboss.resteasy.reactive.RestResponse;
 
 @Path("/settings/duplicates")
 @Produces(MediaType.APPLICATION_JSON)
@@ -37,7 +40,9 @@ public class DuplicateSettingsResource {
 
 	@GET
 	@Transactional
-	public Response getSettings() {
+	@Operation(summary = "Get duplicate detection settings", description = "Returns the current weights and thresholds used to score potential duplicates")
+	@APIResponse(responseCode = "200", description = "Settings retrieved successfully")
+	public RestResponse<DuplicateDetectionSettingsDto> getSettings() {
 		DuplicateDetectionSettingsEntity entity = settingsRepository.getSettings();
 		DuplicateDetectionSettingsDto dto = new DuplicateDetectionSettingsDto();
 		dto.id = entity.id;
@@ -50,12 +55,17 @@ public class DuplicateSettingsResource {
 		dto.eventNameWeight = entity.eventNameWeight;
 		dto.eventTotalThresholdScore = entity.eventTotalThresholdScore;
 		dto.textSimilarityThresholdScore = entity.textSimilarityThresholdScore;
-		return Response.ok(dto).build();
+		return RestResponse.ok(dto);
 	}
 
 	@PUT
 	@Transactional
-	public Response updateSettings(DuplicateDetectionSettingsDto request) {
+	@Operation(summary = "Update duplicate detection settings", description = "Updates only the provided weight/threshold fields; the weights must sum to 1.0")
+	@APIResponses({
+		@APIResponse(responseCode = "200", description = "Settings updated successfully"),
+		@APIResponse(responseCode = "400", description = "Weights do not sum to 1.0")
+	})
+	public RestResponse<DuplicateDetectionSettingsDto> updateSettings(DuplicateDetectionSettingsDto request) {
 		DuplicateDetectionSettingsEntity entity = settingsRepository.getSettings();
 		if (request.eventTimeThresholdMinutes != null) entity.eventTimeThresholdMinutes = request.eventTimeThresholdMinutes;
 		if (request.eventDateWeight != null) entity.eventDateWeight = request.eventDateWeight;
@@ -74,15 +84,17 @@ public class DuplicateSettingsResource {
 		}
 
 		settingsRepository.persist(entity);
-		return Response.ok(request).build();
+		return RestResponse.ok(request);
 	}
 
 	@POST
 	@Path("/scan-all")
-	public Response triggerScanAll() {
+	@Operation(summary = "Trigger a full duplicate scan", description = "Starts an asynchronous scan for duplicates across all entities")
+	@APIResponse(responseCode = "204", description = "Scan started successfully")
+	public RestResponse<Void> triggerScanAll() {
 		new Thread(() -> {
 			duplicateDetectionService.scanAll();
 		}).start();
-		return Response.noContent().build();
+		return RestResponse.noContent();
 	}
 }

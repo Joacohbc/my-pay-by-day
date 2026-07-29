@@ -13,7 +13,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.ConfirmDraftsRequestDto;
 import com.mypaybyday.dto.ConfirmDraftsResultDto;
@@ -29,6 +28,7 @@ import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.jboss.resteasy.reactive.RestResponse;
 
 @Path("/drafts")
 @Produces(MediaType.APPLICATION_JSON)
@@ -46,8 +46,8 @@ public class DraftResource {
 	@GET
 	@Operation(summary = "List all drafts")
 	@APIResponse(responseCode = "200", description = "List of all drafts")
-	public List<DraftEntity> listAll() {
-		return draftService.listAll();
+	public RestResponse<List<DraftEntity>> listAll() {
+		return RestResponse.ok(draftService.listAll());
 	}
 
 	@DELETE
@@ -55,18 +55,18 @@ public class DraftResource {
 	@Operation(summary = "Delete a draft")
 	@APIResponse(responseCode = "204", description = "Draft deleted successfully")
 	@APIResponse(responseCode = "400", description = "Draft not found (Business Exception)")
-	public Response delete(@PathParam("id") Long id) {
+	public RestResponse<Void> delete(@PathParam("id") Long id) {
 		draftService.delete(id);
-		return Response.noContent().build();
+		return RestResponse.noContent();
 	}
 
 	@DELETE
 	@Path("/finance-events")
 	@Operation(summary = "Delete all finance event drafts")
 	@APIResponse(responseCode = "204", description = "All finance event drafts deleted successfully")
-	public Response deleteFinanceEventDrafts() {
+	public RestResponse<Void> deleteFinanceEventDrafts() {
 		draftService.deleteFinanceEventDrafts();
-		return Response.noContent().build();
+		return RestResponse.noContent();
 	}
 
 	// ── Endpoints specific to Finance Events using FinanceEventDto ──
@@ -75,8 +75,8 @@ public class DraftResource {
 	@Path("/finance-events")
 	@Operation(summary = "List all finance event drafts")
 	@APIResponse(responseCode = "200", description = "List of finance event drafts")
-	public List<FinanceEventDto> listFinanceEventDrafts() {
-		return draftService.listFinanceEventDrafts();
+	public RestResponse<List<FinanceEventDto>> listFinanceEventDrafts() {
+		return RestResponse.ok(draftService.listFinanceEventDrafts());
 	}
 
 	@GET
@@ -84,10 +84,10 @@ public class DraftResource {
 	@Operation(summary = "Get a finance event draft by original entity ID")
 	@APIResponse(responseCode = "200", description = "Finance event draft found")
 	@APIResponse(responseCode = "204", description = "No draft found for this entity")
-	public Response getFinanceEventDraftByEntityId(@PathParam("entityId") Long entityId) {
+	public RestResponse<FinanceEventDto> getFinanceEventDraftByEntityId(@PathParam("entityId") Long entityId) {
 		return draftService.findFinanceEventDraftByEntityId(entityId)
-			.map(dto -> Response.ok(dto).build())
-			.orElseGet(() -> Response.noContent().build());
+			.map(RestResponse::ok)
+			.orElseGet(RestResponse::noContent);
 	}
 
 	@POST
@@ -95,9 +95,9 @@ public class DraftResource {
 	@Operation(summary = "Create a standalone finance event draft (never linked to an event, no dedup — multiple can coexist)")
 	@APIResponse(responseCode = "201", description = "Finance event draft created successfully",
 		content = @Content(schema = @Schema(implementation = DraftEntity.class)))
-	public Response createStandaloneFinanceEventDraft(FinanceEventDraftInputDto dto) {
+	public RestResponse<DraftEntity> createStandaloneFinanceEventDraft(FinanceEventDraftInputDto dto) {
 		DraftEntity draft = draftService.createStandaloneFinanceEventDraft(dto);
-		return Response.status(Response.Status.CREATED).entity(draft).build();
+		return RestResponse.status(RestResponse.Status.CREATED, draft);
 	}
 
 	@PATCH
@@ -105,8 +105,8 @@ public class DraftResource {
 	@Operation(summary = "Update an existing finance event draft, addressed by its own draft ID")
 	@APIResponse(responseCode = "200", description = "Finance event draft updated successfully")
 	@APIResponse(responseCode = "400", description = "Draft not found (Business Exception)")
-	public DraftEntity updateFinanceEventDraftByDraftId(@PathParam("id") Long draftId, FinanceEventDraftInputDto dto) {
-		return draftService.updateFinanceEventDraftByDraftId(draftId, dto);
+	public RestResponse<DraftEntity> updateFinanceEventDraftByDraftId(@PathParam("id") Long draftId, FinanceEventDraftInputDto dto) {
+		return RestResponse.ok(draftService.updateFinanceEventDraftByDraftId(draftId, dto));
 	}
 
 	@PUT
@@ -115,9 +115,9 @@ public class DraftResource {
 	@APIResponse(responseCode = "200", description = "Finance event draft upserted successfully",
 		content = @Content(schema = @Schema(implementation = DraftEntity.class)))
 	@APIResponse(responseCode = "400", description = "Missing/invalid event ID (Business Exception)")
-	public Response upsertFinanceEventDraftByEventId(@PathParam("entityId") Long entityId, FinanceEventDraftInputDto dto) throws BusinessException {
+	public RestResponse<DraftEntity> upsertFinanceEventDraftByEventId(@PathParam("entityId") Long entityId, FinanceEventDraftInputDto dto) throws BusinessException {
 		DraftEntity draft = draftService.upsertFinanceEventDraftByEventId(entityId, dto);
-		return Response.ok(draft).build();
+		return RestResponse.ok(draft);
 	}
 
 	@POST
@@ -129,8 +129,8 @@ public class DraftResource {
 	@APIResponse(responseCode = "200", description = "Batch processed (see result for any skipped drafts)",
 		content = @Content(schema = @Schema(implementation = ConfirmDraftsResultDto.class)))
 	@APIResponse(responseCode = "400", description = "No draft IDs supplied (Business Exception)")
-	public ConfirmDraftsResultDto confirmFinanceEventDraftsBatch(ConfirmDraftsRequestDto request) throws BusinessException {
-		return draftService.confirmDraftsBatch(request.draftIds, request.mode);
+	public RestResponse<ConfirmDraftsResultDto> confirmFinanceEventDraftsBatch(ConfirmDraftsRequestDto request) throws BusinessException {
+		return RestResponse.ok(draftService.confirmDraftsBatch(request.draftIds, request.mode));
 	}
 
 	@POST
@@ -141,7 +141,7 @@ public class DraftResource {
 	@APIResponse(responseCode = "200", description = "Validation result (valid may be true or false; errors lists every violation found)",
 		content = @Content(schema = @Schema(implementation = DraftValidationResultDto.class)))
 	@APIResponse(responseCode = "400", description = "Draft not found (Business Exception)")
-	public DraftValidationResultDto validateFinanceEventDraft(@PathParam("id") Long draftId) throws BusinessException {
-		return draftService.validateDraft(draftId);
+	public RestResponse<DraftValidationResultDto> validateFinanceEventDraft(@PathParam("id") Long draftId) throws BusinessException {
+		return RestResponse.ok(draftService.validateDraft(draftId));
 	}
 }

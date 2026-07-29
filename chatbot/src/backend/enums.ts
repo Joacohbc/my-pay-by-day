@@ -11,3 +11,9 @@ type Schemas = components['schemas'];
 export const FINANCE_NODE_TYPES = ['OWN', 'EXTERNAL', 'CONTACT'] as const satisfies readonly Schemas['FinanceNodeType'][];
 export const EVENT_TYPES = ['INBOUND', 'OUTBOUND', 'OTHER'] as const satisfies readonly Schemas['EventType'][];
 export const SUBSCRIPTION_STATUSES = ['ACTIVE', 'CANCELLED'] as const satisfies readonly Schemas['SubscriptionStatus'][];
+export const RECURRENCE_FREQUENCIES = ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY', 'INSTANT'] as const satisfies readonly Schemas['RecurrenceFrequency'][];
+export const PAYMENT_PLAN_TYPES = ['INSTALLMENT', 'RECURRING', 'GROUP', 'CUSTOM'] as const satisfies readonly Schemas['PaymentPlanType'][];
+/** Cadences a plan can actually be scheduled on. INSTANT is reserved for one-off GROUP plans. */
+export const SCHEDULABLE_FREQUENCIES = ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'] as const satisfies readonly Schemas['RecurrenceFrequency'][];
+export const PAYMENT_PLAN_STATUSES = ['ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED'] as const satisfies readonly Schemas['PaymentPlanStatus'][];
+export const PAYMENT_PLAN_ITEM_STATUSES = ['PENDING', 'DRAFTED', 'PAID', 'SKIPPED', 'OVERDUE'] as const satisfies readonly Schemas['PaymentPlanItemStatus'][];

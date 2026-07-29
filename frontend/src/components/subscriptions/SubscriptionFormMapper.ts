@@ -26,7 +26,7 @@ export function buildSchema(t: (key: string, options?: Record<string, unknown>) 
       : z.array(lineItemSchema).min(minItems, t('eventForm.minLineItems', { count: minItems })),
     categoryId: optionalCategoryIdField(),
     tagIds: optionalTagIdsField(),
-    recurrence: z.enum(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'], {
+    recurrence: z.enum(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY', 'INSTANT'], {
       error: t('common.required'),
     }),
     nextExecutionDate: z.string().min(1, t('common.required')),

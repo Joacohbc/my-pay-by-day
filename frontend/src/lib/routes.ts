@@ -11,6 +11,16 @@ export const Routes = {
   EVENT_EDIT: (id: number | string) => `/events/${id}/edit`,
 
   SUBSCRIPTIONS: '/subscriptions',
+  PAYMENT_PLANS: '/payment-plans',
+  PAYMENT_PLAN_NEW: '/payment-plans/new',
+  PAYMENT_PLAN_NEW_GROUP: '/payment-plans/new/group',
+  PAYMENT_PLAN_NEW_INSTALLMENT: '/payment-plans/new/installment',
+  PAYMENT_PLAN_NEW_CUSTOM: '/payment-plans/new/custom',
+  PAYMENT_PLAN_DETAIL: (id: number | string) => `/payment-plans/${id}`,
+  PAYMENT_PLAN_EDIT: (id: number | string) => `/payment-plans/${id}/edit`,
+  PAYMENT_PLAN_ITEM_NEW: (planId: number | string) => `/payment-plans/${planId}/items/new`,
+  PAYMENT_PLAN_ITEM_EDIT: (planId: number | string, itemId: number | string) =>
+    `/payment-plans/${planId}/items/${itemId}`,
 
   CHAT: '/chat',
 
@@ -43,6 +53,16 @@ export function saveEventsSearch(search: string) {
 export function eventsRoute(): string {
   const saved = sessionStorage.getItem(EVENTS_SEARCH_KEY);
   return `${Routes.EVENTS}${saved || ''}`;
+}
+
+/**
+ * Builds the URL that opens a draft in the event editor. Drafts attached to an existing
+ * event edit that event; standalone drafts open the creation form, which rehydrates itself
+ * from the draft passed in the navigation state.
+ */
+export function draftRoute(draft: Pick<FinanceEvent, 'id'>): string {
+  const isLinkedToEvent = typeof draft.id === 'number' && draft.id > 0;
+  return isLinkedToEvent ? Routes.EVENT_EDIT(draft.id) : Routes.EVENT_NEW;
 }
 
 /**

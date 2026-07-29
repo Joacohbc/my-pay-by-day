@@ -3,7 +3,7 @@
 export type EventType = 'INBOUND' | 'OUTBOUND' | 'OTHER';
 export type FinanceNodeType = 'OWN' | 'EXTERNAL' | 'CONTACT';
 export type ModifierType = 'PERCENTAGE' | 'FIXED';
-export type RecurrenceFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+export type RecurrenceFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY' | 'INSTANT';
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
 
@@ -303,6 +303,7 @@ export interface DynamicTimePeriodBalance {
 }
 
 export * from './drafts';
+export * from './paymentPlan';
 
 // ─── Tag Group ────────────────────────────────────────────────────────────────
 

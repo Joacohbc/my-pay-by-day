@@ -7,6 +7,7 @@ import { buildConversationTools } from '@/tools/conversations.js';
 import { buildDateTools } from '@/tools/dates.js';
 import { buildFinanceTools } from '@/tools/finance.js';
 import { buildMemoryTools } from '@/tools/memory.js';
+import { buildPaymentPlanTools } from '@/tools/paymentPlans.js';
 import type { ExecutionMode } from '@/prompts/system.js';
 import { selectTools, type KindedToolSet, type ToolKind } from '@/tools/types.js';
 
@@ -124,6 +125,7 @@ export function buildAllTools(ctx: RequestContext, extra: KindedToolSet = {}): K
   return withToolLogging({
     ...buildDateTools(ctx),
     ...buildFinanceTools(ctx),
+    ...buildPaymentPlanTools(ctx),
     ...buildMemoryTools(),
     ...buildConversationTools(ctx),
     ...buildCalculatorTools(),

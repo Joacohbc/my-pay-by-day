@@ -1,13 +1,15 @@
 package com.mypaybyday.resource;
 
+import java.util.List;
+
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.CategoryService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
@@ -30,9 +32,9 @@ public class CategoryResource {
 	@GET
 	@Operation(summary = "List categories")
 	@APIResponse(responseCode = "200", description = "List of categories")
-	public Response getAll(
+	public RestResponse<List<CategoryDto>> getAll(
 			@Parameter(description = "Filter by archived status") @QueryParam("archived") Boolean archived) {
-		return Response.ok(categoryService.listAll(archived)).build();
+		return RestResponse.ok(categoryService.listAll(archived));
 	}
 
 	@GET
@@ -43,10 +45,10 @@ public class CategoryResource {
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class))),
 			@APIResponse(responseCode = "404", description = "Category not found")
 	})
-	public Response getById(
+	public RestResponse<CategoryDto> getById(
 			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id)
 			throws BusinessException {
-		return Response.ok(categoryService.findById(id)).build();
+		return RestResponse.ok(categoryService.findById(id));
 	}
 
 	@POST
@@ -56,8 +58,8 @@ public class CategoryResource {
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class))),
 			@APIResponse(responseCode = "400", description = "Validation error")
 	})
-	public Response create(CategoryDto category) throws BusinessException {
-		return Response.status(Response.Status.CREATED).entity(categoryService.create(category)).build();
+	public RestResponse<CategoryDto> create(CategoryDto category) throws BusinessException {
+		return RestResponse.status(RestResponse.Status.CREATED, categoryService.create(category));
 	}
 
 	@PUT
@@ -69,10 +71,10 @@ public class CategoryResource {
 			@APIResponse(responseCode = "400", description = "Validation error"),
 			@APIResponse(responseCode = "404", description = "Category not found or archived")
 	})
-	public Response update(
+	public RestResponse<CategoryDto> update(
 			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id,
 			CategoryDto categoryDetails) throws BusinessException {
-		return Response.ok(categoryService.update(id, categoryDetails)).build();
+		return RestResponse.ok(categoryService.update(id, categoryDetails));
 	}
 
 	@POST
@@ -82,11 +84,11 @@ public class CategoryResource {
 			@APIResponse(responseCode = "204", description = "Category archived"),
 			@APIResponse(responseCode = "404", description = "Category not found")
 	})
-	public Response archive(
+	public RestResponse<Void> archive(
 			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		categoryService.archive(id);
-		return Response.noContent().build();
+		return RestResponse.noContent();
 	}
 
 	@POST
@@ -96,11 +98,11 @@ public class CategoryResource {
 			@APIResponse(responseCode = "204", description = "Category unarchived"),
 			@APIResponse(responseCode = "404", description = "Category not found")
 	})
-	public Response unarchive(
+	public RestResponse<Void> unarchive(
 			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		categoryService.unarchive(id);
-		return Response.noContent().build();
+		return RestResponse.noContent();
 	}
 
 	@DELETE
@@ -111,10 +113,10 @@ public class CategoryResource {
 			@APIResponse(responseCode = "400", description = "Category in use; archive it instead"),
 			@APIResponse(responseCode = "404", description = "Category not found")
 	})
-	public Response delete(
+	public RestResponse<Void> delete(
 			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		categoryService.delete(id);
-		return Response.noContent().build();
+		return RestResponse.noContent();
 	}
 }

@@ -1,13 +1,15 @@
 package com.mypaybyday.resource;
 
+import java.util.List;
+
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TagService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
@@ -30,9 +32,9 @@ public class TagResource {
 	@GET
 	@Operation(summary = "List tags")
 	@APIResponse(responseCode = "200", description = "List of tags")
-	public Response getAll(
+	public RestResponse<List<TagDto>> getAll(
 			@Parameter(description = "Filter by archived status") @QueryParam("archived") Boolean archived) {
-		return Response.ok(tagService.listAll(archived)).build();
+		return RestResponse.ok(tagService.listAll(archived));
 	}
 
 	@GET
@@ -43,10 +45,10 @@ public class TagResource {
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TagDto.class))),
 			@APIResponse(responseCode = "404", description = "Tag not found")
 	})
-	public Response getById(
+	public RestResponse<TagDto> getById(
 			@Parameter(description = "ID of the tag", required = true) @PathParam("id") Long id)
 			throws BusinessException {
-		return Response.ok(tagService.findById(id)).build();
+		return RestResponse.ok(tagService.findById(id));
 	}
 
 	@POST
@@ -56,8 +58,8 @@ public class TagResource {
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TagDto.class))),
 			@APIResponse(responseCode = "400", description = "Validation error")
 	})
-	public Response create(TagDto tag) throws BusinessException {
-		return Response.status(Response.Status.CREATED).entity(tagService.create(tag)).build();
+	public RestResponse<TagDto> create(TagDto tag) throws BusinessException {
+		return RestResponse.status(RestResponse.Status.CREATED, tagService.create(tag));
 	}
 
 	@PUT
@@ -69,10 +71,10 @@ public class TagResource {
 			@APIResponse(responseCode = "400", description = "Validation error"),
 			@APIResponse(responseCode = "404", description = "Tag not found or archived")
 	})
-	public Response update(
+	public RestResponse<TagDto> update(
 			@Parameter(description = "ID of the tag", required = true) @PathParam("id") Long id,
 			TagDto tagDetails) throws BusinessException {
-		return Response.ok(tagService.update(id, tagDetails)).build();
+		return RestResponse.ok(tagService.update(id, tagDetails));
 	}
 
 	@POST
@@ -82,11 +84,11 @@ public class TagResource {
 			@APIResponse(responseCode = "204", description = "Tag archived"),
 			@APIResponse(responseCode = "404", description = "Tag not found")
 	})
-	public Response archive(
+	public RestResponse<Void> archive(
 			@Parameter(description = "ID of the tag", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		tagService.archive(id);
-		return Response.noContent().build();
+		return RestResponse.noContent();
 	}
 
 	@POST
@@ -96,11 +98,11 @@ public class TagResource {
 			@APIResponse(responseCode = "204", description = "Tag unarchived"),
 			@APIResponse(responseCode = "404", description = "Tag not found")
 	})
-	public Response unarchive(
+	public RestResponse<Void> unarchive(
 			@Parameter(description = "ID of the tag", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		tagService.unarchive(id);
-		return Response.noContent().build();
+		return RestResponse.noContent();
 	}
 
 	@DELETE
@@ -111,10 +113,10 @@ public class TagResource {
 			@APIResponse(responseCode = "400", description = "Tag in use; archive it instead"),
 			@APIResponse(responseCode = "404", description = "Tag not found")
 	})
-	public Response delete(
+	public RestResponse<Void> delete(
 			@Parameter(description = "ID of the tag", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		tagService.delete(id);
-		return Response.noContent().build();
+		return RestResponse.noContent();
 	}
 }

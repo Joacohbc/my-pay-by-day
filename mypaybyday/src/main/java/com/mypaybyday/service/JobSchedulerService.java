@@ -65,12 +65,23 @@ public class JobSchedulerService {
 
 	private final SystemJobRepository systemJobRepository;
 	private final SubscriptionService subscriptionService;
+	private final PaymentPlanService paymentPlanService;
 	private final DuplicateDetectionService duplicateDetectionService;
 
-	public JobSchedulerService(SystemJobRepository systemJobRepository, SubscriptionService subscriptionService, DuplicateDetectionService duplicateDetectionService) {
+	public JobSchedulerService(SystemJobRepository systemJobRepository, SubscriptionService subscriptionService, PaymentPlanService paymentPlanService, DuplicateDetectionService duplicateDetectionService) {
 		this.systemJobRepository = systemJobRepository;
 		this.subscriptionService = subscriptionService;
+		this.paymentPlanService = paymentPlanService;
 		this.duplicateDetectionService = duplicateDetectionService;
+	}
+
+	@Scheduled(every = "1h", delayed = "45s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+	@Transactional
+	public void processPaymentPlansJob() {
+		withJobCorrelation("scheduler:payment-plan", () -> {
+			LOG.info("Starting payment plan draft generator job...");
+			paymentPlanService.processDueItems();
+		});
 	}
 
 	@Scheduled(every = "1h", delayed = "30s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)

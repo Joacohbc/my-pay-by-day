@@ -1,5 +1,7 @@
 package com.mypaybyday.resource;
 
+import java.util.List;
+
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -9,13 +11,18 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
+import com.mypaybyday.dto.DuplicateRecordDto;
 import com.mypaybyday.dto.ResolveDuplicateRequestDto;
 import com.mypaybyday.enums.DuplicateRecordStatus;
 import com.mypaybyday.enums.EntityType;
+import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.duplicate.DuplicateDetectionService;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.jboss.resteasy.reactive.RestResponse;
 
 @Path("/duplicates")
 @Produces(MediaType.APPLICATION_JSON)
@@ -27,28 +34,33 @@ public class DuplicateResource {
 	DuplicateDetectionService duplicateDetectionService;
 
 	@GET
-	public Response getDuplicates(@QueryParam("type") EntityType type, @QueryParam("status") DuplicateRecordStatus status) {
-		if (type == null || status == null) {
-			return Response.status(Response.Status.BAD_REQUEST).entity("type and status are required").build();
-		}
-
-		return Response.ok(duplicateDetectionService.getDuplicates(type, status)).build();
+	@Operation(summary = "List duplicates by type and status", description = "Returns the duplicate records detected for an entity type, filtered by resolution status")
+	@APIResponses({
+		@APIResponse(responseCode = "200", description = "Duplicates found"),
+		@APIResponse(responseCode = "400", description = "Missing type or status query parameter")
+	})
+	public RestResponse<List<DuplicateRecordDto>> getDuplicates(@QueryParam("type") EntityType type, @QueryParam("status") DuplicateRecordStatus status) throws BusinessException {
+		return RestResponse.ok(duplicateDetectionService.getDuplicates(type, status));
 	}
 
 	@GET
 	@Path("/entity/{type}/{id}")
-	public Response getDuplicatesForEntity(@PathParam("type") EntityType type, @PathParam("id") Long id, @QueryParam("status") DuplicateRecordStatus status) {
+	@Operation(summary = "List duplicates for a specific entity", description = "Returns the duplicate records involving a given entity, filtered by resolution status (defaults to PENDING)")
+	@APIResponse(responseCode = "200", description = "Duplicates found")
+	public RestResponse<List<DuplicateRecordDto>> getDuplicatesForEntity(@PathParam("type") EntityType type, @PathParam("id") Long id, @QueryParam("status") DuplicateRecordStatus status) {
 		if (status == null) {
 			status = DuplicateRecordStatus.PENDING;
 		}
-		return Response.ok(duplicateDetectionService.getDuplicatesForEntity(type, id, status)).build();
+		return RestResponse.ok(duplicateDetectionService.getDuplicatesForEntity(type, id, status));
 	}
 
 	@POST
 	@Path("/{id}/resolve")
-	public Response resolveDuplicate(@PathParam("id") Long id, ResolveDuplicateRequestDto request) {
+	@Operation(summary = "Resolve a duplicate", description = "Marks a detected duplicate as merged or not-a-duplicate")
+	@APIResponse(responseCode = "204", description = "Duplicate resolved successfully")
+	public RestResponse<Void> resolveDuplicate(@PathParam("id") Long id, ResolveDuplicateRequestDto request) {
 		duplicateDetectionService.resolveDuplicate(id, request.action, request.keepEntityId);
-		return Response.noContent().build();
+		return RestResponse.noContent();
 	}
 
 }

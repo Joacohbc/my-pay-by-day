@@ -1,13 +1,15 @@
 package com.mypaybyday.resource;
 
+import java.util.List;
+
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.TagGroupDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TagGroupService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
@@ -30,9 +32,9 @@ public class TagGroupResource {
 	@GET
 	@Operation(summary = "List tag groups")
 	@APIResponse(responseCode = "200", description = "List of tag groups")
-	public Response getAll(
+	public RestResponse<List<TagGroupDto>> getAll(
 			@Parameter(description = "Filter by archived status") @QueryParam("archived") Boolean archived) {
-		return Response.ok(tagGroupService.listAll(archived)).build();
+		return RestResponse.ok(tagGroupService.listAll(archived));
 	}
 
 	@GET
@@ -43,10 +45,10 @@ public class TagGroupResource {
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TagGroupDto.class))),
 			@APIResponse(responseCode = "404", description = "Tag group not found or archived")
 	})
-	public Response getById(
+	public RestResponse<TagGroupDto> getById(
 			@Parameter(description = "ID of the tag group", required = true) @PathParam("id") Long id)
 			throws BusinessException {
-		return Response.ok(tagGroupService.findById(id)).build();
+		return RestResponse.ok(tagGroupService.findById(id));
 	}
 
 	@POST
@@ -56,8 +58,8 @@ public class TagGroupResource {
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TagGroupDto.class))),
 			@APIResponse(responseCode = "400", description = "Validation error")
 	})
-	public Response create(TagGroupDto tagGroup) throws BusinessException {
-		return Response.status(Response.Status.CREATED).entity(tagGroupService.create(tagGroup)).build();
+	public RestResponse<TagGroupDto> create(TagGroupDto tagGroup) throws BusinessException {
+		return RestResponse.status(RestResponse.Status.CREATED, tagGroupService.create(tagGroup));
 	}
 
 	@PUT
@@ -69,10 +71,10 @@ public class TagGroupResource {
 			@APIResponse(responseCode = "400", description = "Validation error"),
 			@APIResponse(responseCode = "404", description = "Tag group not found or archived")
 	})
-	public Response update(
+	public RestResponse<TagGroupDto> update(
 			@Parameter(description = "ID of the tag group", required = true) @PathParam("id") Long id,
 			TagGroupDto tagGroupDetails) throws BusinessException {
-		return Response.ok(tagGroupService.update(id, tagGroupDetails)).build();
+		return RestResponse.ok(tagGroupService.update(id, tagGroupDetails));
 	}
 
 	@POST
@@ -82,11 +84,11 @@ public class TagGroupResource {
 			@APIResponse(responseCode = "204", description = "Tag group archived"),
 			@APIResponse(responseCode = "404", description = "Tag group not found")
 	})
-	public Response archive(
+	public RestResponse<Void> archive(
 			@Parameter(description = "ID of the tag group", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		tagGroupService.archive(id);
-		return Response.noContent().build();
+		return RestResponse.noContent();
 	}
 
 	@POST
@@ -96,11 +98,11 @@ public class TagGroupResource {
 			@APIResponse(responseCode = "204", description = "Tag group unarchived"),
 			@APIResponse(responseCode = "404", description = "Tag group not found")
 	})
-	public Response unarchive(
+	public RestResponse<Void> unarchive(
 			@Parameter(description = "ID of the tag group", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		tagGroupService.unarchive(id);
-		return Response.noContent().build();
+		return RestResponse.noContent();
 	}
 
 	@DELETE
@@ -110,10 +112,10 @@ public class TagGroupResource {
 			@APIResponse(responseCode = "204", description = "Tag group deleted"),
 			@APIResponse(responseCode = "404", description = "Tag group not found")
 	})
-	public Response delete(
+	public RestResponse<Void> delete(
 			@Parameter(description = "ID of the tag group", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		tagGroupService.delete(id);
-		return Response.noContent().build();
+		return RestResponse.noContent();
 	}
 }

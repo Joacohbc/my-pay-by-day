@@ -12,6 +12,9 @@ import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.enums.DuplicateRecordStatus;
 import com.mypaybyday.enums.EntityType;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.i18n.MsgKey;
+import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.DuplicateRecordRepository;
 import com.mypaybyday.repository.EventRepository;
@@ -32,13 +35,16 @@ public class DuplicateDetectionService {
 	private final CategoryDuplicateDetectionService categoryDuplicateDetectionService;
 	private final TagDuplicateDetectionService tagDuplicateDetectionService;
 
+	private final Messages messages;
+
 	public DuplicateDetectionService(DuplicateRecordRepository duplicateRecordRepository,
 			EventRepository eventRepository,
 			CategoryRepository categoryRepository,
 			TagRepository tagRepository,
 			EventDuplicateDetectionService eventDuplicateDetectionService,
 			CategoryDuplicateDetectionService categoryDuplicateDetectionService,
-			TagDuplicateDetectionService tagDuplicateDetectionService) {
+			TagDuplicateDetectionService tagDuplicateDetectionService,
+			Messages messages) {
 		this.duplicateRecordRepository = duplicateRecordRepository;
 		this.eventRepository = eventRepository;
 		this.categoryRepository = categoryRepository;
@@ -46,6 +52,7 @@ public class DuplicateDetectionService {
 		this.eventDuplicateDetectionService = eventDuplicateDetectionService;
 		this.categoryDuplicateDetectionService = categoryDuplicateDetectionService;
 		this.tagDuplicateDetectionService = tagDuplicateDetectionService;
+		this.messages = messages;
 	}
 
 	@Transactional
@@ -120,7 +127,10 @@ public class DuplicateDetectionService {
 		}
 	}
 
-	public List<DuplicateRecordDto> getDuplicates(EntityType type, DuplicateRecordStatus status) {
+	public List<DuplicateRecordDto> getDuplicates(EntityType type, DuplicateRecordStatus status) throws BusinessException {
+		if (type == null || status == null) {
+			throw messages.reject(MsgKey.DUPLICATES_TYPE_AND_STATUS_REQUIRED);
+		}
 		return duplicateRecordRepository.findByEntityTypeAndStatus(type, status).stream()
 				.map(r -> DuplicateRecordDto.fromEntity(r, categoryRepository, tagRepository))
 				.toList();
