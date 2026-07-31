@@ -465,11 +465,9 @@ const es = {
     noPlans: 'No se encontraron planes de pago',
     noPlansDesc: 'Crea tu primer plan de pago para gestionar compras en cuotas o suscripciones recurrentes.',
     nameLabel: 'Nombre del Plan',
-    namePlaceholder: 'Ej: Notebook en 12 cuotas, Netflix, Alquiler',
     installmentNamePlaceholder: 'ej. Notebook en 12 cuotas',
     subscriptionNamePlaceholder: 'ej. Netflix, Alquiler, Gimnasio',
     customNamePlaceholder: 'ej. Deuda con Ana, Ahorro para el viaje',
-    typeLabel: 'Tipo de Plan',
     statusLabel: 'Estado del Plan',
     frequencyLabel: 'Frecuencia',
     installmentsLabel: 'Total de Cuotas',
@@ -581,8 +579,6 @@ const es = {
       SKIPPED: 'Omitido',
       OVERDUE: 'Vencido',
     },
-    originNode: 'Nodo Origen',
-    destinationNode: 'Nodo Destino',
   },
 
   // ─── Time Periods ───────────────────────────────────────────────────────

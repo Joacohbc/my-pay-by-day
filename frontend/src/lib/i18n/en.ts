@@ -466,11 +466,9 @@ const en = {
     noPlans: 'No payment plans found',
     noPlansDesc: 'Create your first payment plan to track installment purchases or recurring subscriptions.',
     nameLabel: 'Plan Name',
-    namePlaceholder: 'e.g. Laptop in 12 installments, Netflix, Rent',
     installmentNamePlaceholder: 'e.g. Laptop in 12 cuotas',
     subscriptionNamePlaceholder: 'e.g. Netflix, Rent, Gym',
     customNamePlaceholder: 'e.g. Debt with Ana, Savings for the trip',
-    typeLabel: 'Plan Type',
     statusLabel: 'Plan Status',
     frequencyLabel: 'Frequency',
     installmentsLabel: 'Total Cuotas',
@@ -582,8 +580,6 @@ const en = {
       SKIPPED: 'Skipped',
       OVERDUE: 'Overdue',
     },
-    originNode: 'Origin Node',
-    destinationNode: 'Destination Node',
   },
 
   // ─── Time Periods ───────────────────────────────────────────────────────
