@@ -10,8 +10,7 @@ import { NodesPage } from '@/pages/NodesPage';
 import { SubscriptionsPage } from '@/pages/SubscriptionsPage';
 import { PaymentPlansPage } from '@/pages/PaymentPlansPage';
 import { PaymentPlanNewPage } from '@/pages/PaymentPlanNewPage';
-import { PaymentPlanNewGroupPage } from '@/pages/PaymentPlanNewGroupPage';
-import { PaymentPlanNewGenericPage } from '@/pages/PaymentPlanNewGenericPage';
+import { PaymentPlanNewKindPage } from '@/pages/PaymentPlanNewKindPage';
 import { PaymentPlanDetailPage } from '@/pages/PaymentPlanDetailPage';
 import { PaymentPlanEditPage } from '@/pages/PaymentPlanEditPage';
 import { SettingsPage } from '@/pages/SettingsPage';
@@ -50,9 +49,10 @@ export const router = createBrowserRouter([
       { path: 'subscriptions', element: <SubscriptionsPage /> },
       { path: 'payment-plans', element: <PaymentPlansPage /> },
       { path: 'payment-plans/new', element: <PaymentPlanNewPage /> },
-      { path: 'payment-plans/new/group', element: <PaymentPlanNewGroupPage /> },
-      { path: 'payment-plans/new/installment', element: <PaymentPlanNewGenericPage /> },
-      { path: 'payment-plans/new/custom', element: <PaymentPlanNewGenericPage /> },
+      { path: 'payment-plans/new/group', element: <PaymentPlanNewKindPage kind="GROUP" /> },
+      { path: 'payment-plans/new/installment', element: <PaymentPlanNewKindPage kind="INSTALLMENT" /> },
+      { path: 'payment-plans/new/subscription', element: <PaymentPlanNewKindPage kind="RECURRING" /> },
+      { path: 'payment-plans/new/custom', element: <PaymentPlanNewKindPage kind="CUSTOM" /> },
       { path: 'payment-plans/:id', element: <PaymentPlanDetailPage /> },
       { path: 'payment-plans/:id/edit', element: <PaymentPlanEditPage /> },
       { path: 'payment-plans/:id/items/:itemId', element: <PaymentPlanDetailPage /> },

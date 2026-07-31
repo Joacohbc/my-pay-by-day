@@ -4149,21 +4149,31 @@ export interface components {
             name: string;
             description?: string;
             planType: components["schemas"]["PaymentPlanType"];
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description INSTALLMENT only: how many cuotas the purchase is split into. Required for that type.
+             */
             totalInstallments?: number;
+            /** @description INSTALLMENT only: full price of the purchase, used to report the remaining balance. */
             totalAmount?: number;
+            /** @description Amount of a single cycle. Required when the plan is automated; ignored by CUSTOM and GROUP. */
             installmentAmount?: number;
-            frequency: components["schemas"]["RecurrenceFrequency"];
+            /** @description Cadence of the plan. Required by INSTALLMENT and RECURRING; ignored by CUSTOM and GROUP. */
+            frequency?: components["schemas"]["RecurrenceFrequency"];
             startDate: components["schemas"]["LocalDate"];
+            /** @description Last date the plan covers. Required by CUSTOM; optional on RECURRING, which is open-ended without it. */
+            endDate?: components["schemas"]["LocalDate"];
+            /** @description INSTALLMENT and RECURRING only. When true, templateId and installmentAmount are required. */
             isAutomated?: boolean;
             autoCreateDraft?: boolean;
+            /**
+             * Format: int64
+             * @description Template supplying the origin and destination nodes of every generated event. Required when the plan is automated.
+             */
+            templateId?: number;
             /** @description When false, the plan is created without its scheduled items so they can be added manually. Defaults to true. */
             generateItems?: boolean;
             status?: components["schemas"]["PaymentPlanStatus"];
-            /** Format: int64 */
-            originNodeId?: number;
-            /** Format: int64 */
-            destinationNodeId?: number;
             /** Format: int64 */
             categoryId?: number;
             tagIds?: number[];
@@ -4176,11 +4186,11 @@ export interface components {
         CreatePaymentPlanItemDto: {
             /**
              * Format: int32
-             * @description Installment number within the plan. Assigned automatically when omitted.
+             * @description Position of the item within the plan. Assigned automatically when omitted.
              */
             installmentNumber?: number;
+            /** @description Must fall inside the window the plan covers. */
             expectedDate: components["schemas"]["LocalDate"];
-            expectedAmount?: number;
             /** @description Defaults to PENDING when omitted. */
             itemStatus?: components["schemas"]["PaymentPlanItemStatus"];
             /** Format: int64 */
@@ -4527,13 +4537,16 @@ export interface components {
             totalInstallments?: number;
             totalAmount?: number;
             installmentAmount?: number;
-            frequency: components["schemas"]["RecurrenceFrequency"];
+            frequency?: components["schemas"]["RecurrenceFrequency"];
             startDate: components["schemas"]["LocalDate"];
+            endDate?: components["schemas"]["LocalDate"];
+            /** @description Last date the plan covers, derived from the cuota count when no end date was given. Null when the plan is open-ended. */
+            scheduleEndDate?: components["schemas"]["LocalDate"];
             nextDueDate?: components["schemas"]["LocalDate"];
             isAutomated?: boolean;
             autoCreateDraft?: boolean;
-            originNode?: components["schemas"]["FinanceNodeDto"];
-            destinationNode?: components["schemas"]["FinanceNodeDto"];
+            /** @description Supplies the origin and destination nodes of every event this plan generates. */
+            template?: components["schemas"]["TemplateDto"];
             category?: components["schemas"]["CategoryDto"];
             tags?: components["schemas"]["TagDto"][];
             items?: components["schemas"]["PaymentPlanItemDto"][];
@@ -4551,7 +4564,6 @@ export interface components {
             /** Format: int32 */
             installmentNumber: number;
             expectedDate: components["schemas"]["LocalDate"];
-            expectedAmount?: number;
             /** Format: int64 */
             eventId?: number;
             /** Format: int64 */

@@ -1,6 +1,5 @@
 package com.mypaybyday.dto;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import com.mypaybyday.entity.PaymentPlanItemEntity;
@@ -13,7 +12,6 @@ public record PaymentPlanItemDto(
 	@Schema(required = true) Long paymentPlanId,
 	@Schema(required = true) Integer installmentNumber,
 	@Schema(required = true) LocalDate expectedDate,
-	BigDecimal expectedAmount,
 	Long eventId,
 	Long draftId,
 	@Schema(required = true) PaymentPlanItemStatus itemStatus
@@ -25,7 +23,6 @@ public record PaymentPlanItemDto(
 			entity.paymentPlan != null ? entity.paymentPlan.id : null,
 			entity.installmentNumber,
 			entity.expectedDate,
-			entity.expectedAmount,
 			entity.event != null ? entity.event.id : null,
 			entity.draft != null ? entity.draft.id : null,
 			entity.itemStatus

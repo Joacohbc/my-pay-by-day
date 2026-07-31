@@ -86,6 +86,15 @@ public enum MsgKey {
 	PAYMENT_PLAN_NAME_REQUIRED("error.payment_plan.name_required"),
 	PAYMENT_PLAN_START_DATE_REQUIRED("error.payment_plan.start_date_required"),
 	PAYMENT_PLAN_FREQUENCY_REQUIRED("error.payment_plan.frequency_required"),
+	PAYMENT_PLAN_FREQUENCY_NOT_SCHEDULABLE("error.payment_plan.frequency_not_schedulable"),
+	PAYMENT_PLAN_TOTAL_INSTALLMENTS_REQUIRED("error.payment_plan.total_installments_required"),
+	PAYMENT_PLAN_END_DATE_REQUIRED("error.payment_plan.end_date_required"),
+	PAYMENT_PLAN_END_DATE_BEFORE_START("error.payment_plan.end_date_before_start"),
+	PAYMENT_PLAN_TEMPLATE_REQUIRED_FOR_AUTOMATION("error.payment_plan.template_required_for_automation"),
+	PAYMENT_PLAN_TEMPLATE_NODES_REQUIRED("error.payment_plan.template_nodes_required"),
+	PAYMENT_PLAN_AMOUNT_REQUIRED_FOR_AUTOMATION("error.payment_plan.amount_required_for_automation"),
+	PAYMENT_PLAN_AUTOMATION_NOT_SUPPORTED("error.payment_plan.automation_not_supported"),
+	PAYMENT_PLAN_TEMPLATE_NOT_FOUND("error.payment_plan.template_not_found"),
 	PAYMENT_PLAN_NOT_CANCELLED_FOR_DELETE("error.payment_plan.not_cancelled_for_delete"),
 	PAYMENT_PLAN_STATUS_NOT_ALLOWED_FOR_TYPE("error.payment_plan.status_not_allowed_for_type"),
 
@@ -94,9 +103,10 @@ public enum MsgKey {
 	PAYMENT_PLAN_ITEM_EXPECTED_DATE_REQUIRED("error.payment_plan_item.expected_date_required"),
 	PAYMENT_PLAN_ITEM_NUMBER_INVALID("error.payment_plan_item.number_invalid"),
 	PAYMENT_PLAN_ITEM_NUMBER_DUPLICATED("error.payment_plan_item.number_duplicated"),
-	PAYMENT_PLAN_ITEM_AMOUNT_INVALID("error.payment_plan_item.amount_invalid"),
 	PAYMENT_PLAN_ITEM_LINK_NOT_EXCLUSIVE("error.payment_plan_item.link_not_exclusive"),
-	PAYMENT_PLAN_ITEMS_NOT_COMPOSABLE("error.payment_plan_item.not_composable"),
+	PAYMENT_PLAN_ITEM_BEFORE_PLAN_START("error.payment_plan_item.before_plan_start"),
+	PAYMENT_PLAN_ITEM_AFTER_PLAN_END("error.payment_plan_item.after_plan_end"),
+	PAYMENT_PLAN_ITEM_LIMIT_REACHED("error.payment_plan_item.limit_reached"),
 
 	// ── Event Draft ──────────────────────────────────────
 	DRAFT_NOT_FOUND("error.draft.not_found"),

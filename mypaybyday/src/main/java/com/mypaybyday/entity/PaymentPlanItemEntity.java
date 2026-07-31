@@ -1,6 +1,5 @@
 package com.mypaybyday.entity;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import jakarta.persistence.Column;
@@ -35,9 +34,6 @@ public class PaymentPlanItemEntity extends BaseEntity {
 
 	@Column(name = "expected_date", nullable = false)
 	public LocalDate expectedDate;
-
-	@Column(name = "expected_amount")
-	public BigDecimal expectedAmount;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "event_id")

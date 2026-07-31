@@ -5,8 +5,8 @@ import { useCreatePaymentPlanItem, usePaymentPlans, useUpdatePaymentPlanItem } f
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
-import { eventNetAmount, formatCurrency, formatDateFromParts, getLocalizedTodayString } from '@/lib/format';
-import { isGroupPlan, isUserComposedPlan, itemNumberKey } from '@/components/paymentPlans/planPresentation';
+import { formatDateFromParts, getLocalizedTodayString } from '@/lib/format';
+import { isGroupPlan, itemNumberKey } from '@/components/paymentPlans/planPresentation';
 
 const NEW_ITEM_VALUE = 'NEW';
 const ISO_DATE_LENGTH = 'YYYY-MM-DD'.length;
@@ -23,12 +23,21 @@ function hasNoLinkedEvent(item: PaymentPlanItem): boolean {
   return item.eventId == null;
 }
 
+/**
+ * A cuota or subscription cycle that is already waiting is the natural target; when none is free
+ * the event opens a new entry, which is how a payment that predates the plan's schedule gets in.
+ */
 function defaultItemValueFor(plan?: PaymentPlan): string {
   if (!plan) return '';
-  if (isUserComposedPlan(plan.planType)) return NEW_ITEM_VALUE;
 
   const firstAssignableItem = (plan.items ?? []).find(hasNoLinkedEvent);
-  return firstAssignableItem ? String(firstAssignableItem.id) : '';
+  return firstAssignableItem ? String(firstAssignableItem.id) : NEW_ITEM_VALUE;
+}
+
+/** An installment plan is finite, so it can never take one more cuota than it declares. */
+function canOpenNewItem(plan: PaymentPlan): boolean {
+  if (plan.planType !== 'INSTALLMENT') return true;
+  return (plan.items ?? []).length < (plan.totalInstallments ?? 0);
 }
 
 interface AssignEventToPlanModalProps {
@@ -47,8 +56,6 @@ export function AssignEventToPlanModal({ open, onClose, event }: AssignEventToPl
   const updateItem = useUpdatePaymentPlanItem(selectedPlanId ?? 0);
 
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId);
-  const eventAmount = Math.abs(eventNetAmount(event));
-
   const planOptions = useMemo(
     () =>
       plans.filter(isAssignable).map((plan) => ({
@@ -63,16 +70,14 @@ export function AssignEventToPlanModal({ open, onClose, event }: AssignEventToPl
     [selectedPlan]
   );
 
-  const canCreateItem = selectedPlan != null && isUserComposedPlan(selectedPlan.planType);
+  const canCreateItem = selectedPlan != null && canOpenNewItem(selectedPlan);
 
   const itemOptions = useMemo(() => {
     if (!selectedPlan) return [];
 
     const describeItem = (item: PaymentPlanItem) => {
       const number = t(itemNumberKey(selectedPlan.planType), { number: item.installmentNumber });
-      const date = formatDateFromParts(item.expectedDate);
-      const amount = item.expectedAmount != null ? ` · ${formatCurrency(item.expectedAmount)}` : '';
-      return `${number} · ${date}${amount}`;
+      return `${number} · ${formatDateFromParts(item.expectedDate)}`;
     };
 
     const existingItemOptions = assignableItems.map((item) => ({
@@ -80,7 +85,7 @@ export function AssignEventToPlanModal({ open, onClose, event }: AssignEventToPl
       label: describeItem(item),
     }));
 
-    if (!isUserComposedPlan(selectedPlan.planType)) return existingItemOptions;
+    if (!canOpenNewItem(selectedPlan)) return existingItemOptions;
 
     const newItemLabel = isGroupPlan(selectedPlan.planType)
       ? t('paymentPlans.assignNewGroupItem')
@@ -107,7 +112,6 @@ export function AssignEventToPlanModal({ open, onClose, event }: AssignEventToPl
     const dto: CreatePaymentPlanItemDto = {
       installmentNumber: nextInstallmentNumber,
       expectedDate: toDateOnly(event.transactionDate),
-      expectedAmount: eventAmount,
       itemStatus: 'PAID',
       eventId: event.id,
     };
@@ -118,7 +122,6 @@ export function AssignEventToPlanModal({ open, onClose, event }: AssignEventToPl
     const dto: CreatePaymentPlanItemDto = {
       installmentNumber: target.installmentNumber,
       expectedDate: target.expectedDate,
-      expectedAmount: target.expectedAmount ?? eventAmount,
       itemStatus: 'PAID',
       eventId: event.id,
     };
