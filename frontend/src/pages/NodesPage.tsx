@@ -17,6 +17,23 @@ import { NodeForm } from '@/components/nodes/NodeForm';
 import { Routes } from '@/lib/routes';
 
 
+type NodeVisibilityFilter = 'active' | 'archived' | 'all';
+type NodeConfirmActionType = 'archive' | 'unarchive' | 'delete';
+
+const NODE_VISIBILITY_FILTERS: readonly NodeVisibilityFilter[] = ['active', 'archived', 'all'];
+
+const visibilityFilterConfig: Record<NodeVisibilityFilter, { labelKey: string; countKey: string }> = {
+  active: { labelKey: 'common.active', countKey: 'nodes.activeCount' },
+  archived: { labelKey: 'common.archived', countKey: 'nodes.archivedCount' },
+  all: { labelKey: 'common.all', countKey: 'nodes.totalCount' },
+};
+
+const confirmActionConfig: Record<NodeConfirmActionType, { labelKey: string; messageKey: string }> = {
+  archive: { labelKey: 'common.archive', messageKey: 'nodes.archiveConfirm' },
+  unarchive: { labelKey: 'common.unarchive', messageKey: 'nodes.unarchiveConfirm' },
+  delete: { labelKey: 'common.delete', messageKey: 'common.confirmDeleteNamed' },
+};
+
 function NodeBalanceBadge({ nodeId }: { nodeId: number }) {
   const { data: balance } = useNodeBalance(nodeId);
   if (balance === undefined) return null;
@@ -57,20 +74,22 @@ function NodeActionMenu({ node, onEdit, onArchive, onUnarchive, onDelete }: {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-8 z-20 bg-dn-surface border border-white/5 rounded-card shadow-xl min-w-36 overflow-hidden">
-            <button
-              onClick={() => { onEdit(node); setOpen(false); }}
-              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dn-text-main hover:bg-dn-surface-low transition-colors"
-            >
-              <Icon name="edit" className="text-base" />
-              {t('common.edit')}
-            </button>
+            {!node.archived && (
+              <button
+                onClick={() => { onEdit(node); setOpen(false); }}
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dn-text-main hover:bg-dn-surface-low transition-colors"
+              >
+                <Icon name="edit" className="text-base" />
+                {t('common.edit')}
+              </button>
+            )}
             {node.archived ? (
               <button
                 onClick={() => { onUnarchive(node); setOpen(false); }}
                 className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dn-text-main hover:bg-dn-surface-low transition-colors"
               >
                 <Icon name="unarchive" className="text-base" />
-                {t('common.active')}
+                {t('common.unarchive')}
               </button>
             ) : (
               <button
@@ -97,11 +116,12 @@ function NodeActionMenu({ node, onEdit, onArchive, onUnarchive, onDelete }: {
 
 export function NodesPage() {
   const { t } = useTranslation();
-  const [showArchived, setShowArchived] = useState(false);
+  const [visibilityFilter, setVisibilityFilter] = useState<NodeVisibilityFilter>('active');
 
-  const ownQuery = useNodes(showArchived ? true : undefined, 'OWN');
-  const externalQuery = useNodes(showArchived ? true : undefined, 'EXTERNAL');
-  const contactQuery = useNodes(showArchived ? true : undefined, 'CONTACT');
+  const includesArchived = visibilityFilter !== 'active';
+  const ownQuery = useNodes(includesArchived ? true : undefined, 'OWN');
+  const externalQuery = useNodes(includesArchived ? true : undefined, 'EXTERNAL');
+  const contactQuery = useNodes(includesArchived ? true : undefined, 'CONTACT');
 
   const archiveNode = useArchiveNode();
   const unarchiveNode = useUnarchiveNode();
@@ -109,7 +129,7 @@ export function NodesPage() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingNode, setEditingNode] = useState<FinanceNode | null>(null);
-  const [confirmAction, setConfirmAction] = useState<{ node: FinanceNode; type: 'archive' | 'unarchive' | 'delete' } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ node: FinanceNode; type: NodeConfirmActionType } | null>(null);
 
   if (ownQuery.isLoading || externalQuery.isLoading || contactQuery.isLoading) return <FullPageSpinner />;
   if (ownQuery.error || externalQuery.error || contactQuery.error) {
@@ -123,14 +143,14 @@ export function NodesPage() {
     CONTACT: contactQuery,
   };
 
-  const totalElements = (ownQuery.data?.length ?? 0) +
-                       (externalQuery.data?.length ?? 0) +
-                       (contactQuery.data?.length ?? 0);
+  const visibleNodesOf = (query: typeof ownQuery) => {
+    const nodes = query.data ?? [];
+    return visibilityFilter === 'archived' ? nodes.filter((node) => node.archived) : nodes;
+  };
 
-  const hasAnyArchived = (ownQuery.data?.some(n => n.archived) ||
-                         externalQuery.data?.some(n => n.archived) ||
-                         contactQuery.data?.some(n => n.archived));
-
+  const totalElements = visibleNodesOf(ownQuery).length +
+                       visibleNodesOf(externalQuery).length +
+                       visibleNodesOf(contactQuery).length;
 
   const openNewModal = () => {
     setEditingNode(null);
@@ -148,18 +168,23 @@ export function NodesPage() {
   };
 
 
+  const actionMutationByType: Record<NodeConfirmActionType, (id: number) => Promise<unknown>> = {
+    archive: archiveNode.mutateAsync,
+    unarchive: unarchiveNode.mutateAsync,
+    delete: deleteNode.mutateAsync,
+  };
+
   const handleConfirmAction = async () => {
     if (!confirmAction) return;
-    const { node, type } = confirmAction;
-    if (type === 'archive') {
-      await archiveNode.mutateAsync(node.id);
-    } else if (type === 'unarchive') {
-      await unarchiveNode.mutateAsync(node.id);
-    } else {
-      await deleteNode.mutateAsync(node.id);
-    }
+    await actionMutationByType[confirmAction.type](confirmAction.node.id);
     setConfirmAction(null);
   };
+
+  const isActionPending = archiveNode.isPending || unarchiveNode.isPending || deleteNode.isPending;
+  const confirmLabel = confirmAction ? t(confirmActionConfig[confirmAction.type].labelKey) : '';
+  const confirmMessage = confirmAction
+    ? t(confirmActionConfig[confirmAction.type].messageKey, { name: confirmAction.node.name })
+    : '';
 
   return (
     <div className="space-y-4">
@@ -167,42 +192,16 @@ export function NodesPage() {
         open={confirmAction !== null}
         onClose={() => setConfirmAction(null)}
         onConfirm={handleConfirmAction}
-        title={
-          confirmAction?.type === 'archive'
-            ? t('common.archive')
-            : confirmAction?.type === 'unarchive'
-              ? t('common.active')
-              : t('common.delete')
-        }
-        message={
-          confirmAction?.type === 'archive'
-            ? t('nodes.archiveConfirm', { name: confirmAction.node.name })
-            : confirmAction?.type === 'unarchive'
-              ? t('common.active') + " " + confirmAction.node.name + "?"
-              : confirmAction?.node
-                ? t('common.confirmDeleteNamed', { name: confirmAction.node.name })
-                : ''
-        }
-        confirmLabel={
-          confirmAction?.type === 'archive'
-            ? t('common.archive')
-            : confirmAction?.type === 'unarchive'
-              ? t('common.active')
-              : t('common.delete')
-        }
-        loading={
-          confirmAction?.type === 'archive'
-            ? archiveNode.isPending
-            : confirmAction?.type === 'unarchive'
-              ? unarchiveNode.isPending
-              : deleteNode.isPending
-        }
+        title={confirmLabel}
+        message={confirmMessage}
+        confirmLabel={confirmLabel}
+        loading={isActionPending}
       />
 
       <PageHeader
         title={t('nodes.title')}
         back={Routes.SETTINGS}
-        subtitle={t('nodes.activeCount', { count: totalElements })}
+        subtitle={t(visibilityFilterConfig[visibilityFilter].countKey, { count: totalElements })}
         action={
           <Button size="sm" onClick={openNewModal}>
             <Icon name="add" className="text-sm" />
@@ -213,30 +212,20 @@ export function NodesPage() {
 
       {/* Filter */}
       <div className="px-5 flex gap-2">
-        <button
-          onClick={() => setShowArchived(false)}
-          className={[
-            'px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer',
-            !showArchived
-              ? 'bg-dn-primary/20 text-dn-primary'
-              : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
-          ].join(' ')}
-        >
-          {t('common.active')}
-        </button>
-        {(showArchived || hasAnyArchived) && (
+        {NODE_VISIBILITY_FILTERS.map((filter) => (
           <button
-            onClick={() => setShowArchived(true)}
+            key={filter}
+            onClick={() => setVisibilityFilter(filter)}
             className={[
               'px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer',
-              showArchived
+              visibilityFilter === filter
                 ? 'bg-dn-primary/20 text-dn-primary'
                 : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
             ].join(' ')}
           >
-            {t('common.all')}
+            {t(visibilityFilterConfig[filter].labelKey)}
           </button>
-        )}
+        ))}
       </div>
 
       <div className="px-5">
@@ -254,12 +243,11 @@ export function NodesPage() {
 
       {/* Groups by type */}
       {(['OWN', 'EXTERNAL', 'CONTACT'] as FinanceNodeType[]).map((type) => {
-        const query = queries[type];
-        const allNodes = query.data ?? [];
+        const allNodes = visibleNodesOf(queries[type]);
         const nodes = search.trim()
           ? allNodes.filter(n => normalizeText(n.name).includes(normalizeText(search)))
           : allNodes;
-        if (nodes.length === 0 && !showArchived) return null;
+        if (nodes.length === 0 && visibilityFilter === 'active') return null;
 
         const labels: Record<FinanceNodeType, string> = {
           OWN: t('nodes.ownAccounts'),
