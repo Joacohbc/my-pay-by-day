@@ -551,13 +551,13 @@ Every chatbot request carries the user's context as headers — `X-Timezone`, `X
 
 ---
 
-### AI Attachments Are Stored Before They Reach the Model
+### AI Attachments Travel As File IDs, Never As Base64
 
-A file attached to an AI entry point is only fully useful once the backend holds it: the stored id is what the chat history links to for a real download, and what `fetchBackendMarkdown` needs to hand the model a document as text instead of raw bytes.
+An attachment is only fully useful once the backend holds it: the stored id is what the chat history links to for a real download, and what `fetchBackendMarkdown` needs to hand the model a document as text instead of raw bytes. So the id — not the content — is the wire format.
 
-`POST /ai/extract` therefore accepts files as inline Base64 (`{ data, mediaType, filename }`) and uploads any file arriving **without** a `fileId` to `POST /files/base64` before attaching it to the agent (`storeInlineFiles`, `chatbot/src/files/upload.ts`). Files that already carry a `fileId` — what the frontend sends, since it uploads first — pass through untouched. A failed upload is logged and the file stays inline, so extraction degrades instead of failing.
+`POST /ai/extract` takes `fileIds: number[]`; the caller uploads through `POST /files/base64` first and sends what came back. `resolveBackendFiles` (`chatbot/src/files/backendFiles.ts`) turns each id into an attachment, and **only fetches the bytes for media the model reads natively** (images, PDFs — anything `isConvertibleDocument` rejects). A convertible document is never downloaded here: it reaches the model as the Markdown the backend already converted at upload. An id the backend cannot resolve fails the request with its message rather than being silently dropped.
 
-**Rule:** a new AI entry point that accepts attachments routes them through `storeInlineFiles` rather than forwarding raw Base64 to the model.
+**Rule:** a new AI entry point that accepts attachments takes file ids and resolves them through `resolveBackendFiles`. Accepting raw Base64 gives the model a file the history cannot link to and the Markdown pipeline cannot see.
 
 ---
 

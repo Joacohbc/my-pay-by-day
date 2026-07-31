@@ -1,14 +1,16 @@
 import { fetchBackendMarkdown, isConvertibleDocument, markdownAttachmentText } from '@/files/markdown.js';
 
 export interface FileInput {
-  data: string;
+  /** Backend file ID. Every attachment is a file the backend already stores, so the display copy
+   * references it instead of embedding raw content and the frontend resolves a real download link. */
+  fileId: number;
   mediaType: string;
   filename?: string;
-  /** Backend file ID (already uploaded/stored) — when present, the display copy of this file part
-   * references it instead of embedding the raw content, so the frontend can resolve a real download link. */
-  fileId?: number;
   /** Short backend-computed type label (PDF, DOCX, ...) carried through to the display copy. */
   typeLabel?: string;
+  /** Base64 content, loaded only for media the model reads natively — a convertible document
+   * reaches the model as the backend's Markdown conversion instead. */
+  data: string;
 }
 
 export interface ExtractInput {
@@ -30,7 +32,7 @@ export interface ExtractionUserContent {
 }
 
 async function documentMarkdownOf(file: FileInput): Promise<string | null> {
-  if (!isConvertibleDocument(file.mediaType) || file.fileId == null) return null;
+  if (!isConvertibleDocument(file.mediaType)) return null;
   return fetchBackendMarkdown(file.fileId);
 }
 
@@ -50,17 +52,14 @@ export async function buildExtractionUserContent(input: ExtractInput): Promise<E
     }
     const markdown = await documentMarkdownOf(file);
     const modelFilePart: ExtractionUserContentPart = { type: 'file', data: file.data, mediaType: file.mediaType, filename: file.filename };
-    const displayFilePart: ExtractionUserContentPart =
-      file.fileId != null
-        ? {
-            type: 'file',
-            data: '',
-            mediaType: file.mediaType,
-            filename: file.filename,
-            fileId: file.fileId,
-            ...(file.typeLabel != null ? { typeLabel: file.typeLabel } : {}),
-          }
-        : modelFilePart;
+    const displayFilePart: ExtractionUserContentPart = {
+      type: 'file',
+      data: '',
+      mediaType: file.mediaType,
+      filename: file.filename,
+      fileId: file.fileId,
+      ...(file.typeLabel != null ? { typeLabel: file.typeLabel } : {}),
+    };
     if (markdown != null) {
       model.push({ type: 'text', text: markdownAttachmentText(file.filename, markdown) });
     } else {

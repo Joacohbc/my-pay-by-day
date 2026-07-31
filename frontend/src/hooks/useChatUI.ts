@@ -6,7 +6,7 @@ import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalRespons
 import { api, BASE_URL } from '@/services/api';
 import { chatService } from '@/services/chat.service';
 import { audioService } from '@/services/audio.service';
-import { extractService, type FilePayload } from '@/services/extract.service';
+import { extractService } from '@/services/extract.service';
 import { filesService } from '@/services/files.service';
 import { useChatStore, type ChatMessage } from '@/store/chatStore';
 import { useAlert } from '@/contexts/AlertContext';
@@ -47,19 +47,6 @@ async function toFilePart(file: FileDto): Promise<FileUIPart & { fileId: number;
     type: 'file',
     mediaType: file.mimeType || blob.type || 'image/jpeg',
     url: await blobToDataUrl(blob),
-    filename: file.fileName,
-    fileId: file.id,
-    typeLabel: file.typeLabel,
-  };
-}
-
-async function toFilePayload(file: FileDto): Promise<FilePayload> {
-  const response = await fetch(filesService.getContentUrl(file.id));
-  const blob = await response.blob();
-  const dataUrl = await blobToDataUrl(blob);
-  return {
-    data: dataUrl.slice(dataUrl.indexOf(',') + 1),
-    mediaType: file.mimeType || blob.type || 'application/octet-stream',
     filename: file.fileName,
     fileId: file.id,
     typeLabel: file.typeLabel,
@@ -343,7 +330,7 @@ export function useChatUI() {
     setDraftFiles([]);
 
     const uiFileParts = currentFiles.map(toFileRefPart);
-    const payloadFiles = await Promise.all(currentFiles.map(toFilePayload));
+    const attachedFileIds = currentFiles.map((file) => file.id);
 
     const optimisticMessage: UIMessage = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -353,7 +340,7 @@ export function useChatUI() {
     setMessages((prev) => [...prev, optimisticMessage]);
     setIsExtracting(true);
     try {
-      await extractService.fromText(combinedText, undefined, chatId, payloadFiles.length ? payloadFiles : undefined);
+      await extractService.fromText(combinedText, undefined, chatId, attachedFileIds.length ? attachedFileIds : undefined);
       await reloadHistory();
       invalidateDomains(queryClient, ['drafts', 'events', 'tags', 'categories']);
     } catch (error) {
