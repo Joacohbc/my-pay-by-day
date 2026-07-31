@@ -318,6 +318,7 @@ const en = {
   nodes: {
     title: 'Finance Nodes',
     activeCount: '{{count}} active',
+    totalCount: '{{count}} total',
     noNodesYet: 'No nodes yet',
     noNodesDesc: 'Add accounts, external entities, or contacts',
     addNode: 'Add Node',

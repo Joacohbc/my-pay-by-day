@@ -57,13 +57,15 @@ function NodeActionMenu({ node, onEdit, onArchive, onUnarchive, onDelete }: {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-8 z-20 bg-dn-surface border border-white/5 rounded-card shadow-xl min-w-36 overflow-hidden">
-            <button
-              onClick={() => { onEdit(node); setOpen(false); }}
-              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dn-text-main hover:bg-dn-surface-low transition-colors"
-            >
-              <Icon name="edit" className="text-base" />
-              {t('common.edit')}
-            </button>
+            {!node.archived && (
+              <button
+                onClick={() => { onEdit(node); setOpen(false); }}
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-dn-text-main hover:bg-dn-surface-low transition-colors"
+              >
+                <Icon name="edit" className="text-base" />
+                {t('common.edit')}
+              </button>
+            )}
             {node.archived ? (
               <button
                 onClick={() => { onUnarchive(node); setOpen(false); }}
@@ -126,11 +128,6 @@ export function NodesPage() {
   const totalElements = (ownQuery.data?.length ?? 0) +
                        (externalQuery.data?.length ?? 0) +
                        (contactQuery.data?.length ?? 0);
-
-  const hasAnyArchived = (ownQuery.data?.some(n => n.archived) ||
-                         externalQuery.data?.some(n => n.archived) ||
-                         contactQuery.data?.some(n => n.archived));
-
 
   const openNewModal = () => {
     setEditingNode(null);
@@ -202,7 +199,7 @@ export function NodesPage() {
       <PageHeader
         title={t('nodes.title')}
         back={Routes.SETTINGS}
-        subtitle={t('nodes.activeCount', { count: totalElements })}
+        subtitle={t(showArchived ? 'nodes.totalCount' : 'nodes.activeCount', { count: totalElements })}
         action={
           <Button size="sm" onClick={openNewModal}>
             <Icon name="add" className="text-sm" />
@@ -224,19 +221,17 @@ export function NodesPage() {
         >
           {t('common.active')}
         </button>
-        {(showArchived || hasAnyArchived) && (
-          <button
-            onClick={() => setShowArchived(true)}
-            className={[
-              'px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer',
-              showArchived
-                ? 'bg-dn-primary/20 text-dn-primary'
-                : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
-            ].join(' ')}
-          >
-            {t('common.all')}
-          </button>
-        )}
+        <button
+          onClick={() => setShowArchived(true)}
+          className={[
+            'px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer',
+            showArchived
+              ? 'bg-dn-primary/20 text-dn-primary'
+              : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
+          ].join(' ')}
+        >
+          {t('common.all')}
+        </button>
       </div>
 
       <div className="px-5">

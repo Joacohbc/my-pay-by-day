@@ -317,6 +317,7 @@ const es = {
   nodes: {
     title: 'Nodos Financieros',
     activeCount: '{{count}} activos',
+    totalCount: '{{count}} en total',
     noNodesYet: 'Sin nodos aún',
     noNodesDesc: 'Agrega cuentas, entidades externas o contactos',
     addNode: 'Agregar Nodo',
