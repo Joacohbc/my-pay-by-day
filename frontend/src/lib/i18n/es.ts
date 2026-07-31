@@ -19,6 +19,7 @@ const es = {
     no: 'No',
     edit: 'Editar',
     archive: 'Archivar',
+    unarchive: 'Desarchivar',
     archived: 'Archivado',
     moreActions: 'Más acciones',
     view: 'Ver',
@@ -317,6 +318,7 @@ const es = {
   nodes: {
     title: 'Nodos Financieros',
     activeCount: '{{count}} activos',
+    archivedCount: '{{count}} archivados',
     totalCount: '{{count}} en total',
     noNodesYet: 'Sin nodos aún',
     noNodesDesc: 'Agrega cuentas, entidades externas o contactos',
@@ -334,6 +336,7 @@ const es = {
     externalDesc: 'Tiendas, empleadores, servicios (gastos/ingresos)',
     contactDesc: 'Amigos/familia — dinero prestado o adeudado',
     archiveConfirm: '¿Archivar "{{name}}"? El nodo se ocultará pero los datos históricos se mantienen.',
+    unarchiveConfirm: '¿Desarchivar "{{name}}"? Volverá a estar disponible para nuevos eventos.',
     setAsDefault: 'Establecer como predeterminado',
     removeAsDefault: 'Quitar como predeterminado',
     descriptionPlaceholder: 'Descripción opcional',
