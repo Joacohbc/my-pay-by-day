@@ -669,6 +669,16 @@ const es = {
       converting: 'Generando vista previa…',
       download: 'Descargar archivo',
     },
+    email: {
+      from: 'De',
+      to: 'Para',
+      date: 'Fecha',
+      noSubject: '(Sin asunto)',
+      unknownSender: 'Remitente desconocido',
+      unknownRecipient: 'Destinatario desconocido',
+      unknownDate: 'Fecha desconocida',
+      emptyBody: 'Este correo no tiene contenido.',
+    },
   },
 
   // ─── AI ──────────────────────────────────────────────────────────────────

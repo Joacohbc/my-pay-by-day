@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { requestContextFrom } from '@/context.js';
 import type { ExtractionUserContentPart, FileInput } from '@/agent/extraction.js';
 import { runExtractionAgent } from '@/agent/extractionAgent.js';
+import { storeInlineFiles } from '@/files/upload.js';
 import { conversationMemory } from '@/memory/conversation.js';
 import type { DisplayMessage, DisplayPart } from '@/memory/display.js';
 import { chatTitles } from '@/memory/titles.js';
@@ -60,9 +61,10 @@ extractRoute.post('/', async (c) => {
   const chatId = body.chatId || randomUUID();
 
   try {
+    const files = await storeInlineFiles(ctx, body.files);
     const { draftId, summary, userMessage, responseMessages } = await runExtractionAgent(ctx, {
       text: body.text,
-      files: body.files,
+      files,
       templateId: body.templateId,
     });
 

@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { filesService } from '@/services/files.service';
 import { Icon } from '@/components/ui/Icon';
 import { AudioMessagePlayer } from '@/components/chat/AudioMessagePlayer';
-import { isBrowserNativePreview, isMarkdownFile, isSpreadsheetFile } from '@/lib/fileUtils';
+import { EmailPreview } from '@/components/files/EmailPreview';
+import { isBrowserNativePreview, isEmailFile, isMarkdownFile, isSpreadsheetFile } from '@/lib/fileUtils';
 import type { FileDto } from '@/models';
 import { logger } from '@/lib/logger';
 
@@ -43,7 +44,7 @@ export function MultimediaPreviewer({ fileId, fileName, onClose }: MultimediaPre
   }, [fileId]);
 
   useEffect(() => {
-    if (!fileDetails || isBrowserNativePreview(fileDetails.mimeType)) return;
+    if (!fileDetails || isBrowserNativePreview(fileDetails.mimeType) || isEmailFile(fileDetails.mimeType)) return;
 
     let cancelled = false;
     const { mimeType, fileName: name } = fileDetails;
@@ -90,7 +91,9 @@ export function MultimediaPreviewer({ fileId, fileName, onClose }: MultimediaPre
     );
   } else {
     const mimeType = fileDetails.mimeType;
-    if (isImage) {
+    if (isEmailFile(mimeType)) {
+      content = <EmailPreview fileId={fileId} />;
+    } else if (isImage) {
       content = (
         <div className={`overflow-auto w-full h-full ${zoom === 1 ? 'flex items-center justify-center p-4' : 'p-8'}`}>
           <img

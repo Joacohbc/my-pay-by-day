@@ -1,5 +1,13 @@
+/** MIME type of an email stored as a file. Its content is JSON, but it is shown as an email. */
+export const EMAIL_MIME_TYPE = 'application/vnd.mypaybyday.email+json';
+
+export function isEmailFile(mimeType: string): boolean {
+  return mimeType === EMAIL_MIME_TYPE;
+}
+
 export function getFileIcon(mimeType: string): string {
   if (!mimeType) return 'description';
+  if (isEmailFile(mimeType)) return 'mail';
   if (mimeType.startsWith('image/')) return 'image';
   if (mimeType.startsWith('video/')) return 'movie';
   if (mimeType.startsWith('audio/')) return 'audio_file';
@@ -13,6 +21,7 @@ export function getFileIcon(mimeType: string): string {
 const MIME_TYPE_LABELS: Record<string, string> = {
   'application/pdf': 'PDF',
   'application/json': 'JSON',
+  [EMAIL_MIME_TYPE]: 'EMAIL',
   'application/msword': 'DOC',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
   'application/vnd.ms-excel': 'XLS',

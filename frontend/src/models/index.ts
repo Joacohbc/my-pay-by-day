@@ -121,6 +121,27 @@ export interface Base64FileUploadRequestDto {
   base64Content: string;
 }
 
+/** An email stored as a file — the JSON document that makes up the file's content. */
+export interface EmailFileDto {
+  subject?: string;
+  from?: string;
+  to?: string[];
+  messageDate?: string; // ISO-8601 date-time
+  /** Body converted from the email's HTML part. */
+  markdownBody?: string;
+  /** Plain-text body as the email was received. */
+  textBody?: string;
+}
+
+export interface EmailUploadRequestDto {
+  subject?: string;
+  from: string;
+  to?: string[];
+  messageDate?: string; // ISO-8601 date-time
+  htmlBody?: string;
+  textBody?: string;
+}
+
 // ─── FinanceEvent ─────────────────────────────────────────────────────────────
 
 export interface RelatedEvent extends Identifiable {

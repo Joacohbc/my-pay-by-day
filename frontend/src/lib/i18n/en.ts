@@ -670,6 +670,16 @@ const en = {
       converting: 'Generating preview…',
       download: 'Download file',
     },
+    email: {
+      from: 'From',
+      to: 'To',
+      date: 'Date',
+      noSubject: '(No subject)',
+      unknownSender: 'Unknown sender',
+      unknownRecipient: 'Unknown recipient',
+      unknownDate: 'Unknown date',
+      emptyBody: 'This email has no content.',
+    },
   },
 
   // ─── AI ──────────────────────────────────────────────────────────────────

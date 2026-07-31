@@ -551,6 +551,26 @@ Every chatbot request carries the user's context as headers — `X-Timezone`, `X
 
 ---
 
+### AI Attachments Are Stored Before They Reach the Model
+
+A file attached to an AI entry point is only fully useful once the backend holds it: the stored id is what the chat history links to for a real download, and what `fetchBackendMarkdown` needs to hand the model a document as text instead of raw bytes.
+
+`POST /ai/extract` therefore accepts files as inline Base64 (`{ data, mediaType, filename }`) and uploads any file arriving **without** a `fileId` to `POST /files/base64` before attaching it to the agent (`storeInlineFiles`, `chatbot/src/files/upload.ts`). Files that already carry a `fileId` — what the frontend sends, since it uploads first — pass through untouched. A failed upload is logged and the file stays inline, so extraction degrades instead of failing.
+
+**Rule:** a new AI entry point that accepts attachments routes them through `storeInlineFiles` rather than forwarding raw Base64 to the model.
+
+---
+
+### Emails Are Files
+
+An email is not its own entity: it is stored as a regular `File` whose content is a JSON document and whose MIME type is `application/vnd.mypaybyday.email+json` (`EmailFileFormat.MIME_TYPE` on the backend, `EMAIL_MIME_TYPE` in `frontend/src/lib/fileUtils.ts` — the two must stay identical). The stored JSON holds `subject`, `from`, `to`, `messageDate`, `markdownBody` (converted from the email's HTML part through the MarkItDown sidecar) and `textBody`. The file is named `<subject>.email`, which is what makes its type label resolve to `EMAIL`.
+
+* **JSON on disk, an email on screen.** `POST /files/emails` stores one; `GET /files/{id}/email` reads it back as `EmailFileDto` so `EmailPreview` renders headers and body instead of raw JSON. The client never parses the file content itself — going through the endpoint is what applies the `api.ts` timezone interceptor to `messageDate`.
+* **The Markdown rendering is the compatibility layer.** `EmailFileFormat.renderMarkdown` is persisted as the file's `markdownContent` at ingest, so every reader that already understands "a file converted to Markdown" — the AI attachment pipeline, the generic preview — reads an email with no knowledge of this format. Emails are the one file type whose Markdown is produced by the application rather than by the sidecar, which is why `FileService.storeConvertedFile` exists.
+* **Ingestion is API-only by design.** Nothing in the UI creates emails; an external forwarder (a mail automation pushing bank notifications, for instance) posts them. An upload with an HTML body and no plain-text fallback is **rejected** when the sidecar is unavailable, rather than silently stored without a body.
+
+---
+
 ### Logging & Observability
 
 All three services share **one log-level vocabulary** — `silent | error | warn | info | debug | trace` — with a **unified default of `info`**. The threshold is configured per stack via its own env var, and the names differ only because each stack's tooling forces it:
