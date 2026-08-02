@@ -27,6 +27,7 @@ import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
+import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.service.transfer.DataSectionTransfer;
 import com.mypaybyday.service.transfer.ImportContext;
 import io.quarkus.logging.Log;
@@ -136,10 +137,15 @@ public class DataTransferService {
 				}
 				zis.closeEntry();
 			}
+			if (dto == null) {
+				throw new BusinessException(messages.get(MsgKey.DATA_TRANSFER_MANIFEST_MISSING));
+			}
 			return result != null ? result : new DataTransferResult(List.of());
+		} catch (BusinessException e) {
+			throw e;
 		} catch (Exception e) {
 			Log.errorf(e, "Import from zip failed");
-			throw new jakarta.ws.rs.WebApplicationException("Error reading zip: " + e.getMessage(), 500);
+			throw new BusinessException(messages.get(MsgKey.DATA_TRANSFER_ARCHIVE_UNREADABLE));
 		}
 	}
 
@@ -151,7 +157,10 @@ public class DataTransferService {
 	@Transactional
 	public DataTransferResult importAllWithContext(DataTransferDto dto, ImportContext context) throws BusinessException {
 		if (dto == null) {
-			return new DataTransferResult(List.of());
+			throw new BusinessException(messages.get(MsgKey.DATA_TRANSFER_MANIFEST_MISSING));
+		}
+		if (dto.version() != null && dto.version().compareTo(CURRENT_VERSION) > 0) {
+			throw new BusinessException(messages.get(MsgKey.DATA_TRANSFER_VERSION_UNSUPPORTED, dto.version()));
 		}
 
 		List<SectionImportResult> results = new ArrayList<>();

@@ -36,22 +36,41 @@ export function DataTransferModal({ isOpen, onClose, initialMode = 'export' }: D
   const [importError, setImportError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  useEffect(() => {
-    setActiveTab(initialMode);
-  }, [initialMode, isOpen]);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  const [prevInitialMode, setPrevInitialMode] = useState(initialMode);
+
+  if (isOpen !== prevIsOpen || initialMode !== prevInitialMode) {
+    setPrevIsOpen(isOpen);
+    setPrevInitialMode(initialMode);
+    if (isOpen) {
+      setActiveTab(initialMode);
+      if (initialMode === 'export') {
+        setIsSummaryLoading(true);
+      }
+    }
+  }
 
   useEffect(() => {
+    let isCancelled = false;
     if (isOpen && activeTab === 'export') {
-      setIsSummaryLoading(true);
       api
         .get<DataExportSummaryDto>('/data/export/summary')
-        .then((data) => setSummary(data))
-        .catch((err) => {
-          logger.child('DataTransferModal').error('Failed to load export summary', { err });
-          setSummary((prev) => prev || buildEmptyExportSummary());
+        .then((data) => {
+          if (!isCancelled) setSummary(data);
         })
-        .finally(() => setIsSummaryLoading(false));
+        .catch((err) => {
+          if (!isCancelled) {
+            logger.child('DataTransferModal').error('Failed to load export summary', { err });
+            setSummary((prev) => prev || buildEmptyExportSummary());
+          }
+        })
+        .finally(() => {
+          if (!isCancelled) setIsSummaryLoading(false);
+        });
     }
+    return () => {
+      isCancelled = true;
+    };
   }, [isOpen, activeTab]);
 
   const handleExport = async () => {
@@ -130,7 +149,10 @@ export function DataTransferModal({ isOpen, onClose, initialMode = 'export' }: D
         <div className="p-1 rounded-full bg-dn-surface-low border border-white/5 flex gap-1">
           <button
             type="button"
-            onClick={() => setActiveTab('export')}
+            onClick={() => {
+              setActiveTab('export');
+              setIsSummaryLoading(true);
+            }}
             className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-4 rounded-full text-xs font-medium transition-all ${
               activeTab === 'export'
                 ? 'bg-dn-surface text-dn-text-main border border-white/10 shadow-sm'
@@ -168,10 +190,7 @@ export function DataTransferModal({ isOpen, onClose, initialMode = 'export' }: D
                 </span>
               </div>
               <p className="text-xs text-dn-text-muted">
-                {t(
-                  'dataTransfer.exportDesc',
-                  'Exports all 12 system sections and attached media files into a ZIP package.'
-                )}
+                {t('dataTransfer.exportDesc', 'Exports all 12 system sections and attached media files into a ZIP package.')}
               </p>
             </div>
 
