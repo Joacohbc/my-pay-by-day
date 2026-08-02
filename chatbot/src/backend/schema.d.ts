@@ -67,7 +67,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -111,7 +113,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -146,14 +150,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
                 /** @description Category not found or archived */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -178,19 +186,23 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Category in use; archive it instead */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
                 /** @description Category not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Category in use; archive it instead */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -233,7 +245,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Category still used by templates or subscriptions */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -277,7 +300,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -335,7 +360,7 @@ export interface paths {
         };
         /**
          * Export all data
-         * @description Returns all Tags, Categories, Finance Nodes, Tag Groups, and Events as a single ZIP file containing data.json and files/
+         * @description Returns all application sections as a single ZIP file containing data.json and files/
          */
         get: {
             parameters: {
@@ -353,6 +378,45 @@ export interface paths {
                     };
                     content: {
                         "application/zip": number[];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data/export/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get export summary
+         * @description Returns section item counts for export preview without serialising the full dataset
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Summary generated successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DataExportSummaryDto"];
                     };
                 };
             };
@@ -405,7 +469,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -438,7 +504,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["DraftEntity"][];
+                        "application/json": components["schemas"]["DraftDto"][];
                     };
                 };
             };
@@ -603,7 +669,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -654,7 +722,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -702,12 +772,14 @@ export interface paths {
                         "application/json": components["schemas"]["DraftEntity"];
                     };
                 };
-                /** @description Draft not found (Business Exception) */
-                400: {
+                /** @description Draft not found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -746,12 +818,14 @@ export interface paths {
                         "application/json": components["schemas"]["DraftValidationResultDto"];
                     };
                 };
-                /** @description Draft not found (Business Exception) */
-                400: {
+                /** @description Draft not found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -790,12 +864,14 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Draft not found (Business Exception) */
-                400: {
+                /** @description Draft not found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -841,7 +917,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -867,7 +945,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    status?: components["schemas"]["DuplicateRecordStatus"];
+                    status?: components["schemas"]["DuplicateRecordStatus"] & unknown;
                 };
                 header?: never;
                 path: {
@@ -1039,7 +1117,27 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Referenced category, tag or node not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Referenced node is archived and cannot be used */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1072,12 +1170,32 @@ export interface paths {
                         "application/json": components["schemas"]["FinanceEventDto"];
                     };
                 };
-                /** @description Validation error (e.g., event not found, archived category/tag) */
+                /** @description Validation error */
                 400: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Event or referenced category, tag or node not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Referenced node is archived and cannot be used */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1117,7 +1235,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1151,7 +1271,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1191,14 +1313,27 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
-                /** @description Event not found */
+                /** @description Event or referenced category, tag or node not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Referenced node is archived and cannot be used */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1247,14 +1382,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
                 /** @description Base or source event not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1311,7 +1450,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1346,7 +1487,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1441,7 +1584,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1488,7 +1633,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1517,19 +1664,23 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description File is still in use */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
                 /** @description File not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description File is still linked to an event */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1575,7 +1726,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1624,7 +1777,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1680,7 +1835,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1754,7 +1911,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1798,7 +1957,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1833,14 +1994,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
                 /** @description Node not found or archived */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1873,14 +2038,27 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
                 /** @description Node not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Node still used by templates or subscriptions */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1926,7 +2104,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Node still used by templates or subscriptions */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -1973,7 +2162,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2022,7 +2213,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2095,7 +2288,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2141,7 +2336,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2185,7 +2382,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2217,14 +2416,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
                 /** @description Payment plan not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2271,7 +2474,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2317,7 +2522,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2355,14 +2562,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
                 /** @description Payment plan not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2409,7 +2620,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2447,14 +2660,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
                 /** @description Payment plan or item not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2487,7 +2704,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2631,7 +2850,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2744,7 +2965,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2788,7 +3011,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2819,7 +3044,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2856,14 +3083,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
                 /** @description Subscription not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2905,7 +3136,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -2949,7 +3182,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3019,7 +3254,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3063,7 +3300,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3098,14 +3337,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
                 /** @description Tag group not found or archived */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3135,7 +3378,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3178,7 +3423,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3222,7 +3469,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3292,7 +3541,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3336,7 +3587,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3371,14 +3624,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
                 /** @description Tag not found or archived */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3403,19 +3660,23 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Tag in use; archive it instead */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
                 /** @description Tag not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Tag in use; archive it instead */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3458,7 +3719,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Tag still used by templates or subscriptions */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3502,7 +3774,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3577,7 +3851,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3621,7 +3897,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3656,14 +3934,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
                 /** @description Template not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3693,14 +3975,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
                 /** @description Template not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3774,7 +4060,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3823,7 +4111,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3869,7 +4159,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3900,7 +4192,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3940,14 +4234,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
                 /** @description Time period not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -3990,7 +4288,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -4078,7 +4378,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -4149,21 +4451,31 @@ export interface components {
             name: string;
             description?: string;
             planType: components["schemas"]["PaymentPlanType"];
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description INSTALLMENT only: how many cuotas the purchase is split into. Required for that type.
+             */
             totalInstallments?: number;
+            /** @description INSTALLMENT only: full price of the purchase, used to report the remaining balance. */
             totalAmount?: number;
+            /** @description Amount of a single cycle. Required when the plan is automated; ignored by CUSTOM and GROUP. */
             installmentAmount?: number;
-            frequency: components["schemas"]["RecurrenceFrequency"];
+            /** @description Cadence of the plan. Required by INSTALLMENT and RECURRING; ignored by CUSTOM and GROUP. */
+            frequency?: components["schemas"]["RecurrenceFrequency"];
             startDate: components["schemas"]["LocalDate"];
+            /** @description Last date the plan covers. Required by CUSTOM; optional on RECURRING, which is open-ended without it. */
+            endDate?: components["schemas"]["LocalDate"];
+            /** @description INSTALLMENT and RECURRING only. When true, templateId and installmentAmount are required. */
             isAutomated?: boolean;
             autoCreateDraft?: boolean;
+            /**
+             * Format: int64
+             * @description Template supplying the origin and destination nodes of every generated event. Required when the plan is automated.
+             */
+            templateId?: number;
             /** @description When false, the plan is created without its scheduled items so they can be added manually. Defaults to true. */
             generateItems?: boolean;
             status?: components["schemas"]["PaymentPlanStatus"];
-            /** Format: int64 */
-            originNodeId?: number;
-            /** Format: int64 */
-            destinationNodeId?: number;
             /** Format: int64 */
             categoryId?: number;
             tagIds?: number[];
@@ -4176,11 +4488,11 @@ export interface components {
         CreatePaymentPlanItemDto: {
             /**
              * Format: int32
-             * @description Installment number within the plan. Assigned automatically when omitted.
+             * @description Position of the item within the plan. Assigned automatically when omitted.
              */
             installmentNumber?: number;
+            /** @description Must fall inside the window the plan covers. */
             expectedDate: components["schemas"]["LocalDate"];
-            expectedAmount?: number;
             /** @description Defaults to PENDING when omitted. */
             itemStatus?: components["schemas"]["PaymentPlanItemStatus"];
             /** Format: int64 */
@@ -4188,31 +4500,39 @@ export interface components {
             /** Format: int64 */
             draftId?: number;
         };
+        /** @description What an export would contain, without serialising any of it */
+        DataExportSummaryDto: {
+            version: string;
+            generatedAt: components["schemas"]["LocalDateTime"];
+            sections: components["schemas"]["SectionCountDto"][];
+            /**
+             * Format: int64
+             * @description Files carrying binary content, shipped as separate archive entries
+             */
+            binaryFileCount: number;
+        };
+        /** @enum {string} */
+        DataSection: "DUPLICATE_DETECTION_SETTINGS" | "TAGS" | "CATEGORIES" | "FINANCE_NODES" | "FILES" | "TAG_GROUPS" | "SUBSCRIPTIONS" | "TEMPLATES" | "TIME_PERIODS" | "EVENTS" | "DRAFTS" | "PAYMENT_PLANS";
+        /** @description Per-section outcome of an import run */
         DataTransferResult: {
-            /** Format: int32 */
-            importedTags?: number;
-            /** Format: int32 */
-            importedCategories?: number;
-            /** Format: int32 */
-            importedNodes?: number;
-            /** Format: int32 */
-            importedTagGroups?: number;
-            /** Format: int32 */
-            importedEvents?: number;
-            /** Format: int32 */
-            importedFiles?: number;
-            /** Format: int32 */
-            importedSubscriptions?: number;
-            /** Format: int32 */
-            importedTemplates?: number;
-            /** Format: int32 */
-            importedTimePeriods?: number;
-            skippedEvents?: string[];
+            sections: components["schemas"]["SectionImportResult"][];
         };
         /** @enum {string} */
         DateField: "TRANSACTION" | "CREATED" | "UPDATED";
         /** @enum {string} */
         DraftConfirmMode: "MERGE" | "CREATE_ONLY";
+        /** @description An incomplete entity kept as raw UI state, bypassing the strict validations of its typed counterpart */
+        DraftDto: {
+            /** Format: int64 */
+            id: number;
+            /**
+             * Format: int64
+             * @description The entity this draft edits, when it is not a brand-new one
+             */
+            originalEntityId?: number;
+            entityType: components["schemas"]["EntityType"];
+            rawPayloadJson: string;
+        };
         DraftEntity: {
             /** Format: int64 */
             id?: number;
@@ -4275,6 +4595,10 @@ export interface components {
         };
         /** @enum {string} */
         EntityType: "FINANCE_EVENT" | "CATEGORY" | "TAG" | "FINANCE_NODE";
+        /** @description Error envelope returned by every failed request */
+        ErrorResponse: {
+            error?: string;
+        };
         /** @enum {string} */
         EventType: "INBOUND" | "OUTBOUND" | "OTHER";
         FileDto: {
@@ -4527,13 +4851,16 @@ export interface components {
             totalInstallments?: number;
             totalAmount?: number;
             installmentAmount?: number;
-            frequency: components["schemas"]["RecurrenceFrequency"];
+            frequency?: components["schemas"]["RecurrenceFrequency"];
             startDate: components["schemas"]["LocalDate"];
+            endDate?: components["schemas"]["LocalDate"];
+            /** @description Last date the plan covers, derived from the cuota count when no end date was given. Null when the plan is open-ended. */
+            scheduleEndDate?: components["schemas"]["LocalDate"];
             nextDueDate?: components["schemas"]["LocalDate"];
             isAutomated?: boolean;
             autoCreateDraft?: boolean;
-            originNode?: components["schemas"]["FinanceNodeDto"];
-            destinationNode?: components["schemas"]["FinanceNodeDto"];
+            /** @description Supplies the origin and destination nodes of every event this plan generates. */
+            template?: components["schemas"]["TemplateDto"];
             category?: components["schemas"]["CategoryDto"];
             tags?: components["schemas"]["TagDto"][];
             items?: components["schemas"]["PaymentPlanItemDto"][];
@@ -4541,6 +4868,31 @@ export interface components {
             completedInstallments?: number;
             paidAmount?: number;
             remainingAmount?: number;
+        };
+        /** @description Archive shape of a payment plan, with references as remappable ids */
+        PaymentPlanExportDto: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            description?: string;
+            planType: components["schemas"]["PaymentPlanType"];
+            status: components["schemas"]["PaymentPlanStatus"];
+            /** Format: int32 */
+            totalInstallments?: number;
+            totalAmount?: number;
+            installmentAmount?: number;
+            frequency?: components["schemas"]["RecurrenceFrequency"];
+            startDate: components["schemas"]["LocalDate"];
+            endDate?: components["schemas"]["LocalDate"];
+            nextDueDate?: components["schemas"]["LocalDate"];
+            isAutomated?: boolean;
+            autoCreateDraft?: boolean;
+            /** Format: int64 */
+            templateId?: number;
+            /** Format: int64 */
+            categoryId?: number;
+            tagIds?: number[];
+            items?: components["schemas"]["PaymentPlanItemExportDto"][];
         };
         /** @description Data transfer object for a individual payment plan item / cuota */
         PaymentPlanItemDto: {
@@ -4551,7 +4903,19 @@ export interface components {
             /** Format: int32 */
             installmentNumber: number;
             expectedDate: components["schemas"]["LocalDate"];
-            expectedAmount?: number;
+            /** Format: int64 */
+            eventId?: number;
+            /** Format: int64 */
+            draftId?: number;
+            itemStatus: components["schemas"]["PaymentPlanItemStatus"];
+        };
+        /** @description Archive shape of a payment plan item: references travel as ids so an import can remap them */
+        PaymentPlanItemExportDto: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int32 */
+            installmentNumber: number;
+            expectedDate: components["schemas"]["LocalDate"];
             /** Format: int64 */
             eventId?: number;
             /** Format: int64 */
@@ -4589,6 +4953,20 @@ export interface components {
             action: components["schemas"]["DuplicateRecordStatus"];
             /** Format: int64 */
             keepEntityId?: number;
+        };
+        /** @description How many rows one section would contribute to an export */
+        SectionCountDto: {
+            section: components["schemas"]["DataSection"];
+            /** Format: int64 */
+            count: number;
+        };
+        /** @description Outcome of importing one section of an archive */
+        SectionImportResult: {
+            section: components["schemas"]["DataSection"];
+            /** Format: int32 */
+            imported: number;
+            /** @description One localized reason per item the section refused */
+            skipped: string[];
         };
         SubscriptionDto: {
             /** Format: int64 */

@@ -3,14 +3,15 @@ package com.mypaybyday.resource;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 
+import com.mypaybyday.dto.ErrorResponseDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.SubscriptionDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.SubscriptionService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
@@ -44,7 +45,8 @@ public class SubscriptionResource {
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Subscription found",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SubscriptionDto.class))),
-	@APIResponse(responseCode = "404", description = "Subscription not found")
+	@APIResponse(responseCode = "404", description = "Subscription not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<SubscriptionDto> getById(
 	@Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id)
@@ -58,7 +60,8 @@ public class SubscriptionResource {
     @APIResponses({
 	@APIResponse(responseCode = "201", description = "Subscription created",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SubscriptionDto.class))),
-	@APIResponse(responseCode = "400", description = "Validation error")
+	@APIResponse(responseCode = "400", description = "Validation error",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<SubscriptionDto> create(SubscriptionDto subscription) throws BusinessException {
 	return RestResponse.status(RestResponse.Status.CREATED, subscriptionService.create(subscription));
@@ -70,8 +73,10 @@ public class SubscriptionResource {
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Subscription updated",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SubscriptionDto.class))),
-	@APIResponse(responseCode = "400", description = "Validation error"),
-	@APIResponse(responseCode = "404", description = "Subscription not found")
+	@APIResponse(responseCode = "400", description = "Validation error",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+	@APIResponse(responseCode = "404", description = "Subscription not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<SubscriptionDto> update(
 	@Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id,
@@ -84,7 +89,8 @@ public class SubscriptionResource {
     @Operation(summary = "Delete a subscription")
     @APIResponses({
 	@APIResponse(responseCode = "204", description = "Subscription deleted"),
-	@APIResponse(responseCode = "404", description = "Subscription not found")
+	@APIResponse(responseCode = "404", description = "Subscription not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<Void> delete(
 	@Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id)
@@ -98,7 +104,8 @@ public class SubscriptionResource {
     @Operation(summary = "Execute a subscription now, generating a finance event from its template")
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Subscription executed"),
-	@APIResponse(responseCode = "404", description = "Subscription not found")
+	@APIResponse(responseCode = "404", description = "Subscription not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<Void> execute(
 	@Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id)
@@ -113,7 +120,8 @@ public class SubscriptionResource {
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Subscription cancelled",
 	    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = SubscriptionDto.class))),
-	@APIResponse(responseCode = "404", description = "Subscription not found")
+	@APIResponse(responseCode = "404", description = "Subscription not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<SubscriptionDto> cancel(
 	@Parameter(description = "ID of the subscription", required = true) @PathParam("id") Long id)

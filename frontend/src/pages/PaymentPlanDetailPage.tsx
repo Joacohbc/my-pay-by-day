@@ -72,7 +72,11 @@ export function PaymentPlanDetailPage() {
   const isActive = plan.status === 'ACTIVE';
   const isCancelled = plan.status === 'CANCELLED';
   const groupedEventsCount = (plan.items ?? []).filter((item) => item.eventId != null).length;
-  const canComposeItems = isUserComposedPlan(plan.planType);
+  const totalsFromLinkedEvents = isUserComposedPlan(plan.planType);
+  const supportsAutomation = !isUserComposedPlan(plan.planType);
+  const hasRoomForAnotherItem =
+    plan.planType !== 'INSTALLMENT' || (plan.items ?? []).length < (plan.totalInstallments ?? 0);
+  const canComposeItems = !isCancelled && hasRoomForAnotherItem;
 
   const confirmCancel = async () => {
     await cancelPlan.mutateAsync(plan.id);
@@ -134,7 +138,8 @@ export function PaymentPlanDetailPage() {
           planType={plan.planType}
           editTarget={editedItem}
           nextInstallmentNumber={nextInstallmentNumber}
-          defaultAmount={plan.installmentAmount ?? undefined}
+          planStartDate={plan.startDate}
+          planEndDate={plan.scheduleEndDate ?? undefined}
           onCancel={closeItemModal}
           onSuccess={closeItemModal}
         />
@@ -145,7 +150,7 @@ export function PaymentPlanDetailPage() {
         back={goBack}
         action={
           <div className="flex gap-2">
-            {!isGroup && !isCancelled && (
+            {supportsAutomation && !isCancelled && (
               <Button
                 variant="secondary"
                 size="sm"
@@ -197,12 +202,16 @@ export function PaymentPlanDetailPage() {
         {plan.description && <p className="text-sm text-dn-text-muted mt-1">{plan.description}</p>}
 
         <p className="text-4xl font-mono font-bold tracking-tight mt-3 text-dn-primary break-all">
-          {isGroup ? formatCurrency(plan.paidAmount) : plan.installmentAmount ? formatCurrency(plan.installmentAmount) : '—'}
+          {totalsFromLinkedEvents
+            ? formatCurrency(plan.paidAmount)
+            : plan.installmentAmount
+              ? formatCurrency(plan.installmentAmount)
+              : '—'}
         </p>
         <p className="text-xs text-dn-text-muted mt-1">
-          {isGroup
+          {totalsFromLinkedEvents
             ? t('paymentPlans.groupedEventsCount', { count: groupedEventsCount })
-            : `${t('paymentPlans.cycleAmount')} · ${t(`subscriptions.recurrence.${plan.frequency}`)}`}
+            : `${t('paymentPlans.cycleAmount')} · ${plan.frequency ? t(`subscriptions.recurrence.${plan.frequency}`) : t('common.none')}`}
         </p>
 
         <div className="flex flex-wrap justify-center gap-2 mt-3">
@@ -210,7 +219,7 @@ export function PaymentPlanDetailPage() {
             <Icon name={statusIcons[plan.status]} className="text-[13px]" />
             {t(`paymentPlans.status.${plan.status}`)}
           </Badge>
-          {!isGroup && (
+          {supportsAutomation && (
             <button
               type="button"
               onClick={toggleAutomation}
@@ -237,6 +246,9 @@ export function PaymentPlanDetailPage() {
       <div className="px-5">
         <Card className="divide-y divide-white/5">
           <DetailRow label={t('paymentPlans.startDateLabel')} value={formatDateFromParts(plan.startDate)} isMono />
+          {plan.scheduleEndDate && (
+            <DetailRow label={t('paymentPlans.endDateLabel')} value={formatDateFromParts(plan.scheduleEndDate)} isMono />
+          )}
           {plan.nextDueDate && (
             <DetailRow label={t('paymentPlans.nextDueDateLabel')} value={formatDateFromParts(plan.nextDueDate)} isMono />
           )}
@@ -252,11 +264,14 @@ export function PaymentPlanDetailPage() {
               </div>
             </div>
           )}
-          {(plan.originNode || plan.destinationNode) && (
-            <DetailRow
-              label={t('paymentPlans.nodesLabel')}
-              value={`${plan.originNode?.name ?? t('common.none')} → ${plan.destinationNode?.name ?? t('common.none')}`}
-            />
+          {plan.template && (
+            <>
+              <DetailRow label={t('paymentPlans.templateLabel')} value={plan.template.name} />
+              <DetailRow
+                label={t('paymentPlans.nodesLabel')}
+                value={`${plan.template.originNodeName ?? t('common.none')} → ${plan.template.destinationNodeName ?? t('common.none')}`}
+              />
+            </>
           )}
         </Card>
       </div>
@@ -399,8 +414,7 @@ function PaymentPlanItemRow({ item, draft }: { readonly item: PaymentPlanItem; r
             title={t('paymentPlans.expectedDate')}
           >
             <Icon name="event" className="text-[13px] shrink-0" />
-            {formatDateShort(item.expectedDate)} -{' '}
-            {item.expectedAmount != null ? formatCurrencyShort(item.expectedAmount) : t('common.none')}
+            {formatDateShort(item.expectedDate)}
           </span>
           {linkedRecord && (
             <span

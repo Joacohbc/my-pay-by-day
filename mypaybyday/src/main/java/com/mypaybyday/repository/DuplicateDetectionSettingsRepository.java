@@ -9,7 +9,7 @@ import io.quarkus.hibernate.orm.panache.PanacheRepository;
 public class DuplicateDetectionSettingsRepository implements PanacheRepository<DuplicateDetectionSettingsEntity> {
 
 	public DuplicateDetectionSettingsEntity getSettings() {
-		DuplicateDetectionSettingsEntity settings = find("").firstResult();
+		DuplicateDetectionSettingsEntity settings = findAll().firstResult();
 		if (settings == null) {
 			settings = new DuplicateDetectionSettingsEntity();
 			persist(settings);

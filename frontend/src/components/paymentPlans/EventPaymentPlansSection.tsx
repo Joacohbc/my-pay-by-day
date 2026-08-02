@@ -72,7 +72,6 @@ function AssignedPlanRow({ plan, item }: PlanAssignment) {
     const dto: CreatePaymentPlanItemDto = {
       installmentNumber: item.installmentNumber,
       expectedDate: item.expectedDate,
-      expectedAmount: item.expectedAmount,
       itemStatus: 'PENDING',
     };
     await updateItem.mutateAsync({ itemId: item.id, dto });

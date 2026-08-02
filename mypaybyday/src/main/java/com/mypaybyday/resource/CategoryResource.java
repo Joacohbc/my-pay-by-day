@@ -6,12 +6,13 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 
 import com.mypaybyday.dto.CategoryDto;
+import com.mypaybyday.dto.ErrorResponseDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.CategoryService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
@@ -43,7 +44,8 @@ public class CategoryResource {
 	@APIResponses({
 			@APIResponse(responseCode = "200", description = "Category found",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class))),
-			@APIResponse(responseCode = "404", description = "Category not found")
+			@APIResponse(responseCode = "404", description = "Category not found",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<CategoryDto> getById(
 			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id)
@@ -56,7 +58,8 @@ public class CategoryResource {
 	@APIResponses({
 			@APIResponse(responseCode = "201", description = "Category created",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class))),
-			@APIResponse(responseCode = "400", description = "Validation error")
+			@APIResponse(responseCode = "400", description = "Validation error",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<CategoryDto> create(CategoryDto category) throws BusinessException {
 		return RestResponse.status(RestResponse.Status.CREATED, categoryService.create(category));
@@ -68,8 +71,10 @@ public class CategoryResource {
 	@APIResponses({
 			@APIResponse(responseCode = "200", description = "Category updated",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CategoryDto.class))),
-			@APIResponse(responseCode = "400", description = "Validation error"),
-			@APIResponse(responseCode = "404", description = "Category not found or archived")
+			@APIResponse(responseCode = "400", description = "Validation error",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+			@APIResponse(responseCode = "404", description = "Category not found or archived",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<CategoryDto> update(
 			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id,
@@ -82,7 +87,10 @@ public class CategoryResource {
 	@Operation(summary = "Archive a category")
 	@APIResponses({
 			@APIResponse(responseCode = "204", description = "Category archived"),
-			@APIResponse(responseCode = "404", description = "Category not found")
+			@APIResponse(responseCode = "404", description = "Category not found",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+			@APIResponse(responseCode = "409", description = "Category still used by templates or subscriptions",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<Void> archive(
 			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id)
@@ -96,7 +104,8 @@ public class CategoryResource {
 	@Operation(summary = "Unarchive a category")
 	@APIResponses({
 			@APIResponse(responseCode = "204", description = "Category unarchived"),
-			@APIResponse(responseCode = "404", description = "Category not found")
+			@APIResponse(responseCode = "404", description = "Category not found",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<Void> unarchive(
 			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id)
@@ -110,8 +119,10 @@ public class CategoryResource {
 	@Operation(summary = "Delete a category")
 	@APIResponses({
 			@APIResponse(responseCode = "204", description = "Category deleted"),
-			@APIResponse(responseCode = "400", description = "Category in use; archive it instead"),
-			@APIResponse(responseCode = "404", description = "Category not found")
+			@APIResponse(responseCode = "404", description = "Category not found",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+			@APIResponse(responseCode = "409", description = "Category in use; archive it instead",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<Void> delete(
 			@Parameter(description = "ID of the category", required = true) @PathParam("id") Long id)

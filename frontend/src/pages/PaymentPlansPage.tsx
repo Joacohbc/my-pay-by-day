@@ -14,7 +14,7 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatCurrencyShort } from '@/lib/format';
-import { isGroupPlan, planTypeIcons } from '@/components/paymentPlans/planPresentation';
+import { isUserComposedPlan, planTypeIcons } from '@/components/paymentPlans/planPresentation';
 import { useBanner, BANNER_IDS } from '@/store/dismissedBannersStore';
 
 type PlanFilter = 'ALL' | PaymentPlanType;
@@ -52,6 +52,7 @@ export function PaymentPlansPage() {
     { key: 'INSTALLMENT', label: t('paymentPlans.filterInstallment') },
     { key: 'RECURRING', label: t('paymentPlans.filterRecurring') },
     { key: 'GROUP', label: t('paymentPlans.filterGroup') },
+    { key: 'CUSTOM', label: t('paymentPlans.filterCustom') },
   ];
 
   const createAction = (
@@ -138,9 +139,11 @@ function PaymentPlanCard({ plan }: { readonly plan: PaymentPlan }) {
   const { linkStateFromHere } = useAppNavigation();
 
   const isInstallment = plan.planType === 'INSTALLMENT';
-  const isGroup = isGroupPlan(plan.planType);
   const isActive = plan.status === 'ACTIVE';
-  const groupedEventsCount = (plan.items ?? []).filter((item) => item.eventId != null).length;
+  const linkedEventsCount = (plan.items ?? []).filter((item) => item.eventId != null).length;
+  // A group and a custom plan carry no cadence and no amount of their own: they only total up
+  // what is linked to them, which is also the only number worth showing on their card.
+  const totalsFromLinkedEvents = isUserComposedPlan(plan.planType);
   const progressPercent =
     plan.totalInstallments && plan.totalInstallments > 0
       ? Math.min(100, Math.round((plan.completedInstallments / plan.totalInstallments) * 100))
@@ -166,7 +169,7 @@ function PaymentPlanCard({ plan }: { readonly plan: PaymentPlan }) {
             <span className="text-base font-medium text-dn-text-main truncate">{plan.name}</span>
             <span className="text-xs text-dn-text-muted truncate">
               {t(`paymentPlans.types.${plan.planType}`)}
-              {!isGroup && ` · ${t(`subscriptions.recurrence.${plan.frequency}`)}`}
+              {plan.frequency && ` · ${t(`subscriptions.recurrence.${plan.frequency}`)}`}
             </span>
           </div>
 
@@ -181,13 +184,17 @@ function PaymentPlanCard({ plan }: { readonly plan: PaymentPlan }) {
 
         <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/5">
           <span className="text-sm font-mono text-dn-primary whitespace-nowrap">
-            {isGroup ? formatCurrency(plan.paidAmount) : plan.installmentAmount ? formatCurrency(plan.installmentAmount) : '—'}
+            {totalsFromLinkedEvents
+              ? formatCurrency(plan.paidAmount)
+              : plan.installmentAmount
+                ? formatCurrency(plan.installmentAmount)
+                : '—'}
           </span>
 
-          {isGroup ? (
+          {totalsFromLinkedEvents ? (
             <span className="flex items-center gap-1.5 text-xs text-dn-text-muted">
               <Icon name="receipt_long" className="text-sm" />
-              {t('paymentPlans.groupedEventsCount', { count: groupedEventsCount })}
+              {t('paymentPlans.groupedEventsCount', { count: linkedEventsCount })}
             </span>
           ) : (
             <span className="flex items-center gap-1.5 text-xs text-dn-text-muted">

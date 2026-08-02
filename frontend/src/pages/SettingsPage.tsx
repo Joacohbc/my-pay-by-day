@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { Routes } from '@/lib/routes';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/Card';
@@ -30,9 +30,7 @@ import { currenciesList } from '@/lib/utils/currencies';
 import { useAlert } from '@/contexts/AlertContext';
 import { idbRemove } from '@/lib/idbStorage';
 import { useDismissedBannersStore } from '@/store/dismissedBannersStore';
-import { dataTransferService } from '@/services/data-transfer.service';
-import { logger } from '@/lib/logger';
-import JSZip from 'jszip';
+import { DataTransferModal } from '@/components/settings/DataTransferModal';
 
 interface SettingRowProps {
   to: string;
@@ -67,14 +65,14 @@ function SettingRow({ to, icon, title, subtitle, count }: SettingRowProps) {
 
 export function SettingsPage() {
   const { t, i18n } = useTranslation();
-  const { success, error } = useAlert();
+  const { success } = useAlert();
   const queryClient = useQueryClient();
   const resetDismissedBanners = useDismissedBannersStore((s) => s.reset);
   const [currency, _setCurrency] = useState(getCurrency);
   const [timezone, _setTimezone] = useState(() => getUserTimezone());
   const [dateFormatId, _setDateFormatId] = useState<DateFormatId>(() => getDateFormatId());
-  const [isImporting, setIsImporting] = useState(false);
-  const importInputRef = useRef<HTMLInputElement>(null);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [transferModalMode, setTransferModalMode] = useState<'export' | 'import'>('export');
   const { data: categories } = useCategories();
   const { data: tags } = useTags();
   const { data: tagGroups } = useTagGroups();
@@ -101,66 +99,6 @@ export function SettingsPage() {
     resetDismissedBanners();
     success(t('settings.clearCacheSuccess'));
     window.location.reload();
-  };
-
-  const handleExport = async () => {
-    try {
-      const blob = await dataTransferService.exportAll();
-      const url = URL.createObjectURL(blob);
-      const exportDate = new Date().toISOString().slice(0, 10);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `mypaybyday-export-${exportDate}.zip`;
-      anchor.click();
-      URL.revokeObjectURL(url);
-      success(t('settings.exportSuccess'));
-    } catch (err) {
-      logger.child('settings').error('Data export failed', { error: err });
-      error(err instanceof Error ? err.message : String(err));
-    }
-  };
-
-  const handleImportFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = '';
-    setIsImporting(true);
-    try {
-      let payloadBlob: Blob;
-      if (file.name.endsWith('.json')) {
-        // Backwards compatibility for old JSON exports
-        const text = await file.text();
-        const zip = new JSZip();
-        zip.file("data.json", text);
-        payloadBlob = await zip.generateAsync({ type: 'blob' });
-      } else {
-        payloadBlob = file;
-      }
-      
-      const result = await dataTransferService.importAll(payloadBlob);
-      const summary = t('settings.importSuccess', {
-        tags: result.importedTags,
-        categories: result.importedCategories,
-        nodes: result.importedNodes,
-        tagGroups: result.importedTagGroups,
-        events: result.importedEvents,
-        files: result.importedFiles,
-        subscriptions: result.importedSubscriptions,
-        templates: result.importedTemplates,
-        timePeriods: result.importedTimePeriods,
-      });
-      const skippedSuffix =
-        result.skippedEvents.length > 0
-          ? ` — ${t('settings.importSkipped', { count: result.skippedEvents.length })}`
-          : '';
-      success(`${summary}${skippedSuffix}`);
-      queryClient.invalidateQueries();
-    } catch (err) {
-      logger.child('settings').error('Data import failed', { error: err, fileName: file.name, fileSizeBytes: file.size });
-      error(err instanceof Error ? err.message : String(err));
-    } finally {
-      setIsImporting(false);
-    }
   };
 
   const handleTimezoneChange = (tz: string) => {
@@ -349,7 +287,10 @@ export function SettingsPage() {
               <p className="text-xs text-dn-text-muted">{t('settings.exportDataDesc')}</p>
             </div>
             <button
-              onClick={handleExport}
+              onClick={() => {
+                setTransferModalMode('export');
+                setIsTransferModalOpen(true);
+              }}
               className="shrink-0 px-3 py-1.5 text-xs font-medium rounded-lg bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface-low/70 transition-colors"
             >
               {t('settings.exportData')}
@@ -363,23 +304,24 @@ export function SettingsPage() {
               <p className="text-sm font-medium text-dn-text-main">{t('settings.importData')}</p>
               <p className="text-xs text-dn-text-muted">{t('settings.importDataDesc')}</p>
             </div>
-            <input
-              ref={importInputRef}
-              type="file"
-              accept=".json,.zip"
-              className="hidden"
-              onChange={handleImportFileSelected}
-            />
             <button
-              onClick={() => importInputRef.current?.click()}
-              disabled={isImporting}
-              className="shrink-0 px-3 py-1.5 text-xs font-medium rounded-lg bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface-low/70 transition-colors disabled:opacity-50"
+              onClick={() => {
+                setTransferModalMode('import');
+                setIsTransferModalOpen(true);
+              }}
+              className="shrink-0 px-3 py-1.5 text-xs font-medium rounded-lg bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface-low/70 transition-colors"
             >
-              {isImporting ? t('settings.importing') : t('settings.importData')}
+              {t('settings.importData')}
             </button>
           </div>
         </Card>
       </section>
+
+      <DataTransferModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        initialMode={transferModalMode}
+      />
 
       {/* About */}
       <section className="px-5">

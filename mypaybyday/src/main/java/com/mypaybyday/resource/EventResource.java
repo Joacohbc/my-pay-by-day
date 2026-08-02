@@ -5,6 +5,7 @@ import jakarta.ws.rs.core.MediaType;
 import java.math.BigDecimal;
 import java.util.List;
 
+import com.mypaybyday.dto.ErrorResponseDto;
 import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.EventQuery.DateField;
 import com.mypaybyday.dto.FinanceEventDto;
@@ -18,9 +19,9 @@ import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.event.EventService;
 
 import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
@@ -73,7 +74,8 @@ public class EventResource {
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Event found",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
-	@APIResponse(responseCode = "404", description = "Event not found")
+	@APIResponse(responseCode = "404", description = "Event not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<FinanceEventDto> getById(
 	@Parameter(description = "ID of the event", required = true) @PathParam("id") Long id)
@@ -89,7 +91,12 @@ public class EventResource {
     @APIResponses({
 	@APIResponse(responseCode = "201", description = "Event created",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
-	@APIResponse(responseCode = "400", description = "Validation error (e.g. zero-sum violated)")
+	@APIResponse(responseCode = "400", description = "Validation error (e.g. zero-sum violated)",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+	@APIResponse(responseCode = "404", description = "Referenced category, tag or node not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+	@APIResponse(responseCode = "409", description = "Referenced node is archived and cannot be used",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<FinanceEventDto> create(FinanceEventEntity event) throws BusinessException {
 	return RestResponse.status(RestResponse.Status.CREATED, eventService.create(event));
@@ -103,8 +110,12 @@ public class EventResource {
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Event updated",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
-	@APIResponse(responseCode = "400", description = "Validation error"),
-	@APIResponse(responseCode = "404", description = "Event not found")
+	@APIResponse(responseCode = "400", description = "Validation error",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+	@APIResponse(responseCode = "404", description = "Event or referenced category, tag or node not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+	@APIResponse(responseCode = "409", description = "Referenced node is archived and cannot be used",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<FinanceEventDto> update(
 	@Parameter(description = "ID of the event", required = true) @PathParam("id") Long id,
@@ -121,7 +132,12 @@ public class EventResource {
     @APIResponses({
         @APIResponse(responseCode = "200", description = "All events updated successfully",
             content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
-        @APIResponse(responseCode = "400", description = "Validation error (e.g., event not found, archived category/tag)")
+        @APIResponse(responseCode = "400", description = "Validation error",
+                content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+        @APIResponse(responseCode = "404", description = "Event or referenced category, tag or node not found",
+                content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+        @APIResponse(responseCode = "409", description = "Referenced node is archived and cannot be used",
+                content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<List<FinanceEventDto>> bulkUpdate(BulkPatchEventDto patch) throws BusinessException {
         return RestResponse.ok(eventService.bulkUpdate(patch));
@@ -132,7 +148,8 @@ public class EventResource {
     @Operation(summary = "Delete an event", description = "Permanently deletes the event and its associated Transaction (cascade).")
     @APIResponses({
 	@APIResponse(responseCode = "204", description = "Event deleted"),
-	@APIResponse(responseCode = "404", description = "Event not found")
+	@APIResponse(responseCode = "404", description = "Event not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<Void> delete(
 	@Parameter(description = "ID of the event", required = true) @PathParam("id") Long id)
@@ -147,7 +164,8 @@ public class EventResource {
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Relations added successfully",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
-	@APIResponse(responseCode = "404", description = "Event not found")
+	@APIResponse(responseCode = "404", description = "Event not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<FinanceEventDto> addRelations(
 	@Parameter(description = "ID of the event", required = true) @PathParam("id") Long id,
@@ -162,7 +180,8 @@ public class EventResource {
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Relations removed successfully",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
-	@APIResponse(responseCode = "404", description = "Event not found")
+	@APIResponse(responseCode = "404", description = "Event not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<FinanceEventDto> removeRelations(
 	@Parameter(description = "ID of the event", required = true) @PathParam("id") Long id,
@@ -180,8 +199,10 @@ public class EventResource {
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Merge successful — returns the updated base event",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FinanceEventDto.class))),
-	@APIResponse(responseCode = "400", description = "Validation error (e.g. mixed types, self-merge)"),
-	@APIResponse(responseCode = "404", description = "Base or source event not found")
+	@APIResponse(responseCode = "400", description = "Validation error (e.g. mixed types, self-merge)",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+	@APIResponse(responseCode = "404", description = "Base or source event not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<FinanceEventDto> mergeEvents(
 	@Parameter(description = "ID of the base event", required = true) @PathParam("id") Long id,

@@ -10,7 +10,10 @@ import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.FinanceLineItemDto;
+import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.dto.FinanceLineItemDto;
 import com.mypaybyday.dto.PagedResponse;
+import com.mypaybyday.dto.SectionImportResult;
 import com.mypaybyday.dto.SubscriptionDto;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.entity.CategoryEntity;
@@ -21,6 +24,7 @@ import com.mypaybyday.entity.FinanceTransactionEntity;
 import com.mypaybyday.entity.SubscriptionEntity;
 import com.mypaybyday.entity.SystemJobEntity;
 import com.mypaybyday.entity.TagEntity;
+import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.enums.JobCategory;
 import com.mypaybyday.enums.JobStatus;
 import com.mypaybyday.enums.RecurrenceFrequency;
@@ -32,12 +36,15 @@ import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.SystemJobRepository;
 import com.mypaybyday.service.event.EventService;
+import com.mypaybyday.service.transfer.ArchivedItemImporter;
+import com.mypaybyday.service.transfer.DataSectionTransfer;
+import com.mypaybyday.service.transfer.ImportContext;
 import com.mypaybyday.validation.SubscriptionValidator;
 import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
 
 @ApplicationScoped
-public class SubscriptionService {
+public class SubscriptionService implements DataSectionTransfer<SubscriptionDto> {
 
 	private final SubscriptionRepository subscriptionRepository;
 	private final EventRepository eventRepository;
@@ -48,6 +55,7 @@ public class SubscriptionService {
 	private final SubscriptionValidator subscriptionValidator;
 	private final EventService eventService;
 	private final SystemJobRepository systemJobRepository;
+	private final ArchivedItemImporter archivedItemImporter;
 
 	public SubscriptionService(
 			SubscriptionRepository subscriptionRepository,
@@ -58,7 +66,8 @@ public class SubscriptionService {
 			Messages messages,
 			SubscriptionValidator subscriptionValidator,
 			EventService eventService,
-			SystemJobRepository systemJobRepository) {
+			SystemJobRepository systemJobRepository,
+			ArchivedItemImporter archivedItemImporter) {
 		this.subscriptionRepository = subscriptionRepository;
 		this.eventRepository = eventRepository;
 		this.financeNodeService = financeNodeService;
@@ -68,6 +77,7 @@ public class SubscriptionService {
 		this.subscriptionValidator = subscriptionValidator;
 		this.eventService = eventService;
 		this.systemJobRepository = systemJobRepository;
+		this.archivedItemImporter = archivedItemImporter;
 	}
 
 	@Transactional
@@ -397,5 +407,74 @@ public class SubscriptionService {
 				Log.warnf(e, "Failed to link subscription event %d to previous event %d", createdEvent.id(), previousEvent.id);
 			}
 		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Data transfer
+	// -------------------------------------------------------------------------
+
+	@Override
+	public DataSection section() {
+		return DataSection.SUBSCRIPTIONS;
+	}
+
+	@Override
+	@Transactional
+	public long countForExport() {
+		return subscriptionRepository.count();
+	}
+
+	@Override
+	@Transactional
+	public List<SubscriptionDto> exportData() {
+		return subscriptionRepository.listAll().stream().map(SubscriptionDto::from).toList();
+	}
+
+	@Override
+	@Transactional
+	public SectionImportResult importData(List<SubscriptionDto> items, ImportContext context) {
+		return archivedItemImporter.importEach(section(), items, SubscriptionDto::name, dto -> {
+			SubscriptionEntity entity = new SubscriptionEntity();
+			entity.name = dto.name();
+			entity.description = dto.description();
+			entity.eventType = dto.eventType();
+			entity.modifierValue = dto.modifierValue();
+			entity.recurrence = dto.recurrence();
+			entity.nextExecutionDate = dto.nextExecutionDate();
+			entity.status = dto.status();
+
+			if (dto.originNodeId() != null) {
+				Long newNodeId = context.remap(DataSection.FINANCE_NODES, dto.originNodeId());
+				if (newNodeId != null) {
+					entity.originNode = financeNodeService.findNodeEntity(newNodeId);
+				}
+			}
+			if (dto.destinationNodeId() != null) {
+				Long newNodeId = context.remap(DataSection.FINANCE_NODES, dto.destinationNodeId());
+				if (newNodeId != null) {
+					entity.destinationNode = financeNodeService.findNodeEntity(newNodeId);
+				}
+			}
+			if (dto.category() != null && dto.category().id() != null) {
+				Long newCategoryId = context.remap(DataSection.CATEGORIES, dto.category().id());
+				if (newCategoryId != null) {
+					entity.category = categoryService.findEntityById(newCategoryId);
+				}
+			}
+			if (dto.tags() != null) {
+				for (TagDto tagDto : dto.tags()) {
+					Long newTagId = context.remap(DataSection.TAGS, tagDto.id());
+					if (newTagId != null) {
+						TagEntity tag = tagService.findTagEntity(newTagId);
+						if (tag != null) {
+							entity.tags.add(tag);
+						}
+					}
+				}
+			}
+			subscriptionValidator.validate(entity);
+			subscriptionRepository.persist(entity);
+			context.rememberId(section(), dto.id(), entity.id);
+		});
 	}
 }

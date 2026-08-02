@@ -5,13 +5,14 @@ import java.util.List;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 
+import com.mypaybyday.dto.ErrorResponseDto;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TagService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
@@ -43,7 +44,8 @@ public class TagResource {
 	@APIResponses({
 			@APIResponse(responseCode = "200", description = "Tag found",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TagDto.class))),
-			@APIResponse(responseCode = "404", description = "Tag not found")
+			@APIResponse(responseCode = "404", description = "Tag not found",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<TagDto> getById(
 			@Parameter(description = "ID of the tag", required = true) @PathParam("id") Long id)
@@ -56,7 +58,8 @@ public class TagResource {
 	@APIResponses({
 			@APIResponse(responseCode = "201", description = "Tag created",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TagDto.class))),
-			@APIResponse(responseCode = "400", description = "Validation error")
+			@APIResponse(responseCode = "400", description = "Validation error",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<TagDto> create(TagDto tag) throws BusinessException {
 		return RestResponse.status(RestResponse.Status.CREATED, tagService.create(tag));
@@ -68,8 +71,10 @@ public class TagResource {
 	@APIResponses({
 			@APIResponse(responseCode = "200", description = "Tag updated",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TagDto.class))),
-			@APIResponse(responseCode = "400", description = "Validation error"),
-			@APIResponse(responseCode = "404", description = "Tag not found or archived")
+			@APIResponse(responseCode = "400", description = "Validation error",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+			@APIResponse(responseCode = "404", description = "Tag not found or archived",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<TagDto> update(
 			@Parameter(description = "ID of the tag", required = true) @PathParam("id") Long id,
@@ -82,7 +87,10 @@ public class TagResource {
 	@Operation(summary = "Archive a tag")
 	@APIResponses({
 			@APIResponse(responseCode = "204", description = "Tag archived"),
-			@APIResponse(responseCode = "404", description = "Tag not found")
+			@APIResponse(responseCode = "404", description = "Tag not found",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+			@APIResponse(responseCode = "409", description = "Tag still used by templates or subscriptions",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<Void> archive(
 			@Parameter(description = "ID of the tag", required = true) @PathParam("id") Long id)
@@ -96,7 +104,8 @@ public class TagResource {
 	@Operation(summary = "Unarchive a tag")
 	@APIResponses({
 			@APIResponse(responseCode = "204", description = "Tag unarchived"),
-			@APIResponse(responseCode = "404", description = "Tag not found")
+			@APIResponse(responseCode = "404", description = "Tag not found",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<Void> unarchive(
 			@Parameter(description = "ID of the tag", required = true) @PathParam("id") Long id)
@@ -110,8 +119,10 @@ public class TagResource {
 	@Operation(summary = "Delete a tag")
 	@APIResponses({
 			@APIResponse(responseCode = "204", description = "Tag deleted"),
-			@APIResponse(responseCode = "400", description = "Tag in use; archive it instead"),
-			@APIResponse(responseCode = "404", description = "Tag not found")
+			@APIResponse(responseCode = "404", description = "Tag not found",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+			@APIResponse(responseCode = "409", description = "Tag in use; archive it instead",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<Void> delete(
 			@Parameter(description = "ID of the tag", required = true) @PathParam("id") Long id)
