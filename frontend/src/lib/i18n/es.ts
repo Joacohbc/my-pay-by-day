@@ -484,7 +484,7 @@ const es = {
     templateRequired: 'Un plan automatizado necesita una plantilla',
     amountRequiredWhenAutomated: 'Un plan automatizado necesita un monto mayor que cero',
     manualHint: 'Un plan manual solo lleva el cronograma: vos vinculás cada evento, así que no necesita monto ni nodos.',
-    scheduleWindowHint: 'La última cuota cae el {{date}}. Todas las cuotas de este plan deben quedar dentro de esa ventana.',
+    scheduleWindowHint: 'Con {{count}} cuotas desde el inicio, la cuota #{{count}} (la final de este plan) cae el {{date}}.',
     subscriptionHint: 'Dejá la fecha de fin vacía para que la suscripción no tenga fin. Los ciclos pasados se pueden agregar en cualquier momento, mientras caigan dentro de la ventana.',
     customHint: 'Un plan personalizado es una ventana que armás a mano: no tiene cadencia y nunca se automatiza.',
     itemWindowHint: 'Este plan va del {{from}} al {{to}}.',

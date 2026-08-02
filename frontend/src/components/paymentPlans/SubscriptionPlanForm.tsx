@@ -247,6 +247,7 @@ export function SubscriptionPlanForm({ editTarget, onCancel, onSuccess }: Subscr
             value={field.value.map(String)}
             onChange={(ids) => field.onChange(ids.map(Number))}
             showAdd
+            collapsible
           />
         )}
       />

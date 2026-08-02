@@ -485,7 +485,7 @@ const en = {
     templateRequired: 'An automated plan needs a template',
     amountRequiredWhenAutomated: 'An automated plan needs an amount greater than zero',
     manualHint: 'A manual plan only tracks the schedule: you attach each event yourself, so it needs no amount and no nodes.',
-    scheduleWindowHint: 'The last cuota falls on {{date}}. Every cuota of this plan must sit inside that window.',
+    scheduleWindowHint: 'With {{count}} cuotas from the start date, cuota #{{count}} (the final one in this plan) falls on {{date}}.',
     subscriptionHint: 'Leave the end date empty to keep the subscription open-ended. Past cycles can be added at any time, as long as they fall inside the window.',
     customHint: 'A custom plan is a window you fill in by hand: it has no cadence and is never automated.',
     itemWindowHint: 'This plan runs from {{from}} to {{to}}.',

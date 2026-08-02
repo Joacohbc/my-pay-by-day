@@ -169,6 +169,7 @@ export function GroupPlanForm({ editTarget, onCancel, onSuccess }: GroupPlanForm
             value={field.value.map(String)}
             onChange={(ids) => field.onChange(ids.map(Number))}
             showAdd
+            collapsible
           />
         )}
       />

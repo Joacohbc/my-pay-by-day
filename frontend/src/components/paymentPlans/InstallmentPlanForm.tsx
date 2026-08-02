@@ -253,6 +253,7 @@ export function InstallmentPlanForm({ editTarget, onCancel, onSuccess }: Install
             value={field.value.map(String)}
             onChange={(ids) => field.onChange(ids.map(Number))}
             showAdd
+            collapsible
           />
         )}
       />
@@ -338,7 +339,7 @@ function ScheduleWindowHint({ control }: { readonly control: ReturnType<typeof u
 
   return (
     <p className="text-xs text-dn-text-muted leading-relaxed">
-      {t('paymentPlans.scheduleWindowHint', { date: formatDateFromParts(lastCuotaDate) })}
+      {t('paymentPlans.scheduleWindowHint', { count: totalInstallments, date: formatDateFromParts(lastCuotaDate) })}
     </p>
   );
 }

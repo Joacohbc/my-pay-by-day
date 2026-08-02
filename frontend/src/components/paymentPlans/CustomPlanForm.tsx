@@ -226,6 +226,7 @@ export function CustomPlanForm({ editTarget, onCancel, onSuccess }: CustomPlanFo
             value={field.value.map(String)}
             onChange={(ids) => field.onChange(ids.map(Number))}
             showAdd
+            collapsible
           />
         )}
       />
