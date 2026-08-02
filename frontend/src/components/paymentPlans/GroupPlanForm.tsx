@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, Controller, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/contexts/AlertContext';
-import type { CreatePaymentPlanDto } from '@/models';
-import { useCreatePaymentPlan } from '@/hooks/usePaymentPlans';
+import type { CreatePaymentPlanDto, PaymentPlan } from '@/models';
+import { useCreatePaymentPlan, useUpdatePaymentPlan } from '@/hooks/usePaymentPlans';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { Input } from '@/components/ui/Input';
@@ -16,6 +16,7 @@ import { TagSelector } from '@/components/ui/TagSelector';
 import { GroupMembersPicker } from '@/components/paymentPlans/GroupMembersPicker';
 import { nameField, descriptionField } from '@/lib/validation';
 import { findFirstFieldErrorMessage } from '@/lib/formErrors';
+import { prependMissingArchived } from '@/lib/prependMissingArchived';
 import { getLocalizedTodayString } from '@/lib/format';
 
 function buildSchema(t: (key: string) => string) {
@@ -30,37 +31,58 @@ function buildSchema(t: (key: string) => string) {
 
 type FormValues = z.infer<ReturnType<typeof buildSchema>>;
 
-interface GroupPlanFormProps {
-  onCancel: () => void;
-  onSuccess: () => void;
+function toFormValues(plan?: PaymentPlan | null): FormValues {
+  return {
+    name: plan?.name ?? '',
+    description: plan?.description ?? '',
+    startDate: plan?.startDate ?? getLocalizedTodayString(),
+    categoryId: plan?.category?.id ?? null,
+    tagIds: plan?.tags?.map((tag) => tag.id) ?? [],
+  };
 }
 
-export function GroupPlanForm({ onCancel, onSuccess }: GroupPlanFormProps) {
+interface GroupPlanFormProps {
+  readonly editTarget?: PaymentPlan | null;
+  readonly onCancel: () => void;
+  readonly onSuccess: () => void;
+}
+
+export function GroupPlanForm({ editTarget, onCancel, onSuccess }: GroupPlanFormProps) {
   const { t } = useTranslation();
   const alert = useAlert();
   const createPlan = useCreatePaymentPlan();
+  const updatePlan = useUpdatePaymentPlan();
 
-  const { data: categories = [] } = useCategories();
-  const { data: tags = [] } = useTags();
+  const { data: categoriesResponse } = useCategories();
+  const { data: tagsResponse } = useTags();
+
+  const baseCategory = editTarget?.category;
+  const baseTags = useMemo(() => editTarget?.tags ?? [], [editTarget?.tags]);
+  const categories = useMemo(
+    () => prependMissingArchived(categoriesResponse ?? [], baseCategory ? [baseCategory] : []),
+    [categoriesResponse, baseCategory]
+  );
+  const tags = useMemo(() => prependMissingArchived(tagsResponse ?? [], baseTags), [tagsResponse, baseTags]);
 
   const [eventIds, setEventIds] = useState<number[]>([]);
   const [draftIds, setDraftIds] = useState<number[]>([]);
+
+  const defaultValues = useMemo(() => toFormValues(editTarget), [editTarget]);
 
   const {
     register,
     handleSubmit,
     control,
+    reset,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(buildSchema(t)),
-    defaultValues: {
-      name: '',
-      description: '',
-      startDate: getLocalizedTodayString(),
-      categoryId: null,
-      tagIds: [],
-    },
+    defaultValues,
   });
+
+  useEffect(() => {
+    reset(defaultValues);
+  }, [defaultValues, reset]);
 
   const memberCount = eventIds.length + draftIds.length;
 
@@ -73,7 +95,6 @@ export function GroupPlanForm({ onCancel, onSuccess }: GroupPlanFormProps) {
       name: values.name,
       description: values.description || undefined,
       planType: 'GROUP',
-      frequency: 'INSTANT',
       startDate: values.startDate,
       isAutomated: false,
       autoCreateDraft: false,
@@ -83,8 +104,15 @@ export function GroupPlanForm({ onCancel, onSuccess }: GroupPlanFormProps) {
       eventIds: eventIds.length > 0 ? eventIds : undefined,
       draftIds: draftIds.length > 0 ? draftIds : undefined,
     };
+
+    if (editTarget) {
+      updatePlan.mutate({ id: editTarget.id, dto }, { onSuccess });
+      return;
+    }
     createPlan.mutate(dto, { onSuccess });
   };
+
+  const isPending = createPlan.isPending || updatePlan.isPending;
 
   return (
     <form onSubmit={handleSubmit(submitPlan, reportInvalidSubmit)} className="space-y-4">
@@ -141,27 +169,32 @@ export function GroupPlanForm({ onCancel, onSuccess }: GroupPlanFormProps) {
             value={field.value.map(String)}
             onChange={(ids) => field.onChange(ids.map(Number))}
             showAdd
+            collapsible
           />
         )}
       />
 
-      <GroupMembersPicker
-        eventIds={eventIds}
-        draftIds={draftIds}
-        onChangeEventIds={setEventIds}
-        onChangeDraftIds={setDraftIds}
-      />
+      {!editTarget && (
+        <>
+          <GroupMembersPicker
+            eventIds={eventIds}
+            draftIds={draftIds}
+            onChangeEventIds={setEventIds}
+            onChangeDraftIds={setDraftIds}
+          />
 
-      <p className="text-xs text-dn-text-muted leading-relaxed">
-        {memberCount > 0 ? t('paymentPlans.groupMembersCount', { count: memberCount }) : t('paymentPlans.groupHint')}
-      </p>
+          <p className="text-xs text-dn-text-muted leading-relaxed">
+            {memberCount > 0 ? t('paymentPlans.groupMembersCount', { count: memberCount }) : t('paymentPlans.groupHint')}
+          </p>
+        </>
+      )}
 
       <div className="flex items-center justify-end gap-2 pt-2">
         <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
           {t('common.cancel')}
         </Button>
-        <Button type="submit" size="sm" loading={createPlan.isPending}>
-          {t('common.create')}
+        <Button type="submit" size="sm" loading={isPending}>
+          {editTarget ? t('common.update') : t('common.create')}
         </Button>
       </div>
     </form>

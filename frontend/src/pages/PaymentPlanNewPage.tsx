@@ -27,6 +27,12 @@ const PLAN_KIND_OPTIONS: PlanKindOption[] = [
     descriptionKey: 'paymentPlans.kindInstallmentDescription',
   },
   {
+    to: Routes.PAYMENT_PLAN_NEW_SUBSCRIPTION,
+    icon: 'sync',
+    titleKey: 'paymentPlans.kindSubscriptionTitle',
+    descriptionKey: 'paymentPlans.kindSubscriptionDescription',
+  },
+  {
     to: Routes.PAYMENT_PLAN_NEW_CUSTOM,
     icon: 'tune',
     titleKey: 'paymentPlans.kindCustomTitle',

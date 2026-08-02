@@ -23,9 +23,9 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useEvent, useEvents } from '@/hooks/useEvents';
 import { useFinanceEventDrafts } from '@/hooks/useDrafts';
-import { describeFinanceEvent, getLocalizedTodayString } from '@/lib/format';
-import { isGroupPlan, isUserComposedPlan } from '@/components/paymentPlans/planPresentation';
-import { optionalAmountField, requiredCountField, toOptionalNumber } from '@/lib/validation';
+import { describeFinanceEvent, formatDateFromParts, getLocalizedTodayString } from '@/lib/format';
+import { isGroupPlan } from '@/components/paymentPlans/planPresentation';
+import { requiredCountField, toOptionalNumber } from '@/lib/validation';
 import { findFirstFieldErrorMessage } from '@/lib/formErrors';
 
 const ITEM_STATUSES: PaymentPlanItemStatus[] = ['PENDING', 'DRAFTED', 'PAID', 'SKIPPED', 'OVERDUE'];
@@ -36,7 +36,6 @@ function buildSchema(t: (key: string) => string) {
     .object({
       installmentNumber: requiredCountField(t),
       expectedDate: z.string().min(1, t('common.required')),
-      expectedAmount: optionalAmountField(t),
       itemStatus: z.enum(['PENDING', 'DRAFTED', 'PAID', 'SKIPPED', 'OVERDUE'], { error: t('common.required') }),
       linkKind: z.enum(['NONE', 'EVENT', 'DRAFT']),
       linkedId: z.number().nullable(),
@@ -60,7 +59,10 @@ interface PaymentPlanItemFormProps {
   planType: PaymentPlanType;
   editTarget?: PaymentPlanItem | null;
   nextInstallmentNumber?: number;
-  defaultAmount?: number;
+  /** Start of the window the plan covers; an item may never fall before it. */
+  planStartDate?: string;
+  /** End of that window, absent when the plan is open-ended. */
+  planEndDate?: string;
   onCancel: () => void;
   onSuccess: () => void;
 }
@@ -70,7 +72,8 @@ export function PaymentPlanItemForm({
   planType,
   editTarget,
   nextInstallmentNumber = 1,
-  defaultAmount,
+  planStartDate,
+  planEndDate,
   onCancel,
   onSuccess,
 }: PaymentPlanItemFormProps) {
@@ -111,8 +114,7 @@ export function PaymentPlanItemForm({
     resolver: zodResolver(buildSchema(t)),
     defaultValues: {
       installmentNumber: editTarget?.installmentNumber ?? nextInstallmentNumber,
-      expectedDate: editTarget?.expectedDate ?? getLocalizedTodayString(),
-      expectedAmount: editTarget?.expectedAmount ?? defaultAmount,
+      expectedDate: editTarget?.expectedDate ?? planStartDate ?? getLocalizedTodayString(),
       itemStatus: editTarget?.itemStatus ?? 'PENDING',
       linkKind: resolveLinkKind(editTarget),
       linkedId: editTarget?.eventId ?? editTarget?.draftId ?? null,
@@ -120,7 +122,6 @@ export function PaymentPlanItemForm({
   });
 
   const linkKind = useWatch({ control, name: 'linkKind' });
-  const canEditSchedule = isUserComposedPlan(planType);
   const isGroup = isGroupPlan(planType);
 
   const reportInvalidSubmit = (fieldErrors: FieldErrors<FormValues>) => {
@@ -131,7 +132,6 @@ export function PaymentPlanItemForm({
     const dto: CreatePaymentPlanItemDto = {
       installmentNumber: values.installmentNumber,
       expectedDate: values.expectedDate,
-      expectedAmount: values.expectedAmount,
       itemStatus: values.itemStatus,
       eventId: values.linkKind === 'EVENT' ? values.linkedId ?? undefined : undefined,
       draftId: values.linkKind === 'DRAFT' ? values.linkedId ?? undefined : undefined,
@@ -152,6 +152,7 @@ export function PaymentPlanItemForm({
   };
 
   const isPending = createItem.isPending || updateItem.isPending;
+  const windowHint = describeWindow(t, isGroup, planStartDate, planEndDate);
 
   return (
     <form onSubmit={handleSubmit(submitItem, reportInvalidSubmit)} className="space-y-4">
@@ -169,7 +170,6 @@ export function PaymentPlanItemForm({
         <Input
           label={isGroup ? t('paymentPlans.groupItemNumberLabel') : t('paymentPlans.itemNumberLabel')}
           type="number"
-          disabled={!canEditSchedule}
           error={errors.installmentNumber?.message}
           {...register('installmentNumber', { setValueAs: toOptionalNumber })}
         />
@@ -180,7 +180,8 @@ export function PaymentPlanItemForm({
             <Input
               label={t('paymentPlans.expectedDate')}
               type="date"
-              disabled={!canEditSchedule}
+              min={isGroup ? undefined : planStartDate}
+              max={isGroup ? undefined : planEndDate}
               error={errors.expectedDate?.message}
               name={field.name}
               ref={field.ref}
@@ -192,18 +193,7 @@ export function PaymentPlanItemForm({
         />
       </div>
 
-      <Input
-        label={t('paymentPlans.expectedAmount')}
-        type="number"
-        step="0.01"
-        disabled={!canEditSchedule}
-        error={errors.expectedAmount?.message}
-        {...register('expectedAmount', { setValueAs: toOptionalNumber })}
-      />
-
-      {!canEditSchedule && (
-        <p className="text-xs text-dn-text-muted leading-relaxed">{t('paymentPlans.scheduleLockedHint')}</p>
-      )}
+      {windowHint && <p className="text-xs text-dn-text-muted leading-relaxed">{windowHint}</p>}
 
       <Controller
         name="itemStatus"
@@ -260,7 +250,7 @@ export function PaymentPlanItemForm({
       )}
 
       <div className="flex items-center justify-between gap-2 pt-2">
-        {editTarget && canEditSchedule ? (
+        {editTarget ? (
           <Button
             type="button"
             variant="danger"
@@ -285,4 +275,21 @@ export function PaymentPlanItemForm({
       </div>
     </form>
   );
+}
+
+function describeWindow(
+  t: (key: string, options?: Record<string, string>) => string,
+  isGroup: boolean,
+  planStartDate?: string,
+  planEndDate?: string
+): string | null {
+  if (isGroup || !planStartDate) return null;
+
+  if (!planEndDate) {
+    return t('paymentPlans.itemWindowOpenHint', { from: formatDateFromParts(planStartDate) });
+  }
+  return t('paymentPlans.itemWindowHint', {
+    from: formatDateFromParts(planStartDate),
+    to: formatDateFromParts(planEndDate),
+  });
 }

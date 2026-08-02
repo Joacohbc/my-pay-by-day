@@ -167,28 +167,44 @@ export const botInstallmentPlanInputSchema = z.object({
   description: z.string().nullish(),
   startDate: z.string().describe('YYYY-MM-DD of the first cuota, in the user timezone.'),
   totalInstallments: NumericId.describe('How many cuotas in total. The backend pre-generates one item each.'),
-  installmentAmount: lenientNumber.describe('Amount of a single cuota.'),
+  installmentAmount: lenientNumber.nullish().describe('Amount of a single cuota. Required only when isAutomated is true.'),
   totalAmount: lenientNumber.nullish().describe('Full price. Used to report the remaining balance.'),
   frequency: z.enum(SCHEDULABLE_FREQUENCIES).default('MONTHLY').describe('How often a cuota falls due.'),
+  isAutomated: lenientBoolean
+    .nullish()
+    .describe('When true the backend generates the event of each cuota by itself, and templateId plus installmentAmount become required.'),
+  templateId: NumericId
+    .nullish()
+    .describe('Template supplying the origin and destination nodes of every generated event. Required when isAutomated is true.'),
   categoryId: NumericId.nullish(),
   tagIds: NumericIdArray.nullish(),
-  originNodeId: NumericId.nullish(),
-  destinationNodeId: NumericId.nullish(),
 });
 
 export const botRecurringPlanInputSchema = z.object({
   name: z.string().describe('The recurring agreement: "Netflix", "Rent".'),
   description: z.string().nullish(),
   startDate: z.string().describe('YYYY-MM-DD of the first charge, in the user timezone.'),
+  endDate: z.string().nullish().describe('YYYY-MM-DD the agreement stops. Leave empty to keep it open-ended.'),
   frequency: z.enum(SCHEDULABLE_FREQUENCIES).default('MONTHLY').describe('How often it is charged.'),
-  installmentAmount: lenientNumber.nullish().describe('Amount charged each cycle.'),
+  installmentAmount: lenientNumber.nullish().describe('Amount charged each cycle. Required only when isAutomated is true.'),
   isAutomated: lenientBoolean
     .nullish()
-    .describe('When true the backend generates the event on each cycle by itself.'),
+    .describe('When true the backend generates the event on each cycle by itself, and templateId plus installmentAmount become required.'),
+  templateId: NumericId
+    .nullish()
+    .describe('Template supplying the origin and destination nodes of every generated event. Required when isAutomated is true.'),
   categoryId: NumericId.nullish(),
   tagIds: NumericIdArray.nullish(),
-  originNodeId: NumericId.nullish(),
-  destinationNodeId: NumericId.nullish(),
+});
+
+/** A window the user fills in by hand: no cadence, no automation, no amount of its own. */
+export const botCustomPlanInputSchema = z.object({
+  name: z.string().describe('What the plan tracks: "Debt with Ana", "Savings for the trip".'),
+  description: z.string().nullish(),
+  startDate: z.string().describe('YYYY-MM-DD the window opens, in the user timezone.'),
+  endDate: z.string().describe('YYYY-MM-DD the window closes. Required: a custom plan is a bounded window.'),
+  categoryId: NumericId.nullish(),
+  tagIds: NumericIdArray.nullish(),
 });
 
 /** Partial edit of an existing payment plan. Omitted fields keep their current value. */
@@ -198,23 +214,22 @@ export const botPaymentPlanPatchSchema = z.object({
   description: z.string().nullish(),
   status: z.enum(PAYMENT_PLAN_STATUSES).nullish(),
   startDate: z.string().nullish(),
+  endDate: z.string().nullish(),
   frequency: z.enum(RECURRENCE_FREQUENCIES).nullish(),
   totalInstallments: NumericId.nullish(),
   totalAmount: lenientNumber.nullish(),
   installmentAmount: lenientNumber.nullish(),
   isAutomated: lenientBoolean.nullish(),
+  templateId: NumericId.nullish(),
   categoryId: NumericId.nullish(),
   tagIds: NumericIdArray.nullish(),
-  originNodeId: NumericId.nullish(),
-  destinationNodeId: NumericId.nullish(),
 });
 
 /** Partial edit of a plan item. Links are changed with addToPaymentPlan / removeFromPaymentPlan instead. */
 export const botPaymentPlanItemPatchSchema = z.object({
   planId: NumericId,
   itemId: NumericId,
-  expectedDate: z.string().nullish(),
-  expectedAmount: lenientNumber.nullish(),
+  expectedDate: z.string().nullish().describe('Must fall inside the window the plan covers.'),
   installmentNumber: NumericId.nullish(),
   itemStatus: z.enum(PAYMENT_PLAN_ITEM_STATUSES).nullish(),
 });

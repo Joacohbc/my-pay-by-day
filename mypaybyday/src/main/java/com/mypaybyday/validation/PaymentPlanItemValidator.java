@@ -1,10 +1,12 @@
 package com.mypaybyday.validation;
 
-import java.math.BigDecimal;
+import java.time.LocalDate;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
+import com.mypaybyday.entity.PaymentPlanEntity;
 import com.mypaybyday.entity.PaymentPlanItemEntity;
+import com.mypaybyday.enums.PaymentPlanType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
@@ -25,13 +27,41 @@ public class PaymentPlanItemValidator {
 		if (entity.installmentNumber == null || entity.installmentNumber < 1) {
 			throw messages.reject(MsgKey.PAYMENT_PLAN_ITEM_NUMBER_INVALID);
 		}
-		if (entity.expectedAmount != null && entity.expectedAmount.compareTo(BigDecimal.ZERO) < 0) {
-			throw messages.reject(MsgKey.PAYMENT_PLAN_ITEM_AMOUNT_INVALID);
-		}
 		if (entity.event != null && entity.draft != null) {
 			throw messages.reject(MsgKey.PAYMENT_PLAN_ITEM_LINK_NOT_EXCLUSIVE);
 		}
 		validateInstallmentNumberIsUnique(entity);
+		validateDateWithinPlanWindow(entity);
+	}
+
+	/**
+	 * A cuota or a subscription cycle may be backdated freely — the user is often recording a
+	 * payment that already happened — as long as it lands inside the window the plan covers.
+	 */
+	private void validateDateWithinPlanWindow(PaymentPlanItemEntity entity) throws BusinessException {
+		PaymentPlanEntity plan = entity.paymentPlan;
+		if (plan == null || plan.planType == PaymentPlanType.GROUP) {
+			return;
+		}
+
+		if (plan.startDate != null && entity.expectedDate.isBefore(plan.startDate)) {
+			throw messages.reject(MsgKey.PAYMENT_PLAN_ITEM_BEFORE_PLAN_START, entity.expectedDate, plan.startDate);
+		}
+
+		LocalDate scheduleEndDate = plan.scheduleEndDate();
+		if (scheduleEndDate != null && entity.expectedDate.isAfter(scheduleEndDate)) {
+			throw messages.reject(MsgKey.PAYMENT_PLAN_ITEM_AFTER_PLAN_END, entity.expectedDate, scheduleEndDate);
+		}
+	}
+
+	/** An installment plan is finite by definition, so it can never hold more cuotas than it declares. */
+	public void validateHasRoomForAnotherItem(PaymentPlanEntity plan) throws BusinessException {
+		if (!plan.planType.requiresTotalInstallments() || plan.totalInstallments == null) {
+			return;
+		}
+		if (plan.items.size() >= plan.totalInstallments) {
+			throw messages.reject(MsgKey.PAYMENT_PLAN_ITEM_LIMIT_REACHED, plan.totalInstallments);
+		}
 	}
 
 	private void validateInstallmentNumberIsUnique(PaymentPlanItemEntity entity) throws BusinessException {

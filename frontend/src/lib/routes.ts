@@ -15,6 +15,7 @@ export const Routes = {
   PAYMENT_PLAN_NEW: '/payment-plans/new',
   PAYMENT_PLAN_NEW_GROUP: '/payment-plans/new/group',
   PAYMENT_PLAN_NEW_INSTALLMENT: '/payment-plans/new/installment',
+  PAYMENT_PLAN_NEW_SUBSCRIPTION: '/payment-plans/new/subscription',
   PAYMENT_PLAN_NEW_CUSTOM: '/payment-plans/new/custom',
   PAYMENT_PLAN_DETAIL: (id: number | string) => `/payment-plans/${id}`,
   PAYMENT_PLAN_EDIT: (id: number | string) => `/payment-plans/${id}/edit`,

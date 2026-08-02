@@ -14,6 +14,7 @@ import jakarta.ws.rs.core.MediaType;
 import com.mypaybyday.dto.Base64FileUploadRequestDto;
 import com.mypaybyday.dto.EmailFileDto;
 import com.mypaybyday.dto.EmailUploadRequestDto;
+import com.mypaybyday.dto.ErrorResponseDto;
 import com.mypaybyday.dto.FileDto;
 import com.mypaybyday.dto.FileWithEventDto;
 import com.mypaybyday.dto.PagedResponse;
@@ -51,7 +52,8 @@ public class FileResource {
 	@APIResponses({
 		@APIResponse(responseCode = "201", description = "File uploaded successfully",
 				content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FileDto.class))),
-		@APIResponse(responseCode = "400", description = "Validation error or file too large")
+		@APIResponse(responseCode = "400", description = "Validation error or file too large",
+				content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<FileDto> uploadBase64(Base64FileUploadRequestDto request) throws BusinessException {
 		return RestResponse.status(RestResponse.Status.CREATED, fileService.uploadBase64(request));
@@ -87,7 +89,8 @@ public class FileResource {
 	@APIResponses({
 			@APIResponse(responseCode = "200", description = "File found",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FileDto.class))),
-			@APIResponse(responseCode = "404", description = "File not found")
+			@APIResponse(responseCode = "404", description = "File not found",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<FileDto> getById(
 			@Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
@@ -101,7 +104,8 @@ public class FileResource {
 	@Operation(summary = "Get file content", description = "Returns the binary content of the file with the appropriate mime type")
 	@APIResponses({
 			@APIResponse(responseCode = "200", description = "File content stream"),
-			@APIResponse(responseCode = "404", description = "File not found")
+			@APIResponse(responseCode = "404", description = "File not found",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<byte[]> getContentBinary(
 			@Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
@@ -120,7 +124,8 @@ public class FileResource {
 	@APIResponses({
 			@APIResponse(responseCode = "200", description = "File content as Markdown text"),
 			@APIResponse(responseCode = "204", description = "File is not convertible or the conversion service is unavailable"),
-			@APIResponse(responseCode = "404", description = "File not found")
+			@APIResponse(responseCode = "404", description = "File not found",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<String> getContentMarkdown(
 			@Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
@@ -153,7 +158,8 @@ public class FileResource {
 	@Operation(summary = "Get file content as Base64", description = "Returns the file content encoded in Base64 (Data URI format)")
 	@APIResponses({
 			@APIResponse(responseCode = "200", description = "File content as Base64 string"),
-			@APIResponse(responseCode = "404", description = "File not found")
+			@APIResponse(responseCode = "404", description = "File not found",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<String> getContentBase64(
 			@Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
@@ -167,8 +173,10 @@ public class FileResource {
 	@Operation(summary = "Delete a file", description = "Permanently deletes the file. Fails if the file is still linked to an event.")
 	@APIResponses({
 			@APIResponse(responseCode = "204", description = "File deleted"),
-			@APIResponse(responseCode = "400", description = "File is still in use"),
-			@APIResponse(responseCode = "404", description = "File not found")
+			@APIResponse(responseCode = "404", description = "File not found",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+			@APIResponse(responseCode = "409", description = "File is still linked to an event",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<Void> delete(
 			@Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)

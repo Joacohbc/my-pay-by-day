@@ -8,7 +8,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.FinanceNodeDto;
+import com.mypaybyday.dto.SectionImportResult;
 import com.mypaybyday.entity.FinanceNodeEntity;
+import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.enums.FinanceNodeType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
@@ -16,26 +18,32 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.LineItemRepository;
 import com.mypaybyday.service.event.TransactionService;
+import com.mypaybyday.service.transfer.ArchivedItemImporter;
+import com.mypaybyday.service.transfer.DataSectionTransfer;
+import com.mypaybyday.service.transfer.ImportContext;
 import com.mypaybyday.validation.FinanceNodeValidator;
 import io.quarkus.logging.Log;
 
 @ApplicationScoped
-public class FinanceNodeService {
+public class FinanceNodeService implements DataSectionTransfer<FinanceNodeDto> {
 
 	private final FinanceNodeRepository financeNodeRepository;
 	private final LineItemRepository lineItemRepository;
 	private final Messages messages;
 	private final FinanceNodeValidator financeNodeValidator;
+	private final ArchivedItemImporter archivedItemImporter;
 
 	public FinanceNodeService(
 			FinanceNodeRepository financeNodeRepository,
 			LineItemRepository lineItemRepository,
 			Messages messages,
-			FinanceNodeValidator financeNodeValidator) {
+			FinanceNodeValidator financeNodeValidator,
+			ArchivedItemImporter archivedItemImporter) {
 		this.financeNodeRepository = financeNodeRepository;
 		this.lineItemRepository = lineItemRepository;
 		this.messages = messages;
 		this.financeNodeValidator = financeNodeValidator;
+		this.archivedItemImporter = archivedItemImporter;
 	}
 
 	@Transactional
@@ -69,12 +77,8 @@ public class FinanceNodeService {
 	}
 
 	@Transactional
-	public FinanceNodeDto findById(Long id) {
-		FinanceNodeEntity node = financeNodeRepository.findById(id);
-		if (node == null || node.archived) {
-			return null;
-		}
-		return FinanceNodeDto.from(node);
+	public FinanceNodeDto findById(Long id) throws BusinessException {
+		return FinanceNodeDto.from(findNodeEntity(id));
 	}
 
 	/**
@@ -197,5 +201,43 @@ public class FinanceNodeService {
 
 		Log.debugf("Calculated balance for finance-node id=%d", id);
 		return total;
+	}
+
+	// -------------------------------------------------------------------------
+	// Data transfer
+	// -------------------------------------------------------------------------
+
+	@Override
+	public DataSection section() {
+		return DataSection.FINANCE_NODES;
+	}
+
+	@Override
+	@Transactional
+	public long countForExport() {
+		return financeNodeRepository.count();
+	}
+
+	@Override
+	@Transactional
+	public List<FinanceNodeDto> exportData() {
+		return financeNodeRepository.listAll().stream().map(FinanceNodeDto::from).toList();
+	}
+
+	@Override
+	@Transactional
+	public SectionImportResult importData(List<FinanceNodeDto> items, ImportContext context) {
+		return archivedItemImporter.importEach(section(), items, FinanceNodeDto::name, dto -> {
+			FinanceNodeEntity node = new FinanceNodeEntity();
+			node.name = dto.name();
+			node.type = dto.type();
+			node.description = dto.description();
+			node.icon = dto.icon();
+			node.color = dto.color();
+			node.archived = dto.archived();
+			financeNodeValidator.validate(node);
+			financeNodeRepository.persist(node);
+			context.rememberId(section(), dto.id(), node.id);
+		});
 	}
 }

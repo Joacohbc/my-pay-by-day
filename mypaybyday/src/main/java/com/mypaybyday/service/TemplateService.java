@@ -8,19 +8,25 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.PagedResponse;
+import com.mypaybyday.dto.SectionImportResult;
+import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.dto.TemplateDto;
 import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.entity.TemplateEntity;
+import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TemplateRepository;
+import com.mypaybyday.service.transfer.ArchivedItemImporter;
+import com.mypaybyday.service.transfer.DataSectionTransfer;
+import com.mypaybyday.service.transfer.ImportContext;
 import com.mypaybyday.validation.TemplateValidator;
 import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
 
 @ApplicationScoped
-public class TemplateService {
+public class TemplateService implements DataSectionTransfer<TemplateDto> {
 
 	private final TemplateRepository templateRepository;
 	private final CategoryService categoryService;
@@ -28,6 +34,7 @@ public class TemplateService {
 	private final FinanceNodeService financeNodeService;
 	private final Messages messages;
 	private final TemplateValidator templateValidator;
+	private final ArchivedItemImporter archivedItemImporter;
 
 	public TemplateService(
 			TemplateRepository templateRepository,
@@ -35,13 +42,15 @@ public class TemplateService {
 			TagService tagService,
 			FinanceNodeService financeNodeService,
 			Messages messages,
-			TemplateValidator templateValidator) {
+			TemplateValidator templateValidator,
+			ArchivedItemImporter archivedItemImporter) {
 		this.templateRepository = templateRepository;
 		this.categoryService = categoryService;
 		this.tagService = tagService;
 		this.financeNodeService = financeNodeService;
 		this.messages = messages;
 		this.templateValidator = templateValidator;
+		this.archivedItemImporter = archivedItemImporter;
 	}
 
 	// -------------------------------------------------------------------------
@@ -151,5 +160,72 @@ public class TemplateService {
 			}
 		}
 		template.tags = tags;
+	}
+
+	// -------------------------------------------------------------------------
+	// Data transfer
+	// -------------------------------------------------------------------------
+
+	@Override
+	public DataSection section() {
+		return DataSection.TEMPLATES;
+	}
+
+	@Override
+	@Transactional
+	public long countForExport() {
+		return templateRepository.count();
+	}
+
+	@Override
+	@Transactional
+	public List<TemplateDto> exportData() {
+		return templateRepository.listAll().stream().map(TemplateDto::from).toList();
+	}
+
+	@Override
+	@Transactional
+	public SectionImportResult importData(List<TemplateDto> items, ImportContext context) {
+		return archivedItemImporter.importEach(section(), items, TemplateDto::name, dto -> {
+			TemplateEntity entity = new TemplateEntity();
+			entity.name = dto.name();
+			entity.description = dto.description();
+			entity.eventType = dto.eventType();
+			entity.modifierType = dto.modifierType();
+			entity.modifierValue = dto.modifierValue();
+
+			if (dto.originNodeId() != null) {
+				Long newNodeId = context.remap(DataSection.FINANCE_NODES, dto.originNodeId());
+				if (newNodeId != null) {
+					entity.originNode = financeNodeService.findNodeEntity(newNodeId);
+				}
+			}
+			if (dto.destinationNodeId() != null) {
+				Long newNodeId = context.remap(DataSection.FINANCE_NODES, dto.destinationNodeId());
+				if (newNodeId != null) {
+					entity.destinationNode = financeNodeService.findNodeEntity(newNodeId);
+				}
+			}
+			if (dto.category() != null && dto.category().id() != null) {
+				Long newCategoryId = context.remap(DataSection.CATEGORIES, dto.category().id());
+				if (newCategoryId != null) {
+					entity.category = categoryService.findEntityById(newCategoryId);
+				}
+			}
+			if (dto.tags() != null) {
+				for (TagDto tagDto : dto.tags()) {
+					Long newTagId = context.remap(DataSection.TAGS, tagDto.id());
+					if (newTagId != null) {
+						TagEntity tag = tagService.findTagEntity(newTagId);
+						if (tag != null) {
+							entity.tags.add(tag);
+						}
+					}
+				}
+			}
+			templateValidator.validate(entity);
+			templateRepository.persist(entity);
+			context.rememberId(section(), dto.id(), entity.id);
+		});
 	}
 }

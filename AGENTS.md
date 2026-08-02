@@ -276,7 +276,7 @@ The backend source code lives under `mypaybyday/src/main/java/com/mypaybyday/` a
 * **`dto/`** — Data Transfer Objects used as the public contract between the resource and service layers. Every public service method must receive and return DTOs, never raw JPA entities.
 * **`entity/`** — JPA entities that represent the data model (one class per domain concept). All entities extend `BaseEntity`, which provides `createdAt`/`updatedAt` audit fields.
 * **`enums/`** — Domain enumerations shared across entities (node types, event types, modifier types, recurrence frequencies, AI actions, job statuses).
-* **`exception/`** — `BusinessException` (unchecked domain exception) and its JAX-RS mapper that converts it to HTTP 400.
+* **`exception/`** — `BusinessException` (unchecked domain exception) and the JAX-RS mappers that turn any failure into the API's single error envelope. See *Error handling* below.
 * **`filter/`** — Jakarta REST container filters (e.g., request/response logging).
 * **`i18n/`** — Backend internationalisation infrastructure: `LangFilter`, `LanguageContext`, `Messages`, and the `MsgKey` enum.
 * **`repository/`** — Thin Panache repositories — only persistence calls and simple JPQL queries, one per entity.
@@ -350,8 +350,29 @@ Every endpoint **must** return the appropriate HTTP status code:
 | Successful delete | `204 No Content` |
 | Successful action (state transition) | `200 OK` |
 | Resource not found | `404 Not Found` |
+| Conflict with current state (entity still in use) | `409 Conflict` |
 | Business rule violation | `400 Bad Request` |
 | Validation error | `400 Bad Request` |
+
+Resources never build these error statuses themselves — see *Error handling*.
+
+---
+
+### Error handling
+
+**Resources never catch exceptions, never check for `null`, and never build an error response.** They call the service and return the success case; every failure is translated centrally.
+
+| Class | Role |
+|---|---|
+| `enums/ErrorKind` | The single source of truth for the failure→status mapping. Each constant carries its `Response.Status`: `NOT_FOUND`→404, `CONFLICT`→409, `VALIDATION`/`INTEGRITY`/`LIMIT`/`BUSINESS`→400, `TECHNICAL`→500. |
+| `MsgKey.errorKind()` | Derives the kind from the message-key constant's *name* (`*_NOT_FOUND` → `NOT_FOUND`, `*_IN_USE` → `CONFLICT`, …), so a throw site names a `MsgKey` and gets its status for free. |
+| `exception/ApiExceptionMapper` | `ExceptionMapper<Throwable>`. `BusinessException` → the status its kind implies; `WebApplicationException` → the framework's status, re-bodied into the error envelope unless it already carries an entity; anything else → logged with its stack trace and answered with a generic 500. |
+| `exception/ApiErrorTranslator` | Static factory for the envelope; also writes the `errorKind` MDC field. Every mapper goes through it. |
+| `exception/ConstraintViolationExceptionMapper`, `InvalidPayloadValueExceptionMapper` | `@Priority(1)` mappers for bean-validation failures and for a body whose values the target type rejects. They exist separately because the framework picks the *most specific* mapper, so its built-in ones would win over a generic `Throwable` mapper. |
+
+* **The wire shape is `dto/ErrorResponseDto`** — `{"error": "<localized message>"}`, for every status. Both clients read the top-level `error` string (`frontend/src/services/api.ts`, `chatbot/src/backend/client.ts`); nesting or renaming that key silently degrades them to `"HTTP <status>"`.
+* **Every 4xx/5xx `@APIResponse` must declare `ErrorResponseDto` as its schema**, otherwise the generated client types the error body as `content?: never`.
+* **To give a failure a different status, name the `MsgKey` accordingly** — never decide a status at the call site or in a resource.
 
 ---
 

@@ -1,9 +1,13 @@
 import { useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import type { PaymentPlan } from '@/models';
 import { usePaymentPlan } from '@/hooks/usePaymentPlans';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { Routes } from '@/lib/routes';
-import { PaymentPlanForm } from '@/components/paymentPlans/PaymentPlanForm';
+import { GroupPlanForm } from '@/components/paymentPlans/GroupPlanForm';
+import { InstallmentPlanForm } from '@/components/paymentPlans/InstallmentPlanForm';
+import { SubscriptionPlanForm } from '@/components/paymentPlans/SubscriptionPlanForm';
+import { CustomPlanForm } from '@/components/paymentPlans/CustomPlanForm';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -24,8 +28,30 @@ export function PaymentPlanEditPage() {
       <PageHeader title={t('paymentPlans.editTitle')} back={goBack} />
 
       <div className="px-5 pb-6">
-        <PaymentPlanForm editTarget={plan} onCancel={goBack} onSuccess={goBack} />
+        <PlanEditForm plan={plan} onCancel={goBack} onSuccess={goBack} />
       </div>
     </div>
   );
+}
+
+/** The kind of a plan is fixed once created, so editing always reopens the form that built it. */
+function PlanEditForm({
+  plan,
+  onCancel,
+  onSuccess,
+}: {
+  readonly plan: PaymentPlan;
+  readonly onCancel: () => void;
+  readonly onSuccess: () => void;
+}) {
+  if (plan.planType === 'GROUP') {
+    return <GroupPlanForm editTarget={plan} onCancel={onCancel} onSuccess={onSuccess} />;
+  }
+  if (plan.planType === 'INSTALLMENT') {
+    return <InstallmentPlanForm editTarget={plan} onCancel={onCancel} onSuccess={onSuccess} />;
+  }
+  if (plan.planType === 'RECURRING') {
+    return <SubscriptionPlanForm editTarget={plan} onCancel={onCancel} onSuccess={onSuccess} />;
+  }
+  return <CustomPlanForm editTarget={plan} onCancel={onCancel} onSuccess={onSuccess} />;
 }

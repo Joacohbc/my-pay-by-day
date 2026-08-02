@@ -1,4 +1,4 @@
-import type { Category, FinanceNode, RecurrenceFrequency, Tag } from '@/models';
+import type { Category, RecurrenceFrequency, Tag, Template } from '@/models';
 
 export type PaymentPlanType = 'RECURRING' | 'INSTALLMENT' | 'CUSTOM' | 'GROUP';
 export type PaymentPlanStatus = 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
@@ -9,7 +9,6 @@ export interface PaymentPlanItem {
   paymentPlanId: number;
   installmentNumber: number;
   expectedDate: string;
-  expectedAmount?: number;
   eventId?: number;
   draftId?: number;
   itemStatus: PaymentPlanItemStatus;
@@ -24,13 +23,16 @@ export interface PaymentPlan {
   totalInstallments?: number;
   totalAmount?: number;
   installmentAmount?: number;
-  frequency: RecurrenceFrequency;
+  frequency?: RecurrenceFrequency;
   startDate: string;
+  endDate?: string;
+  /** Last date the plan covers, derived from the cuota count when no end date was given. */
+  scheduleEndDate?: string;
   nextDueDate?: string;
   isAutomated: boolean;
   autoCreateDraft: boolean;
-  originNode?: FinanceNode;
-  destinationNode?: FinanceNode;
+  /** Supplies the origin and destination nodes of every event this plan generates. */
+  template?: Template;
   category?: Category;
   tags?: Tag[];
   items?: PaymentPlanItem[];
@@ -47,12 +49,12 @@ export interface CreatePaymentPlanDto {
   totalInstallments?: number;
   totalAmount?: number;
   installmentAmount?: number;
-  frequency: RecurrenceFrequency;
+  frequency?: RecurrenceFrequency;
   startDate: string;
+  endDate?: string;
   isAutomated?: boolean;
   autoCreateDraft?: boolean;
-  originNodeId?: number;
-  destinationNodeId?: number;
+  templateId?: number;
   categoryId?: number;
   tagIds?: number[];
   generateItems?: boolean;
@@ -65,7 +67,6 @@ export interface CreatePaymentPlanDto {
 export interface CreatePaymentPlanItemDto {
   installmentNumber?: number;
   expectedDate: string;
-  expectedAmount?: number;
   itemStatus?: PaymentPlanItemStatus;
   eventId?: number;
   draftId?: number;

@@ -19,6 +19,7 @@ import com.mypaybyday.dto.DynamicTimePeriodBalanceDto;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.PatchTimePeriodDto;
+import com.mypaybyday.dto.SectionImportResult;
 import com.mypaybyday.dto.TimePeriodBalanceDto;
 import com.mypaybyday.dto.TimePeriodBudgetDto;
 import com.mypaybyday.dto.TimePeriodDto;
@@ -26,19 +27,23 @@ import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
 import com.mypaybyday.entity.TimePeriodBudgetEntity;
 import com.mypaybyday.entity.TimePeriodEntity;
+import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.TimePeriodRepository;
 import com.mypaybyday.service.event.EventService;
+import com.mypaybyday.service.transfer.ArchivedItemImporter;
+import com.mypaybyday.service.transfer.DataSectionTransfer;
+import com.mypaybyday.service.transfer.ImportContext;
 import com.mypaybyday.validation.DateValidator;
 import com.mypaybyday.validation.TimePeriodValidator;
 import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
 
 @ApplicationScoped
-public class TimePeriodService {
+public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 
 	private final TimePeriodRepository timePeriodRepository;
 	private final EventService eventService;
@@ -46,6 +51,7 @@ public class TimePeriodService {
 	private final Messages messages;
 	private final TimePeriodValidator timePeriodValidator;
 	private final DateValidator dateValidator;
+	private final ArchivedItemImporter archivedItemImporter;
 
 	public TimePeriodService(
 			TimePeriodRepository timePeriodRepository,
@@ -53,13 +59,15 @@ public class TimePeriodService {
 			CategoryService categoryService,
 			Messages messages,
 			TimePeriodValidator timePeriodValidator,
-			DateValidator dateValidator) {
+			DateValidator dateValidator,
+			ArchivedItemImporter archivedItemImporter) {
 		this.timePeriodRepository = timePeriodRepository;
 		this.eventService = eventService;
 		this.categoryService = categoryService;
 		this.messages = messages;
 		this.timePeriodValidator = timePeriodValidator;
 		this.dateValidator = dateValidator;
+		this.archivedItemImporter = archivedItemImporter;
 	}
 
 	// -------------------------------------------------------------------------
@@ -309,5 +317,59 @@ public class TimePeriodService {
 		if (tp.budgetLimit != null && tp.budgetLimit.compareTo(sumOfCategoryBudgets) < 0) {
 			throw messages.reject(MsgKey.TIME_PERIOD_BUDGET_LIMIT_MINIMUM, sumOfCategoryBudgets);
 		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Data transfer
+	// -------------------------------------------------------------------------
+
+	@Override
+	public DataSection section() {
+		return DataSection.TIME_PERIODS;
+	}
+
+	@Override
+	@Transactional
+	public long countForExport() {
+		return timePeriodRepository.count();
+	}
+
+	@Override
+	@Transactional
+	public List<TimePeriodDto> exportData() {
+		return timePeriodRepository.listAll().stream().map(TimePeriodDto::from).toList();
+	}
+
+	@Override
+	@Transactional
+	public SectionImportResult importData(List<TimePeriodDto> items, ImportContext context) {
+		return archivedItemImporter.importEach(section(), items, TimePeriodDto::name, dto -> {
+			TimePeriodEntity entity = new TimePeriodEntity();
+			entity.name = dto.name();
+			entity.startDate = dto.startDate();
+			entity.endDate = dto.endDate();
+			entity.savingsPercentageGoal = dto.savingsPercentageGoal();
+			entity.budgetLimit = dto.budgetLimit();
+
+			if (dto.budgets() != null) {
+				for (TimePeriodBudgetDto budgetDto : dto.budgets()) {
+					Long newCategoryId = budgetDto.category() != null
+							? context.remap(DataSection.CATEGORIES, budgetDto.category().id())
+							: null;
+					if (newCategoryId != null) {
+						CategoryEntity cat = categoryService.findEntityById(newCategoryId);
+						if (cat != null) {
+							TimePeriodBudgetEntity budget = new TimePeriodBudgetEntity();
+							budget.timePeriod = entity;
+							budget.category = cat;
+							budget.budgetedAmount = budgetDto.budgetedAmount();
+							entity.budgets.add(budget);
+						}
+					}
+				}
+			}
+			timePeriodRepository.persist(entity);
+			context.rememberId(section(), dto.id(), entity.id);
+		});
 	}
 }
