@@ -360,7 +360,7 @@ export interface paths {
         };
         /**
          * Export all data
-         * @description Returns all Tags, Categories, Finance Nodes, Tag Groups, and Events as a single ZIP file containing data.json and files/
+         * @description Returns all application sections as a single ZIP file containing data.json and files/
          */
         get: {
             parameters: {
@@ -378,6 +378,45 @@ export interface paths {
                     };
                     content: {
                         "application/zip": number[];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data/export/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get export summary
+         * @description Returns section item counts for export preview without serialising the full dataset
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Summary generated successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DataExportSummaryDto"];
                     };
                 };
             };
@@ -465,7 +504,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["DraftEntity"][];
+                        "application/json": components["schemas"]["DraftDto"][];
                     };
                 };
             };
@@ -4461,31 +4500,39 @@ export interface components {
             /** Format: int64 */
             draftId?: number;
         };
+        /** @description What an export would contain, without serialising any of it */
+        DataExportSummaryDto: {
+            version: string;
+            generatedAt: components["schemas"]["LocalDateTime"];
+            sections: components["schemas"]["SectionCountDto"][];
+            /**
+             * Format: int64
+             * @description Files carrying binary content, shipped as separate archive entries
+             */
+            binaryFileCount: number;
+        };
+        /** @enum {string} */
+        DataSection: "DUPLICATE_DETECTION_SETTINGS" | "TAGS" | "CATEGORIES" | "FINANCE_NODES" | "FILES" | "TAG_GROUPS" | "SUBSCRIPTIONS" | "TEMPLATES" | "TIME_PERIODS" | "EVENTS" | "DRAFTS" | "PAYMENT_PLANS";
+        /** @description Per-section outcome of an import run */
         DataTransferResult: {
-            /** Format: int32 */
-            importedTags?: number;
-            /** Format: int32 */
-            importedCategories?: number;
-            /** Format: int32 */
-            importedNodes?: number;
-            /** Format: int32 */
-            importedTagGroups?: number;
-            /** Format: int32 */
-            importedEvents?: number;
-            /** Format: int32 */
-            importedFiles?: number;
-            /** Format: int32 */
-            importedSubscriptions?: number;
-            /** Format: int32 */
-            importedTemplates?: number;
-            /** Format: int32 */
-            importedTimePeriods?: number;
-            skippedEvents?: string[];
+            sections: components["schemas"]["SectionImportResult"][];
         };
         /** @enum {string} */
         DateField: "TRANSACTION" | "CREATED" | "UPDATED";
         /** @enum {string} */
         DraftConfirmMode: "MERGE" | "CREATE_ONLY";
+        /** @description An incomplete entity kept as raw UI state, bypassing the strict validations of its typed counterpart */
+        DraftDto: {
+            /** Format: int64 */
+            id: number;
+            /**
+             * Format: int64
+             * @description The entity this draft edits, when it is not a brand-new one
+             */
+            originalEntityId?: number;
+            entityType: components["schemas"]["EntityType"];
+            rawPayloadJson: string;
+        };
         DraftEntity: {
             /** Format: int64 */
             id?: number;
@@ -4822,12 +4869,50 @@ export interface components {
             paidAmount?: number;
             remainingAmount?: number;
         };
+        /** @description Archive shape of a payment plan, with references as remappable ids */
+        PaymentPlanExportDto: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            description?: string;
+            planType: components["schemas"]["PaymentPlanType"];
+            status: components["schemas"]["PaymentPlanStatus"];
+            /** Format: int32 */
+            totalInstallments?: number;
+            totalAmount?: number;
+            installmentAmount?: number;
+            frequency?: components["schemas"]["RecurrenceFrequency"];
+            startDate: components["schemas"]["LocalDate"];
+            endDate?: components["schemas"]["LocalDate"];
+            nextDueDate?: components["schemas"]["LocalDate"];
+            isAutomated?: boolean;
+            autoCreateDraft?: boolean;
+            /** Format: int64 */
+            templateId?: number;
+            /** Format: int64 */
+            categoryId?: number;
+            tagIds?: number[];
+            items?: components["schemas"]["PaymentPlanItemExportDto"][];
+        };
         /** @description Data transfer object for a individual payment plan item / cuota */
         PaymentPlanItemDto: {
             /** Format: int64 */
             id: number;
             /** Format: int64 */
             paymentPlanId: number;
+            /** Format: int32 */
+            installmentNumber: number;
+            expectedDate: components["schemas"]["LocalDate"];
+            /** Format: int64 */
+            eventId?: number;
+            /** Format: int64 */
+            draftId?: number;
+            itemStatus: components["schemas"]["PaymentPlanItemStatus"];
+        };
+        /** @description Archive shape of a payment plan item: references travel as ids so an import can remap them */
+        PaymentPlanItemExportDto: {
+            /** Format: int64 */
+            id: number;
             /** Format: int32 */
             installmentNumber: number;
             expectedDate: components["schemas"]["LocalDate"];
@@ -4868,6 +4953,20 @@ export interface components {
             action: components["schemas"]["DuplicateRecordStatus"];
             /** Format: int64 */
             keepEntityId?: number;
+        };
+        /** @description How many rows one section would contribute to an export */
+        SectionCountDto: {
+            section: components["schemas"]["DataSection"];
+            /** Format: int64 */
+            count: number;
+        };
+        /** @description Outcome of importing one section of an archive */
+        SectionImportResult: {
+            section: components["schemas"]["DataSection"];
+            /** Format: int32 */
+            imported: number;
+            /** @description One localized reason per item the section refused */
+            skipped: string[];
         };
         SubscriptionDto: {
             /** Format: int64 */

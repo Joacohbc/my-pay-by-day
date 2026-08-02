@@ -15,6 +15,7 @@ import jakarta.ws.rs.core.MediaType;
 
 import com.mypaybyday.dto.ConfirmDraftsRequestDto;
 import com.mypaybyday.dto.ConfirmDraftsResultDto;
+import com.mypaybyday.dto.DraftDto;
 import com.mypaybyday.dto.DraftValidationResultDto;
 import com.mypaybyday.dto.ErrorResponseDto;
 import com.mypaybyday.dto.FinanceEventDraftInputDto;
@@ -45,8 +46,8 @@ public class DraftResource {
 	@GET
 	@Operation(summary = "List all drafts")
 	@APIResponse(responseCode = "200", description = "List of all drafts")
-	public RestResponse<List<DraftEntity>> listAll() {
-		return RestResponse.ok(draftService.listAll());
+	public RestResponse<List<DraftDto>> listAll() {
+		return RestResponse.ok(draftService.listAll().stream().map(DraftDto::from).toList());
 	}
 
 	@DELETE

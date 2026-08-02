@@ -9,9 +9,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.transaction.Transactional;
 
+import com.mypaybyday.dto.SectionImportResult;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.dto.TagResolveConfig;
 import com.mypaybyday.entity.TagEntity;
+import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
@@ -21,11 +23,14 @@ import com.mypaybyday.repository.TagGroupRepository;
 import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
+import com.mypaybyday.service.transfer.ArchivedItemImporter;
+import com.mypaybyday.service.transfer.DataSectionTransfer;
+import com.mypaybyday.service.transfer.ImportContext;
 import com.mypaybyday.validation.TagValidator;
 import io.quarkus.logging.Log;
 
 @ApplicationScoped
-public class TagService {
+public class TagService implements DataSectionTransfer<TagDto> {
 
 	private final TagRepository tagRepository;
 	private final Event<DuplicateDetectionEvent> duplicateDetectionEventBus;
@@ -35,6 +40,7 @@ public class TagService {
 	private final TemplateRepository templateRepository;
 	private final SubscriptionRepository subscriptionRepository;
 	private final TagGroupRepository tagGroupRepository;
+	private final ArchivedItemImporter archivedItemImporter;
 
 	public TagService(
 			TagRepository tagRepository,
@@ -44,9 +50,11 @@ public class TagService {
 			TemplateRepository templateRepository,
 			SubscriptionRepository subscriptionRepository,
 			Event<DuplicateDetectionEvent> duplicateDetectionEventBus,
-			TagGroupRepository tagGroupRepository) {
+			TagGroupRepository tagGroupRepository,
+			ArchivedItemImporter archivedItemImporter) {
 		this.tagRepository = tagRepository;
 		this.duplicateDetectionEventBus = duplicateDetectionEventBus;
+		this.archivedItemImporter = archivedItemImporter;
 		this.messages = messages;
 		this.tagValidator = tagValidator;
 		this.eventRepository = eventRepository;
@@ -248,6 +256,42 @@ public class TagService {
 
 		tagRepository.delete(tag);
 		Log.infof("Deleted tag id=%d", id);
+	}
+
+	// -------------------------------------------------------------------------
+	// Data transfer
+	// -------------------------------------------------------------------------
+
+	@Override
+	public DataSection section() {
+		return DataSection.TAGS;
+	}
+
+	@Override
+	@Transactional
+	public long countForExport() {
+		return tagRepository.count();
+	}
+
+	@Override
+	@Transactional
+	public List<TagDto> exportData() {
+		return tagRepository.listAll().stream().map(TagDto::from).toList();
+	}
+
+	@Override
+	@Transactional
+	public SectionImportResult importData(List<TagDto> items, ImportContext context) {
+		return archivedItemImporter.importEach(section(), items, TagDto::name, dto -> {
+			TagEntity tag = new TagEntity();
+			tag.name = dto.name();
+			tag.description = dto.description();
+			tag.color = dto.color();
+			tag.archived = dto.archived();
+			tagValidator.validate(tag);
+			tagRepository.persist(tag);
+			context.rememberId(section(), dto.id(), tag.id);
+		});
 	}
 
 }

@@ -327,32 +327,57 @@ import type { DuplicateDetectionSettings } from '@/models/duplicates';
 
 // ─── DataTransfer ─────────────────────────────────────────────────────────────
 
+export type DataSection =
+  | 'DUPLICATE_DETECTION_SETTINGS'
+  | 'TAGS'
+  | 'CATEGORIES'
+  | 'FINANCE_NODES'
+  | 'FILES'
+  | 'TAG_GROUPS'
+  | 'SUBSCRIPTIONS'
+  | 'TEMPLATES'
+  | 'TIME_PERIODS'
+  | 'EVENTS'
+  | 'DRAFTS'
+  | 'PAYMENT_PLANS';
+
+export interface SectionCountDto {
+  section: DataSection;
+  count: number;
+}
+
+export interface DataExportSummaryDto {
+  version: string;
+  generatedAt: string;
+  sections: SectionCountDto[];
+  binaryFileCount: number;
+}
+
+export interface SectionImportResult {
+  section: DataSection;
+  imported: number;
+  skipped: string[];
+}
+
 export interface DataTransferDto {
   version: string;
   exportedAt: string;
-  tags: Tag[];
-  categories: Category[];
-  financeNodes: FinanceNode[];
-  tagGroups: TagGroup[];
-  events: FinanceEvent[];
-  files: FileExportDto[];
-  subscriptions: Subscription[];
-  templates: Template[];
-  timePeriods: TimePeriod[];
+  tags?: Tag[];
+  categories?: Category[];
+  financeNodes?: FinanceNode[];
+  tagGroups?: TagGroup[];
+  events?: FinanceEvent[];
+  files?: FileExportDto[];
+  subscriptions?: Subscription[];
+  templates?: Template[];
+  timePeriods?: TimePeriod[];
   duplicateDetectionSettings?: DuplicateDetectionSettings;
+  drafts?: unknown[];
+  paymentPlans?: unknown[];
 }
 
 export interface DataTransferResult {
-  importedTags: number;
-  importedCategories: number;
-  importedNodes: number;
-  importedTagGroups: number;
-  importedEvents: number;
-  importedFiles: number;
-  importedSubscriptions: number;
-  importedTemplates: number;
-  importedTimePeriods: number;
-  skippedEvents: string[];
+  sections: SectionImportResult[];
 }
 
 export interface FileExportDto extends Identifiable {

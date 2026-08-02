@@ -1,18 +1,24 @@
 package com.mypaybyday.service.duplicate;
 
 import com.mypaybyday.dto.DuplicateDetectionSettingsDto;
+import com.mypaybyday.dto.SectionImportResult;
 import com.mypaybyday.entity.DuplicateDetectionSettingsEntity;
+import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.DuplicateDetectionSettingsRepository;
+import com.mypaybyday.service.transfer.DataSectionTransfer;
+import com.mypaybyday.service.transfer.ImportContext;
+
+import java.util.List;
 
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 @ApplicationScoped
-public class DuplicateDetectionSettingsService {
+public class DuplicateDetectionSettingsService implements DataSectionTransfer<DuplicateDetectionSettingsDto> {
 
 	private static final double WEIGHT_SUM_TOLERANCE = 0.001;
 	private static final double REQUIRED_WEIGHT_SUM = 1.0;
@@ -73,5 +79,40 @@ public class DuplicateDetectionSettingsService {
 	private static double totalEventWeight(DuplicateDetectionSettingsEntity settings) {
 		return settings.eventDateWeight + settings.eventAmountWeight + settings.eventNodeWeight
 				+ settings.eventCategoryWeight + settings.eventTagWeight + settings.eventNameWeight;
+	}
+
+	// -------------------------------------------------------------------------
+	// Data transfer
+	// -------------------------------------------------------------------------
+
+	@Override
+	public DataSection section() {
+		return DataSection.DUPLICATE_DETECTION_SETTINGS;
+	}
+
+	@Override
+	@Transactional
+	public long countForExport() {
+		return 1;
+	}
+
+	@Override
+	@Transactional
+	public List<DuplicateDetectionSettingsDto> exportData() {
+		return List.of(findSettings());
+	}
+
+	@Override
+	@Transactional
+	public SectionImportResult importData(List<DuplicateDetectionSettingsDto> items, ImportContext context) {
+		if (items == null || items.isEmpty()) {
+			return SectionImportResult.none(section());
+		}
+		try {
+			update(items.get(0));
+			return new SectionImportResult(section(), 1, List.of());
+		} catch (RuntimeException e) {
+			return new SectionImportResult(section(), 0, List.of(messages.get(MsgKey.DATA_TRANSFER_ITEM_SKIPPED, "Duplicate Settings", e.getMessage())));
+		}
 	}
 }

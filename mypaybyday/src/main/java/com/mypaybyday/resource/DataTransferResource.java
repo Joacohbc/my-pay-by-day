@@ -21,29 +21,52 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.resteasy.reactive.RestResponse;
 
+import com.mypaybyday.dto.DataExportSummaryDto;
+import com.mypaybyday.dto.DataTransferDto;
+import com.mypaybyday.dto.DataTransferResult;
+import com.mypaybyday.dto.ErrorResponseDto;
+import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.service.DataTransferService;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.jboss.resteasy.reactive.RestResponse;
+
 @Path("/data")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-@Tag(name = "Data Transfer", description = "Export and import Tags, Categories, Finance Nodes, Tag Groups, and Events")
+@Tag(name = "Data Transfer", description = "Export and import all application sections")
 public class DataTransferResource {
 
-    private final DataTransferService dataTransferService;
+	private final DataTransferService dataTransferService;
 
-    public DataTransferResource(DataTransferService dataTransferService) {
-        this.dataTransferService = dataTransferService;
-    }
+	public DataTransferResource(DataTransferService dataTransferService) {
+		this.dataTransferService = dataTransferService;
+	}
 
-    @GET
-    @Path("/export")
-    @Operation(summary = "Export all data", description = "Returns all Tags, Categories, Finance Nodes, Tag Groups, and Events as a single ZIP file containing data.json and files/")
-    @APIResponse(responseCode = "200", description = "Data exported successfully",
-            content = @Content(mediaType = "application/zip", schema = @Schema(implementation = byte[].class)))
-    @Produces("application/zip")
-    public RestResponse<StreamingOutput> exportAll() {
-        return RestResponse.ResponseBuilder.ok(dataTransferService.exportAsZip())
-                .header("Content-Disposition", "attachment; filename=\"mypaybyday-export.zip\"")
-                .build();
-    }
+	@GET
+	@Path("/export/summary")
+	@Operation(summary = "Get export summary", description = "Returns section item counts for export preview without serialising the full dataset")
+	@APIResponse(responseCode = "200", description = "Summary generated successfully",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = DataExportSummaryDto.class)))
+	public RestResponse<DataExportSummaryDto> summary() {
+		return RestResponse.ok(dataTransferService.summary());
+	}
+
+	@GET
+	@Path("/export")
+	@Operation(summary = "Export all data", description = "Returns all application sections as a single ZIP file containing data.json and files/")
+	@APIResponse(responseCode = "200", description = "Data exported successfully",
+			content = @Content(mediaType = "application/zip", schema = @Schema(implementation = byte[].class)))
+	@Produces("application/zip")
+	public RestResponse<StreamingOutput> exportAll() {
+		return RestResponse.ResponseBuilder.ok(dataTransferService.exportAsZip())
+				.header("Content-Disposition", "attachment; filename=\"mypaybyday-export.zip\"")
+				.build();
+	}
 
     @POST
     @Path("/import")

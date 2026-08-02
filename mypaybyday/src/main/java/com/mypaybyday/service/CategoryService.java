@@ -8,7 +8,9 @@ import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.dto.CategoryResolveConfig;
+import com.mypaybyday.dto.SectionImportResult;
 import com.mypaybyday.entity.CategoryEntity;
+import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
@@ -17,11 +19,14 @@ import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TemplateRepository;
 import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
+import com.mypaybyday.service.transfer.ArchivedItemImporter;
+import com.mypaybyday.service.transfer.DataSectionTransfer;
+import com.mypaybyday.service.transfer.ImportContext;
 import com.mypaybyday.validation.CategoryValidator;
 import io.quarkus.logging.Log;
 
 @ApplicationScoped
-public class CategoryService {
+public class CategoryService implements DataSectionTransfer<CategoryDto> {
 
 	private final CategoryRepository categoryRepository;
 	private final Event<DuplicateDetectionEvent> duplicateDetectionEventBus;
@@ -30,6 +35,7 @@ public class CategoryService {
 	private final EventRepository eventRepository;
 	private final TemplateRepository templateRepository;
 	private final SubscriptionRepository subscriptionRepository;
+	private final ArchivedItemImporter archivedItemImporter;
 
 	public CategoryService(
 			CategoryRepository categoryRepository,
@@ -38,7 +44,8 @@ public class CategoryService {
 			EventRepository eventRepository,
 			Event<DuplicateDetectionEvent> duplicateDetectionEventBus,
 			TemplateRepository templateRepository,
-			SubscriptionRepository subscriptionRepository) {
+			SubscriptionRepository subscriptionRepository,
+			ArchivedItemImporter archivedItemImporter) {
 		this.categoryRepository = categoryRepository;
 		this.duplicateDetectionEventBus = duplicateDetectionEventBus;
 		this.messages = messages;
@@ -46,6 +53,7 @@ public class CategoryService {
 		this.eventRepository = eventRepository;
 		this.templateRepository = templateRepository;
 		this.subscriptionRepository = subscriptionRepository;
+		this.archivedItemImporter = archivedItemImporter;
 	}
 
 	// -------------------------------------------------------------------------
@@ -198,6 +206,43 @@ public class CategoryService {
 
 		categoryRepository.delete(category);
 		Log.infof("Deleted category id=%d", id);
+	}
+
+	// -------------------------------------------------------------------------
+	// Data transfer
+	// -------------------------------------------------------------------------
+
+	@Override
+	public DataSection section() {
+		return DataSection.CATEGORIES;
+	}
+
+	@Override
+	@Transactional
+	public long countForExport() {
+		return categoryRepository.count();
+	}
+
+	@Override
+	@Transactional
+	public List<CategoryDto> exportData() {
+		return categoryRepository.listAll().stream().map(CategoryDto::from).toList();
+	}
+
+	@Override
+	@Transactional
+	public SectionImportResult importData(List<CategoryDto> items, ImportContext context) {
+		return archivedItemImporter.importEach(section(), items, CategoryDto::name, dto -> {
+			CategoryEntity category = new CategoryEntity();
+			category.name = dto.name();
+			category.description = dto.description();
+			category.icon = dto.icon();
+			category.color = dto.color();
+			category.archived = dto.archived();
+			categoryValidator.validate(category);
+			categoryRepository.persist(category);
+			context.rememberId(section(), dto.id(), category.id);
+		});
 	}
 
 }

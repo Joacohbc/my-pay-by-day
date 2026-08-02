@@ -12,13 +12,19 @@ import jakarta.transaction.Transactional;
 import com.mypaybyday.dto.Base64FileUploadRequestDto;
 import com.mypaybyday.dto.EventSummaryDto;
 import com.mypaybyday.dto.FileDto;
+import com.mypaybyday.dto.FileExportDto;
 import com.mypaybyday.dto.FileWithEventDto;
 import com.mypaybyday.dto.PagedResponse;
+import com.mypaybyday.dto.SectionImportResult;
 import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
+import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
+import com.mypaybyday.service.transfer.ArchivedItemImporter;
+import com.mypaybyday.service.transfer.DataSectionTransfer;
+import com.mypaybyday.service.transfer.ImportContext;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.logging.Log;
 import io.quarkus.narayana.jta.QuarkusTransaction;
@@ -26,15 +32,16 @@ import io.quarkus.panache.common.Page;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
-public class FileService {
+public class FileService implements DataSectionTransfer<FileExportDto> {
 
 	private final Messages messages;
-
 	private final MarkItDownClient markItDownClient;
+	private final ArchivedItemImporter archivedItemImporter;
 
-	public FileService(Messages messages, MarkItDownClient markItDownClient) {
+	public FileService(Messages messages, MarkItDownClient markItDownClient, ArchivedItemImporter archivedItemImporter) {
 		this.messages = messages;
 		this.markItDownClient = markItDownClient;
+		this.archivedItemImporter = archivedItemImporter;
 	}
 
 	@ConfigProperty(name = "mypaybyday.files.max-size")
@@ -227,5 +234,51 @@ public class FileService {
 			.createQuery("select e from FinanceEvent e join e.files f where f.id = :fileId")
 			.setParameter("fileId", fileId)
 			.getResultList();
+	}
+
+	// -------------------------------------------------------------------------
+	// Data transfer
+	// -------------------------------------------------------------------------
+
+	@Override
+	public DataSection section() {
+		return DataSection.FILES;
+	}
+
+	@Override
+	@Transactional
+	public long countForExport() {
+		return FileEntity.count();
+	}
+
+	@Override
+	@Transactional
+	public List<FileExportDto> exportData() {
+		List<FileEntity> files = FileEntity.listAll();
+		return files.stream().map(f -> FileExportDto.from(f, false)).toList();
+	}
+
+	@Override
+	@Transactional
+	public SectionImportResult importData(List<FileExportDto> items, ImportContext context) {
+		return archivedItemImporter.importEach(section(), items, FileExportDto::fileName, dto -> {
+			FileEntity entity = new FileEntity();
+			entity.fileName = dto.fileName();
+			entity.mimeType = dto.mimeType();
+			entity.size = dto.size();
+			entity.markdownContent = dto.markdownContent();
+			if (dto.base64Content() != null && !dto.base64Content().isEmpty()) {
+				entity.data = Base64.getDecoder().decode(dto.base64Content());
+				try {
+					MessageDigest md = MessageDigest.getInstance("SHA-256");
+					byte[] hashBytes = md.digest(entity.data);
+					entity.hash = HexFormat.of().formatHex(hashBytes);
+				} catch (NoSuchAlgorithmException e) {
+					throw new RuntimeException(e);
+				}
+			}
+			FileEntity.getEntityManager().persist(entity);
+			context.rememberId(section(), dto.id(), entity.id);
+		});
 	}
 }

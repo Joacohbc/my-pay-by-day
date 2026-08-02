@@ -148,6 +148,12 @@ public enum MsgKey {
 	// ── Duplicate Settings ───────────────────────────────
 	DUPLICATE_SETTINGS_WEIGHTS_SUM_INVALID("error.duplicate_settings.weights_sum_invalid"),
 
+	// ── Data Transfer ────────────────────────────────────
+	DATA_TRANSFER_ARCHIVE_UNREADABLE("error.data_transfer.archive_unreadable"),
+	DATA_TRANSFER_MANIFEST_MISSING("error.data_transfer.manifest_missing"),
+	DATA_TRANSFER_VERSION_UNSUPPORTED("error.data_transfer.version_unsupported"),
+	DATA_TRANSFER_ITEM_SKIPPED("error.data_transfer.item_skipped"),
+
 	// ── Request ────────────────────────────────────────────────
 	REQUEST_NOT_FOUND("error.request.not_found"),
 	REQUEST_INVALID("error.request.invalid"),

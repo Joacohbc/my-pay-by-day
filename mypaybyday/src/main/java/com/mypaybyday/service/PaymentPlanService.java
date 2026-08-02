@@ -14,7 +14,10 @@ import com.mypaybyday.dto.CreatePaymentPlanItemDto;
 import com.mypaybyday.dto.FinanceEventDraftInputDto;
 import com.mypaybyday.dto.FinanceLineItemDto;
 import com.mypaybyday.dto.PaymentPlanDto;
+import com.mypaybyday.dto.PaymentPlanExportDto;
 import com.mypaybyday.dto.PaymentPlanItemDto;
+import com.mypaybyday.dto.PaymentPlanItemExportDto;
+import com.mypaybyday.dto.SectionImportResult;
 
 import com.mypaybyday.entity.DraftEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
@@ -22,6 +25,7 @@ import com.mypaybyday.entity.PaymentPlanEntity;
 import com.mypaybyday.entity.PaymentPlanItemEntity;
 import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.entity.TemplateEntity;
+import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.enums.PaymentPlanItemStatus;
 import com.mypaybyday.enums.PaymentPlanStatus;
@@ -37,12 +41,15 @@ import com.mypaybyday.repository.PaymentPlanItemRepository;
 import com.mypaybyday.repository.PaymentPlanRepository;
 import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TemplateRepository;
+import com.mypaybyday.service.transfer.ArchivedItemImporter;
+import com.mypaybyday.service.transfer.DataSectionTransfer;
+import com.mypaybyday.service.transfer.ImportContext;
 import com.mypaybyday.validation.PaymentPlanItemValidator;
 import com.mypaybyday.validation.PaymentPlanValidator;
 import io.quarkus.logging.Log;
 
 @ApplicationScoped
-public class PaymentPlanService {
+public class PaymentPlanService implements DataSectionTransfer<PaymentPlanExportDto> {
 
 	private final PaymentPlanRepository paymentPlanRepository;
 	private final PaymentPlanItemRepository paymentPlanItemRepository;
@@ -55,6 +62,7 @@ public class PaymentPlanService {
 	private final PaymentPlanItemValidator paymentPlanItemValidator;
 	private final DraftService draftService;
 	private final Messages messages;
+	private final ArchivedItemImporter archivedItemImporter;
 
 	public PaymentPlanService(
 			PaymentPlanRepository paymentPlanRepository,
@@ -67,7 +75,8 @@ public class PaymentPlanService {
 			PaymentPlanValidator paymentPlanValidator,
 			PaymentPlanItemValidator paymentPlanItemValidator,
 			DraftService draftService,
-			Messages messages) {
+			Messages messages,
+			ArchivedItemImporter archivedItemImporter) {
 		this.paymentPlanRepository = paymentPlanRepository;
 		this.paymentPlanItemRepository = paymentPlanItemRepository;
 		this.templateRepository = templateRepository;
@@ -79,6 +88,7 @@ public class PaymentPlanService {
 		this.paymentPlanItemValidator = paymentPlanItemValidator;
 		this.draftService = draftService;
 		this.messages = messages;
+		this.archivedItemImporter = archivedItemImporter;
 	}
 
 	@Transactional
@@ -479,5 +489,101 @@ public class PaymentPlanService {
 			throw messages.reject(MsgKey.PAYMENT_PLAN_NOT_FOUND, id);
 		}
 		return entity;
+	}
+
+	// -------------------------------------------------------------------------
+	// Data transfer
+	// -------------------------------------------------------------------------
+
+	@Override
+	public DataSection section() {
+		return DataSection.PAYMENT_PLANS;
+	}
+
+	@Override
+	@Transactional
+	public long countForExport() {
+		return paymentPlanRepository.count();
+	}
+
+	@Override
+	@Transactional
+	public List<PaymentPlanExportDto> exportData() {
+		return paymentPlanRepository.listAll().stream().map(PaymentPlanExportDto::from).toList();
+	}
+
+	@Override
+	@Transactional
+	public SectionImportResult importData(List<PaymentPlanExportDto> items, ImportContext context) {
+		return archivedItemImporter.importEach(section(), items, PaymentPlanExportDto::name, dto -> {
+			PaymentPlanEntity plan = new PaymentPlanEntity();
+			plan.name = dto.name();
+			plan.description = dto.description();
+			plan.planType = dto.planType();
+			plan.status = dto.status();
+			plan.totalInstallments = dto.totalInstallments();
+			plan.totalAmount = dto.totalAmount();
+			plan.installmentAmount = dto.installmentAmount();
+			plan.frequency = dto.frequency();
+			plan.startDate = dto.startDate();
+			plan.endDate = dto.endDate();
+			plan.nextDueDate = dto.nextDueDate();
+			plan.isAutomated = dto.isAutomated();
+			plan.autoCreateDraft = dto.autoCreateDraft();
+
+			if (dto.templateId() != null) {
+				Long newTmpId = context.remap(DataSection.TEMPLATES, dto.templateId());
+				if (newTmpId != null) {
+					plan.template = templateRepository.findById(newTmpId);
+				}
+			}
+			if (dto.categoryId() != null) {
+				Long newCatId = context.remap(DataSection.CATEGORIES, dto.categoryId());
+				if (newCatId != null) {
+					plan.category = categoryRepository.findById(newCatId);
+				}
+			}
+			if (dto.tagIds() != null && !dto.tagIds().isEmpty()) {
+				Set<TagEntity> tags = new HashSet<>();
+				for (Long oldTagId : dto.tagIds()) {
+					Long newTagId = context.remap(DataSection.TAGS, oldTagId);
+					if (newTagId != null) {
+						TagEntity tag = tagRepository.findById(newTagId);
+						if (tag != null) {
+							tags.add(tag);
+						}
+					}
+				}
+				plan.tags = tags;
+			}
+
+			if (dto.items() != null && !dto.items().isEmpty()) {
+				for (PaymentPlanItemExportDto itemDto : dto.items()) {
+					PaymentPlanItemEntity item = new PaymentPlanItemEntity();
+					item.paymentPlan = plan;
+					item.installmentNumber = itemDto.installmentNumber();
+					item.expectedDate = itemDto.expectedDate();
+					item.itemStatus = itemDto.itemStatus();
+
+					if (itemDto.eventId() != null) {
+						Long newEvId = context.remap(DataSection.EVENTS, itemDto.eventId());
+						if (newEvId != null) {
+							item.event = eventRepository.findById(newEvId);
+						}
+					}
+					if (itemDto.draftId() != null) {
+						Long newDraftId = context.remap(DataSection.DRAFTS, itemDto.draftId());
+						if (newDraftId != null) {
+							item.draft = entityDraftRepository.findById(newDraftId);
+						}
+					}
+					plan.items.add(item);
+				}
+			}
+
+			paymentPlanValidator.validate(plan);
+			paymentPlanRepository.persist(plan);
+			context.rememberId(section(), dto.id(), plan.id);
+		});
 	}
 }

@@ -1,30 +1,39 @@
 package com.mypaybyday.service;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
+import com.mypaybyday.dto.SectionImportResult;
+import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.dto.TagGroupDto;
 import com.mypaybyday.dto.TagResolveConfig;
 import com.mypaybyday.entity.TagGroupEntity;
+import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TagGroupRepository;
 import com.mypaybyday.repository.TemplateRepository;
+import com.mypaybyday.service.transfer.ArchivedItemImporter;
+import com.mypaybyday.service.transfer.DataSectionTransfer;
+import com.mypaybyday.service.transfer.ImportContext;
 import com.mypaybyday.validation.TagGroupValidator;
 import io.quarkus.logging.Log;
 
 @ApplicationScoped
-public class TagGroupService {
+public class TagGroupService implements DataSectionTransfer<TagGroupDto> {
 
 	private final TagGroupRepository tagGroupRepository;
 	private final TagService tagService;
 	private final Messages messages;
 	private final TagGroupValidator tagGroupValidator;
+	private final ArchivedItemImporter archivedItemImporter;
 
 	public TagGroupService(
 			TagGroupRepository tagGroupRepository,
@@ -32,11 +41,13 @@ public class TagGroupService {
 			Messages messages,
 			TagGroupValidator tagGroupValidator,
 			TemplateRepository templateRepository,
-			SubscriptionRepository subscriptionRepository) {
+			SubscriptionRepository subscriptionRepository,
+			ArchivedItemImporter archivedItemImporter) {
 		this.tagGroupRepository = tagGroupRepository;
 		this.tagService = tagService;
 		this.messages = messages;
-		this.tagGroupValidator = tagGroupValidator;;
+		this.tagGroupValidator = tagGroupValidator;
+		this.archivedItemImporter = archivedItemImporter;
 	}
 
 	@Transactional
@@ -108,5 +119,57 @@ public class TagGroupService {
 		TagGroupEntity entity = findEntityById(id, false);
 		tagGroupRepository.delete(entity);
 		Log.infof("Deleted tag-group id=%d", id);
+	}
+
+	// -------------------------------------------------------------------------
+	// Data transfer
+	// -------------------------------------------------------------------------
+
+	@Override
+	public DataSection section() {
+		return DataSection.TAG_GROUPS;
+	}
+
+	@Override
+	@Transactional
+	public long countForExport() {
+		return tagGroupRepository.count();
+	}
+
+	@Override
+	@Transactional
+	public List<TagGroupDto> exportData() {
+		return tagGroupRepository.listAll().stream().map(TagGroupDto::from).toList();
+	}
+
+	@Override
+	@Transactional
+	public SectionImportResult importData(List<TagGroupDto> items, ImportContext context) {
+		return archivedItemImporter.importEach(section(), items, TagGroupDto::name, dto -> {
+			TagGroupDto remapped = withRemappedTagIds(dto, context);
+			TagGroupEntity entity = new TagGroupEntity();
+			entity.archived = dto.archived();
+			entity.tags = tagService.resolveTags(new HashSet<>(remapped.tagIds()),
+					new TagResolveConfig(TagResolveConfig.Strategy.ALLOW_ALL_ARCHIVED, Set.of()));
+			tagGroupValidator.validate(remapped, entity);
+			tagGroupRepository.persist(entity);
+			context.rememberId(section(), dto.id(), entity.id);
+		});
+	}
+
+	/**
+	 * An archived group carries its members as whole tags, but the validator and the resolver both
+	 * work from {@code tagIds} — which the archive never contains, and which point at the source
+	 * database anyway. Rebuild them from the ids this import has already assigned.
+	 */
+	private TagGroupDto withRemappedTagIds(TagGroupDto dto, ImportContext context) {
+		List<Long> tagIds = new ArrayList<>();
+		for (TagDto tag : dto.tags() != null ? dto.tags() : List.<TagDto>of()) {
+			Long importedTagId = context.remap(DataSection.TAGS, tag.id());
+			if (importedTagId != null) {
+				tagIds.add(importedTagId);
+			}
+		}
+		return new TagGroupDto(dto.id(), dto.name(), dto.description(), dto.icon(), dto.archived(), dto.tags(), tagIds);
 	}
 }

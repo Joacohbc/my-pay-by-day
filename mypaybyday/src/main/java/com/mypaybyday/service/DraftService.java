@@ -18,6 +18,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.dto.ConfirmDraftsResultDto;
+import com.mypaybyday.dto.DraftDto;
 import com.mypaybyday.dto.DraftValidationResultDto;
 import com.mypaybyday.dto.FileDto;
 import com.mypaybyday.dto.FinanceEventDraftInputDto;
@@ -25,6 +26,7 @@ import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.FinanceLineItemDto;
 import com.mypaybyday.dto.PatchEventDto;
 import com.mypaybyday.dto.PatchTransactionDto;
+import com.mypaybyday.dto.SectionImportResult;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.dto.ValidationErrorDto;
 import com.mypaybyday.entity.CategoryEntity;
@@ -34,6 +36,7 @@ import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.entity.FinanceTransactionEntity;
 import com.mypaybyday.entity.TagEntity;
+import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.enums.DraftConfirmMode;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.enums.EventType;
@@ -43,12 +46,15 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EntityDraftRepository;
 import com.mypaybyday.service.event.EventCreateService;
 import com.mypaybyday.service.event.EventUpdateService;
+import com.mypaybyday.service.transfer.ArchivedItemImporter;
+import com.mypaybyday.service.transfer.DataSectionTransfer;
+import com.mypaybyday.service.transfer.ImportContext;
 import com.mypaybyday.validation.TransactionValidator;
 import io.quarkus.logging.Log;
 import org.openapitools.jackson.nullable.JsonNullable;
 
 @ApplicationScoped
-public class DraftService {
+public class DraftService implements DataSectionTransfer<DraftDto> {
 
 	private final EntityDraftRepository draftRepository;
 	private final Messages messages;
@@ -57,11 +63,17 @@ public class DraftService {
 	private final EventUpdateService eventUpdateService;
 	private final TransactionValidator transactionValidator;
 	private final PaymentPlanService paymentPlanService;
+	private final ArchivedItemImporter archivedItemImporter;
 
-	@Inject
-	public DraftService(EntityDraftRepository draftRepository, Messages messages, ObjectMapper objectMapper,
-			EventCreateService eventCreateService, EventUpdateService eventUpdateService,
-			TransactionValidator transactionValidator, PaymentPlanService paymentPlanService) {
+	public DraftService(
+			EntityDraftRepository draftRepository,
+			Messages messages,
+			ObjectMapper objectMapper,
+			EventCreateService eventCreateService,
+			EventUpdateService eventUpdateService,
+			TransactionValidator transactionValidator,
+			PaymentPlanService paymentPlanService,
+			ArchivedItemImporter archivedItemImporter) {
 		this.draftRepository = draftRepository;
 		this.messages = messages;
 		this.objectMapper = objectMapper;
@@ -69,6 +81,7 @@ public class DraftService {
 		this.eventUpdateService = eventUpdateService;
 		this.transactionValidator = transactionValidator;
 		this.paymentPlanService = paymentPlanService;
+		this.archivedItemImporter = archivedItemImporter;
 	}
 
 	public List<DraftEntity> listAll() {
@@ -449,5 +462,42 @@ public class DraftService {
 			// Field might not exist or be accessible, ignore
 		}
 		return null;
+	}
+
+	// -------------------------------------------------------------------------
+	// Data transfer
+	// -------------------------------------------------------------------------
+
+	@Override
+	public DataSection section() {
+		return DataSection.DRAFTS;
+	}
+
+	@Override
+	@Transactional
+	public long countForExport() {
+		return draftRepository.count();
+	}
+
+	@Override
+	@Transactional
+	public List<DraftDto> exportData() {
+		return draftRepository.listAll().stream().map(DraftDto::from).toList();
+	}
+
+	@Override
+	@Transactional
+	public SectionImportResult importData(List<DraftDto> items, ImportContext context) {
+		return archivedItemImporter.importEach(section(), items, dto -> "Draft " + dto.id(), dto -> {
+			DraftEntity entity = new DraftEntity();
+			entity.setEntityType(dto.entityType());
+			if (dto.originalEntityId() != null) {
+				Long remappedOriginalId = context.remap(DataSection.EVENTS, dto.originalEntityId());
+				entity.setOriginalEntityId(remappedOriginalId != null ? remappedOriginalId : dto.originalEntityId());
+			}
+			entity.setRawPayloadJson(dto.rawPayloadJson());
+			draftRepository.persist(entity);
+			context.rememberId(section(), dto.id(), entity.id);
+		});
 	}
 }
