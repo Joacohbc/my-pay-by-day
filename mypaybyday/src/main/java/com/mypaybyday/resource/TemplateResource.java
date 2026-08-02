@@ -3,14 +3,15 @@ package com.mypaybyday.resource;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 
+import com.mypaybyday.dto.ErrorResponseDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.TemplateDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TemplateService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
@@ -44,7 +45,8 @@ public class TemplateResource {
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Template found",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TemplateDto.class))),
-	@APIResponse(responseCode = "404", description = "Template not found")
+	@APIResponse(responseCode = "404", description = "Template not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<TemplateDto> getById(
 	@Parameter(description = "ID of the template", required = true) @PathParam("id") Long id)
@@ -58,7 +60,8 @@ public class TemplateResource {
     @APIResponses({
 	@APIResponse(responseCode = "201", description = "Template created",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TemplateDto.class))),
-	@APIResponse(responseCode = "400", description = "Validation error")
+	@APIResponse(responseCode = "400", description = "Validation error",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<TemplateDto> create(TemplateDto dto) throws BusinessException {
 	return RestResponse.status(RestResponse.Status.CREATED, templateService.create(dto));
@@ -70,8 +73,10 @@ public class TemplateResource {
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Template updated",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TemplateDto.class))),
-	@APIResponse(responseCode = "400", description = "Validation error"),
-	@APIResponse(responseCode = "404", description = "Template not found")
+	@APIResponse(responseCode = "400", description = "Validation error",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+	@APIResponse(responseCode = "404", description = "Template not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<TemplateDto> update(
 	@Parameter(description = "ID of the template", required = true) @PathParam("id") Long id,
@@ -84,8 +89,10 @@ public class TemplateResource {
     @Operation(summary = "Delete a template")
     @APIResponses({
 	@APIResponse(responseCode = "204", description = "Template deleted"),
-	@APIResponse(responseCode = "400", description = "Template is in use by a subscription"),
-	@APIResponse(responseCode = "404", description = "Template not found")
+	@APIResponse(responseCode = "400", description = "Template is in use by a subscription",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+	@APIResponse(responseCode = "404", description = "Template not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<Void> delete(
 	@Parameter(description = "ID of the template", required = true) @PathParam("id") Long id)

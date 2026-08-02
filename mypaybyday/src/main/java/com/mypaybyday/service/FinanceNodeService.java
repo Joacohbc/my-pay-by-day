@@ -69,12 +69,8 @@ public class FinanceNodeService {
 	}
 
 	@Transactional
-	public FinanceNodeDto findById(Long id) {
-		FinanceNodeEntity node = financeNodeRepository.findById(id);
-		if (node == null || node.archived) {
-			return null;
-		}
-		return FinanceNodeDto.from(node);
+	public FinanceNodeDto findById(Long id) throws BusinessException {
+		return FinanceNodeDto.from(findNodeEntity(id));
 	}
 
 	/**

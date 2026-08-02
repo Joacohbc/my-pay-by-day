@@ -148,6 +148,10 @@ public enum MsgKey {
 	// ── Duplicate Settings ───────────────────────────────
 	DUPLICATE_SETTINGS_WEIGHTS_SUM_INVALID("error.duplicate_settings.weights_sum_invalid"),
 
+	// ── Request ────────────────────────────────────────────────
+	REQUEST_NOT_FOUND("error.request.not_found"),
+	REQUEST_INVALID("error.request.invalid"),
+
 	// ── Server ─────────────────────────────────────────────────
 	INTERNAL_SERVER_ERROR("error.server.internal");
 

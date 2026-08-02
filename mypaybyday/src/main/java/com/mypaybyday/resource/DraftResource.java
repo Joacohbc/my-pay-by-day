@@ -2,7 +2,6 @@ package com.mypaybyday.resource;
 
 import java.util.List;
 
-import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -17,6 +16,7 @@ import jakarta.ws.rs.core.MediaType;
 import com.mypaybyday.dto.ConfirmDraftsRequestDto;
 import com.mypaybyday.dto.ConfirmDraftsResultDto;
 import com.mypaybyday.dto.DraftValidationResultDto;
+import com.mypaybyday.dto.ErrorResponseDto;
 import com.mypaybyday.dto.FinanceEventDraftInputDto;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.entity.DraftEntity;
@@ -38,7 +38,6 @@ public class DraftResource {
 
 	private final DraftService draftService;
 
-	@Inject
 	public DraftResource(DraftService draftService) {
 		this.draftService = draftService;
 	}
@@ -54,7 +53,8 @@ public class DraftResource {
 	@Path("/{id}")
 	@Operation(summary = "Delete a draft")
 	@APIResponse(responseCode = "204", description = "Draft deleted successfully")
-	@APIResponse(responseCode = "400", description = "Draft not found (Business Exception)")
+	@APIResponse(responseCode = "404", description = "Draft not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	public RestResponse<Void> delete(@PathParam("id") Long id) {
 		draftService.delete(id);
 		return RestResponse.noContent();
@@ -104,7 +104,8 @@ public class DraftResource {
 	@Path("/finance-events/{id}")
 	@Operation(summary = "Update an existing finance event draft, addressed by its own draft ID")
 	@APIResponse(responseCode = "200", description = "Finance event draft updated successfully")
-	@APIResponse(responseCode = "400", description = "Draft not found (Business Exception)")
+	@APIResponse(responseCode = "404", description = "Draft not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	public RestResponse<DraftEntity> updateFinanceEventDraftByDraftId(@PathParam("id") Long draftId, FinanceEventDraftInputDto dto) {
 		return RestResponse.ok(draftService.updateFinanceEventDraftByDraftId(draftId, dto));
 	}
@@ -114,7 +115,8 @@ public class DraftResource {
 	@Operation(summary = "Upsert the single finance event draft linked to an already-existing event, reusing it if one already exists")
 	@APIResponse(responseCode = "200", description = "Finance event draft upserted successfully",
 		content = @Content(schema = @Schema(implementation = DraftEntity.class)))
-	@APIResponse(responseCode = "400", description = "Missing/invalid event ID (Business Exception)")
+	@APIResponse(responseCode = "400", description = "Missing/invalid event ID (Business Exception)",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	public RestResponse<DraftEntity> upsertFinanceEventDraftByEventId(@PathParam("entityId") Long entityId, FinanceEventDraftInputDto dto) throws BusinessException {
 		DraftEntity draft = draftService.upsertFinanceEventDraftByEventId(entityId, dto);
 		return RestResponse.ok(draft);
@@ -128,7 +130,8 @@ public class DraftResource {
 			"in the result instead of aborting the whole batch.")
 	@APIResponse(responseCode = "200", description = "Batch processed (see result for any skipped drafts)",
 		content = @Content(schema = @Schema(implementation = ConfirmDraftsResultDto.class)))
-	@APIResponse(responseCode = "400", description = "No draft IDs supplied (Business Exception)")
+	@APIResponse(responseCode = "400", description = "No draft IDs supplied (Business Exception)",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	public RestResponse<ConfirmDraftsResultDto> confirmFinanceEventDraftsBatch(ConfirmDraftsRequestDto request) throws BusinessException {
 		return RestResponse.ok(draftService.confirmDraftsBatch(request.draftIds, request.mode));
 	}
@@ -140,7 +143,8 @@ public class DraftResource {
 			"line items, node existence) and reports every violation found instead of failing on the first one.")
 	@APIResponse(responseCode = "200", description = "Validation result (valid may be true or false; errors lists every violation found)",
 		content = @Content(schema = @Schema(implementation = DraftValidationResultDto.class)))
-	@APIResponse(responseCode = "400", description = "Draft not found (Business Exception)")
+	@APIResponse(responseCode = "404", description = "Draft not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	public RestResponse<DraftValidationResultDto> validateFinanceEventDraft(@PathParam("id") Long draftId) throws BusinessException {
 		return RestResponse.ok(draftService.validateDraft(draftId));
 	}

@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.StreamingOutput;
 
 import com.mypaybyday.dto.DataTransferDto;
 import com.mypaybyday.dto.DataTransferResult;
+import com.mypaybyday.dto.ErrorResponseDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.DataTransferService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
@@ -50,7 +51,8 @@ public class DataTransferResource {
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Import completed. Check skippedEvents for partial failures.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = DataTransferResult.class))),
-            @APIResponse(responseCode = "400", description = "Validation error in tags, categories, or nodes")
+            @APIResponse(responseCode = "400", description = "Validation error in tags, categories, or nodes",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     @Consumes("application/zip")
     public RestResponse<DataTransferResult> importAll(java.io.InputStream zipStream) {

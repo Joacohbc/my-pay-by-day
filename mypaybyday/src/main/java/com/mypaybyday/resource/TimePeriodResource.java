@@ -4,6 +4,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 
 import com.mypaybyday.dto.DynamicTimePeriodBalanceDto;
+import com.mypaybyday.dto.ErrorResponseDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.PatchTimePeriodDto;
 import com.mypaybyday.dto.TimePeriodBalanceDto;
@@ -11,9 +12,9 @@ import com.mypaybyday.dto.TimePeriodDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.TimePeriodService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
@@ -47,7 +48,8 @@ public class TimePeriodResource {
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Time period found",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriodDto.class))),
-	@APIResponse(responseCode = "404", description = "Time period not found")
+	@APIResponse(responseCode = "404", description = "Time period not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<TimePeriodDto> getById(
 	@Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id)
@@ -63,7 +65,8 @@ public class TimePeriodResource {
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Balance summary",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriodBalanceDto.class))),
-	@APIResponse(responseCode = "404", description = "Time period not found")
+	@APIResponse(responseCode = "404", description = "Time period not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<TimePeriodBalanceDto> getBalance(
 	@Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id)
@@ -78,7 +81,8 @@ public class TimePeriodResource {
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Balance summary",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = DynamicTimePeriodBalanceDto.class))),
-	@APIResponse(responseCode = "400", description = "Validation error")
+	@APIResponse(responseCode = "400", description = "Validation error",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<DynamicTimePeriodBalanceDto> getDynamicBalance(
 	@Parameter(description = "Start date (YYYY-MM-DDTHH:mm:ss)", required = true) @QueryParam("startDate") java.time.LocalDateTime startDate,
@@ -93,7 +97,8 @@ public class TimePeriodResource {
     @APIResponses({
 	@APIResponse(responseCode = "201", description = "Time period created",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriodDto.class))),
-	@APIResponse(responseCode = "400", description = "Validation error")
+	@APIResponse(responseCode = "400", description = "Validation error",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<TimePeriodDto> create(TimePeriodDto timePeriod) throws BusinessException {
 	return RestResponse.status(RestResponse.Status.CREATED, timePeriodService.create(timePeriod));
@@ -106,8 +111,10 @@ public class TimePeriodResource {
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Time period updated",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriodDto.class))),
-	@APIResponse(responseCode = "400", description = "Validation error"),
-	@APIResponse(responseCode = "404", description = "Time period not found")
+	@APIResponse(responseCode = "400", description = "Validation error",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+	@APIResponse(responseCode = "404", description = "Time period not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<TimePeriodDto> update(
 	@Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id,
@@ -120,7 +127,8 @@ public class TimePeriodResource {
     @Operation(summary = "Delete a time period")
     @APIResponses({
 	@APIResponse(responseCode = "204", description = "Time period deleted"),
-	@APIResponse(responseCode = "404", description = "Time period not found")
+	@APIResponse(responseCode = "404", description = "Time period not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<Void> delete(
 	@Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id)
