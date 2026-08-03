@@ -51,7 +51,7 @@ export function FilesPage() {
           base64Content,
         });
         alert.success(t('files.uploadSuccess'));
-      } catch (err) {
+      } catch {
         alert.error(t('common.error'));
       }
     }

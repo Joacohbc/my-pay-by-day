@@ -26,35 +26,42 @@ export function CameraModal({ open, onClose, onCapture }: CameraModalProps) {
     }
   };
 
-  const startCamera = async () => {
-    stopStream();
-    setErrorMsg(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-        audio: false,
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      setHasCamera(true);
-    } catch {
-      setHasCamera(false);
-      setErrorMsg(t('files.cameraError') || 'No se pudo acceder a la cámara');
-    }
-  };
-
   useEffect(() => {
+    let isCancelled = false;
+
     if (open) {
-      startCamera();
+      stopStream();
+      navigator.mediaDevices
+        .getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false,
+        })
+        .then((stream) => {
+          if (isCancelled) {
+            stream.getTracks().forEach((track) => track.stop());
+            return;
+          }
+          streamRef.current = stream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+          setHasCamera(true);
+          setErrorMsg(null);
+        })
+        .catch(() => {
+          if (isCancelled) return;
+          setHasCamera(false);
+          setErrorMsg(t('files.cameraError') || 'No se pudo acceder a la cámara');
+        });
     } else {
       stopStream();
     }
+
     return () => {
+      isCancelled = true;
       stopStream();
     };
-  }, [open]);
+  }, [open, t]);
 
   const handleCapture = () => {
     if (!videoRef.current || !canvasRef.current) return;

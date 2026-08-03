@@ -1819,7 +1819,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": string;
+                        "*/*": unknown;
                     };
                 };
                 /** @description File not found */

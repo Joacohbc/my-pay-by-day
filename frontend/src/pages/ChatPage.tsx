@@ -24,7 +24,6 @@ export function ChatPage() {
     maxMessages,
     draftFiles,
     pendingFiles,
-    imagePreviewUrls,
     messagesEndRef,
     countdown,
     triggerSendNow,
