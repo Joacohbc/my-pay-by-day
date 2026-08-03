@@ -177,14 +177,19 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 		return FileDto.from(file, isOrphan(id));
 	}
 
+	@Transactional
 	public FileEntity getFileContent(Long id) throws BusinessException {
 		FileEntity file = FileEntity.findById(id);
 		if (file == null) {
 			throw messages.reject(MsgKey.FILE_NOT_FOUND);
 		}
+		if (file.data != null) {
+			int forceLazyLoad = file.data.length;
+		}
 		return file;
 	}
 
+	@Transactional
 	public String getFileContentAsBase64(Long id) throws BusinessException {
 		FileEntity file = getFileContent(id);
 		String base64Encoded = Base64.getEncoder().encodeToString(file.data);

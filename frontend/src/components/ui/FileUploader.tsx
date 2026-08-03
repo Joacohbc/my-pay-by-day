@@ -4,11 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useFiles, useUploadFile } from '@/hooks/useFiles';
 import { filesService } from '@/services/files.service';
 import { FileCard } from '@/components/files/FileCard';
 import { CreateEmailModal } from '@/components/files/CreateEmailModal';
 import { CameraModal } from '@/components/files/CameraModal';
+import { getFileTypeLabel } from '@/lib/fileUtils';
 import type { FileDto } from '@/models';
 
 interface FileSelectorModalProps {
@@ -21,33 +23,70 @@ interface FileSelectorModalProps {
 function FileSelectorModal({ open, onClose, onSelect, excludeIds }: FileSelectorModalProps) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
+  const [selectedMimeType, setSelectedMimeType] = useState<string>('all');
   const { data: paged, isLoading } = useFiles(0, 200);
+
+  const availableMimeTypes = useMemo(() => {
+    const types = new Set<string>();
+    (paged?.content ?? []).forEach((file) => {
+      if (file.mimeType) {
+        types.add(file.mimeType);
+      }
+    });
+    return Array.from(types).sort();
+  }, [paged]);
+
+  const mimeTypeOptions = useMemo(() => {
+    return [
+      { value: 'all', label: t('files.allMimeTypes') },
+      ...availableMimeTypes.map((mime) => ({
+        value: mime,
+        label: getFileTypeLabel('', mime),
+      })),
+    ];
+  }, [availableMimeTypes, t]);
 
   const files = useMemo(() => {
     let result = paged?.content ?? [];
     result = result.filter((f) => !excludeIds.includes(f.id));
+    if (selectedMimeType !== 'all') {
+      result = result.filter((f) => f.mimeType === selectedMimeType);
+    }
     if (search.trim()) {
       const q = normalizeText(search);
       result = result.filter((f) => normalizeText(f.fileName).includes(q));
     }
     return result;
-  }, [paged, search, excludeIds]);
+  }, [paged, search, selectedMimeType, excludeIds]);
 
   return (
     <Modal open={open} onClose={onClose} title={t('files.title')}>
       <div className="space-y-3">
-        <div className="relative">
-          <Icon
-            name="search"
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-base pointer-events-none"
-          />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('files.searchPlaceholder')}
-            className="w-full bg-dn-surface-low border border-white/5 rounded-xl pl-9 pr-4 py-2.5 text-sm text-dn-text-main placeholder:text-dn-text-muted focus:outline-none focus:ring-1 focus:ring-dn-primary/50"
-          />
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Icon
+              name="search"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-dn-text-muted text-base pointer-events-none"
+            />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('files.searchPlaceholder')}
+              className="w-full bg-dn-surface-low border border-white/5 rounded-xl pl-9 pr-4 py-2.5 text-sm text-dn-text-main placeholder:text-dn-text-muted focus:outline-none focus:ring-1 focus:ring-dn-primary/50"
+            />
+          </div>
+
+          {availableMimeTypes.length > 0 && (
+            <div className="min-w-[160px]">
+              <SearchableSelect
+                value={selectedMimeType}
+                options={mimeTypeOptions}
+                onChange={(val) => setSelectedMimeType(val ? String(val) : 'all')}
+                placeholder={t('files.allMimeTypes')}
+              />
+            </div>
+          )}
         </div>
 
         {isLoading ? (
@@ -88,10 +127,25 @@ export interface FileUploaderProps {
    * Markdown on a best-effort basis. */
   accept?: string;
   onAudioFile?: (file: File) => Promise<void>;
+  /** Visual variant: 'full' (default) shows large buttons with text labels; 'compact' shows small icon-only buttons. */
+  variant?: 'full' | 'compact';
+  /** Alternative shorthand boolean prop for compact mode. */
+  compact?: boolean;
 }
 
-export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRemoveFiles, accept, onAudioFile }: FileUploaderProps) {
+export function FileUploader({
+  files,
+  onAddFile,
+  onAddFiles,
+  onRemoveFile,
+  onRemoveFiles,
+  accept,
+  onAudioFile,
+  variant = 'full',
+  compact,
+}: FileUploaderProps) {
   const { t } = useTranslation();
+  const isCompactMode = variant === 'compact' || compact;
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -231,35 +285,41 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
         onCapture={handleCameraCapture}
       />
 
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">{t('eventForm.files')}</p>
-        {files.length > 0 && (
-          selectMode ? (
-            <button type="button" onClick={exitSelectMode} className="text-xs font-medium text-dn-text-muted hover:text-dn-primary transition-colors">
-              {t('common.cancel')}
-            </button>
-          ) : (
-            <button type="button" onClick={() => setSelectMode(true)} className="text-xs font-medium text-dn-text-muted hover:text-dn-primary transition-colors">
-              {t('files.select')}
-            </button>
-          )
-        )}
-      </div>
+      {!isCompactMode && (
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">{t('eventForm.files')}</p>
+          {files.length > 0 && (
+            selectMode ? (
+              <button type="button" onClick={exitSelectMode} className="text-xs font-medium text-dn-text-muted hover:text-dn-primary transition-colors">
+                {t('common.cancel')}
+              </button>
+            ) : (
+              <button type="button" onClick={() => setSelectMode(true)} className="text-xs font-medium text-dn-text-muted hover:text-dn-primary transition-colors">
+                {t('files.select')}
+              </button>
+            )
+          )}
+        </div>
+      )}
 
-      <div className="space-y-3">
-        {files.map((file) => (
-          <FileCard
-            key={file.id}
-            file={file}
-            onDelete={() => onRemoveFile(file.id)}
-            hideEventLinks
-            selectionMode={selectMode}
-            checked={selectedIds.has(file.id)}
-            onToggleChecked={toggleSelected}
-          />
-        ))}
+      {files.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-3 no-scrollbar items-center">
+          {files.map((file) => (
+            <div key={file.id} className="shrink-0 w-64 sm:w-72">
+              <FileCard
+                file={file}
+                onDelete={() => onRemoveFile(file.id)}
+                hideEventLinks
+                selectionMode={selectMode}
+                checked={selectedIds.has(file.id)}
+                onToggleChecked={toggleSelected}
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
-        {selectMode ? (
+      {selectMode ? (
           <div className="flex items-center justify-between gap-2 p-3 border border-dashed border-white/20 rounded-input">
             <span className="text-sm text-dn-text-muted">{t('files.selectedCount', { count: selectedIds.size })}</span>
             <button
@@ -272,13 +332,59 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
               {t('files.removeSelected')}
             </button>
           </div>
+        ) : isCompactMode ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCameraModalOpen(true)}
+              disabled={isPending}
+              title={t('files.takePhoto')}
+              aria-label={t('files.takePhoto')}
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-dn-surface border border-white/5 text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50 cursor-pointer"
+            >
+              <Icon name="photo_camera" className="text-lg" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isPending}
+              title={t('eventForm.uploadFile')}
+              aria-label={t('eventForm.uploadFile')}
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-dn-surface border border-white/5 text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50 cursor-pointer"
+            >
+              <Icon name={isPending ? 'pending' : 'upload'} className={`text-lg ${isPending ? 'animate-spin' : ''}`} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectorOpen(true)}
+              disabled={isPending}
+              title={t('eventForm.selectExistingFile')}
+              aria-label={t('eventForm.selectExistingFile')}
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-dn-surface border border-white/5 text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50 cursor-pointer"
+            >
+              <Icon name="folder_open" className="text-lg" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCreateEmailOpen(true)}
+              disabled={isPending}
+              title={t('files.createEmailButton')}
+              aria-label={t('files.createEmailButton')}
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-dn-surface border border-white/5 text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50 cursor-pointer"
+            >
+              <Icon name="mail" className="text-lg" />
+            </button>
+          </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <button
               type="button"
               onClick={() => setCameraModalOpen(true)}
               disabled={isPending}
-              className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50"
+              className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50 cursor-pointer"
             >
               <Icon name="photo_camera" />
               <span className="text-sm font-medium">{t('files.takePhoto')}</span>
@@ -287,7 +393,7 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isPending}
-              className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50"
+              className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50 cursor-pointer"
             >
               <Icon name={isPending ? 'pending' : 'upload'} className={isPending ? 'animate-spin' : ''} />
               <span className="text-sm font-medium">{isPending ? t('common.loading') : t('eventForm.uploadFile')}</span>
@@ -296,7 +402,7 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
               type="button"
               onClick={() => setSelectorOpen(true)}
               disabled={isPending}
-              className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50"
+              className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50 cursor-pointer"
             >
               <Icon name="folder_open" />
               <span className="text-sm font-medium">{t('eventForm.selectExistingFile')}</span>
@@ -305,7 +411,7 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
               type="button"
               onClick={() => setCreateEmailOpen(true)}
               disabled={isPending}
-              className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50"
+              className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50 cursor-pointer"
             >
               <Icon name="mail" />
               <span className="text-sm font-medium">{t('files.createEmailButton')}</span>
@@ -329,6 +435,5 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
           capture="environment"
         />
       </div>
-    </div>
-  );
-}
+    );
+  }

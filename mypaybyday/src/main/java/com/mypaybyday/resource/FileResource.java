@@ -107,12 +107,11 @@ public class FileResource {
 			@APIResponse(responseCode = "404", description = "File not found",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
-	public RestResponse<byte[]> getContentBinary(
+	public jakarta.ws.rs.core.Response getContentBinary(
 			@Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		FileEntity file = fileService.getFileContent(id);
-		return RestResponse.ResponseBuilder.ok(file.data)
-				.type(file.mimeType)
+		return jakarta.ws.rs.core.Response.ok(file.data, file.mimeType)
 				.header("Content-Disposition", "inline; filename=\"" + file.fileName + "\"")
 				.build();
 	}
