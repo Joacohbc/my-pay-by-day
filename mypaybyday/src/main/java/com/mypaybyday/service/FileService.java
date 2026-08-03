@@ -5,6 +5,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.function.Supplier;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -67,6 +68,28 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 	}
 
 	private FileDto saveFile(String fileName, String mimeType, byte[] data) throws BusinessException {
+		return storeFile(fileName, mimeType, data, () -> convertToMarkdown(fileName, mimeType, data));
+	}
+
+	/**
+	 * Stores a file whose Markdown representation the caller already produced — an email rendered from
+	 * its structured JSON, for instance, which the MarkItDown sidecar could not make sense of.
+	 *
+	 * @param fileName the name to store the file under
+	 * @param mimeType the MIME type of the content
+	 * @param data     the raw file bytes
+	 * @param markdown the Markdown rendering to persist alongside the content
+	 * @return the stored file, or the existing one when the same content was already stored
+	 * @throws BusinessException when the content exceeds the maximum file size
+	 */
+	FileDto storeConvertedFile(String fileName, String mimeType, byte[] data, String markdown) throws BusinessException {
+		return storeFile(fileName, mimeType, data, () -> markdown);
+	}
+
+	/** The Markdown is resolved only once the content is known to be new, so re-uploading an identical
+	 * file never pays for a conversion whose result would be thrown away. */
+	private FileDto storeFile(String fileName, String mimeType, byte[] data, Supplier<String> markdownSource)
+			throws BusinessException {
 		if (data.length > maxFileSize) {
 			throw messages.reject(MsgKey.FILE_SIZE_EXCEEDED);
 		}
@@ -77,7 +100,7 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 			return deduplicated;
 		}
 
-		String markdown = convertToMarkdown(fileName, mimeType, data);
+		String markdown = markdownSource.get();
 		return QuarkusTransaction.requiringNew().call(() -> persistFile(fileName, mimeType, data, hash, markdown));
 	}
 
@@ -154,14 +177,19 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 		return FileDto.from(file, isOrphan(id));
 	}
 
+	@Transactional
 	public FileEntity getFileContent(Long id) throws BusinessException {
 		FileEntity file = FileEntity.findById(id);
 		if (file == null) {
 			throw messages.reject(MsgKey.FILE_NOT_FOUND);
 		}
+		if (file.data != null) {
+			int forceLazyLoad = file.data.length;
+		}
 		return file;
 	}
 
+	@Transactional
 	public String getFileContentAsBase64(Long id) throws BusinessException {
 		FileEntity file = getFileContent(id);
 		String base64Encoded = Base64.getEncoder().encodeToString(file.data);

@@ -1,9 +1,25 @@
 import { api, BASE_URL } from '@/services/api';
-import type { FileDto, FileWithEventDto, PagedResponse, Base64FileUploadRequestDto } from '@/models';
+import type {
+  Base64FileUploadRequestDto,
+  EmailFileDto,
+  EmailUploadRequestDto,
+  FileDto,
+  FileWithEventDto,
+  PagedResponse,
+} from '@/models';
 
 export const filesService = {
   uploadBase64: async (data: Base64FileUploadRequestDto): Promise<FileDto> => {
     return api.post<FileDto>('/files/base64', data);
+  },
+
+  uploadEmail: async (email: EmailUploadRequestDto): Promise<FileDto> => {
+    return api.post<FileDto>('/files/emails', email);
+  },
+
+  /** Reads an email file back as a structured email, so it can be shown as one instead of as raw JSON. */
+  getEmail: async (id: number): Promise<EmailFileDto> => {
+    return api.get<EmailFileDto>(`/files/${id}/email`);
   },
 
   getAll: async (page = 0, size = 20, orphaned?: boolean): Promise<PagedResponse<FileWithEventDto>> => {

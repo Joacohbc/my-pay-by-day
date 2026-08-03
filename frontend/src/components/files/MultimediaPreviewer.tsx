@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { filesService } from '@/services/files.service';
 import { Icon } from '@/components/ui/Icon';
 import { AudioMessagePlayer } from '@/components/chat/AudioMessagePlayer';
-import { isBrowserNativePreview, isMarkdownFile, isSpreadsheetFile } from '@/lib/fileUtils';
+import { EmailPreview } from '@/components/files/EmailPreview';
+import { isBrowserNativePreview, isEmailFile, isMarkdownFile, isSpreadsheetFile } from '@/lib/fileUtils';
 import type { FileDto } from '@/models';
 import { logger } from '@/lib/logger';
 
@@ -20,6 +21,7 @@ export function MultimediaPreviewer({ fileId, fileName, onClose }: MultimediaPre
   const [fileDetails, setFileDetails] = useState<FileDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [markdownLoading, setMarkdownLoading] = useState(true);
@@ -43,7 +45,7 @@ export function MultimediaPreviewer({ fileId, fileName, onClose }: MultimediaPre
   }, [fileId]);
 
   useEffect(() => {
-    if (!fileDetails || isBrowserNativePreview(fileDetails.mimeType)) return;
+    if (!fileDetails || isBrowserNativePreview(fileDetails.mimeType) || isEmailFile(fileDetails.mimeType)) return;
 
     let cancelled = false;
     const { mimeType, fileName: name } = fileDetails;
@@ -90,12 +92,30 @@ export function MultimediaPreviewer({ fileId, fileName, onClose }: MultimediaPre
     );
   } else {
     const mimeType = fileDetails.mimeType;
-    if (isImage) {
-      content = (
+    if (isEmailFile(mimeType)) {
+      content = <EmailPreview fileId={fileId} />;
+    } else if (isImage) {
+      content = imageError ? (
+        <div className="flex justify-center items-center w-full h-full p-4">
+          <div className="flex flex-col items-center justify-center p-8 text-white/70 gap-4 bg-dn-surface/80 backdrop-blur-md border border-white/10 rounded-2xl max-w-md text-center shadow-2xl">
+            <div className="w-16 h-16 rounded-2xl bg-dn-error/10 border border-dn-error/20 flex items-center justify-center text-dn-error">
+              <Icon name="broken_image" className="text-3xl" />
+            </div>
+            <div>
+              <p className="text-base font-semibold text-white">{t('files.preview.failed')}</p>
+              <p className="text-xs text-white/50 mt-1 break-all">{fileDetails.fileName}</p>
+            </div>
+            <a download={fileDetails.fileName} href={contentUrl} target="_blank" rel="noreferrer" className="text-white hover:bg-white/10 px-5 py-2 border border-white/20 rounded-xl transition-colors font-medium text-xs flex items-center gap-2 mt-2">
+              <Icon name="download" className="text-base" /> {t('files.preview.download')}
+            </a>
+          </div>
+        </div>
+      ) : (
         <div className={`overflow-auto w-full h-full ${zoom === 1 ? 'flex items-center justify-center p-4' : 'p-8'}`}>
           <img
             src={contentUrl}
             alt={fileDetails.fileName}
+            onError={() => setImageError(true)}
             style={{
               transform: `scale(${zoom})`,
               transformOrigin: zoom === 1 ? 'center' : 'top left',
@@ -181,22 +201,24 @@ export function MultimediaPreviewer({ fileId, fileName, onClose }: MultimediaPre
 
   return (
     <div className="fixed inset-0 z-100 flex flex-col bg-black/95 backdrop-blur-xl">
-       {/* Header */}
-       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/40 shrink-0">
-          <h2 className="text-sm font-medium text-white truncate pr-4 max-w-[50%] md:max-w-[70%]" title={title}>
-            {title}
-          </h2>
+       {/* Top Action Controls Bar */}
+       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-black/50 shrink-0">
+          <div className="flex items-center gap-2 text-xs text-white/60">
+            <Icon name="visibility" className="text-base text-dn-primary" />
+            <span>{t('files.preview.title')}</span>
+          </div>
+
           <div className="flex items-center gap-1 md:gap-2 shrink-0">
              {/* Zoom Controls for images */}
              {isImage && (
                <div className="flex items-center bg-white/5 rounded-pill px-1 mr-2 border border-white/5">
-                 <button onClick={() => setZoom(z => Math.max(1, z - 0.25))} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors">
+                 <button onClick={() => setZoom(z => Math.max(1, z - 0.25))} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer">
                     <Icon name="zoom_out" className="text-[20px]" />
                  </button>
                  <span className="text-xs text-white/70 min-w-9 text-center font-mono font-medium">
                    {Math.round(zoom * 100)}%
                  </span>
-                 <button onClick={() => setZoom(z => Math.min(4, z + 0.25))} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors">
+                 <button onClick={() => setZoom(z => Math.min(4, z + 0.25))} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer">
                     <Icon name="zoom_in" className="text-[20px]" />
                  </button>
                </div>
@@ -210,10 +232,17 @@ export function MultimediaPreviewer({ fileId, fileName, onClose }: MultimediaPre
              <div className="w-px h-5 bg-white/20 mx-1" />
 
              {/* Close */}
-             <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors" title={t('common.close')}>
+             <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer" title={t('common.close')}>
                 <Icon name="close" className="text-[22px]" />
              </button>
           </div>
+       </div>
+
+       {/* Full Filename Title Sub-Bar */}
+       <div className="px-6 py-2 bg-black/70 border-b border-white/10 shrink-0 text-center">
+         <p className="text-xs font-mono font-medium text-white/90 break-all select-all max-w-4xl mx-auto">
+           {title}
+         </p>
        </div>
 
        {/* Viewport */}

@@ -18,6 +18,7 @@ public final class FileTypeLabels {
 	private static final Map<String, String> MIME_TYPE_LABELS = Map.ofEntries(
 		Map.entry("application/pdf", "PDF"),
 		Map.entry("application/json", "JSON"),
+		Map.entry(EmailFileFormat.MIME_TYPE, "EMAIL"),
 		Map.entry("application/msword", "DOC"),
 		Map.entry("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "DOCX"),
 		Map.entry("application/vnd.ms-excel", "XLS"),

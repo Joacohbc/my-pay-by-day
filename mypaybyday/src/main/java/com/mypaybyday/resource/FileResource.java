@@ -10,14 +10,18 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.Base64FileUploadRequestDto;
+import com.mypaybyday.dto.EmailFileDto;
+import com.mypaybyday.dto.EmailUploadRequestDto;
 import com.mypaybyday.dto.ErrorResponseDto;
 import com.mypaybyday.dto.FileDto;
 import com.mypaybyday.dto.FileWithEventDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.FileEntity;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.service.EmailFileService;
 import com.mypaybyday.service.FileService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -36,8 +40,11 @@ public class FileResource {
 
 	private final FileService fileService;
 
-	public FileResource(FileService fileService) {
+	private final EmailFileService emailFileService;
+
+	public FileResource(FileService fileService, EmailFileService emailFileService) {
 		this.fileService = fileService;
+		this.emailFileService = emailFileService;
 	}
 
 	@POST
@@ -51,6 +58,18 @@ public class FileResource {
 	})
 	public RestResponse<FileDto> uploadBase64(Base64FileUploadRequestDto request) throws BusinessException {
 		return RestResponse.status(RestResponse.Status.CREATED, fileService.uploadBase64(request));
+	}
+
+	@POST
+	@Path("/emails")
+	@Operation(summary = "Store an email as a file", description = "Stores an email as a JSON file, converting its HTML body to Markdown")
+	@APIResponses({
+		@APIResponse(responseCode = "201", description = "Email stored successfully",
+				content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FileDto.class))),
+		@APIResponse(responseCode = "400", description = "Validation error, file too large, or the HTML body could not be converted")
+	})
+	public RestResponse<FileDto> uploadEmail(EmailUploadRequestDto request) throws BusinessException {
+		return RestResponse.status(RestResponse.Status.CREATED, emailFileService.upload(request));
 	}
 
 	@GET
@@ -89,12 +108,11 @@ public class FileResource {
 			@APIResponse(responseCode = "404", description = "File not found",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
-	public RestResponse<byte[]> getContentBinary(
+	public Response getContentBinary(
 			@Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		FileEntity file = fileService.getFileContent(id);
-		return RestResponse.ResponseBuilder.ok(file.data)
-				.type(file.mimeType)
+		return Response.ok(file.data, file.mimeType)
 				.header("Content-Disposition", "inline; filename=\"" + file.fileName + "\"")
 				.build();
 	}
@@ -117,6 +135,21 @@ public class FileResource {
 			return RestResponse.noContent();
 		}
 		return RestResponse.ok(markdown);
+	}
+
+	@GET
+	@Path("/{id}/email")
+	@Operation(summary = "Get an email file as a structured email", description = "Returns the stored email (subject, sender, recipients, date and body) so it can be rendered as an email")
+	@APIResponses({
+			@APIResponse(responseCode = "200", description = "Stored email",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = EmailFileDto.class))),
+			@APIResponse(responseCode = "400", description = "The file is not an email or its content is unreadable"),
+			@APIResponse(responseCode = "404", description = "File not found")
+	})
+	public RestResponse<EmailFileDto> getEmail(
+			@Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
+			throws BusinessException {
+		return RestResponse.ok(emailFileService.getEmail(id));
 	}
 
 	@GET

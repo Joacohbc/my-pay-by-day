@@ -123,6 +123,11 @@ public enum MsgKey {
 	FILE_SIZE_EXCEEDED("file.size.exceeded"),
 	FILE_NOT_FOUND("file.not.found"),
 	FILE_IN_USE("file.in.use"),
+	FILE_EMAIL_FROM_REQUIRED("file.email.from.required"),
+	FILE_EMAIL_BODY_EMPTY("file.email.body.empty"),
+	FILE_EMAIL_INVALID_TYPE("file.email.invalid.type"),
+	FILE_EMAIL_CONTENT_INVALID("file.email.content.invalid"),
+	FILE_EMAIL_CONVERSION_UNAVAILABLE("file.email.conversion.unavailable"),
 
 	// ── Validation ───────────────────────────────────────
 	VALIDATION_ONLY_LETTERS_INVALID_CHARS("error.validation.only_letters_invalid_chars"),

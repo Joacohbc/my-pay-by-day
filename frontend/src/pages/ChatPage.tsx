@@ -5,7 +5,6 @@ import { Card } from '@/components/ui/Card';
 import { useChatUI } from '@/hooks/useChatUI';
 import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput } from '@/components/chat/ChatInput';
-import { ChatImagePreview } from '@/components/chat/ChatImagePreview';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
 import { ChatList } from '@/components/chat/ChatList';
 import { TasksPanel } from '@/components/agent-tasks/TasksPanel';
@@ -25,7 +24,6 @@ export function ChatPage() {
     maxMessages,
     draftFiles,
     pendingFiles,
-    imagePreviewUrls,
     messagesEndRef,
     countdown,
     triggerSendNow,
@@ -178,12 +176,6 @@ export function ChatPage() {
 
                 <div ref={messagesEndRef} className="h-8" />
               </div>
-
-              <ChatImagePreview
-                images={draftFiles}
-                previewUrls={imagePreviewUrls}
-                onRemove={(idx) => handleRemoveFile(draftFiles[idx].id)}
-              />
 
               <ChatInput
                 inputContent={input}

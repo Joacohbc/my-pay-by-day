@@ -1596,6 +1596,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/files/emails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Store an email as a file
+         * @description Stores an email as a JSON file, converting its HTML body to Markdown
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EmailUploadRequestDto"];
+                };
+            };
+            responses: {
+                /** @description Email stored successfully */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FileDto"];
+                    };
+                };
+                /** @description Validation error, file too large, or the HTML body could not be converted */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/files/{id}": {
         parameters: {
             query?: never;
@@ -1769,7 +1819,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": string;
+                        "*/*": unknown;
                     };
                 };
                 /** @description File not found */
@@ -1838,6 +1888,62 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/files/{id}/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get an email file as a structured email
+         * @description Returns the stored email (subject, sender, recipients, date and body) so it can be rendered as an email
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID of the file */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Stored email */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EmailFileDto"];
+                    };
+                };
+                /** @description The file is not an email or its content is unreadable */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description File not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -4592,6 +4698,36 @@ export interface components {
             income?: number;
             outbound?: number;
             events?: components["schemas"]["FinanceEventDto"][];
+        };
+        /** @description Email stored as a file: the JSON document that makes up the file's content */
+        EmailFileDto: {
+            /** @description Subject line of the email */
+            subject?: string;
+            /** @description Address the email was sent from */
+            from?: string;
+            /** @description Addresses the email was sent to */
+            to?: string[];
+            /** @description Wall-clock date and time the email was sent */
+            messageDate?: components["schemas"]["LocalDateTime"];
+            /** @description Body of the email as Markdown, converted from its HTML part */
+            markdownBody?: string;
+            /** @description Plain-text body of the email as it was received */
+            textBody?: string;
+        };
+        /** @description Request object for storing an email as a file */
+        EmailUploadRequestDto: {
+            /** @description Subject line of the email */
+            subject?: string;
+            /** @description Address the email was sent from */
+            from: string;
+            /** @description Addresses the email was sent to */
+            to?: string[];
+            /** @description Wall-clock date and time the email was sent */
+            messageDate?: components["schemas"]["LocalDateTime"];
+            /** @description HTML part of the email, converted to Markdown before being stored */
+            htmlBody?: string;
+            /** @description Plain-text part of the email, stored as received */
+            textBody?: string;
         };
         /** @enum {string} */
         EntityType: "FINANCE_EVENT" | "CATEGORY" | "TAG" | "FINANCE_NODE";

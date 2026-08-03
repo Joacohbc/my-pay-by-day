@@ -5,6 +5,9 @@ import { Textarea } from '@/components/ui/Textarea';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 import { useAlert } from '@/contexts/AlertContext';
 import { FileUploader } from '@/components/ui/FileUploader';
+import { MultimediaPreviewer } from '@/components/files/MultimediaPreviewer';
+import { filesService } from '@/services/files.service';
+import { getFileIcon, getFileTypeLabel } from '@/lib/fileUtils';
 import type { FileDto } from '@/models';
 import { logger } from '@/lib/logger';
 
@@ -38,6 +41,7 @@ interface PendingFileChipProps {
 
 function PendingFileChip({ file, onRemove }: PendingFileChipProps) {
   const { t } = useTranslation();
+  const [imageError, setImageError] = useState(false);
   const isImage = file.type.startsWith('image/');
   const previewUrl = useMemo(() => (isImage ? URL.createObjectURL(file) : null), [isImage, file]);
 
@@ -49,33 +53,106 @@ function PendingFileChip({ file, onRemove }: PendingFileChipProps) {
 
   return (
     <div
-      className="flex items-center gap-2 rounded-xl border border-dashed border-dn-primary/30 bg-dn-primary/5 px-2 py-1.5"
+      className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-dn-surface/90 px-2.5 py-1.5 shadow-sm"
       title={t('chat.pendingUploadNotice')}
     >
-      {previewUrl ? (
-        <img src={previewUrl} alt={file.name} className="w-8 h-8 rounded-lg object-cover shrink-0" />
+      {previewUrl && !imageError ? (
+        <img
+          src={previewUrl}
+          alt={file.name}
+          onError={() => setImageError(true)}
+          className="w-9 h-9 rounded-lg object-cover shrink-0 border border-white/5"
+        />
       ) : (
-        <Icon name="draft" className="text-[18px] text-dn-primary/60 shrink-0" />
+        <div className="w-9 h-9 rounded-lg bg-dn-surface-low border border-white/5 flex items-center justify-center text-dn-text-muted shrink-0">
+          <Icon name={getFileIcon(file.type)} className="text-base" />
+        </div>
       )}
-      <div className="min-w-0">
-        <p className="text-xs text-dn-text-main truncate max-w-32">{file.name}</p>
-        <p className="text-[10px] text-dn-primary/60 flex items-center gap-1">
-          <Icon name="schedule_send" className="text-[12px]" />
-          {t('chat.pendingUploadBadge')}
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium text-dn-text-main truncate max-w-40">{file.name}</p>
+        <p className="text-[10px] text-dn-text-muted">
+          {(file.size / 1024).toFixed(1)} KB
         </p>
       </div>
       {onRemove && (
         <button
           type="button"
           onClick={onRemove}
-          className="w-6 h-6 flex items-center justify-center rounded-lg text-dn-text-main/40 hover:text-dn-error hover:bg-dn-error/10 transition-colors shrink-0"
+          className="w-6 h-6 flex items-center justify-center rounded-md text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors shrink-0 cursor-pointer"
           aria-label={t('common.delete')}
           title={t('common.delete')}
         >
-          <Icon name="close" className="text-[16px]" />
+          <Icon name="close" className="text-[14px]" />
         </button>
       )}
     </div>
+  );
+}
+
+interface DraftFileChipProps {
+  file: FileDto;
+  onRemove?: () => void;
+}
+
+function DraftFileChip({ file, onRemove }: DraftFileChipProps) {
+  const { t } = useTranslation();
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const isImage = file.mimeType?.startsWith('image/');
+  const contentUrl = filesService.getContentUrl(file.id);
+
+  return (
+    <>
+      <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-dn-surface/90 px-2.5 py-1.5 shadow-sm hover:border-dn-primary/30 transition-all">
+        {isImage && !imageError ? (
+          <img
+            src={contentUrl}
+            alt={file.fileName}
+            onError={() => setImageError(true)}
+            className="w-9 h-9 rounded-lg object-cover shrink-0 border border-white/5 cursor-pointer"
+            onClick={() => setIsPreviewOpen(true)}
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-lg bg-dn-surface-low border border-white/5 flex items-center justify-center text-dn-primary shrink-0">
+            <Icon name={getFileIcon(file.mimeType)} className="text-base" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-dn-text-main truncate max-w-40">{file.fileName}</p>
+          <p className="text-[10px] text-dn-text-muted">
+            {(file.size / 1024).toFixed(1)} KB • {getFileTypeLabel(file.fileName, file.mimeType)}
+          </p>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsPreviewOpen(true)}
+            className="w-6 h-6 flex items-center justify-center rounded-md text-dn-text-muted hover:text-dn-primary hover:bg-dn-primary/10 transition-colors cursor-pointer"
+            title={t('common.view')}
+          >
+            <Icon name="visibility" className="text-[14px]" />
+          </button>
+          {onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="w-6 h-6 flex items-center justify-center rounded-md text-dn-text-muted hover:text-dn-error hover:bg-dn-error/10 transition-colors cursor-pointer"
+              title={t('common.delete')}
+            >
+              <Icon name="close" className="text-[14px]" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {isPreviewOpen && (
+        <MultimediaPreviewer
+          fileId={file.id}
+          fileName={file.fileName}
+          onClose={() => setIsPreviewOpen(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -235,6 +312,28 @@ export function ChatInput({
         }}
         className="rounded-2xl border border-dn-border/20 bg-dn-surface-low focus-within:border-dn-primary/20 transition-colors overflow-hidden"
       >
+        {/* Attached files drawer (both pending & uploaded draft files) */}
+        {(pendingFiles.length > 0 || draftFiles.length > 0) && (
+          <div className="px-3 pt-3 pb-2 border-b border-white/10 flex gap-2 overflow-x-auto no-scrollbar items-center bg-white/[0.02]">
+            {pendingFiles.map((file, index) => (
+              <div key={`${file.name}-${file.size}-${index}`} className="shrink-0">
+                <PendingFileChip
+                  file={file}
+                  onRemove={onRemovePendingFile ? () => onRemovePendingFile(index) : undefined}
+                />
+              </div>
+            ))}
+            {draftFiles.map((file) => (
+              <div key={file.id} className="shrink-0">
+                <DraftFileChip
+                  file={file}
+                  onRemove={onRemoveFile ? () => onRemoveFile(file.id) : undefined}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Textarea — takes the prominent space */}
         <Textarea
           containerClassName="w-full"
@@ -255,52 +354,39 @@ export function ChatInput({
           disabled={isBusy || isRecording || disabled}
         />
 
-        {pendingFiles.length > 0 && (
-          <div className="px-3 pb-3 border-t border-dn-border/10 pt-3 space-y-2">
-            <p className="text-[10px] text-dn-primary/60 uppercase tracking-[0.2em] font-black">
-              {t('chat.pendingUploadNotice')}
+        {/* File Uploader options drawer */}
+        {showUploader && onAddFile && onRemoveFile && (
+          <div className="px-4 pb-3 border-t border-white/10 pt-3 space-y-2">
+            <p className="text-[11px] font-bold text-dn-text-muted/60 uppercase tracking-widest">
+              {t('eventForm.files')}
             </p>
-            <div className="flex flex-wrap gap-2">
-              {pendingFiles.map((file, index) => (
-                <PendingFileChip
-                  key={`${file.name}-${file.size}-${index}`}
-                  file={file}
-                  onRemove={onRemovePendingFile ? () => onRemovePendingFile(index) : undefined}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* File Uploader */}
-        {(showUploader || draftFiles.length > 0) && onAddFile && onRemoveFile && (
-          <div className="px-3 pb-3 border-t border-dn-border/10 pt-3">
             <FileUploader
-              files={draftFiles}
+              files={[]}
               onAddFile={onAddFile}
               onAddFiles={onAddFiles}
               onRemoveFile={onRemoveFile}
               onRemoveFiles={onRemoveFiles}
               onAudioFile={onAudioFileSelected ? handleAudioFile : undefined}
+              compact
             />
           </div>
         )}
 
         {/* Action bar */}
-        <div className="flex items-center justify-between px-2 pb-2 gap-2">
+        <div className="flex items-center justify-between px-3 pb-3 pt-1 gap-2">
           {/* Left: media actions */}
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-1">
             {onAddFile && (
               <button
                 type="button"
                 onClick={() => setShowUploader(!showUploader)}
                 disabled={isBusy || isRecording}
-                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${
+                className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer ${
                   showUploader
-                    ? 'text-dn-primary bg-dn-primary/10'
+                    ? 'text-dn-primary bg-dn-primary/20 border border-dn-primary/30'
                     : isBusy || isRecording
                       ? 'text-dn-text-main/20'
-                      : 'text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10'
+                      : 'text-dn-text-main/50 hover:text-dn-primary hover:bg-white/5'
                 }`}
                 aria-label={t('chat.attachFile', 'Attach file')}
                 title={t('chat.attachFile', 'Attach file')}
@@ -314,7 +400,7 @@ export function ChatInput({
                 type="button"
                 onClick={togglePlainRecording}
                 disabled={isBusy || isEnhancedRecordingActive}
-                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${micButtonClass}`}
+                className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer ${micButtonClass}`}
                 aria-label={micTitle}
                 title={micTitle}
               >
@@ -327,11 +413,11 @@ export function ChatInput({
                 type="button"
                 onClick={toggleEnhancedRecording}
                 disabled={isBusy || isPlainRecording}
-                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${enhancedMicButtonClass}`}
+                className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer ${enhancedMicButtonClass}`}
                 aria-label={enhancedMicTitle}
                 title={enhancedMicTitle}
               >
-                <Icon name={isEnhancedRecordingActive ? 'mic_off' : 'auto_fix_high'} className="text-[20px]" />
+                <Icon name={isEnhancedRecordingActive ? 'mic_off' : 'auto_awesome'} className="text-[20px]" />
               </button>
             )}
 
@@ -340,11 +426,11 @@ export function ChatInput({
                 type="button"
                 onClick={onQuickCreate}
                 disabled={isBusy || isRecording || isPending || disabled || !hasContent}
-                className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors text-dn-text-main/50 hover:text-dn-primary hover:bg-dn-primary/10 disabled:opacity-30"
+                className="w-10 h-10 flex items-center justify-center rounded-xl transition-all text-dn-text-main/50 hover:text-dn-primary hover:bg-white/5 disabled:opacity-30 cursor-pointer"
                 aria-label={t('chat.quickCreate.button')}
                 title={t('chat.quickCreate.button')}
               >
-                <Icon name="flash_on" className="text-[20px]" />
+                <Icon name="bolt" className="text-[20px]" />
               </button>
             )}
           </div>
@@ -355,7 +441,7 @@ export function ChatInput({
               <button
                 type="button"
                 onClick={onStop}
-                className="w-9 h-9 flex items-center justify-center rounded-xl shrink-0 transition-all shadow-sm bg-dn-error text-white hover:bg-dn-error/80"
+                className="w-10 h-10 flex items-center justify-center rounded-xl shrink-0 transition-all shadow-sm bg-dn-error text-white hover:bg-dn-error/80 cursor-pointer"
                 aria-label={t('chat.stop')}
                 title={t('chat.stop')}
               >
@@ -368,12 +454,12 @@ export function ChatInput({
               disabled={!canSend && !isCountingDown}
               aria-label={isCountingDown ? `${t('chat.sendNow')} (${countdown}s)` : undefined}
               title={isCountingDown ? `${t('chat.sendNow')} (${countdown}s)` : undefined}
-              className={`w-9 h-9 flex items-center justify-center rounded-xl shrink-0 transition-all ${
+              className={`w-10 h-10 flex items-center justify-center rounded-xl shrink-0 transition-all cursor-pointer ${
                 isCountingDown
                   ? 'bg-dn-primary/20 text-dn-primary hover:bg-dn-primary/30 border border-dn-primary/30 animate-pulse'
                   : canSend
                     ? 'bg-dn-primary text-white hover:bg-dn-primary/80 shadow-sm'
-                    : 'bg-dn-surface text-dn-text-main/20'
+                    : 'bg-white/5 text-dn-text-main/20'
               }`}
             >
               <Icon name={isCountingDown ? 'bolt' : 'send'} className="text-[18px]" />

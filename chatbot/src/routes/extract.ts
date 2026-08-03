@@ -3,8 +3,9 @@ import { Hono } from 'hono';
 import type { ModelMessage } from 'ai';
 import { randomUUID } from 'node:crypto';
 import { requestContextFrom } from '@/context.js';
-import type { ExtractionUserContentPart, FileInput } from '@/agent/extraction.js';
+import type { ExtractionUserContentPart } from '@/agent/extraction.js';
 import { runExtractionAgent } from '@/agent/extractionAgent.js';
+import { resolveBackendFiles } from '@/files/backendFiles.js';
 import { conversationMemory } from '@/memory/conversation.js';
 import type { DisplayMessage, DisplayPart } from '@/memory/display.js';
 import { chatTitles } from '@/memory/titles.js';
@@ -14,7 +15,8 @@ const extractLog = logger.child('extract');
 
 interface ExtractBody {
   text?: string;
-  files?: FileInput[];
+  /** Files to attach, referenced by their backend id — the caller uploads them first. */
+  fileIds?: number[];
   templateId?: number;
   chatId?: string;
 }
@@ -53,16 +55,17 @@ export const extractRoute = new Hono();
 extractRoute.post('/', async (c) => {
   const ctx = requestContextFrom(c);
   const body = (await c.req.json()) as ExtractBody;
-  if (!body.text && (!body.files || body.files.length === 0)) {
+  if (!body.text && (!body.fileIds || body.fileIds.length === 0)) {
     return errorJson(c, 'error.text_files_required', 400);
   }
 
   const chatId = body.chatId || randomUUID();
 
   try {
+    const files = await resolveBackendFiles(ctx, body.fileIds);
     const { draftId, summary, userMessage, responseMessages } = await runExtractionAgent(ctx, {
       text: body.text,
-      files: body.files,
+      files,
       templateId: body.templateId,
     });
 

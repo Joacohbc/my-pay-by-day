@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { filesService } from '@/services/files.service';
-import type { Base64FileUploadRequestDto, FileDto } from '@/models';
+import type { Base64FileUploadRequestDto, EmailUploadRequestDto, FileDto } from '@/models';
 import { fileKeys } from '@/lib/queryKeys';
 import { invalidateDomains } from '@/lib/cacheInvalidation';
 
@@ -23,6 +23,16 @@ export function useUploadFile() {
   const queryClient = useQueryClient();
   return useMutation<FileDto, Error, Base64FileUploadRequestDto>({
     mutationFn: (data) => filesService.uploadBase64(data),
+    onSuccess: () => {
+      invalidateDomains(queryClient, ['files']);
+    },
+  });
+}
+
+export function useUploadEmailFile() {
+  const queryClient = useQueryClient();
+  return useMutation<FileDto, Error, EmailUploadRequestDto>({
+    mutationFn: (data) => filesService.uploadEmail(data),
     onSuccess: () => {
       invalidateDomains(queryClient, ['files']);
     },
