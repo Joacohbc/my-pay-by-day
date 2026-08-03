@@ -10,6 +10,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 import com.mypaybyday.dto.Base64FileUploadRequestDto;
 import com.mypaybyday.dto.EmailFileDto;
@@ -107,11 +108,11 @@ public class FileResource {
 			@APIResponse(responseCode = "404", description = "File not found",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
-	public jakarta.ws.rs.core.Response getContentBinary(
+	public Response getContentBinary(
 			@Parameter(description = "ID of the file", required = true) @PathParam("id") Long id)
 			throws BusinessException {
 		FileEntity file = fileService.getFileContent(id);
-		return jakarta.ws.rs.core.Response.ok(file.data, file.mimeType)
+		return Response.ok(file.data, file.mimeType)
 				.header("Content-Disposition", "inline; filename=\"" + file.fileName + "\"")
 				.build();
 	}

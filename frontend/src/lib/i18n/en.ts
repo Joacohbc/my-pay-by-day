@@ -686,6 +686,8 @@ const en = {
     takePhoto: 'Take photo',
     cameraError: 'Could not access camera',
     createEmailButton: 'Create email',
+    uploadButton: 'Upload file',
+    uploadSuccess: 'File uploaded successfully',
     createEmailTitle: 'New email',
     subjectLabel: 'Subject',
     subjectPlaceholder: 'E.g. Uber Receipt, Payment Invoice...',

@@ -685,6 +685,8 @@ const es = {
     takePhoto: 'Sacar foto',
     cameraError: 'No se pudo acceder a la cámara',
     createEmailButton: 'Crear correo',
+    uploadButton: 'Subir archivo',
+    uploadSuccess: 'Archivo subido correctamente',
     createEmailTitle: 'Nuevo correo electrónico',
     subjectLabel: 'Asunto',
     subjectPlaceholder: 'Ej: Factura Uber, Recibo de pago...',

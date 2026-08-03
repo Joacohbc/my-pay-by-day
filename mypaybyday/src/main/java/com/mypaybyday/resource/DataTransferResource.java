@@ -6,20 +6,8 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
-
-import com.mypaybyday.dto.DataTransferDto;
-import com.mypaybyday.dto.DataTransferResult;
-import com.mypaybyday.dto.ErrorResponseDto;
-import com.mypaybyday.exception.BusinessException;
-import com.mypaybyday.service.DataTransferService;
-import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.eclipse.microprofile.openapi.annotations.media.Content;
-import org.eclipse.microprofile.openapi.annotations.media.Schema;
-import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
-import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
-import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import org.jboss.resteasy.reactive.RestResponse;
 
 import com.mypaybyday.dto.DataExportSummaryDto;
 import com.mypaybyday.dto.DataTransferDto;
@@ -62,8 +50,9 @@ public class DataTransferResource {
 	@APIResponse(responseCode = "200", description = "Data exported successfully",
 			content = @Content(mediaType = "application/zip", schema = @Schema(implementation = byte[].class)))
 	@Produces("application/zip")
-	public RestResponse<StreamingOutput> exportAll() {
-		return RestResponse.ResponseBuilder.ok(dataTransferService.exportAsZip())
+	public Response exportAll() {
+		return Response.ok(dataTransferService.exportAsZip())
+				.type("application/zip")
 				.header("Content-Disposition", "attachment; filename=\"mypaybyday-export.zip\"")
 				.build();
 	}
