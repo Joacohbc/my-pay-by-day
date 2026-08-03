@@ -5,7 +5,9 @@ import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useFiles, useUploadFile } from '@/hooks/useFiles';
+import { filesService } from '@/services/files.service';
 import { FileCard } from '@/components/files/FileCard';
+import { CreateEmailModal } from '@/components/files/CreateEmailModal';
 import type { FileDto } from '@/models';
 
 interface FileSelectorModalProps {
@@ -99,9 +101,20 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
 
+  const [createEmailOpen, setCreateEmailOpen] = useState(false);
+
   const exitSelectMode = () => {
     setSelectMode(false);
     setSelectedIds(new Set());
+  };
+
+  const handleEmailCreated = async (fileId: number) => {
+    try {
+      const file = await filesService.getById(fileId);
+      await onAddFile(file);
+    } catch {
+      // Ignore if fetch fails
+    }
   };
 
   const toggleSelected = (fileId: number) => {
@@ -197,6 +210,12 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
         loading={isRemoving}
       />
 
+      <CreateEmailModal
+        open={createEmailOpen}
+        onClose={() => setCreateEmailOpen(false)}
+        onCreated={handleEmailCreated}
+      />
+
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">{t('eventForm.files')}</p>
         {files.length > 0 && (
@@ -239,7 +258,7 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -257,6 +276,15 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
             >
               <Icon name="folder_open" />
               <span className="text-sm font-medium">{t('eventForm.selectExistingFile')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreateEmailOpen(true)}
+              disabled={isPending}
+              className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50"
+            >
+              <Icon name="mail" />
+              <span className="text-sm font-medium">{t('files.createEmailButton')}</span>
             </button>
           </div>
         )}

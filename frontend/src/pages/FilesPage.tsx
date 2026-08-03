@@ -10,8 +10,10 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { FileCard } from '@/components/files/FileCard';
+import { CreateEmailModal } from '@/components/files/CreateEmailModal';
 
 type SortDir = 'asc' | 'desc';
 type FilterMode = 'all' | 'orphan' | 'linked';
@@ -23,6 +25,7 @@ export function FilesPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [filter, setFilter] = useState<FilterMode>('all');
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [createEmailOpen, setCreateEmailOpen] = useState(false);
 
   const orphaned = filter === 'all' ? undefined : filter === 'orphan' ? true : false;
   const { data: paged, isLoading, error } = useFiles(0, 200, orphaned);
@@ -94,10 +97,26 @@ export function FilesPage() {
         loading={deleteFile.isPending}
       />
 
+      <CreateEmailModal
+        open={createEmailOpen}
+        onClose={() => setCreateEmailOpen(false)}
+      />
+
       <PageHeader
         title={t('files.title')}
         back={Routes.SETTINGS}
         subtitle={t('files.count', { count: paged?.totalElements ?? 0 })}
+        action={
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setCreateEmailOpen(true)}
+            className="flex items-center gap-1.5"
+          >
+            <Icon name="mail" className="text-base" />
+            <span>{t('files.createEmailButton')}</span>
+          </Button>
+        }
       />
 
       {/* Orphan summary */}
