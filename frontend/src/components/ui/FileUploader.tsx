@@ -8,6 +8,7 @@ import { useFiles, useUploadFile } from '@/hooks/useFiles';
 import { filesService } from '@/services/files.service';
 import { FileCard } from '@/components/files/FileCard';
 import { CreateEmailModal } from '@/components/files/CreateEmailModal';
+import { CameraModal } from '@/components/files/CameraModal';
 import type { FileDto } from '@/models';
 
 interface FileSelectorModalProps {
@@ -96,12 +97,14 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
   const [isRemoving, setIsRemoving] = useState(false);
   const isPending = isUploading || isTranscribing;
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const cameraInputRef = React.useRef<HTMLInputElement>(null);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const [createEmailOpen, setCreateEmailOpen] = useState(false);
+  const [cameraModalOpen, setCameraModalOpen] = useState(false);
 
   const exitSelectMode = () => {
     setSelectMode(false);
@@ -140,10 +143,8 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
     }
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(event.target.files || []);
+  const processRawFiles = async (selectedFiles: File[]) => {
     if (selectedFiles.length === 0) return;
-
     const uploadedFiles: FileDto[] = [];
 
     for (const file of selectedFiles) {
@@ -167,12 +168,11 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
         const base64Content = await base64Promise;
         const uploadedFile = await uploadFile({
           fileName: file.name,
-          mimeType: file.type,
+          mimeType: file.type || 'image/jpeg',
           base64Content,
         });
         uploadedFiles.push(uploadedFile);
       } catch {
-        // Upload failure is shipped by the global mutation logger (useUploadFile); handle UI only.
         continue;
       }
     }
@@ -186,8 +186,17 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
         }
       }
     }
+  };
 
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    await processRawFiles(selectedFiles);
     if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+  };
+
+  const handleCameraCapture = async (file: File) => {
+    await processRawFiles([file]);
   };
 
   return (
@@ -214,6 +223,12 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
         open={createEmailOpen}
         onClose={() => setCreateEmailOpen(false)}
         onCreated={handleEmailCreated}
+      />
+
+      <CameraModal
+        open={cameraModalOpen}
+        onClose={() => setCameraModalOpen(false)}
+        onCapture={handleCameraCapture}
       />
 
       <div className="flex items-center justify-between mb-2">
@@ -258,7 +273,16 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button
+              type="button"
+              onClick={() => setCameraModalOpen(true)}
+              disabled={isPending}
+              className="flex items-center justify-center gap-2 p-3 border border-dashed border-white/20 rounded-input text-dn-text-muted hover:text-dn-primary hover:border-dn-primary/50 hover:bg-dn-primary/5 transition-all disabled:opacity-50"
+            >
+              <Icon name="photo_camera" />
+              <span className="text-sm font-medium">{t('files.takePhoto')}</span>
+            </button>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -295,6 +319,14 @@ export function FileUploader({ files, onAddFile, onAddFiles, onRemoveFile, onRem
           className="hidden"
           multiple
           accept={accept}
+        />
+        <input
+          type="file"
+          ref={cameraInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          accept="image/*"
+          capture="environment"
         />
       </div>
     </div>

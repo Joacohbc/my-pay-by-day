@@ -682,6 +682,8 @@ const es = {
     linkedOnly: 'Vinculados',
     filterByMimeType: 'Filtrar por tipo MIME',
     allMimeTypes: 'Todos los tipos',
+    takePhoto: 'Sacar foto',
+    cameraError: 'No se pudo acceder a la cámara',
     createEmailButton: 'Crear correo',
     createEmailTitle: 'Nuevo correo electrónico',
     subjectLabel: 'Asunto',

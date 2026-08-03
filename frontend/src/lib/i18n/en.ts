@@ -683,6 +683,8 @@ const en = {
     linkedOnly: 'Linked',
     filterByMimeType: 'Filter by MIME type',
     allMimeTypes: 'All MIME types',
+    takePhoto: 'Take photo',
+    cameraError: 'Could not access camera',
     createEmailButton: 'Create email',
     createEmailTitle: 'New email',
     subjectLabel: 'Subject',
