@@ -680,6 +680,8 @@ const es = {
     all: 'Todos',
     orphansOnly: 'Huérfanos',
     linkedOnly: 'Vinculados',
+    filterByMimeType: 'Filtrar por tipo MIME',
+    allMimeTypes: 'Todos los tipos',
     preview: {
       title: 'Vista previa',
       failed: 'No se pudo cargar la vista previa.',

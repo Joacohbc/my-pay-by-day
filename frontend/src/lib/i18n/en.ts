@@ -681,6 +681,8 @@ const en = {
     all: 'All',
     orphansOnly: 'Orphans',
     linkedOnly: 'Linked',
+    filterByMimeType: 'Filter by MIME type',
+    allMimeTypes: 'All MIME types',
     preview: {
       title: 'Preview',
       failed: 'Failed to load preview.',
