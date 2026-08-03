@@ -1,0 +1,14 @@
+{
+  "name": "mcp-proxy-bridge",
+  "version": "1.0.0",
+  "description": "Proxy bridge for MCP server",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.1",
+    "express": "^4.21.2"
+  }
+}
