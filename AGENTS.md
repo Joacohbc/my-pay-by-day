@@ -632,6 +632,7 @@ The test for a new signal: *would this number tell me something I cannot already
 2. **Ship raw sampled events, not pre-computed percentiles.** A percentile computed per client window cannot be re-aggregated (a p95 of p95s is wrong). Sampled per-event lines plus `quantile_over_time(...)` over an `unwrap` yield a true percentile.
 3. **Never collide with an existing label.** `discovery.relabel` already publishes `job="docker"` for every container, which is why the scheduler summary uses `job_name`. Job duration is `job_time_ms`, not `time_ms`, so it can never be mixed into the request-latency panels.
 4. **Telemetry must never evict errors.** Client telemetry keeps its own in-memory buffer (`rumReporter.ts`), separate from the capped, IndexedDB-persisted error buffer in `errorLogStore`.
+5. **Emit the billable unit, never a run-level aggregate.** Rule 2 applied to money. OpenRouter bills — and counts as a request — **one generation per step** of a tool-calling loop, so `logLlmGeneration` fires from `onStepFinish` and every token and cost figure comes from those lines alone. Deriving them in `onFinish` instead is a standing trap: the AI SDK exposes only the *final* step's `providerMetadata` there (`OnFinishEvent = StepResult & { steps, totalUsage }`), so a six-step turn gets charged at the price of its last call, and an aborted or failed stream — where `onFinish` never runs at all — is billed by OpenRouter and recorded nowhere. Cost is `usage.cost` **plus** `cost_details.upstream_inference_cost`, which is what a BYOK key is actually billed and what OpenRouter's own activity page shows. `llm_run` carries only turn latency and a generation count, so summing either event can never double-count the other.
 
 #### Heartbeats are liveness, nothing else
 
@@ -658,7 +659,7 @@ There are exactly **four**, one per scope. A signal belongs to the dashboard for
 |---|---|
 | `MPBD — System` | Everything crossing service boundaries: traffic and errors per service, status codes, a single request traced end to end, and **availability** (heartbeat, uptime, gateway upstream 5xx). Owns the cross-service error and volume cuts — do not duplicate them on a per-service dashboard. |
 | `MPBD — Backend` | Requests, latency and errors per endpoint, plus the **scheduled jobs** whose failures corrupt the ledger. |
-| `MPBD — Chatbot` | Tool calls, token usage and OpenRouter cost, LLM and agent-task failures. |
+| `MPBD — Chatbot` | The work the chatbot did *outbound*: generations sent to the model, calls made to the backend, tool calls, agent tasks — plus tokens, OpenRouter cost, and LLM/agent failures. Traffic the chatbot *receives* is a cross-service cut and belongs to `System`. |
 | `MPBD — Frontend` | Served requests and JS errors, API latency as the browser sees it, and the **offline event queue**. |
 
 Two of those rows carry signals that no error rate or status code will ever surface, and they are the reason the instrumentation exists at all:

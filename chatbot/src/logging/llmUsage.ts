@@ -7,7 +7,7 @@ export type LlmFlow =
 
 const llmLog = logger.child('llm');
 
-export interface UsageLike {
+interface UsageLike {
   inputTokens?: number;
   outputTokens?: number;
   totalTokens?: number;
@@ -15,40 +15,69 @@ export interface UsageLike {
 
 interface OpenRouterUsageMetadata {
   cost?: number;
+  costDetails?: { upstreamInferenceCost?: number };
 }
 
 function openRouterUsage(providerMetadata: unknown): OpenRouterUsageMetadata | undefined {
   return (providerMetadata as { openrouter?: { usage?: OpenRouterUsageMetadata } } | undefined)?.openrouter?.usage;
 }
 
-/** Reads the OpenRouter-reported cost (USD) for a single model call from its providerMetadata, when usage accounting is enabled on the model. */
-export function costOf(providerMetadata: unknown): number | undefined {
-  return openRouterUsage(providerMetadata)?.cost;
+/**
+ * Reads what OpenRouter charged for one generation, when usage accounting is enabled on the model.
+ *
+ * `usage.cost` alone is what comes off the OpenRouter credit balance; on a BYOK key the inference is
+ * billed upstream and reported separately as `cost_details.upstream_inference_cost`. OpenRouter's own
+ * activity page shows the two together, so both are summed here or the totals cannot be compared.
+ * @see https://openrouter.ai/docs/use-cases/usage-accounting
+ */
+function costOf(providerMetadata: unknown): number | undefined {
+  const usage = openRouterUsage(providerMetadata);
+  const upstreamInferenceCost = usage?.costDetails?.upstreamInferenceCost;
+  if (usage?.cost == null && upstreamInferenceCost == null) return undefined;
+  return (usage?.cost ?? 0) + (upstreamInferenceCost ?? 0);
 }
 
-interface StepUsageLike {
-  usage?: UsageLike;
-  providerMetadata?: unknown;
+/** One LLM call: a step of a tool-calling loop, or the whole of a single-shot generation. */
+export interface LlmGeneration {
+  readonly usage?: UsageLike;
+  readonly providerMetadata?: unknown;
 }
 
 /**
- * generateText does not expose an aggregate `totalUsage` across tool-calling steps the way
- * streamText's onFinish does, so multi-step flows (agent loop, extraction agent) must sum each
- * step's usage/cost themselves.
+ * Logs one line per generation — a single LLM call, which is the unit OpenRouter bills and counts as
+ * a request on its activity page. A tool-calling turn emits one of these per step.
+ *
+ * Deliberately not derived from a finished run: `onFinish` exposes only the *final* step's
+ * providerMetadata, and does not fire at all when a stream is aborted or fails — yet OpenRouter
+ * still charges for every generation that completed before that. Emitting at the step is what makes
+ * the total reconcilable with OpenRouter instead of a silent undercount.
+ *
+ * Tokens and cost live here and nowhere else, so that summing them can never double-count a run.
  */
-export function aggregateStepUsage(steps: readonly StepUsageLike[]): { usage: UsageLike; costUsd?: number } {
-  let inputTokens = 0;
-  let outputTokens = 0;
-  let totalTokens = 0;
-  let costUsd: number | undefined;
-  for (const step of steps) {
-    inputTokens += step.usage?.inputTokens ?? 0;
-    outputTokens += step.usage?.outputTokens ?? 0;
-    totalTokens += step.usage?.totalTokens ?? 0;
-    const stepCost = costOf(step.providerMetadata);
-    if (stepCost != null) costUsd = (costUsd ?? 0) + stepCost;
-  }
-  return { usage: { inputTokens, outputTokens, totalTokens }, costUsd };
+export function logLlmGeneration(flow: LlmFlow, model: string, generation: LlmGeneration, extra?: LogFields): void {
+  const costUsd = costOf(generation.providerMetadata);
+  llmLog.info('llm generation', {
+    event: 'llm_generation',
+    flow,
+    model,
+    inputTokens: generation.usage?.inputTokens ?? 0,
+    outputTokens: generation.usage?.outputTokens ?? 0,
+    totalTokens: generation.usage?.totalTokens ?? 0,
+    ...(costUsd != null && { costUsd }),
+    ...extra,
+  });
+}
+
+/** Logs one line per run: how long the user waited, and how many generations it took to answer. */
+export function logLlmRun(flow: LlmFlow, model: string, durationMs: number, generations: number, extra?: LogFields): void {
+  llmLog.info('llm run', {
+    event: 'llm_run',
+    flow,
+    model,
+    generations,
+    durationMs,
+    ...extra,
+  });
 }
 
 /** Classifies an LLM call failure into a small, stable set of causes for dashboard grouping. */
@@ -65,28 +94,6 @@ export function classifyLlmError(error: unknown): string {
   if (name === 'AbortError' || name === 'TimeoutError') return 'timeout';
   if (/fetch failed|ECONNREFUSED|ENOTFOUND|socket|network/i.test((error as Error)?.message ?? '')) return 'network';
   return 'unknown';
-}
-
-/** Logs one summary line per LLM call: tokens, model, cost (if OpenRouter usage accounting is enabled) and latency. */
-export function logLlmUsage(
-  flow: LlmFlow,
-  model: string,
-  durationMs: number,
-  usage?: UsageLike,
-  costUsd?: number,
-  extra?: LogFields,
-): void {
-  llmLog.info('llm usage', {
-    event: 'llm_usage',
-    flow,
-    model,
-    inputTokens: usage?.inputTokens ?? 0,
-    outputTokens: usage?.outputTokens ?? 0,
-    totalTokens: usage?.totalTokens ?? 0,
-    ...(costUsd != null && { costUsd }),
-    durationMs,
-    ...extra,
-  });
 }
 
 /** Logs an LLM call failure with a classified cause, so dashboards can break failures down by why they happened. */

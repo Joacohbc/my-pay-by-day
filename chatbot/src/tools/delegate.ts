@@ -6,7 +6,7 @@ import type { RequestContext } from '@/context.js';
 import { groundingNow } from '@/dates.js';
 import { longTermMemory } from '@/memory/longTerm.js';
 import { logger } from '@/logging/logger.js';
-import { costOf, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
+import { logLlmError, logLlmGeneration, logLlmRun } from '@/logging/llmUsage.js';
 import { largeModel } from '@/models.js';
 import { subagentSystemPrompt, type ExecutionMode } from '@/prompts/system.js';
 import type { KindedToolSet } from '@/tools/types.js';
@@ -73,9 +73,10 @@ export function buildDelegateTools(ctx: RequestContext, parentMode: ExecutionMod
             tools: toolsForMode(kindedTools, effectiveMode),
             stopWhen: stepCountIs(config.agent.subagentMaxSteps),
             abortSignal,
-            onFinish: ({ response, totalUsage, providerMetadata }) => {
+            onStepFinish: (step) => logLlmGeneration('delegate', step.response.modelId, step, { title }),
+            onFinish: ({ response, steps }) => {
               const durationMs = Math.round(performance.now() - delegateStartedAt);
-              logLlmUsage('delegate', response.modelId, durationMs, totalUsage, costOf(providerMetadata), { title });
+              logLlmRun('delegate', response.modelId, durationMs, steps.length, { title });
             },
             onError: ({ error }) => {
               const durationMs = Math.round(performance.now() - delegateStartedAt);

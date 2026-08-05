@@ -6,7 +6,7 @@ import { config } from '@/config.js';
 import type { RequestContext } from '@/context.js';
 import { groundingNow } from '@/dates.js';
 import { logger } from '@/logging/logger.js';
-import { aggregateStepUsage, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
+import { logLlmError, logLlmGeneration, logLlmRun } from '@/logging/llmUsage.js';
 import { largeModel } from '@/models.js';
 import { longTermMemory } from '@/memory/longTerm.js';
 import { extractionAgentSystemPrompt } from '@/prompts/system.js';
@@ -68,6 +68,7 @@ export async function runExtractionAgent(ctx: RequestContext, input: ExtractInpu
       messages: [{ role: 'user', content: modelContent }],
       tools: toolsForMode(buildAllTools(ctx), 'DRAFT_ONLY'),
       stopWhen: stepCountIs(config.agent.subagentMaxSteps),
+      onStepFinish: (step) => logLlmGeneration('extraction', step.response.modelId, step),
     });
   } catch (error) {
     logLlmError('extraction', config.models.large, Math.round(performance.now() - startedAt), error);
@@ -75,8 +76,7 @@ export async function runExtractionAgent(ctx: RequestContext, input: ExtractInpu
   }
 
   const durationMs = Math.round(performance.now() - startedAt);
-  const { usage, costUsd } = aggregateStepUsage(result.steps);
-  logLlmUsage('extraction', result.response.modelId, durationMs, usage, costUsd, { steps: result.steps.length });
+  logLlmRun('extraction', result.response.modelId, durationMs, result.steps.length);
 
   const draftId = findCreatedDraftId(result.steps);
   if (draftId == null) {
