@@ -78,10 +78,10 @@
       {
         "name": "ip",
         "type": "textbox",
-        "query": "",
+        "query": ".*",
         "current": {
-          "text": "",
-          "value": ""
+          "text": ".*",
+          "value": ".*"
         }
       }
     ]

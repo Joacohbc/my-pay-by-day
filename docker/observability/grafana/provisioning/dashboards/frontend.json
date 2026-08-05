@@ -24,7 +24,7 @@
   "panels": [
     {
       "id": 1,
-      "title": "Requests served",
+      "title": "Static assets served (nginx)",
       "type": "stat",
       "datasource": {
         "type": "loki",
@@ -77,11 +77,12 @@
           "queryType": "instant",
           "expr": "sum(count_over_time({service=\"frontend\"} | status != `` [$__range]))"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 2,
-      "title": "Client errors 4xx",
+      "title": "Asset errors 4xx (nginx)",
       "type": "stat",
       "datasource": {
         "type": "loki",
@@ -140,13 +141,14 @@
           },
           "editorMode": "code",
           "queryType": "instant",
-          "expr": "sum(count_over_time({service=\"frontend\"} | status =~ `4..` [$__range]))"
+          "expr": "sum(count_over_time({service=\"frontend\"} | status =~ `4..` [$__range])) or vector(0)"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 3,
-      "title": "Server errors 5xx",
+      "title": "Asset errors 5xx (nginx)",
       "type": "stat",
       "datasource": {
         "type": "loki",
@@ -201,13 +203,14 @@
           },
           "editorMode": "code",
           "queryType": "instant",
-          "expr": "sum(count_over_time({service=\"frontend\"} | status =~ `5..` [$__range]))"
+          "expr": "sum(count_over_time({service=\"frontend\"} | status =~ `5..` [$__range])) or vector(0)"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 4,
-      "title": "Not found 404",
+      "title": "Assets not found 404 (nginx)",
       "type": "stat",
       "datasource": {
         "type": "loki",
@@ -262,13 +265,14 @@
           },
           "editorMode": "code",
           "queryType": "instant",
-          "expr": "sum(count_over_time({service=\"frontend\"} | status = `404` [$__range]))"
+          "expr": "sum(count_over_time({service=\"frontend\"} | status = `404` [$__range])) or vector(0)"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 5,
-      "title": "Request rate",
+      "title": "Asset request rate (nginx)",
       "type": "timeseries",
       "datasource": {
         "type": "loki",
@@ -311,11 +315,12 @@
           "expr": "sum(count_over_time({service=\"frontend\"} | status != `` [$__auto]))",
           "legendFormat": "requests"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 6,
-      "title": "Status codes",
+      "title": "Asset status codes (nginx)",
       "type": "barchart",
       "datasource": {
         "type": "loki",
@@ -362,11 +367,12 @@
           "expr": "sum by (status) (count_over_time({service=\"frontend\"} | status != `` [$__range]))",
           "legendFormat": "{{status}}"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 7,
-      "title": "Top paths",
+      "title": "Top asset paths (nginx)",
       "type": "table",
       "datasource": {
         "type": "loki",
@@ -426,11 +432,12 @@
           "expr": "topk(15, sum by (path) (count_over_time({service=\"frontend\"} | path != `` [$__range])))",
           "legendFormat": "{{path}}"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 8,
-      "title": "Top failing paths (4xx/5xx)",
+      "title": "Top failing asset paths (nginx)",
       "type": "table",
       "datasource": {
         "type": "loki",
@@ -491,7 +498,8 @@
           "expr": "topk(15, sum by (status, path) (count_over_time({service=\"frontend\"} | status =~ `[45]..` [$__range])))",
           "legendFormat": "{{status}} {{path}}"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 9,
@@ -559,7 +567,7 @@
     },
     {
       "id": 10,
-      "title": "Recent failures (raw)",
+      "title": "Recent asset failures (nginx, raw)",
       "type": "logs",
       "datasource": {
         "type": "loki",
@@ -589,11 +597,12 @@
           "queryType": "range",
           "expr": "{service=\"frontend\"} | status =~ `[45]..`"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 11,
-      "title": "Unhandled JS errors (click to expand full signature)",
+      "title": "Client errors \u2014 JS and API (click to expand)",
       "type": "logs",
       "datasource": {
         "type": "loki",
@@ -623,7 +632,8 @@
           "queryType": "range",
           "expr": "{service=\"frontend\", level=\"error\"} | json | line_format `{{.kind}} {{.route}} \u2014 {{.message}}`"
         }
-      ]
+      ],
+      "description": "Everything the browser shipped at `level=error`. Only `react` and `unhandledrejection` are truly unhandled; `api` (a failed query/mutation) and `caught` are explicitly reported, which is why the `kind` leads each line."
     },
     {
       "id": 12,
