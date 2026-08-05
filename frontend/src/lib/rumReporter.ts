@@ -35,6 +35,16 @@ interface ClientTelemetryBase {
   appVersion: string;
 }
 
+/**
+ * Who failed, from the only vantage point that can tell them apart.
+ *
+ * `aborted` is not a failure — a superseded query or a navigation cancels its own request, and
+ * counting those as network trouble is what used to inflate the network-failure panel.
+ * `network` and `edge` are invisible to every other service: the request either never left the
+ * device or was answered before it reached the gateway, so nothing server-side ever logged it.
+ */
+export type ApiFailureKind = 'aborted' | 'network' | 'edge' | 'api';
+
 interface ApiTimingEntry extends ClientTelemetryBase {
   kind: 'api-timing';
   method: string;
@@ -42,6 +52,8 @@ interface ApiTimingEntry extends ClientTelemetryBase {
   durationMs: number;
   status: number;
   ok: boolean;
+  requestId: string;
+  failureKind?: ApiFailureKind;
 }
 
 interface OfflineQueueEntry extends ClientTelemetryBase {
@@ -58,6 +70,8 @@ export interface ApiMeasurement {
   durationMs: number;
   status: number;
   ok: boolean;
+  requestId: string;
+  failureKind?: ApiFailureKind;
 }
 
 const ID_SEGMENT = /^(\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
@@ -127,6 +141,8 @@ export function reportApiTiming(measurement: ApiMeasurement): void {
     durationMs: Math.round(measurement.durationMs),
     status: measurement.status,
     ok: measurement.ok,
+    requestId: measurement.requestId,
+    ...(measurement.failureKind && { failureKind: measurement.failureKind }),
   });
 }
 

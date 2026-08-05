@@ -647,7 +647,9 @@ The test for a new signal: *would this number tell me something I cannot already
 
 Rides the **existing** `/client-logs` nginx sink — `frontend/nginx.conf` echoes any POSTed JSON body verbatim to stdout, so this needs no new infrastructure. Two shapes, both `level:"info"`, one JSON object per POST:
 
-* `kind:"api-timing"` — one entry per API call as the browser saw it (`method`, templated `path`, `durationMs`, `status`, `ok`). Head-sampled at 10%, but **failures and calls over 1 s always ship**, so those counts are absolute while the overall count is not. `status:0` means the request never reached the server — invisible to the backend, and the reason this exists at all.
+* `kind:"api-timing"` — one entry per API call as the browser saw it (`method`, templated `path`, `durationMs`, `status`, `ok`, `requestId`, `failureKind`). Head-sampled at 10%, but **failures and calls over 1 s always ship**, so those counts are absolute while the overall count is not. **Count failures, never compute a rate from them** — dividing by the sampled call total overstates the error rate roughly tenfold; a true rate comes from the gateway, which sees everything.
+  * `failureKind` answers *who failed*, which no status code can: `aborted` (a superseded query or a navigation cancelling its own request — not a failure, and kept separate so it stops inflating the others), `network` (the fetch rejected with no response at all), `edge` (an error response with **no `X-Request-Id`** — Cloudflare Access, the tunnel or an nginx error page, since only the backend and chatbot echo that header, so a 403 from the edge is otherwise indistinguishable from a 403 from the app), and `api` (the app answered and refused).
+  * `network` and `edge` are **invisible to every other service** — nothing server-side ever logged them — which is the whole reason client telemetry exists. `requestId` is what carries an `api` failure over to the Backend dashboard's request trace.
 * `kind:"offline-queue"` — reported at startup when the persisted queue is non-empty, from the store's `onRehydrateStorage` (the one point where the whole queue is known regardless of which page loaded). `oldestAgeHours` matters more than `pendingCount`: a queue draining in minutes is normal, one sitting for days is stranded data.
 
 All timings come from the single `timedFetch` chokepoint in `services/api.ts` — instrument there, not at call sites. `VITE_LOG_LEVEL=silent` disables client telemetry entirely.
@@ -663,7 +665,7 @@ There are exactly **four**, one per scope. A signal belongs to the dashboard for
 | `MPBD — System` | Everything crossing service boundaries: traffic and errors per service, status codes, a single request traced end to end, and **availability** (heartbeat, uptime, gateway upstream 5xx). Owns the cross-service error and volume cuts — do not duplicate them on a per-service dashboard. |
 | `MPBD — Backend` | Requests, latency and errors per endpoint, plus the **scheduled jobs** whose failures corrupt the ledger. |
 | `MPBD — Chatbot` | The work the chatbot did *outbound*: generations sent to the model, calls made to the backend, tool calls, agent tasks — plus tokens, OpenRouter cost, and LLM/agent failures. Traffic the chatbot *receives* is a cross-service cut and belongs to `System`. |
-| `MPBD — Frontend` | Served requests and JS errors, API latency as the browser sees it, and the **offline event queue**. |
+| `MPBD — Frontend` | Two separate things that must not be confused. **The SPA server**: the nginx serving static assets — it never proxies `/api/*`, so no API status code can appear in its access logs. **The client**: what the browser actually experienced — failures by kind, API status codes, end-to-end latency, JS errors, and the **offline event queue**. |
 
 Two of those rows carry signals that no error rate or status code will ever surface, and they are the reason the instrumentation exists at all:
 
