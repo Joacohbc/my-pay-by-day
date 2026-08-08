@@ -4,7 +4,7 @@ import { Hono } from 'hono';
 import { languageName, requestContextFrom } from '@/context.js';
 import { config } from '@/config.js';
 import { logger } from '@/logging/logger.js';
-import { classifyLlmError, costOf, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
+import { classifyLlmError, logLlmError, logLlmGeneration, logLlmRun } from '@/logging/llmUsage.js';
 import { audioTranscriptionModel, fastModel } from '@/models.js';
 import { formattingGuidance } from '@/prompts/system.js';
 
@@ -19,9 +19,10 @@ export const audioRoute = new Hono();
  */
 async function transcribeOnce(audioBytes: Uint8Array, startedAt: number): Promise<string> {
   const result = await transcribe({ model: audioTranscriptionModel(), audio: audioBytes });
-  // The OpenRouter whisper endpoint returns plain text only — no usage/cost — so tokens stay unset;
-  // this still tracks call count, latency and failures for the audio flow.
-  logLlmUsage('audio', config.models.audio, Math.round(performance.now() - startedAt));
+  // Speech-to-text is billed per second of audio rather than per token, so tokens stay unset; the
+  // cost is logged whenever the endpoint accounts for it, keeping this flow out of the Grafana gap.
+  logLlmGeneration('audio', config.models.audio, result);
+  logLlmRun('audio', config.models.audio, Math.round(performance.now() - startedAt), 1);
   return result.text;
 }
 
@@ -93,12 +94,13 @@ async function editTextFromDictation(currentText: string, dictation: string, lan
   ];
   const startedAt = performance.now();
   try {
-    const { text, usage, response, providerMetadata } = await generateText({
+    const { text, response, steps } = await generateText({
       model: fastModel(),
       system: enhancedTranscriptionSystemPrompt(lang, currency),
       prompt: userParts.join('\n\n'),
+      onStepFinish: (step) => logLlmGeneration('audioEdit', step.response.modelId, step),
     });
-    logLlmUsage('audioEdit', response.modelId, Math.round(performance.now() - startedAt), usage, costOf(providerMetadata));
+    logLlmRun('audioEdit', response.modelId, Math.round(performance.now() - startedAt), steps.length);
     return text.trim().replace(/^["']|["']$/g, '');
   } catch (error) {
     logLlmError('audioEdit', config.models.fast, Math.round(performance.now() - startedAt), error);

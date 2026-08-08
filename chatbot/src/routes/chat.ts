@@ -18,7 +18,7 @@ import { toUIParts, type DisplayMessage, type DisplayOverlays, type DisplayPart 
 import { chatTitles } from '@/memory/titles.js';
 import { longTermMemory } from '@/memory/longTerm.js';
 import { logger } from '@/logging/logger.js';
-import { costOf, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
+import { logLlmError, logLlmGeneration, logLlmRun } from '@/logging/llmUsage.js';
 import { largeModel } from '@/models.js';
 import { chatSystemPrompt, type ExecutionMode } from '@/prompts/system.js';
 import { withSseKeepAlive } from '@/routes/sseKeepAlive.js';
@@ -255,8 +255,11 @@ chatRoute.post('/', async (c) => {
     tools: chatTools,
     stopWhen: stepCountIs(config.agent.maxSteps),
     abortSignal: abortController.signal,
-    onStepFinish: (step) => persistStep(step.response.messages, step.toolResults),
-    onFinish: ({ text, steps, response, totalUsage, providerMetadata }) => {
+    onStepFinish: (step) => {
+      logLlmGeneration('chat', step.response.modelId, step);
+      persistStep(step.response.messages, step.toolResults);
+    },
+    onFinish: ({ text, steps, response }) => {
       chatGenerationTracker.markGenerationComplete(chatId, abortController);
       const toolCalls = steps.flatMap((step) => step.toolCalls ?? []);
       const tools = [...new Set(toolCalls.map((call) => call.toolName))];
@@ -264,12 +267,14 @@ chatRoute.post('/', async (c) => {
       // Prod (INFO): how many/which tools ran and how long until the answer — never the reply text.
       log.info('chat finished', { steps: steps.length, toolCount: toolCalls.length, tools, durationMs });
       log.debug('chat reply', { reply: text });
-      logLlmUsage('chat', response.modelId, durationMs, totalUsage, costOf(providerMetadata), { steps: steps.length });
+      logLlmRun('chat', response.modelId, durationMs, steps.length);
       void chatTitles.generateIfMissing(chatId, ctx.lang);
     },
-    onAbort: () => {
+    onAbort: ({ steps }) => {
       chatGenerationTracker.markGenerationComplete(chatId, abortController);
-      log.info('chat aborted', { durationMs: Math.round(performance.now() - generationStartedAt) });
+      const durationMs = Math.round(performance.now() - generationStartedAt);
+      log.info('chat aborted', { durationMs });
+      logLlmRun('chat', config.models.large, durationMs, steps.length);
     },
     onError: ({ error }) => {
       chatGenerationTracker.markGenerationComplete(chatId, abortController);

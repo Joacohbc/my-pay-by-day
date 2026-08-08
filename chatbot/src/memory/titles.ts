@@ -3,7 +3,7 @@ import { languageName } from '@/context.js';
 import { fastModel } from '@/models.js';
 import { conversationMemory, textOf } from '@/memory/conversation.js';
 import { logger } from '@/logging/logger.js';
-import { costOf, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
+import { logLlmError, logLlmGeneration, logLlmRun } from '@/logging/llmUsage.js';
 import { config } from '@/config.js';
 
 const titleLog = logger.child('chat-title');
@@ -21,14 +21,15 @@ export const chatTitles = {
     const transcript = messages.map((m) => `${m.role.toUpperCase()}: ${textOf(m)}`).join('\n');
     const startedAt = performance.now();
     try {
-      const { text, usage, response, providerMetadata } = await generateText({
+      const { text, response, steps } = await generateText({
         model: fastModel(),
         prompt:
           `Write a short title (max 6 words, no quotes, no trailing punctuation) in ${languageName(lang)} ` +
           `that summarises what this finance-assistant conversation is about:\n\n${transcript}`,
+        onStepFinish: (step) => logLlmGeneration('title', step.response.modelId, step, { chatId }),
       });
       const durationMs = Math.round(performance.now() - startedAt);
-      logLlmUsage('title', response.modelId, durationMs, usage, costOf(providerMetadata), { chatId });
+      logLlmRun('title', response.modelId, durationMs, steps.length, { chatId });
       const title = text.trim().slice(0, MAX_TITLE_LENGTH);
       if (title) conversationMemory.setTitle(chatId, title);
     } catch (error) {

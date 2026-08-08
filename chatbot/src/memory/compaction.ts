@@ -3,7 +3,7 @@ import { config } from '@/config.js';
 import { languageName } from '@/context.js';
 import { fastModel } from '@/models.js';
 import { conversationMemory, textOf, type SequencedMessage } from '@/memory/conversation.js';
-import { costOf, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
+import { logLlmError, logLlmGeneration, logLlmRun } from '@/logging/llmUsage.js';
 
 const COMPACTION_THRESHOLD = 0.9;
 
@@ -75,9 +75,10 @@ export async function compactIfNeeded(chatId: string, lang: string): Promise<voi
         `You maintain a running summary of a finance-assistant conversation, written in ${languageName(lang)}. ` +
         `Update it to incorporate the new messages, preserving key facts, decisions, IDs, amounts, and any pending ` +
         `drafts or follow-ups. Return only the updated summary.\n\n${priorSummary}${transcript}`,
+      onStepFinish: (step) => logLlmGeneration('compaction', step.response.modelId, step, { chatId }),
     });
     const durationMs = Math.round(performance.now() - startedAt);
-    logLlmUsage('compaction', result.response.modelId, durationMs, result.usage, costOf(result.providerMetadata), { chatId });
+    logLlmRun('compaction', result.response.modelId, durationMs, result.steps.length, { chatId });
     text = result.text;
   } catch (error) {
     logLlmError('compaction', config.models.fast, Math.round(performance.now() - startedAt), error, { chatId });

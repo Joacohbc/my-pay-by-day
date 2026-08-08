@@ -39,11 +39,35 @@ const AUDIO_FORMAT_BY_MEDIA_TYPE: Record<string, string> = {
   'audio/aac': 'aac',
 };
 
+interface OpenRouterTranscriptionUsage {
+  cost?: number;
+  cost_details?: { upstream_inference_cost?: number };
+}
+
+/**
+ * Restates the transcription endpoint's usage block in the camelCase shape the chat provider
+ * publishes under `providerMetadata.openrouter.usage`, so one cost reader serves every flow.
+ */
+function transcriptionProviderMetadata(usage: OpenRouterTranscriptionUsage | undefined) {
+  if (!usage) return undefined;
+  const upstreamInferenceCost = usage.cost_details?.upstream_inference_cost;
+  if (usage.cost == null && upstreamInferenceCost == null) return undefined;
+  return {
+    openrouter: {
+      usage: {
+        ...(usage.cost != null && { cost: usage.cost }),
+        ...(upstreamInferenceCost != null && { costDetails: { upstreamInferenceCost } }),
+      },
+    },
+  };
+}
+
 /**
  * Custom TranscriptionModelV3 adapter for OpenRouter's dedicated /audio/transcriptions endpoint,
  * since @openrouter/ai-sdk-provider only exposes a chat model factory (no transcriptionModel support).
- * OpenRouter's whisper endpoint only returns plain text, so segments/language/durationInSeconds are
- * always empty — a permanent limitation of the underlying provider, not a stopgap.
+ * OpenRouter's whisper endpoint returns the transcript and, when it accounts for it, a usage block —
+ * never timings, so segments/language/durationInSeconds stay empty. That is a permanent limitation
+ * of the underlying provider, not a stopgap.
  */
 export function audioTranscriptionModel(): TranscriptionModel {
   return {
@@ -82,7 +106,8 @@ export function audioTranscriptionModel(): TranscriptionModel {
         throw new Error(`OpenRouter transcription request failed (${response.status}): ${await response.text()}`);
       }
 
-      const { text } = (await response.json()) as { text: string };
+      const { text, usage } = (await response.json()) as { text: string; usage?: OpenRouterTranscriptionUsage };
+      const providerMetadata = transcriptionProviderMetadata(usage);
 
       return {
         text: text.trim(),
@@ -94,6 +119,7 @@ export function audioTranscriptionModel(): TranscriptionModel {
           timestamp: new Date(),
           modelId: config.models.audio,
         },
+        ...(providerMetadata && { providerMetadata }),
       };
     },
   };

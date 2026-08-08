@@ -5,7 +5,7 @@ import { languageName, requestContextFrom } from '@/context.js';
 import { fastModel } from '@/models.js';
 import { formattingGuidance } from '@/prompts/system.js';
 import { logger } from '@/logging/logger.js';
-import { costOf, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
+import { logLlmError, logLlmGeneration, logLlmRun } from '@/logging/llmUsage.js';
 import { config } from '@/config.js';
 
 const textLog = logger.child('text');
@@ -45,9 +45,14 @@ textRoute.post('/', async (c) => {
 
   const startedAt = performance.now();
   try {
-    const { text, usage, response, providerMetadata } = await generateText({ model: fastModel(), system, prompt });
+    const { text, response, steps } = await generateText({
+      model: fastModel(),
+      system,
+      prompt,
+      onStepFinish: (step) => logLlmGeneration('text', step.response.modelId, step, { action: req.action }),
+    });
     const durationMs = Math.round(performance.now() - startedAt);
-    logLlmUsage('text', response.modelId, durationMs, usage, costOf(providerMetadata), { action: req.action });
+    logLlmRun('text', response.modelId, durationMs, steps.length, { action: req.action });
     return c.json({ text: text.trim().replace(/^["']|["']$/g, '') });
   } catch (e) {
     const durationMs = Math.round(performance.now() - startedAt);

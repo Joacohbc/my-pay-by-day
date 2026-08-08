@@ -7,7 +7,7 @@ import type { components } from '@/backend/schema.js';
 import { languageName, type RequestContext } from '@/context.js';
 import { largeModel } from '@/models.js';
 import { logger } from '@/logging/logger.js';
-import { costOf, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
+import { logLlmError, logLlmGeneration, logLlmRun } from '@/logging/llmUsage.js';
 import { longTermMemory } from '@/memory/longTerm.js';
 import { formattingGuidance, memoriesBlock } from '@/prompts/system.js';
 import { buildFinanceTools } from '@/tools/finance.js';
@@ -129,9 +129,10 @@ export async function streamFormPatch(ctx: RequestContext, input: FormPatchInput
       system,
       messages: input.messages,
       stopWhen: stepCountIs(5),
-      onFinish: ({ response, totalUsage, providerMetadata }) => {
+      onStepFinish: (step) => logLlmGeneration('formPatch', step.response.modelId, step, { entityType: input.entityType }),
+      onFinish: ({ response, steps }) => {
         const durationMs = Math.round(performance.now() - startedAt);
-        logLlmUsage('formPatch', response.modelId, durationMs, totalUsage, costOf(providerMetadata), { entityType: input.entityType });
+        logLlmRun('formPatch', response.modelId, durationMs, steps.length, { entityType: input.entityType });
       },
       onError: ({ error }) => {
         const durationMs = Math.round(performance.now() - startedAt);

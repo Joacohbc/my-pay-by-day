@@ -14,7 +14,7 @@ import { isPauseSignal } from '@/agent/signals.js';
 import { agentStore, type AttachmentContent } from '@/agent/store.js';
 import { TERMINAL_STATUSES } from '@/agent/types.js';
 import { logger } from '@/logging/logger.js';
-import { aggregateStepUsage, classifyLlmError, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
+import { classifyLlmError, logLlmError, logLlmGeneration, logLlmRun } from '@/logging/llmUsage.js';
 import { runWithRequestContext } from '@/logging/requestStore.js';
 import { randomUUID } from 'node:crypto';
 
@@ -136,6 +136,7 @@ async function run(taskId: string): Promise<void> {
         tools: toolsForMode(toolSet, task.execution_mode),
         stopWhen: stepCountIs(stepBudget),
         abortSignal: controller.signal,
+        onStepFinish: (step) => logLlmGeneration('agent', step.response.modelId, step, { taskId }),
       });
 
       conversationMemory.append(taskId, result.response.messages);
@@ -144,8 +145,7 @@ async function run(taskId: string): Promise<void> {
       const durationMs = Math.round(performance.now() - startedAt);
       agentLog.info('completed agent task', { event: 'agent_ok', taskId, steps: result.steps.length, toolCount: toolCalls.length, tools, durationMs });
       agentLog.debug('agent task reply', { taskId, reply: result.text });
-      const { usage, costUsd } = aggregateStepUsage(result.steps);
-      logLlmUsage('agent', result.response.modelId, durationMs, usage, costUsd, { taskId, steps: result.steps.length });
+      logLlmRun('agent', result.response.modelId, durationMs, result.steps.length, { taskId });
       if (result.text.trim()) recordStep(taskId, { type: 'MESSAGE', content: result.text.trim() });
 
       const hitStepLimit = result.steps.length >= stepBudget && result.steps.at(-1)?.finishReason === 'tool-calls';

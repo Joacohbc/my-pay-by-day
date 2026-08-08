@@ -23,8 +23,21 @@
   },
   "panels": [
     {
+      "id": 23,
+      "title": "SPA server (nginx) \u2014 static assets only, never the API",
+      "type": "row",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
       "id": 1,
-      "title": "Requests served",
+      "title": "Static assets served (nginx)",
       "type": "stat",
       "datasource": {
         "type": "loki",
@@ -34,7 +47,7 @@
         "h": 4,
         "w": 6,
         "x": 0,
-        "y": 0
+        "y": 1
       },
       "fieldConfig": {
         "defaults": {
@@ -77,11 +90,12 @@
           "queryType": "instant",
           "expr": "sum(count_over_time({service=\"frontend\"} | status != `` [$__range]))"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 2,
-      "title": "Client errors 4xx",
+      "title": "Asset errors 4xx (nginx)",
       "type": "stat",
       "datasource": {
         "type": "loki",
@@ -91,7 +105,7 @@
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 0
+        "y": 1
       },
       "fieldConfig": {
         "defaults": {
@@ -140,13 +154,14 @@
           },
           "editorMode": "code",
           "queryType": "instant",
-          "expr": "sum(count_over_time({service=\"frontend\"} | status =~ `4..` [$__range]))"
+          "expr": "sum(count_over_time({service=\"frontend\"} | status =~ `4..` [$__range])) or vector(0)"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 3,
-      "title": "Server errors 5xx",
+      "title": "Asset errors 5xx (nginx)",
       "type": "stat",
       "datasource": {
         "type": "loki",
@@ -156,7 +171,7 @@
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 0
+        "y": 1
       },
       "fieldConfig": {
         "defaults": {
@@ -201,13 +216,14 @@
           },
           "editorMode": "code",
           "queryType": "instant",
-          "expr": "sum(count_over_time({service=\"frontend\"} | status =~ `5..` [$__range]))"
+          "expr": "sum(count_over_time({service=\"frontend\"} | status =~ `5..` [$__range])) or vector(0)"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 4,
-      "title": "Not found 404",
+      "title": "Assets not found 404 (nginx)",
       "type": "stat",
       "datasource": {
         "type": "loki",
@@ -217,7 +233,7 @@
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 0
+        "y": 1
       },
       "fieldConfig": {
         "defaults": {
@@ -262,13 +278,14 @@
           },
           "editorMode": "code",
           "queryType": "instant",
-          "expr": "sum(count_over_time({service=\"frontend\"} | status = `404` [$__range]))"
+          "expr": "sum(count_over_time({service=\"frontend\"} | status = `404` [$__range])) or vector(0)"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 5,
-      "title": "Request rate",
+      "title": "Asset request rate (nginx)",
       "type": "timeseries",
       "datasource": {
         "type": "loki",
@@ -278,7 +295,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 4
+        "y": 5
       },
       "fieldConfig": {
         "defaults": {
@@ -311,11 +328,12 @@
           "expr": "sum(count_over_time({service=\"frontend\"} | status != `` [$__auto]))",
           "legendFormat": "requests"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 6,
-      "title": "Status codes",
+      "title": "Asset status codes (nginx)",
       "type": "barchart",
       "datasource": {
         "type": "loki",
@@ -325,7 +343,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 4
+        "y": 5
       },
       "fieldConfig": {
         "defaults": {
@@ -362,11 +380,12 @@
           "expr": "sum by (status) (count_over_time({service=\"frontend\"} | status != `` [$__range]))",
           "legendFormat": "{{status}}"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 7,
-      "title": "Top paths",
+      "title": "Top asset paths (nginx)",
       "type": "table",
       "datasource": {
         "type": "loki",
@@ -376,7 +395,7 @@
         "h": 9,
         "w": 8,
         "x": 0,
-        "y": 12
+        "y": 13
       },
       "fieldConfig": {
         "defaults": {
@@ -426,11 +445,12 @@
           "expr": "topk(15, sum by (path) (count_over_time({service=\"frontend\"} | path != `` [$__range])))",
           "legendFormat": "{{path}}"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 8,
-      "title": "Top failing paths (4xx/5xx)",
+      "title": "Top failing asset paths (nginx)",
       "type": "table",
       "datasource": {
         "type": "loki",
@@ -440,7 +460,7 @@
         "h": 9,
         "w": 8,
         "x": 8,
-        "y": 12
+        "y": 13
       },
       "fieldConfig": {
         "defaults": {
@@ -491,7 +511,8 @@
           "expr": "topk(15, sum by (status, path) (count_over_time({service=\"frontend\"} | status =~ `[45]..` [$__range])))",
           "legendFormat": "{{status}} {{path}}"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
       "id": 9,
@@ -505,7 +526,7 @@
         "h": 9,
         "w": 8,
         "x": 16,
-        "y": 12
+        "y": 13
       },
       "fieldConfig": {
         "defaults": {
@@ -559,7 +580,7 @@
     },
     {
       "id": 10,
-      "title": "Recent failures (raw)",
+      "title": "Recent asset failures (nginx, raw)",
       "type": "logs",
       "datasource": {
         "type": "loki",
@@ -569,7 +590,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 21
+        "y": 22
       },
       "options": {
         "showTime": true,
@@ -589,58 +610,26 @@
           "queryType": "range",
           "expr": "{service=\"frontend\"} | status =~ `[45]..`"
         }
-      ]
+      ],
+      "description": "Served by the nginx that hosts the SPA \u2014 static assets only. It does not proxy `/api/*`, which goes browser \u2192 gateway \u2192 backend, so no API status code can appear here."
     },
     {
-      "id": 11,
-      "title": "Unhandled JS errors (click to expand full signature)",
-      "type": "logs",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 30
-      },
-      "options": {
-        "showTime": true,
-        "wrapLogMessage": true,
-        "dedupStrategy": "none",
-        "enableLogDetails": true,
-        "sortOrder": "Descending"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "editorMode": "code",
-          "queryType": "range",
-          "expr": "{service=\"frontend\", level=\"error\"} | json | line_format `{{.kind}} {{.route}} \u2014 {{.message}}`"
-        }
-      ]
-    },
-    {
-      "id": 12,
+      "id": 24,
+      "title": "The client (browser) \u2014 what the user actually experienced",
       "type": "row",
       "collapsed": false,
-      "title": "API as the browser sees it (sampled 10%; failures and slow calls always ship)",
+      "panels": [],
+      "description": "Counts, never rates: failures and calls over 1s always ship, ordinary successes are sampled at 10%. So these totals are absolute, but dividing them by the call count would overstate the error rate roughly tenfold. A true error rate comes from the gateway.",
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 60
-      },
-      "panels": []
+        "y": 31
+      }
     },
     {
       "id": 13,
-      "title": "Network failures (never reached the server)",
+      "title": "Network failures (never left the device)",
       "type": "stat",
       "datasource": {
         "type": "loki",
@@ -648,9 +637,9 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 8,
+        "w": 6,
         "x": 0,
-        "y": 61
+        "y": 32
       },
       "fieldConfig": {
         "defaults": {
@@ -694,15 +683,15 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service=\"frontend\"} | kind=\"api-timing\" | json | status=\"0\" [$__range]))",
+          "expr": "sum(count_over_time({service=\"frontend\"} | kind=\"api-timing\" | failureKind=\"network\" [$__range])) or vector(0)",
           "queryType": "instant"
         }
       ],
-      "description": "The fetch rejected outright: offline, DNS, CORS or aborted. Completely invisible to the backend, and the reason this panel exists \u2014 in an app that queues events offline, a call that never landed can mean a recorded action the server never saw."
+      "description": "The fetch rejected without a response: offline, DNS, TLS, CORS. Invisible to every other service, and the reason this panel exists \u2014 in an app that queues events offline, a call that never landed can mean a recorded action the server never saw. Cancellations are excluded; they are counted as `aborted`, not as trouble."
     },
     {
       "id": 14,
-      "title": "Failed calls (any cause)",
+      "title": "Edge / tunnel failures",
       "type": "stat",
       "datasource": {
         "type": "loki",
@@ -710,9 +699,9 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 8,
-        "x": 8,
-        "y": 61
+        "w": 6,
+        "x": 6,
+        "y": 32
       },
       "fieldConfig": {
         "defaults": {
@@ -756,11 +745,69 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service=\"frontend\"} | kind=\"api-timing\" | json | ok=\"false\" [$__range]))",
+          "expr": "sum(count_over_time({service=\"frontend\"} | kind=\"api-timing\" | failureKind=\"edge\" [$__range])) or vector(0)",
           "queryType": "instant"
         }
       ],
-      "description": "Always shipped in full, never sampled, so this count is absolute."
+      "description": "The response carried no `X-Request-Id`, so it was produced before reaching the app \u2014 Cloudflare Access, the tunnel, or an nginx error page. The gateway never logged these because the request never got there."
+    },
+    {
+      "id": 25,
+      "title": "API rejections (the app said no)",
+      "type": "stat",
+      "description": "The response carried `X-Request-Id`, so the backend or chatbot answered and refused \u2014 validation, authorization, a business rule. Correlatable: take the `requestId` from the raw panel below into the Backend dashboard's request trace.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 32
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "orange"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum(count_over_time({service=\"frontend\"} | kind=\"api-timing\" | failureKind=\"api\" [$__range])) or vector(0)"
+        }
+      ]
     },
     {
       "id": 15,
@@ -772,9 +819,9 @@
       },
       "gridPos": {
         "h": 5,
-        "w": 8,
-        "x": 16,
-        "y": 61
+        "w": 6,
+        "x": 18,
+        "y": 32
       },
       "fieldConfig": {
         "defaults": {
@@ -825,6 +872,82 @@
       "description": "Also bypasses the sampler, so this count is absolute."
     },
     {
+      "id": 26,
+      "title": "What the client saw (by failure kind)",
+      "type": "barchart",
+      "description": "The whole question in one panel: was it the network, the edge, or the API? `aborted` is not a failure \u2014 a superseded query or a navigation cancels its own request \u2014 and is shown so it can be told apart from the rest rather than inflating them.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 37
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum by (failureKind) (count_over_time({service=\"frontend\"} | kind=\"api-timing\" | failureKind != `` [$__range]))",
+          "legendFormat": "{{failureKind}}"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "title": "Status codes (as the browser saw them)",
+      "type": "barchart",
+      "description": "API status codes, which the nginx panels above can never show: that container serves the SPA and does not proxy `/api/*`. `0` means no response ever arrived.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 37
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum by (status) (count_over_time({service=\"frontend\"} | kind=\"api-timing\" | json | status != `` [$__range]))",
+          "legendFormat": "{{status}}"
+        }
+      ]
+    },
+    {
       "id": 16,
       "title": "Client-observed latency p50 / p95",
       "type": "timeseries",
@@ -836,7 +959,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 66
+        "y": 45
       },
       "fieldConfig": {
         "defaults": {
@@ -896,7 +1019,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 66
+        "y": 45
       },
       "fieldConfig": {
         "defaults": {
@@ -949,6 +1072,105 @@
       "description": "Paths are templated (/events/:id) so entity ids never become separate series."
     },
     {
+      "id": 28,
+      "title": "Top failing API paths",
+      "type": "table",
+      "description": "Paths are templated (`/events/42` \u2192 `/events/:id`) before they ship, so entity ids never become their own series.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 53
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "topk(15, sum by (failureKind, status, path) (count_over_time({service=\"frontend\"} | kind=\"api-timing\" | failureKind =~ `network|edge|api` | json [$__range])))"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "title": "Recent API failures (raw)",
+      "type": "logs",
+      "description": "Copy a `req=` value into the Backend dashboard's request trace to follow the same call through the server \u2014 when it got that far.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 53
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "{service=\"frontend\"} | kind=\"api-timing\" | failureKind =~ `network|edge|api` | json | line_format `{{.failureKind}} {{.status}} {{.method}} {{.path}} ({{.durationMs}}ms) req={{.requestId}}`"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Client errors \u2014 JS and API (click to expand)",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 62
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "{service=\"frontend\", level=\"error\"} | json | line_format `{{.kind}} {{.route}} \u2014 {{.message}}`"
+        }
+      ],
+      "description": "Everything the browser shipped at `level=error`. Only `react` and `unhandledrejection` are truly unhandled; `api` (a failed query/mutation) and `caught` are explicitly reported, which is why the `kind` leads each line."
+    },
+    {
       "id": 18,
       "type": "row",
       "collapsed": false,
@@ -957,7 +1179,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 74
+        "y": 72
       },
       "panels": []
     },
@@ -973,7 +1195,7 @@
         "h": 5,
         "w": 8,
         "x": 0,
-        "y": 75
+        "y": 73
       },
       "fieldConfig": {
         "defaults": {
@@ -1035,7 +1257,7 @@
         "h": 5,
         "w": 8,
         "x": 8,
-        "y": 75
+        "y": 73
       },
       "fieldConfig": {
         "defaults": {
@@ -1101,7 +1323,7 @@
         "h": 5,
         "w": 8,
         "x": 16,
-        "y": 75
+        "y": 73
       },
       "fieldConfig": {
         "defaults": {
@@ -1159,7 +1381,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 80
+        "y": 78
       },
       "fieldConfig": {
         "defaults": {

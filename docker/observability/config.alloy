@@ -207,17 +207,20 @@ loki.process "normalize" {
 	//  3. Client telemetry on the same sink at level=info: kind=api-timing (one entry per API call as
 	//     the browser saw it) and kind=offline-queue (events queued locally that the server has never
 	//     received). Numeric fields stay in the JSON body, read at query time with `| json | unwrap`.
+	//     `failureKind` says who failed (aborted/network/edge/api) — a four-value discriminator, so it
+	//     is metadata rather than a label, and dashboards filter on it without parsing the body.
 	stage.match {
 		selector = "{service=\"frontend\"}"
 
 		stage.json {
 			expressions = {
-				level      = "level",
-				source     = "source",
-				kind       = "kind",
-				requestId  = "requestId",
-				route      = "route",
-				appVersion = "appVersion",
+				level       = "level",
+				source      = "source",
+				kind        = "kind",
+				failureKind = "failureKind",
+				requestId   = "requestId",
+				route       = "route",
+				appVersion  = "appVersion",
 			}
 		}
 
@@ -239,13 +242,14 @@ loki.process "normalize" {
 
 		stage.structured_metadata {
 			values = {
-				status    = "",
-				ip        = "",
-				method    = "",
-				path      = "",
-				requestId = "",
-				kind      = "",
-				route     = "",
+				status      = "",
+				ip          = "",
+				method      = "",
+				path        = "",
+				requestId   = "",
+				kind        = "",
+				failureKind = "",
+				route       = "",
 			}
 		}
 	}

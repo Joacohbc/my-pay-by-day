@@ -2,7 +2,7 @@ import i18n from '@/lib/i18n';
 import { getCurrency } from '@/lib/format';
 import { fromServerDate, getUserTimezone, toServerDate, transformDates } from '@/lib/utils/dateUtils';
 import { logger } from '@/lib/logger';
-import { NETWORK_FAILURE_STATUS, reportApiTiming } from '@/lib/rumReporter';
+import { NETWORK_FAILURE_STATUS, reportApiTiming, type ApiFailureKind } from '@/lib/rumReporter';
 
 // In production (Docker) VITE_API_BASE_URL is injected at container startup
 // via /env.js into window.__env__. In dev, Vite exposes it through import.meta.env.
@@ -37,6 +37,8 @@ export interface RequestOptions {
   requestId?: string;
 }
 
+const REQUEST_ID_HEADER = 'X-Request-Id';
+
 /**
  * Common context headers sent on every request. `X-Request-Id` is a correlation ID that the backend
  * and chatbot echo into their logs, giving an end-to-end trace from the browser through both
@@ -48,9 +50,15 @@ function contextHeaders(extra: Record<string, string> = {}, requestId?: string):
     'X-Timezone': getUserTimezone(),
     'X-Language': getLang(),
     'X-Currency': getCurrency(),
-    'X-Request-Id': requestId ?? crypto.randomUUID(),
+    [REQUEST_ID_HEADER]: requestId ?? crypto.randomUUID(),
     'X-Source': 'frontend',
   };
+}
+
+/** Every method below builds its headers with `contextHeaders`, so the correlation ID is always there to read back. */
+function requestIdOf(init: RequestInit): string {
+  const headers = init.headers as Record<string, string> | undefined;
+  return headers?.[REQUEST_ID_HEADER] ?? '';
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
@@ -71,15 +79,47 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 /**
+ * Tells apart a rejection the app caused from one the network did. A superseded query or a
+ * navigation aborts its own request through `signal`, which is ordinary behaviour and not a
+ * connectivity problem — counting those as network failures is what made that panel unreadable.
+ */
+function failureKindOfRejection(error: unknown): ApiFailureKind {
+  return (error as Error)?.name === 'AbortError' ? 'aborted' : 'network';
+}
+
+/**
+ * Tells apart a rejection the app issued from one produced before the request ever reached it.
+ *
+ * Both the backend (`CorrelationIdFilter`) and the chatbot echo `X-Request-Id` on every response
+ * they produce; Cloudflare Access, the tunnel and nginx's own error pages cannot, because no
+ * upstream ran. So the header's absence on an error is the one signal that separates "the app said
+ * no" from "something between the browser and the app said no" — a distinction no status code
+ * carries, since a 403 looks identical either way.
+ */
+function failureKindOfResponse(res: Response): ApiFailureKind | undefined {
+  if (res.ok) return undefined;
+  return res.headers.get(REQUEST_ID_HEADER) ? 'api' : 'edge';
+}
+
+/**
  * Single fetch chokepoint for the api layer: builds the URL and measures how long the call took as
  * the browser sees it, feeding the RUM reporter (which samples, so this is cheap on the hot path).
  * A rejected fetch never reached the server, so it reports `NETWORK_FAILURE_STATUS` and re-throws.
  */
 async function timedFetch(method: string, path: string, init: RequestInit = {}): Promise<Response> {
   const startedAt = performance.now();
+  const requestId = requestIdOf(init);
   try {
     const res = await fetch(`${BASE_URL}${path}`, { ...init, method });
-    reportApiTiming({ method, path, durationMs: performance.now() - startedAt, status: res.status, ok: res.ok });
+    reportApiTiming({
+      method,
+      path,
+      durationMs: performance.now() - startedAt,
+      status: res.status,
+      ok: res.ok,
+      requestId,
+      failureKind: failureKindOfResponse(res),
+    });
     return res;
   } catch (error) {
     reportApiTiming({
@@ -88,6 +128,8 @@ async function timedFetch(method: string, path: string, init: RequestInit = {}):
       durationMs: performance.now() - startedAt,
       status: NETWORK_FAILURE_STATUS,
       ok: false,
+      requestId,
+      failureKind: failureKindOfRejection(error),
     });
     throw error;
   }

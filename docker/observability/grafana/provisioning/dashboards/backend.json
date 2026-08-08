@@ -57,19 +57,19 @@
       {
         "name": "ip",
         "type": "textbox",
-        "query": "",
+        "query": ".*",
         "current": {
-          "text": "",
-          "value": ""
+          "text": ".*",
+          "value": ".*"
         }
       },
       {
         "name": "requestId",
         "type": "textbox",
-        "query": "",
+        "query": ".*",
         "current": {
-          "text": "",
-          "value": ""
+          "text": ".*",
+          "value": ".*"
         }
       }
     ]
@@ -1007,6 +1007,7 @@
     {
       "id": 16,
       "title": "Who uses the backend (by source)",
+      "description": "`source` is an MDC field stamped on every log line of a request, and explicitly on heartbeats and scheduled jobs \u2014 so counting lines made the once-a-minute heartbeat the busiest \"client\" in the system. `resource != ``` keeps only request-completion lines, which is what a request actually is.",
       "type": "barchart",
       "datasource": {
         "type": "loki",
@@ -1050,7 +1051,7 @@
           },
           "editorMode": "code",
           "queryType": "instant",
-          "expr": "sum by (source) (count_over_time({service=\"backend\"} | source != `` | ip =~ `$ip` [$__range]))",
+          "expr": "sum by (source) (count_over_time({service=\"backend\"} | source != `` | resource != `` | ip =~ `$ip` [$__range]))",
           "legendFormat": "{{source}}"
         }
       ]

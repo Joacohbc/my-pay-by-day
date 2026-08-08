@@ -4,7 +4,7 @@ import { languageName } from '@/context.js';
 import { fastModel } from '@/models.js';
 import { conversationMemory, textOf } from '@/memory/conversation.js';
 import { logger } from '@/logging/logger.js';
-import { costOf, logLlmError, logLlmUsage } from '@/logging/llmUsage.js';
+import { logLlmError, logLlmGeneration, logLlmRun } from '@/logging/llmUsage.js';
 
 const recapLog = logger.child('chat-recap');
 
@@ -33,7 +33,7 @@ function transcriptOf(chatId: string): { transcript: string; messageCount: numbe
 async function summarize(transcript: string, lang: string): Promise<string> {
   const startedAt = performance.now();
   try {
-    const { text, usage, response, providerMetadata } = await generateText({
+    const { text, response, steps } = await generateText({
       model: fastModel(),
       prompt:
         `Summarise this finance-assistant conversation in ${languageName(lang)} as a compact recap another ` +
@@ -41,9 +41,10 @@ async function summarize(transcript: string, lang: string): Promise<string> {
         `user wanted, decisions made, key entities (accounts/nodes, categories, tags), amounts, dates, event/draft ` +
         `IDs, and anything still pending or unresolved. Omit small talk. Return only the recap, a few short ` +
         `sentences or bullet points.\n\n${transcript}`,
+      onStepFinish: (step) => logLlmGeneration('recap', step.response.modelId, step),
     });
     const durationMs = Math.round(performance.now() - startedAt);
-    logLlmUsage('recap', response.modelId, durationMs, usage, costOf(providerMetadata));
+    logLlmRun('recap', response.modelId, durationMs, steps.length);
     return text.trim().slice(0, MAX_RECAP_CHARS);
   } catch (error) {
     logLlmError('recap', config.models.fast, Math.round(performance.now() - startedAt), error);
