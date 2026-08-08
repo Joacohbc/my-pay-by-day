@@ -1,5 +1,14 @@
 allowBuilds:
   esbuild: true
 
+minimumReleaseAgeExclude:
+  - undici@6.23.0 || 6.24.0 || 6.27.0 || 6.28.0
+  - js-yaml@4.3.1
+
 overrides:
   js-yaml@>=4.0.0 <4.3.0: ^4.3.0
+  js-yaml@>=4.0.0 <4.3.1: ^4.3.1
+  undici@<6.23.0: ^6.23.0
+  undici@<6.24.0: ^6.24.0
+  undici@<6.27.0: ^6.27.0
+  undici@<6.28.0: ^6.28.0
