@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "AI chatbot/agent service for My Pay By Day (Vercel AI SDK + OpenRouter)",
+  "description": "AI chatbot/agent service for My Pay By Day (Vercel AI SDK + OpenRouter or Google Vertex AI)",
   "scripts": {
     "dev": "tsx watch --env-file=.env src/server.ts",
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
@@ -16,6 +16,7 @@
     "i18n:audit": "node scripts/i18n-audit.mjs"
   },
   "dependencies": {
+    "@ai-sdk/google-vertex": "4.0.170",
     "@hono/node-server": "^2.1.0",
     "@openrouter/ai-sdk-provider": "^2.10.0",
     "ai": "^6.0.246",

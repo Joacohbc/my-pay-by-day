@@ -15,9 +15,26 @@ function intEnv(name: string, fallback: number): number {
 export const config = {
   port: intEnv('CHATBOT_PORT', 3001),
 
+  ai: {
+    /** Which LLM provider backs `largeModel`/`fastModel`/`audioTranscriptionModel`: 'openrouter' or 'vertex'. */
+    provider: env('AI_PROVIDER', 'openrouter'),
+  },
+
   openRouter: {
     apiKey: env('OPENROUTER_API_KEY', 'changeme'),
     baseUrl: env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),
+  },
+
+  vertex: {
+    /** GCP project ID hosting the Vertex AI endpoint. Falls back to the SDK's own GOOGLE_VERTEX_PROJECT lookup when unset. */
+    project: process.env.GOOGLE_VERTEX_PROJECT,
+    /** GCP region serving the Vertex AI endpoint, e.g. 'us-central1'. */
+    location: env('GOOGLE_VERTEX_LOCATION', 'us-central1'),
+    /**
+     * Service account key JSON, as a single-line string, used to authenticate with Vertex AI instead
+     * of file-based Application Default Credentials (`GOOGLE_APPLICATION_CREDENTIALS`).
+     */
+    serviceAccountJson: process.env.GOOGLE_VERTEX_CREDENTIALS_JSON,
   },
 
   models: {
@@ -25,7 +42,7 @@ export const config = {
     large: env('MODEL_LARGE', 'google/gemini-2.5-flash'),
     /** Fast/cheap model used for short text generation, extraction and memory summarisation. */
     fast: env('MODEL_FAST', 'google/gemini-flash-lite'),
-    /** Dedicated speech-to-text model, called via OpenRouter's /audio/transcriptions endpoint. */
+    /** Dedicated speech-to-text model: an OpenRouter model slug, or a Chirp model id on Vertex. */
     audio: env('MODEL_AUDIO', 'openai/whisper-large-v3-turbo'),
   },
 

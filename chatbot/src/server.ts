@@ -77,6 +77,7 @@ function start(): void {
     logger.info(`listening on :${info.port}`, {
       port: info.port,
       backend: config.backendUrl,
+      aiProvider: config.ai.provider,
       largeModel: config.models.large,
       fastModel: config.models.fast,
     });
