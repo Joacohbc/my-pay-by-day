@@ -1,10 +1,10 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
-import { Routes, saveEventsSearch } from '@/lib/routes';
+import { Routes, saveEventsSearch, saveEventsScrollTop, getEventsScrollTop } from '@/lib/routes';
 import { useEvents } from '@/hooks/useEvents';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
-import { useDebounce } from '@/hooks/useDebounce';
+import { useDebounce, useDebounceCallback } from '@/hooks/useDebounce';
 import { useFinanceEventDrafts } from '@/hooks/useDrafts';
 import { useDuplicates } from '@/hooks/useDuplicates';
 import { useSearchParamsBatch } from '@/hooks/useSearchParamsState';
@@ -28,6 +28,77 @@ import type { DateField } from '@/services/events.service';
 import { useAccumulatedData } from '@/hooks/useAccumulatedData';
 
 type FilterType = 'ALL' | EventType;
+
+const EVENTS_PAGE_SIZE = 20;
+
+interface EventsPageQuery {
+  requestPage: number;
+  requestSize: number;
+  accumulationPage: number;
+}
+
+/**
+ * A page restored from the URL (e.g. returning from an event's detail view after
+ * scrolling past page 0) needs every item from page 0 through it, not just its own
+ * slice — otherwise that range is unreachable by scrolling up. `restoredPage` only
+ * ever grows while scrolling, so once `currentPage` passes it this collapses back
+ * to a normal single-page request with no extra state to track the transition.
+ */
+function resolveEventsPageQuery(currentPage: number, restoredPage: number): EventsPageQuery {
+  const isWithinRestoredRange = currentPage <= restoredPage;
+
+  if (isWithinRestoredRange) {
+    return {
+      requestPage: 0,
+      requestSize: (restoredPage + 1) * EVENTS_PAGE_SIZE,
+      accumulationPage: 0,
+    };
+  }
+
+  return {
+    requestPage: currentPage,
+    requestSize: EVENTS_PAGE_SIZE,
+    accumulationPage: currentPage,
+  };
+}
+
+function countTotalPages(totalElements: number): number {
+  return totalElements ? Math.ceil(totalElements / EVENTS_PAGE_SIZE) : 1;
+}
+
+const EVENTS_SCROLL_CONTAINER_ID = 'app-scroll-container';
+const SCROLL_POSITION_SAVE_DELAY_MS = 150;
+
+function getEventsScrollContainer(): HTMLElement | null {
+  return document.getElementById(EVENTS_SCROLL_CONTAINER_ID);
+}
+
+/** Restores the list's scroll offset once its content is ready, then keeps it saved as the user scrolls. */
+function useRestoredScrollPosition(hasContentToRestore: boolean) {
+  const hasRestoredRef = useRef(false);
+
+  useLayoutEffect(() => {
+    if (hasRestoredRef.current || !hasContentToRestore) return;
+    const container = getEventsScrollContainer();
+    if (!container) return;
+
+    container.scrollTop = getEventsScrollTop();
+    hasRestoredRef.current = true;
+  }, [hasContentToRestore]);
+
+  const persistScrollPosition = useDebounceCallback(() => {
+    const container = getEventsScrollContainer();
+    if (container) saveEventsScrollTop(container.scrollTop);
+  }, SCROLL_POSITION_SAVE_DELAY_MS);
+
+  useEffect(() => {
+    const container = getEventsScrollContainer();
+    if (!container) return;
+
+    container.addEventListener('scroll', persistScrollPosition, { passive: true });
+    return () => container.removeEventListener('scroll', persistScrollPosition);
+  }, [persistScrollPosition]);
+}
 
 const FILTER_PARAMS = {
   page: { key: 'page', defaultValue: 0, type: 'number' },
@@ -157,9 +228,12 @@ export function EventsPage() {
   };
 
   // --- 4. Data Fetching ---
+  const [restoredPage] = useState(page);
+  const eventsPageQuery = resolveEventsPageQuery(page, restoredPage);
+
   const { data: paged, isLoading, error } = useEvents({
-    page,
-    size: 20,
+    page: eventsPageQuery.requestPage,
+    size: eventsPageQuery.requestSize,
     search: debouncedSearch,
     startDate,
     endDate,
@@ -174,10 +248,12 @@ export function EventsPage() {
 
   const { displayedData: events } = useAccumulatedData(
     paged?.content,
-    page,
+    eventsPageQuery.accumulationPage,
     setPage,
     [debouncedSearch, filter, startDate, endDate, dateField, categoryIdsStr, tagIdsStr, nodeIdStr, minAmountStr, maxAmountStr]
   );
+
+  useRestoredScrollPosition(events.length > 0);
 
   const { data: draftEvents } = useFinanceEventDrafts();
   const draftsCount = draftEvents?.length ?? 0;
@@ -185,8 +261,8 @@ export function EventsPage() {
   const { data: pendingDuplicates } = useDuplicates('FINANCE_EVENT', 'PENDING');
   const duplicatesCount = pendingDuplicates?.length ?? 0;
 
-  const totalPages = paged?.totalPages ?? 1;
   const totalElements = paged?.totalElements ?? 0;
+  const totalPages = countTotalPages(totalElements);
 
   const totalIncome = useMemo(
     () =>

@@ -7,7 +7,7 @@ export function AppLayout() {
   return (
     <div className="flex flex-col h-dvh bg-dn-bg font-display antialiased overflow-hidden">
       <OfflineBanner />
-      <main className="flex-1 pb-[80px] overflow-y-auto no-scrollbar max-w-xl mx-auto w-full">
+      <main id="app-scroll-container" className="flex-1 pb-[80px] overflow-y-auto no-scrollbar max-w-xl mx-auto w-full">
         <Outlet />
       </main>
       <BottomNav />
