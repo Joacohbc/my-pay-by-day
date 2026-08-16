@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import type { FinanceEvent, PaymentPlan } from '@/models';
@@ -10,118 +10,84 @@ import { getGroupColor } from '@/lib/groupColors';
 
 const LONG_PRESS_MS = 450;
 const MOVE_CANCEL_PX = 10;
-const DROP_TARGET_OUTLINE = '2px solid var(--color-dn-primary)';
 
 interface GroupableEventCardProps {
   readonly event: FinanceEvent;
   readonly iconSource: 'category' | 'node';
   readonly groupPlan?: PaymentPlan;
-  readonly onDropEvent: (sourceEventId: number, targetEventId: number) => void;
+  readonly isSelectionMode: boolean;
+  readonly isSelected: boolean;
+  /** Long-pressing an idle card arms selection mode with this card as the first pick. */
+  readonly onLongPress: (eventId: number) => void;
+  /** Tapping any card while selection mode is already active toggles it in/out, instead of navigating. */
+  readonly onToggleSelected: (eventId: number) => void;
 }
 
 /**
- * Wraps `EventCard` with a Drafts-style "long-press, drag onto another card" gesture: holding a
- * card arms it, dragging highlights whichever card is currently underneath the pointer, and
- * releasing over a different card reports the pair to `onDropEvent` for the caller to decide what
- * grouping that pair implies. Everything here is pointer-driven and DOM-local (drop-target
- * highlighting is applied directly to the target element) so the drag stays smooth without routing
- * every pointermove through React state.
+ * Wraps `EventCard` with a Photos-style "long-press to start a multi-select, tap to add more"
+ * gesture: holding a card arms selection mode on it, then a plain tap on any other card toggles it
+ * into the selection — no drag precision required. The caller (`EventsPage`) owns the selection set
+ * and decides what grouping it implies once confirmed.
  */
-export function GroupableEventCard({ event, iconSource, groupPlan, onDropEvent }: GroupableEventCardProps) {
+export function GroupableEventCard({
+  event,
+  iconSource,
+  groupPlan,
+  isSelectionMode,
+  isSelected,
+  onLongPress,
+  onToggleSelected,
+}: GroupableEventCardProps) {
   const { t } = useTranslation();
   const { linkStateFromHere } = useAppNavigation();
-  const rootRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{
+  const pressRef = useRef<{
     timer?: number;
-    armed: boolean;
-    /** Set once a drag ends so the click the browser fires right after pointerup can still be told apart from a plain tap, even though React state hasn't re-rendered yet by then. */
-    justDragged: boolean;
     startX: number;
     startY: number;
-    dropTarget: HTMLElement | null;
-  }>({ armed: false, justDragged: false, startX: 0, startY: 0, dropTarget: null });
-  const [isArmed, setIsArmed] = useState(false);
+    /** Set once a long-press fires so the click the browser dispatches right after pointerup can still be told apart from a plain tap, even though React state hasn't re-rendered yet by then. */
+    firedLongPress: boolean;
+  }>({ startX: 0, startY: 0, firedLongPress: false });
 
   const clearTimer = () => {
-    if (dragRef.current.timer !== undefined) {
-      window.clearTimeout(dragRef.current.timer);
-      dragRef.current.timer = undefined;
-    }
-  };
-
-  const clearDropTargetHighlight = () => {
-    if (dragRef.current.dropTarget) {
-      dragRef.current.dropTarget.style.outline = '';
-      dragRef.current.dropTarget = null;
-    }
-  };
-
-  const resolveElementUnderPointer = (clientX: number, clientY: number): HTMLElement | null => {
-    const el = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>('[data-event-id]');
-    return el && el !== rootRef.current ? el : null;
-  };
-
-  const endDrag = (dropTargetEl: HTMLElement | null) => {
-    clearTimer();
-    clearDropTargetHighlight();
-    dragRef.current.justDragged = dragRef.current.armed;
-    dragRef.current.armed = false;
-    setIsArmed(false);
-
-    const targetIdAttr = dropTargetEl?.getAttribute('data-event-id');
-    const targetId = targetIdAttr ? Number(targetIdAttr) : NaN;
-    if (Number.isFinite(targetId) && targetId !== event.id) {
-      onDropEvent(event.id, targetId);
+    if (pressRef.current.timer !== undefined) {
+      window.clearTimeout(pressRef.current.timer);
+      pressRef.current.timer = undefined;
     }
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
-    dragRef.current.startX = e.clientX;
-    dragRef.current.startY = e.clientY;
-    dragRef.current.armed = false;
-    clearTimer();
+    if (isSelectionMode) return;
 
-    const pointerId = e.pointerId;
-    dragRef.current.timer = window.setTimeout(() => {
-      dragRef.current.armed = true;
-      setIsArmed(true);
-      rootRef.current?.setPointerCapture(pointerId);
+    pressRef.current.startX = e.clientX;
+    pressRef.current.startY = e.clientY;
+    clearTimer();
+    pressRef.current.timer = window.setTimeout(() => {
+      pressRef.current.firedLongPress = true;
       navigator.vibrate?.(15);
+      onLongPress(event.id);
     }, LONG_PRESS_MS);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!dragRef.current.armed) {
-      const distance = Math.hypot(e.clientX - dragRef.current.startX, e.clientY - dragRef.current.startY);
-      if (distance > MOVE_CANCEL_PX) clearTimer();
-      return;
-    }
-
-    e.preventDefault();
-    const target = resolveElementUnderPointer(e.clientX, e.clientY);
-    if (target !== dragRef.current.dropTarget) {
-      clearDropTargetHighlight();
-      if (target) target.style.outline = DROP_TARGET_OUTLINE;
-      dragRef.current.dropTarget = target;
-    }
+    const distance = Math.hypot(e.clientX - pressRef.current.startX, e.clientY - pressRef.current.startY);
+    if (distance > MOVE_CANCEL_PX) clearTimer();
   };
 
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (!dragRef.current.armed) {
-      clearTimer();
-      return;
-    }
-    endDrag(resolveElementUnderPointer(e.clientX, e.clientY));
-  };
+  const handlePointerUp = () => clearTimer();
+  const handlePointerCancel = () => clearTimer();
 
-  const handlePointerCancel = () => endDrag(null);
-
-  const suppressClickAfterDrag = (e: React.MouseEvent) => {
-    if (dragRef.current.justDragged) {
-      dragRef.current.justDragged = false;
+  const handleClickCapture = (e: React.MouseEvent) => {
+    if (pressRef.current.firedLongPress) {
+      pressRef.current.firedLongPress = false;
       e.preventDefault();
       e.stopPropagation();
+      return;
+    }
+    if (isSelectionMode) {
+      e.preventDefault();
+      e.stopPropagation();
+      onToggleSelected(event.id);
     }
   };
 
@@ -129,28 +95,33 @@ export function GroupableEventCard({ event, iconSource, groupPlan, onDropEvent }
 
   return (
     <div
-      ref={rootRef}
       data-event-id={event.id}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
-      onClickCapture={suppressClickAfterDrag}
-      style={{ touchAction: isArmed ? 'none' : undefined }}
+      onClickCapture={handleClickCapture}
       className={`flex items-stretch gap-2.5 rounded-lg transition-[box-shadow,transform] duration-150 ${
-        isArmed ? 'relative z-10 scale-[1.02] shadow-lg ring-2 ring-dn-primary/60' : ''
+        isSelected ? 'relative z-10 scale-[1.01] ring-2 ring-dn-primary/70' : ''
       }`}
     >
       {groupColor && (
+        <span aria-hidden="true" style={{ backgroundColor: groupColor }} className="w-1 shrink-0 rounded-full" />
+      )}
+
+      {isSelectionMode && (
         <span
           aria-hidden="true"
-          style={{ backgroundColor: groupColor }}
-          className="w-1 shrink-0 rounded-full"
-        />
+          className={`self-center w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${
+            isSelected ? 'bg-dn-primary border-dn-primary' : 'border-dn-text-muted'
+          }`}
+        >
+          {isSelected && <Icon name="check" className="text-xs text-white" />}
+        </span>
       )}
 
       <div className="flex-1 min-w-0">
-        <EventCard event={event} iconSource={iconSource} disableLink={isArmed} />
+        <EventCard event={event} iconSource={iconSource} disableLink={isSelectionMode} />
 
         {groupPlan && groupColor && (
           <Link

@@ -267,10 +267,17 @@ const es = {
     eventType: 'Tipo de Evento',
     group: {
       defaultName: 'Grupo: {{name}}',
-      badge: 'Agrupado',
       alreadyGrouped: 'Ambos eventos ya pertenecen a un grupo. Combinar grupos todavía no está soportado.',
       memberCount: '{{count}} en este grupo',
       viewGroup: 'Ver grupo',
+      selectedCount_one: '{{count}} evento seleccionado',
+      selectedCount_other: '{{count}} eventos seleccionados',
+      createGroupAction: 'Crear grupo',
+      newGroupOption: '+ Nuevo grupo',
+      assignTitle: 'Asignar a un grupo',
+      assignHint_one: 'Se va a agregar {{count}} evento.',
+      assignHint_other: 'Se van a agregar {{count}} eventos.',
+      assignPlanLabel: 'Grupo',
     },
   },
 

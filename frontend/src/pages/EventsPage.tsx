@@ -10,7 +10,8 @@ import { useDuplicates } from '@/hooks/useDuplicates';
 import { useSearchParamsBatch } from '@/hooks/useSearchParamsState';
 import type { ParamConfig } from '@/hooks/useSearchParamsState';
 import { useEventGroupPlans } from '@/hooks/useEventGroupPlans';
-import { useCreatePaymentPlan, useAddEventToGroupPlan } from '@/hooks/usePaymentPlans';
+import { useAddEventToGroupPlan } from '@/hooks/usePaymentPlans';
+import { nextGroupInstallmentNumber, toDateOnly } from '@/lib/groupPlanHelpers';
 import { useAlert } from '@/contexts/AlertContext';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import { PendingEventsSync } from '@/components/events/PendingEventsSync';
@@ -18,6 +19,8 @@ import { MergeEventsModal } from '@/components/events/MergeEventsModal';
 import { BulkUpdateEventsModal } from '@/components/events/BulkUpdateEventsModal';
 import { GroupableEventCard } from '@/components/events/GroupableEventCard';
 import { EventGroupFolderCard } from '@/components/events/EventGroupFolderCard';
+import { EventGroupSelectionBar } from '@/components/events/EventGroupSelectionBar';
+import { AssignSelectionToGroupModal } from '@/components/events/AssignSelectionToGroupModal';
 import type { Template, EventType, FinanceEvent, PaymentPlan } from '@/models';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -28,7 +31,7 @@ import {
   EventsListView,
   type AdvancedFiltersState,
 } from '@/components/events/EventsListView';
-import { formatCurrencyShort, formatDate, getLocalizedTodayString } from '@/lib/format';
+import { formatCurrencyShort, formatDate } from '@/lib/format';
 import type { DateField } from '@/services/events.service';
 import { useAccumulatedData } from '@/hooks/useAccumulatedData';
 
@@ -116,14 +119,6 @@ function computeEventGroupRuns(events: FinanceEvent[], planByEventId: Map<number
   }
 
   return { displayEvents, runByAnchorEventId };
-}
-
-function nextGroupInstallmentNumber(plan: PaymentPlan): number {
-  return (plan.items ?? []).reduce((max, item) => Math.max(max, item.installmentNumber), 0) + 1;
-}
-
-function toDateOnly(dateTime: string): string {
-  return dateTime.slice(0, 10);
 }
 
 const EVENTS_SCROLL_CONTAINER_ID = 'app-scroll-container';
@@ -346,67 +341,77 @@ export function EventsPage() {
 
   useRestoredScrollPosition(events.length > 0);
 
-  // --- 5. Drag-to-group (long-press an event card onto another to form/extend a GROUP plan) ---
+  // --- 5. Long-press to group (long-press one card arms selection, tapping others adds them, a floating bar confirms) ---
   const { planByEventId } = useEventGroupPlans();
-  const createGroupPlan = useCreatePaymentPlan();
   const addEventToGroup = useAddEventToGroupPlan();
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
   const { displayEvents, runByAnchorEventId } = useMemo(
     () => computeEventGroupRuns(events, planByEventId),
     [events, planByEventId]
   );
 
-  const addEventToPlan = useCallback(
-    (plan: PaymentPlan, eventToAdd: FinanceEvent) => {
-      addEventToGroup.mutate({
-        planId: plan.id,
-        dto: {
-          installmentNumber: nextGroupInstallmentNumber(plan),
-          expectedDate: toDateOnly(eventToAdd.transactionDate),
-          itemStatus: 'PAID',
-          eventId: eventToAdd.id,
-        },
-      });
-    },
-    [addEventToGroup]
-  );
+  const [selectedEventIds, setSelectedEventIds] = useState<Set<number>>(new Set());
+  const isSelectionMode = selectedEventIds.size > 0;
 
-  const handleDropEvent = useCallback(
-    (sourceEventId: number, targetEventId: number) => {
-      const sourceEvent = events.find((e) => e.id === sourceEventId);
-      const targetEvent = events.find((e) => e.id === targetEventId);
-      if (!sourceEvent || !targetEvent) return;
+  const handleLongPress = useCallback((eventId: number) => {
+    setSelectedEventIds(new Set([eventId]));
+  }, []);
 
-      const sourcePlan = planByEventId.get(sourceEventId);
-      const targetPlan = planByEventId.get(targetEventId);
-
-      if (sourcePlan && targetPlan) {
-        if (sourcePlan.id !== targetPlan.id) {
-          alert.error(t('events.group.alreadyGrouped'));
-        }
-        return;
+  const handleToggleSelected = useCallback((eventId: number) => {
+    setSelectedEventIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(eventId)) {
+        next.delete(eventId);
+      } else {
+        next.add(eventId);
       }
-      if (sourcePlan) {
-        addEventToPlan(sourcePlan, targetEvent);
-        return;
-      }
-      if (targetPlan) {
-        addEventToPlan(targetPlan, sourceEvent);
-        return;
-      }
+      return next;
+    });
+  }, []);
 
-      createGroupPlan.mutate({
-        name: t('events.group.defaultName', { name: targetEvent.name || t('drafts.untitledDraft') }),
-        planType: 'GROUP',
-        startDate: getLocalizedTodayString(),
-        isAutomated: false,
-        autoCreateDraft: false,
-        generateItems: false,
-        eventIds: [sourceEventId, targetEventId],
-      });
-    },
-    [events, planByEventId, addEventToPlan, createGroupPlan, alert, t]
-  );
+  const handleCancelSelection = useCallback(() => setSelectedEventIds(new Set()), []);
+
+  const handleConfirmSelection = useCallback(() => {
+    const selectedEvents = events.filter((e) => selectedEventIds.has(e.id));
+    if (selectedEvents.length < 2) return;
+
+    const distinctPlans = new Map<number, PaymentPlan>();
+    const ungroupedEvents: FinanceEvent[] = [];
+    for (const selectedEvent of selectedEvents) {
+      const plan = planByEventId.get(selectedEvent.id);
+      if (plan) {
+        distinctPlans.set(plan.id, plan);
+      } else {
+        ungroupedEvents.push(selectedEvent);
+      }
+    }
+
+    if (distinctPlans.size > 1) {
+      alert.error(t('events.group.alreadyGrouped'));
+      return;
+    }
+
+    if (distinctPlans.size === 1) {
+      const [targetPlan] = distinctPlans.values();
+      let installmentNumber = nextGroupInstallmentNumber(targetPlan);
+      for (const eventToAdd of ungroupedEvents) {
+        addEventToGroup.mutate({
+          planId: targetPlan.id,
+          dto: {
+            installmentNumber: installmentNumber++,
+            expectedDate: toDateOnly(eventToAdd.transactionDate),
+            itemStatus: 'PAID',
+            eventId: eventToAdd.id,
+          },
+        });
+      }
+      setSelectedEventIds(new Set());
+      return;
+    }
+
+    setIsAssignModalOpen(true);
+  }, [events, selectedEventIds, planByEventId, addEventToGroup, alert, t]);
 
   const renderEventRow = useCallback(
     (event: FinanceEvent, iconSource: 'category' | 'node') => {
@@ -419,11 +424,14 @@ export function EventsPage() {
           event={event}
           iconSource={iconSource}
           groupPlan={planByEventId.get(event.id)}
-          onDropEvent={handleDropEvent}
+          isSelectionMode={isSelectionMode}
+          isSelected={selectedEventIds.has(event.id)}
+          onLongPress={handleLongPress}
+          onToggleSelected={handleToggleSelected}
         />
       );
     },
-    [runByAnchorEventId, planByEventId, handleDropEvent]
+    [runByAnchorEventId, planByEventId, isSelectionMode, selectedEventIds, handleLongPress, handleToggleSelected]
   );
 
   const { data: draftEvents } = useFinanceEventDrafts();
@@ -571,6 +579,22 @@ export function EventsPage() {
       <BulkUpdateEventsModal
         open={showBulkUpdate}
         onClose={() => setShowBulkUpdate(false)}
+      />
+
+      {isSelectionMode && (
+        <EventGroupSelectionBar
+          count={selectedEventIds.size}
+          isPending={addEventToGroup.isPending}
+          onConfirm={handleConfirmSelection}
+          onCancel={handleCancelSelection}
+        />
+      )}
+
+      <AssignSelectionToGroupModal
+        open={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        selectedEvents={events.filter((e) => selectedEventIds.has(e.id))}
+        onAssigned={handleCancelSelection}
       />
     </div>
   );

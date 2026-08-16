@@ -268,10 +268,17 @@ const en = {
     eventType: 'Event Type',
     group: {
       defaultName: 'Group: {{name}}',
-      badge: 'Grouped',
       alreadyGrouped: 'Both events already belong to a group. Merging groups is not supported yet.',
       memberCount: '{{count}} in this group',
       viewGroup: 'View group',
+      selectedCount_one: '{{count}} event selected',
+      selectedCount_other: '{{count}} events selected',
+      createGroupAction: 'Create group',
+      newGroupOption: '+ New group',
+      assignTitle: 'Assign to a group',
+      assignHint_one: '{{count}} event will be added.',
+      assignHint_other: '{{count}} events will be added.',
+      assignPlanLabel: 'Group',
     },
   },
 
