@@ -17,6 +17,7 @@ import jakarta.transaction.Transactional;
 import com.mypaybyday.dto.CategoryBalanceDto;
 import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.EventQuery.DateField;
+import com.mypaybyday.dto.EventTotalsDto;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.CategoryEntity;
@@ -47,6 +48,65 @@ public class EventGetService {
 
 	@Transactional
 	public PagedResponse<FinanceEventDto> listAll(EventQuery queryRequest) {
+		PanacheQuery<FinanceEventEntity> panacheQuery = buildFilteredQuery(queryRequest);
+
+		if (requiresInMemoryFiltering(queryRequest)) {
+			List<FinanceEventEntity> matchingEvents = applyInMemoryFilters(panacheQuery.list(), queryRequest);
+
+			int totalElements = matchingEvents.size();
+			int start = Math.min(queryRequest.page() * queryRequest.size(), totalElements);
+			int end = Math.min(start + queryRequest.size(), totalElements);
+			List<FinanceEventDto> content = matchingEvents.subList(start, end)
+					.stream()
+					.map(FinanceEventDto::from)
+					.toList();
+			return PagedResponse.of(content, queryRequest.page(), queryRequest.size(), totalElements);
+		}
+
+		long totalElements = panacheQuery.count();
+		List<FinanceEventDto> content = panacheQuery
+				.page(Page.of(queryRequest.page(), queryRequest.size()))
+				.stream()
+				.map(FinanceEventDto::from)
+				.toList();
+		return PagedResponse.of(content, queryRequest.page(), queryRequest.size(), totalElements);
+	}
+
+	/**
+	* Aggregate income/outbound/transfer totals across every event matching the query's filters,
+	* independent of pagination. Mirrors {@link com.mypaybyday.service.TimePeriodService#getBalance}'s
+	* aggregation so a filtered event list and its own totals card never disagree.
+	*/
+	@Transactional
+	public EventTotalsDto summary(EventQuery queryRequest) {
+		List<FinanceEventEntity> matchingEvents = applyInMemoryFilters(buildFilteredQuery(queryRequest).list(), queryRequest);
+
+		BigDecimal income = BigDecimal.ZERO;
+		BigDecimal outbound = BigDecimal.ZERO;
+		BigDecimal transfers = BigDecimal.ZERO;
+
+		for (FinanceEventEntity event : matchingEvents) {
+			if (event.transaction == null || event.transaction.lineItems == null) {
+				continue;
+			}
+
+			if (event.type == EventType.OTHER) {
+				transfers = transfers.add(eventTransferAmount(event));
+				continue;
+			}
+
+			BigDecimal eventAmount = eventTotalAmount(event);
+			if (event.type == EventType.INBOUND) {
+				income = income.add(eventAmount);
+			} else if (event.type == EventType.OUTBOUND) {
+				outbound = outbound.add(eventAmount);
+			}
+		}
+
+		return new EventTotalsDto(income, outbound, transfers, matchingEvents.size());
+	}
+
+	private PanacheQuery<FinanceEventEntity> buildFilteredQuery(EventQuery queryRequest) {
 		StringBuilder query = new StringBuilder("select e from FinanceEvent e where 1=1");
 		Map<String, Object> params = new HashMap<>();
 
@@ -109,50 +169,52 @@ public class EventGetService {
 		}
 
 		query.append(" ORDER BY ").append(dateFieldExpression).append(" DESC");
-		PanacheQuery<FinanceEventEntity> panacheQuery = eventRepository.find(query.toString(), params);
+		return eventRepository.find(query.toString(), params);
+	}
+
+	private boolean requiresInMemoryFiltering(EventQuery queryRequest) {
+		boolean hasSearch = queryRequest.search() != null && !queryRequest.search().isBlank();
+		boolean hasAmountRange = queryRequest.minAmount() != null || queryRequest.maxAmount() != null;
+		return hasSearch || hasAmountRange;
+	}
+
+	private List<FinanceEventEntity> applyInMemoryFilters(List<FinanceEventEntity> events, EventQuery queryRequest) {
+		if (!requiresInMemoryFiltering(queryRequest)) {
+			return events;
+		}
 
 		boolean hasSearch = queryRequest.search() != null && !queryRequest.search().isBlank();
 		boolean hasAmountRange = queryRequest.minAmount() != null || queryRequest.maxAmount() != null;
+		Log.debugf("Event search using in-memory filtering (search=%b amountRange=%b)", hasSearch, hasAmountRange);
+		String searchLower = hasSearch ? queryRequest.search().toLowerCase() : null;
 
-		if (hasSearch || hasAmountRange) {
-			Log.debugf("Event search using in-memory filtering (search=%b amountRange=%b)", hasSearch, hasAmountRange);
-			String searchLower = hasSearch ? queryRequest.search().toLowerCase() : null;
-			List<FinanceEventEntity> matchingEvents = panacheQuery.stream()
-					.filter(event -> {
-						if (hasSearch) {
-							boolean nameMatch = event.name != null && event.name.toLowerCase().contains(searchLower);
-							boolean descriptionMatch = event.description != null && event.description.toLowerCase().contains(searchLower);
-							boolean categoryMatch = event.category != null
-									&& event.category.name != null
-									&& event.category.name.toLowerCase().contains(searchLower);
-							if (!nameMatch && !descriptionMatch && !categoryMatch) return false;
-						}
-						if (hasAmountRange) {
-							BigDecimal total = eventTotalAmount(event);
-							if (queryRequest.minAmount() != null && total.compareTo(queryRequest.minAmount()) < 0) return false;
-							if (queryRequest.maxAmount() != null && total.compareTo(queryRequest.maxAmount()) > 0) return false;
-						}
-						return true;
-					})
-					.collect(Collectors.toList());
+		return events.stream()
+				.filter(event -> {
+					if (hasSearch) {
+						boolean nameMatch = event.name != null && event.name.toLowerCase().contains(searchLower);
+						boolean descriptionMatch = event.description != null && event.description.toLowerCase().contains(searchLower);
+						boolean categoryMatch = event.category != null
+								&& event.category.name != null
+								&& event.category.name.toLowerCase().contains(searchLower);
+						if (!nameMatch && !descriptionMatch && !categoryMatch) return false;
+					}
+					if (hasAmountRange) {
+						BigDecimal total = eventTotalAmount(event);
+						if (queryRequest.minAmount() != null && total.compareTo(queryRequest.minAmount()) < 0) return false;
+						if (queryRequest.maxAmount() != null && total.compareTo(queryRequest.maxAmount()) > 0) return false;
+					}
+					return true;
+				})
+				.collect(Collectors.toList());
+	}
 
-			int totalElements = matchingEvents.size();
-			int start = Math.min(queryRequest.page() * queryRequest.size(), totalElements);
-			int end = Math.min(start + queryRequest.size(), totalElements);
-			List<FinanceEventDto> content = matchingEvents.subList(start, end)
-					.stream()
-					.map(FinanceEventDto::from)
-					.toList();
-			return PagedResponse.of(content, queryRequest.page(), queryRequest.size(), totalElements);
-		}
-
-		long totalElements = panacheQuery.count();
-		List<FinanceEventDto> content = panacheQuery
-				.page(Page.of(queryRequest.page(), queryRequest.size()))
-				.stream()
-				.map(FinanceEventDto::from)
-				.toList();
-		return PagedResponse.of(content, queryRequest.page(), queryRequest.size(), totalElements);
+	private BigDecimal eventTransferAmount(FinanceEventEntity event) {
+		return event.transaction.lineItems.stream()
+				.map(li -> li.amount)
+				.filter(a -> a != null)
+				.map(BigDecimal::abs)
+				.reduce(BigDecimal.ZERO, BigDecimal::add)
+				.divide(BigDecimal.valueOf(2));
 	}
 
 	private BigDecimal eventTotalAmount(FinanceEventEntity event) {

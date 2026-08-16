@@ -174,6 +174,7 @@ const es = {
   events: {
     title: 'Actividad',
     eventsCount: '{{count}} eventos',
+    loadedOfTotal: 'Cargados {{loaded}} de {{total}}',
     income: 'Ingresos',
     expenses: 'Gastos',
     transfers: 'Transferencias',

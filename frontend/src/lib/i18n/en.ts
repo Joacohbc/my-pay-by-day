@@ -175,6 +175,7 @@ const en = {
   events: {
     title: 'Activity',
     eventsCount: '{{count}} events',
+    loadedOfTotal: 'Showing {{loaded}} of {{total}} loaded',
     income: 'Income',
     expenses: 'Expenses',
     transfers: 'Transfers',

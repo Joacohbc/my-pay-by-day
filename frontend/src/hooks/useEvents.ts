@@ -105,6 +105,14 @@ export function useEvents(filters: EventFilters = {}, options?: { enabled?: bool
   });
 }
 
+export function useEventsSummary(filters: EventFilters = {}) {
+  return useQuery({
+    queryKey: eventKeys.summary(filters),
+    queryFn: () => eventsService.getSummary(filters),
+    ...cachePolicy.derived,
+  });
+}
+
 export function useEvent(id: number) {
   return useQuery({
     queryKey: eventKeys.detail(id),

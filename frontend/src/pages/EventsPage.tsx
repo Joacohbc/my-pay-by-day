@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useLayoutEffect, useRef, typ
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
 import { Routes, saveEventsSearch, saveEventsScrollTop, getEventsScrollTop } from '@/lib/routes';
-import { useEvents } from '@/hooks/useEvents';
+import { useEvents, useEventsSummary } from '@/hooks/useEvents';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useDebounce, useDebounceCallback } from '@/hooks/useDebounce';
 import { useFinanceEventDrafts } from '@/hooks/useDrafts';
@@ -23,7 +23,7 @@ import {
   EventsListView,
   type AdvancedFiltersState,
 } from '@/components/events/EventsListView';
-import { formatCurrencyShort, formatDate, eventNetAmount } from '@/lib/format';
+import { formatCurrencyShort, formatDate } from '@/lib/format';
 import type { DateField } from '@/services/events.service';
 import { useAccumulatedData } from '@/hooks/useAccumulatedData';
 
@@ -252,20 +252,29 @@ export function EventsPage() {
   const [restoredPage] = useState(page);
   const eventsPageQuery = resolveEventsPageQuery(page, restoredPage);
 
+  const eventFilters = useMemo(
+    () => ({
+      search: debouncedSearch,
+      startDate,
+      endDate,
+      dateField,
+      type: filter !== 'ALL' ? (filter as EventType) : undefined,
+      categoryIds: categoryIdsArr.length ? categoryIdsArr : undefined,
+      tagIds: tagIdsArr.length ? tagIdsArr : undefined,
+      nodeId: nodeIdNum,
+      minAmount: minAmountNum,
+      maxAmount: maxAmountNum,
+    }),
+    [debouncedSearch, startDate, endDate, dateField, filter, categoryIdsArr, tagIdsArr, nodeIdNum, minAmountNum, maxAmountNum]
+  );
+
   const { data: paged, isLoading, error } = useEvents({
+    ...eventFilters,
     page: eventsPageQuery.requestPage,
     size: eventsPageQuery.requestSize,
-    search: debouncedSearch,
-    startDate,
-    endDate,
-    dateField,
-    type: filter !== 'ALL' ? (filter as EventType) : undefined,
-    categoryIds: categoryIdsArr.length ? categoryIdsArr : undefined,
-    tagIds: tagIdsArr.length ? tagIdsArr : undefined,
-    nodeId: nodeIdNum,
-    minAmount: minAmountNum,
-    maxAmount: maxAmountNum,
   });
+
+  const { data: summary } = useEventsSummary(eventFilters);
 
   const { displayedData: events } = useAccumulatedData(
     paged?.content,
@@ -285,21 +294,9 @@ export function EventsPage() {
   const totalElements = paged?.totalElements ?? 0;
   const totalPages = countTotalPages(totalElements);
 
-  const totalIncome = useMemo(
-    () =>
-      events
-        .filter((e) => e.type === 'INBOUND')
-        .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0),
-    [events]
-  );
-
-  const totalTransfers = useMemo(
-    () =>
-      events
-        .filter((e) => e.type === 'OTHER')
-        .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0),
-    [events]
-  );
+  const totalIncome = summary?.income ?? 0;
+  const totalExpenses = summary?.outbound ?? 0;
+  const totalTransfers = summary?.transfers ?? 0;
 
   const cardsGridRef = useRef<HTMLDivElement>(null);
   const areCardsVisible = useIsElementInView(cardsGridRef, events.length > 0);
@@ -311,14 +308,6 @@ export function EventsPage() {
       to: events[0].transactionDate,
     };
   }, [events]);
-
-  const totalExpenses = useMemo(
-    () =>
-      events
-        .filter((e) => e.type === 'OUTBOUND')
-        .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0),
-    [events]
-  );
 
   if (error) {
     return (
@@ -344,6 +333,9 @@ export function EventsPage() {
             </div>
             <p className="text-[10px] text-dn-text-muted">
               {formatDate(loadedDateRange.from)} – {formatDate(loadedDateRange.to)}
+              {events.length < totalElements && (
+                <> · {t('events.loadedOfTotal', { loaded: events.length, total: totalElements })}</>
+              )}
             </p>
           </div>
         </div>
@@ -389,6 +381,9 @@ export function EventsPage() {
       {loadedDateRange && (
         <p className="px-4 sm:px-5 -mt-2 text-[10px] sm:text-xs text-dn-text-muted text-center">
           {formatDate(loadedDateRange.from)} – {formatDate(loadedDateRange.to)}
+          {events.length < totalElements && (
+            <> · {t('events.loadedOfTotal', { loaded: events.length, total: totalElements })}</>
+          )}
         </p>
       )}
 
