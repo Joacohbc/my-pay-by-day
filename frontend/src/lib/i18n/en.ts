@@ -561,6 +561,7 @@ const en = {
     assignNewGroupItem: 'Add this event to the group',
     filterGroup: 'Groups',
     filterCustom: 'Custom',
+    filterStatusAll: 'All Statuses',
     kindGroupTitle: 'Group',
     kindGroupDescription: 'Bundle events that happened once — a trip, a party, a shared purchase.',
     kindInstallmentTitle: 'Cuotas',

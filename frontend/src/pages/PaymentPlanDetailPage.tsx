@@ -71,17 +71,18 @@ export function PaymentPlanDetailPage() {
   const isGroup = isGroupPlan(plan.planType);
   const isActive = plan.status === 'ACTIVE';
   const isCancelled = plan.status === 'CANCELLED';
+  const isCompleted = plan.status === 'COMPLETED';
+  const isClosed = isCancelled || isCompleted;
   const groupedEventsCount = (plan.items ?? []).filter((item) => item.eventId != null).length;
   const totalsFromLinkedEvents = isUserComposedPlan(plan.planType);
   const supportsAutomation = !isUserComposedPlan(plan.planType);
   const hasRoomForAnotherItem =
     plan.planType !== 'INSTALLMENT' || (plan.items ?? []).length < (plan.totalInstallments ?? 0);
-  const canComposeItems = !isCancelled && hasRoomForAnotherItem;
+  const canComposeItems = !isClosed && hasRoomForAnotherItem;
 
   const confirmCancel = async () => {
     await cancelPlan.mutateAsync(plan.id);
     setIsCancelConfirmOpen(false);
-    goBack();
   };
 
   const confirmDelete = async () => {
@@ -100,6 +101,12 @@ export function PaymentPlanDetailPage() {
     updatePlan.mutate({
       id: plan.id,
       dto: { ...plan, status: 'COMPLETED' },
+    });
+
+  const reopenPlan = () =>
+    updatePlan.mutate({
+      id: plan.id,
+      dto: { ...plan, status: 'ACTIVE' },
     });
 
   const toggleAutomation = () =>
@@ -156,16 +163,28 @@ export function PaymentPlanDetailPage() {
         back={goBack}
         action={
           <div className="flex gap-2">
-            {supportsAutomation && !isCancelled && (
+            {isClosed ? (
               <Button
                 variant="secondary"
                 size="sm"
-                title={isActive ? t('common.pause') : t('paymentPlans.activate')}
-                onClick={toggleStatus}
+                title={t('paymentPlans.activate')}
+                onClick={reopenPlan}
                 loading={updatePlan.isPending}
               >
-                <Icon name={isActive ? 'pause' : 'play_arrow'} className="text-base" />
+                <Icon name="play_arrow" className="text-base" />
               </Button>
+            ) : (
+              supportsAutomation && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  title={isActive ? t('common.pause') : t('paymentPlans.activate')}
+                  onClick={toggleStatus}
+                  loading={updatePlan.isPending}
+                >
+                  <Icon name={isActive ? 'pause' : 'play_arrow'} className="text-base" />
+                </Button>
+              )
             )}
             {isGroup && isActive && (
               <Button
@@ -183,7 +202,7 @@ export function PaymentPlanDetailPage() {
                 <Icon name="edit" className="text-base" />
               </Button>
             </Link>
-            {isCancelled ? (
+            {isClosed ? (
               <Button
                 variant="danger"
                 size="sm"
@@ -202,7 +221,7 @@ export function PaymentPlanDetailPage() {
                 <Icon name="block" className="text-base" />
               </Button>
             )}
-            {isGroup && !isCancelled && (
+            {isGroup && !isClosed && (
               <Button
                 variant="danger"
                 size="sm"

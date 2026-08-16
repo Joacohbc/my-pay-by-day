@@ -287,6 +287,7 @@ public class PaymentPlanService implements DataSectionTransfer<PaymentPlanExport
 	@Transactional
 	public PaymentPlanItemDto createItem(Long planId, CreatePaymentPlanItemDto dto) throws BusinessException {
 		PaymentPlanEntity plan = findEntityById(planId);
+		paymentPlanItemValidator.validatePlanAcceptsNewItems(plan);
 		paymentPlanItemValidator.validateHasRoomForAnotherItem(plan);
 
 		PaymentPlanItemEntity item = new PaymentPlanItemEntity();

@@ -18,6 +18,7 @@ import { isUserComposedPlan, planTypeIcons } from '@/components/paymentPlans/pla
 import { useBanner, BANNER_IDS } from '@/store/dismissedBannersStore';
 
 type PlanFilter = 'ALL' | PaymentPlanType;
+type StatusFilter = 'ALL' | PaymentPlanStatus;
 
 const statusBadgeVariants: Record<PaymentPlanStatus, 'income' | 'indigo' | 'gray'> = {
   ACTIVE: 'income',
@@ -38,10 +39,13 @@ export function PaymentPlansPage() {
   const { linkStateFromHere } = useAppNavigation();
   const { data: plans = [], isLoading } = usePaymentPlans();
   const [filter, setFilter] = useState<PlanFilter>('ALL');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ACTIVE');
 
   const howItWorksBanner = useBanner(BANNER_IDS.SUBSCRIPTIONS_HOW_IT_WORKS);
 
-  const filteredPlans = filter === 'ALL' ? plans : plans.filter((plan) => plan.planType === filter);
+  const filteredPlans = plans
+    .filter((plan) => filter === 'ALL' || plan.planType === filter)
+    .filter((plan) => statusFilter === 'ALL' || plan.status === statusFilter);
 
   const remainingInstallmentDebt = plans
     .filter((plan) => plan.status === 'ACTIVE' && plan.planType === 'INSTALLMENT')
@@ -53,6 +57,14 @@ export function PaymentPlansPage() {
     { key: 'RECURRING', label: t('paymentPlans.filterRecurring') },
     { key: 'GROUP', label: t('paymentPlans.filterGroup') },
     { key: 'CUSTOM', label: t('paymentPlans.filterCustom') },
+  ];
+
+  const statusFilterTabs: { key: StatusFilter; label: string }[] = [
+    { key: 'ACTIVE', label: t('paymentPlans.status.ACTIVE') },
+    { key: 'PAUSED', label: t('paymentPlans.status.PAUSED') },
+    { key: 'COMPLETED', label: t('paymentPlans.status.COMPLETED') },
+    { key: 'CANCELLED', label: t('paymentPlans.status.CANCELLED') },
+    { key: 'ALL', label: t('paymentPlans.filterStatusAll') },
   ];
 
   const createAction = (
@@ -107,6 +119,22 @@ export function PaymentPlansPage() {
             onClick={() => setFilter(key)}
             className={`shrink-0 px-3 py-1.5 rounded-pill text-xs font-medium transition-colors border ${
               filter === key
+                ? 'bg-dn-primary/20 text-dn-primary border-dn-primary/30'
+                : 'bg-dn-surface-low text-dn-text-muted border-transparent hover:text-dn-text-main'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="px-5 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+        {statusFilterTabs.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setStatusFilter(key)}
+            className={`shrink-0 px-3 py-1.5 rounded-pill text-xs font-medium transition-colors border ${
+              statusFilter === key
                 ? 'bg-dn-primary/20 text-dn-primary border-dn-primary/30'
                 : 'bg-dn-surface-low text-dn-text-muted border-transparent hover:text-dn-text-main'
             }`}

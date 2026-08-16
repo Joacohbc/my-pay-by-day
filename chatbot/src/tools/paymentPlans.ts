@@ -40,8 +40,14 @@ function hasLinkOnlyItems(plan: PaymentPlan): boolean {
   return plan.planType === 'CUSTOM' || plan.planType === 'GROUP';
 }
 
+/** A COMPLETED or CANCELLED plan is closed: it takes no new entries until it is reopened. */
+function isClosed(plan: PaymentPlan): boolean {
+  return plan.status === 'COMPLETED' || plan.status === 'CANCELLED';
+}
+
 /** An installment plan is finite by definition: it can never hold more cuotas than it declares. */
 function hasRoomForAnotherItem(plan: PaymentPlan): boolean {
+  if (isClosed(plan)) return false;
   if (plan.planType !== 'INSTALLMENT') return true;
   return (plan.items ?? []).length < (plan.totalInstallments ?? 0);
 }
@@ -169,6 +175,13 @@ export function buildPaymentPlanTools(ctx: RequestContext): KindedToolSet {
   }
 
   async function resolveTargetItem(plan: PaymentPlan, itemId: number | null | undefined) {
+    if (isClosed(plan)) {
+      throw new BackendError(
+        400,
+        `Plan ${plan.id} ("${plan.name}") has status ${plan.status} and is closed. Reopen it (status ACTIVE) before attaching anything to it.`,
+      );
+    }
+
     if (itemId != null) {
       const requested = findItem(plan, itemId);
       if (!requested) throw new BackendError(404, `Payment plan item not found: ${itemId}`);
@@ -198,7 +211,8 @@ export function buildPaymentPlanTools(ctx: RequestContext): KindedToolSet {
           'List every payment plan the user has, of all four kinds: installment purchases (cuotas), recurring agreements, ' +
           'one-off event groups and hand-built custom schedules. Use it to check installment progress (e.g. 3/12 cuotas), ' +
           'remaining balance, or to find the plan id any other payment-plan tool needs. Each plan reports canAddItems, ' +
-          'which is false only when an installment plan already holds every cuota it declares.',
+          'which is false when an installment plan already holds every cuota it declares, or when the plan is COMPLETED ' +
+          'or CANCELLED (a closed plan takes nothing new until it is reopened to ACTIVE with updatePaymentPlan).',
         inputSchema: z.object({}),
         execute: () =>
           safe(async () => {
@@ -379,7 +393,8 @@ export function buildPaymentPlanTools(ctx: RequestContext): KindedToolSet {
       tool: tool({
         description:
           'Edit any existing payment plan. Only the provided fields change; everything else is preserved. Use status to pause ' +
-          'a plan, cancel it, or mark it COMPLETED once a group or a set of cuotas is closed. The kind of plan cannot be changed.',
+          'a plan, cancel it, or mark it COMPLETED once a group or a set of cuotas is closed. Setting status to ACTIVE reopens ' +
+          'a COMPLETED or CANCELLED plan — the only way to make it accept new entries again. The kind of plan cannot be changed.',
         inputSchema: botPaymentPlanPatchSchema,
         execute: (patch) =>
           safe(async () => {
@@ -401,7 +416,8 @@ export function buildPaymentPlanTools(ctx: RequestContext): KindedToolSet {
           'Attach an existing event or draft to a plan of any kind, and mark that entry as paid. Pass eventId OR draftId, ' +
           'never both. In a group or a custom plan this adds a new entry; in a cuota or subscription plan it fills the first ' +
           'cuota that has no event yet, the one named by itemId, or a new cycle when none is free. This is the tool for ' +
-          '"add this expense to the trip group" and for "this payment covers cuota 3".',
+          '"add this expense to the trip group" and for "this payment covers cuota 3". Fails on a COMPLETED or CANCELLED ' +
+          'plan — reopen it to ACTIVE with updatePaymentPlan first.',
         inputSchema: z
           .object({
             planId: NumericId,

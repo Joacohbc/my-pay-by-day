@@ -6,6 +6,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 import com.mypaybyday.entity.PaymentPlanEntity;
 import com.mypaybyday.entity.PaymentPlanItemEntity;
+import com.mypaybyday.enums.PaymentPlanStatus;
 import com.mypaybyday.enums.PaymentPlanType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
@@ -51,6 +52,16 @@ public class PaymentPlanItemValidator {
 		LocalDate scheduleEndDate = plan.scheduleEndDate();
 		if (scheduleEndDate != null && entity.expectedDate.isAfter(scheduleEndDate)) {
 			throw messages.reject(MsgKey.PAYMENT_PLAN_ITEM_AFTER_PLAN_END, entity.expectedDate, scheduleEndDate);
+		}
+	}
+
+	/**
+	 * A COMPLETED or CANCELLED plan is closed: its schedule is done, and the only action left is
+	 * reopening it (back to ACTIVE) before it can accept new entries.
+	 */
+	public void validatePlanAcceptsNewItems(PaymentPlanEntity plan) throws BusinessException {
+		if (plan.status == PaymentPlanStatus.COMPLETED || plan.status == PaymentPlanStatus.CANCELLED) {
+			throw messages.reject(MsgKey.PAYMENT_PLAN_ITEM_PLAN_CLOSED, plan.status);
 		}
 	}
 

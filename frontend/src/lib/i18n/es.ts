@@ -560,6 +560,7 @@ const es = {
     assignNewGroupItem: 'Agregar este evento al grupo',
     filterGroup: 'Grupos',
     filterCustom: 'Personalizados',
+    filterStatusAll: 'Todos los estados',
     kindGroupTitle: 'Grupo',
     kindGroupDescription: 'Agrupá eventos que pasaron una sola vez: un viaje, una fiesta, una compra compartida.',
     kindInstallmentTitle: 'Cuotas',
