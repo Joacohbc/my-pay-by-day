@@ -188,7 +188,7 @@ export function EventMultiSelectModal({
             error={error}
             emptyStateTitle={search || hasAnyFilter ? t('events.noEventsFoundSearch') : t('events.noEventsFound')}
             onSelectEvent={(event) => handleToggle(event.id)}
-            selectionIndicator="checkbox"
+            selectionIndicator={maxSelection === 1 ? 'radio' : 'checkbox'}
             selectedIds={selectedIds}
             maxHeightClass="max-h-[40vh]"
             pagination={{

@@ -4,17 +4,23 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/contexts/AlertContext';
-import type { CreatePaymentPlanDto, PaymentPlan, PaymentPlanStatus } from '@/models';
+import type { CreatePaymentPlanDto, FinanceEvent, PaymentPlan, PaymentPlanStatus } from '@/models';
 import { useCreatePaymentPlan, useUpdatePaymentPlan } from '@/hooks/usePaymentPlans';
+import { useFinanceEventDrafts } from '@/hooks/useDrafts';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
+import { eventsService } from '@/services/events.service';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
-import { GroupMembersPicker } from '@/components/paymentPlans/GroupMembersPicker';
+import { EventCard } from '@/components/events/EventCard';
+import { EventMultiSelectModal } from '@/components/events/EventMultiSelectModal';
+import { DraftMultiSelectModal } from '@/components/events/DraftMultiSelectModal';
 import { nameField, descriptionField } from '@/lib/validation';
 import { findFirstFieldErrorMessage } from '@/lib/formErrors';
 import { prependMissingArchived } from '@/lib/prependMissingArchived';
@@ -69,8 +75,12 @@ export function GroupPlanForm({ editTarget, onCancel, onSuccess }: GroupPlanForm
   );
   const tags = useMemo(() => prependMissingArchived(tagsResponse ?? [], baseTags), [tagsResponse, baseTags]);
 
-  const [eventIds, setEventIds] = useState<number[]>([]);
-  const [draftIds, setDraftIds] = useState<number[]>([]);
+  const [selectedEvents, setSelectedEvents] = useState<FinanceEvent[]>([]);
+  const [selectedDrafts, setSelectedDrafts] = useState<FinanceEvent[]>([]);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
+
+  const { data: allDrafts } = useFinanceEventDrafts();
 
   const defaultValues = useMemo(() => toFormValues(editTarget), [editTarget]);
 
@@ -89,10 +99,41 @@ export function GroupPlanForm({ editTarget, onCancel, onSuccess }: GroupPlanForm
     reset(defaultValues);
   }, [defaultValues, reset]);
 
+  const eventIds = useMemo(() => selectedEvents.map((event) => event.id), [selectedEvents]);
+  const draftIds = useMemo(
+    () => selectedDrafts.map((draft) => draft.draftId).filter((id): id is number => id != null),
+    [selectedDrafts]
+  );
   const memberCount = eventIds.length + draftIds.length;
 
   const reportInvalidSubmit = (fieldErrors: FieldErrors<FormValues>) => {
     alert.error(findFirstFieldErrorMessage(fieldErrors) ?? t('common.validationError'));
+  };
+
+  const handleConfirmEvents = async (ids: Set<number>) => {
+    const cache = new Map(selectedEvents.map((event) => [event.id, event]));
+    const missingIds = Array.from(ids).filter((id) => !cache.has(id));
+    const fetched = await Promise.all(missingIds.map((id) => eventsService.getById(id)));
+    fetched.forEach((event) => cache.set(event.id, event));
+    setSelectedEvents(Array.from(ids, (id) => cache.get(id)).filter((event): event is FinanceEvent => !!event));
+    setIsEventModalOpen(false);
+  };
+
+  const handleConfirmDrafts = (ids: Set<number>) => {
+    const cache = new Map<number, FinanceEvent>();
+    for (const draft of allDrafts ?? []) {
+      if (draft.draftId != null) cache.set(draft.draftId, draft);
+    }
+    setSelectedDrafts(Array.from(ids, (id) => cache.get(id)).filter((draft): draft is FinanceEvent => !!draft));
+    setIsDraftModalOpen(false);
+  };
+
+  const removeSelectedEvent = (eventId: number) => {
+    setSelectedEvents((prev) => prev.filter((event) => event.id !== eventId));
+  };
+
+  const removeSelectedDraft = (draftId: number) => {
+    setSelectedDrafts((prev) => prev.filter((draft) => draft.draftId !== draftId));
   };
 
   const submitPlan = (values: FormValues) => {
@@ -200,18 +241,87 @@ export function GroupPlanForm({ editTarget, onCancel, onSuccess }: GroupPlanForm
       />
 
       {!editTarget && (
-        <>
-          <GroupMembersPicker
-            eventIds={eventIds}
-            draftIds={draftIds}
-            onChangeEventIds={setEventIds}
-            onChangeDraftIds={setDraftIds}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">
+              {t('paymentPlans.groupMembersLabel')}
+            </p>
+            <div className="flex items-center gap-1">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setIsEventModalOpen(true)}>
+                <span className="flex items-center gap-1 text-dn-primary">
+                  <Icon name="add_circle" className="text-sm" />
+                  <span className="text-xs">{t('paymentPlans.addGroupItem')}</span>
+                </span>
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setIsDraftModalOpen(true)}>
+                <span className="flex items-center gap-1 text-dn-primary">
+                  <Icon name="add_circle" className="text-sm" />
+                  <span className="text-xs">{t('paymentPlans.addGroupDraftItem')}</span>
+                </span>
+              </Button>
+            </div>
+          </div>
+
+          <EventMultiSelectModal
+            open={isEventModalOpen}
+            onClose={() => setIsEventModalOpen(false)}
+            title={t('paymentPlans.selectEventsTitle')}
+            onConfirm={handleConfirmEvents}
+            minSelection={0}
+            initialSelectedIds={new Set(eventIds)}
           />
 
-          <p className="text-xs text-dn-text-muted leading-relaxed">
-            {memberCount > 0 ? t('paymentPlans.groupMembersCount', { count: memberCount }) : t('paymentPlans.groupHint')}
-          </p>
-        </>
+          <DraftMultiSelectModal
+            open={isDraftModalOpen}
+            onClose={() => setIsDraftModalOpen(false)}
+            title={t('paymentPlans.selectDraftsTitle')}
+            onConfirm={handleConfirmDrafts}
+            minSelection={0}
+            initialSelectedIds={new Set(draftIds)}
+          />
+
+          {memberCount > 0 ? (
+            <div className="space-y-2">
+              {selectedEvents.map((event) => (
+                <div
+                  key={`event-${event.id}`}
+                  className="group p-2 border border-transparent hover:border-dn-primary/50 transition-colors rounded-2xl flex items-center justify-between gap-5"
+                >
+                  <EventCard event={event} disableLink />
+                  <button
+                    type="button"
+                    onClick={() => removeSelectedEvent(event.id)}
+                    className="shrink-0 flex items-center justify-center rounded-full p-2 text-dn-error hover:bg-dn-error/10 transition-colors"
+                    title={t('paymentPlans.removeGroupMember')}
+                  >
+                    <Icon name="close" className="text-xl" />
+                  </button>
+                </div>
+              ))}
+              {selectedDrafts.map((draft) => (
+                <div
+                  key={`draft-${draft.draftId}`}
+                  className="group p-2 border border-transparent hover:border-dn-primary/50 transition-colors rounded-2xl flex items-center justify-between gap-5"
+                >
+                  <EventCard event={draft} disableLink />
+                  <button
+                    type="button"
+                    onClick={() => draft.draftId != null && removeSelectedDraft(draft.draftId)}
+                    className="shrink-0 flex items-center justify-center rounded-full p-2 text-dn-error hover:bg-dn-error/10 transition-colors"
+                    title={t('paymentPlans.removeGroupMember')}
+                  >
+                    <Icon name="close" className="text-xl" />
+                  </button>
+                </div>
+              ))}
+              <p className="text-xs text-dn-text-muted leading-relaxed px-1">
+                {t('paymentPlans.groupMembersCount', { count: memberCount })}
+              </p>
+            </div>
+          ) : (
+            <EmptyState title={t('paymentPlans.noGroupMembers')} description={t('paymentPlans.groupHint')} />
+          )}
+        </div>
       )}
 
       <div className="flex items-center justify-end gap-2 pt-2">

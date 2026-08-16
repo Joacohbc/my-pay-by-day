@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/contexts/AlertContext';
 import type {
   CreatePaymentPlanItemDto,
+  FinanceEvent,
   PaymentPlanItem,
   PaymentPlanItemStatus,
   PaymentPlanType,
@@ -21,15 +22,18 @@ import { Icon } from '@/components/ui/Icon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { useEvent, useEvents } from '@/hooks/useEvents';
+import { EventCard } from '@/components/events/EventCard';
+import { EventMultiSelectModal } from '@/components/events/EventMultiSelectModal';
+import { DraftMultiSelectModal } from '@/components/events/DraftMultiSelectModal';
+import { useEvent } from '@/hooks/useEvents';
 import { useFinanceEventDrafts } from '@/hooks/useDrafts';
-import { describeFinanceEvent, formatDateFromParts, getLocalizedTodayString } from '@/lib/format';
+import { eventsService } from '@/services/events.service';
+import { formatDateFromParts, getLocalizedTodayString } from '@/lib/format';
 import { isGroupPlan } from '@/components/paymentPlans/planPresentation';
 import { requiredCountField, toOptionalNumber } from '@/lib/validation';
 import { findFirstFieldErrorMessage } from '@/lib/formErrors';
 
 const ITEM_STATUSES: PaymentPlanItemStatus[] = ['PENDING', 'DRAFTED', 'PAID', 'SKIPPED', 'OVERDUE'];
-const SELECTABLE_EVENTS_PAGE_SIZE = 50;
 
 function buildSchema(t: (key: string) => string) {
   return z
@@ -83,26 +87,22 @@ export function PaymentPlanItemForm({
   const updateItem = useUpdatePaymentPlanItem(planId);
   const deleteItem = useDeletePaymentPlanItem(planId);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
+  /** undefined = follow editTarget's linked record; a value (including null) = the user changed it in this session. */
+  const [eventOverride, setEventOverride] = useState<FinanceEvent | null | undefined>(undefined);
+  const [draftOverride, setDraftOverride] = useState<FinanceEvent | null | undefined>(undefined);
 
-  const { data: recentEvents } = useEvents({ page: 0, size: SELECTABLE_EVENTS_PAGE_SIZE });
   const { data: linkedEvent } = useEvent(editTarget?.eventId ?? 0);
   const { data: drafts } = useFinanceEventDrafts();
 
-  const eventOptions = useMemo(() => {
-    const selectable = recentEvents?.content ?? [];
-    const isLinkedEventMissing = linkedEvent && !selectable.some((event) => event.id === linkedEvent.id);
-    const events = isLinkedEventMissing ? [linkedEvent, ...selectable] : selectable;
-
-    return events.map((event) => ({ value: String(event.id), label: describeFinanceEvent(event) }));
-  }, [recentEvents, linkedEvent]);
-
-  const draftOptions = useMemo(
-    () =>
-      (drafts ?? [])
-        .filter((draft) => draft.draftId != null)
-        .map((draft) => ({ value: String(draft.draftId), label: describeFinanceEvent(draft) })),
-    [drafts]
+  const linkedDraft = useMemo(
+    () => (drafts ?? []).find((draft) => draft.draftId === editTarget?.draftId) ?? null,
+    [drafts, editTarget?.draftId]
   );
+
+  const selectedEvent = eventOverride !== undefined ? eventOverride : (linkedEvent ?? null);
+  const selectedDraft = draftOverride !== undefined ? draftOverride : linkedDraft;
 
   const {
     register,
@@ -122,10 +122,34 @@ export function PaymentPlanItemForm({
   });
 
   const linkKind = useWatch({ control, name: 'linkKind' });
+  const linkedId = useWatch({ control, name: 'linkedId' });
   const isGroup = isGroupPlan(planType);
+  const selectedRecord = linkKind === 'EVENT' ? selectedEvent : linkKind === 'DRAFT' ? selectedDraft : null;
 
   const reportInvalidSubmit = (fieldErrors: FieldErrors<FormValues>) => {
     alert.error(findFirstFieldErrorMessage(fieldErrors) ?? t('common.validationError'));
+  };
+
+  const handleConfirmEvent = async (ids: Set<number>) => {
+    const id = Array.from(ids)[0];
+    const event = id != null ? await eventsService.getById(id) : null;
+    setEventOverride(event);
+    setValue('linkedId', event?.id ?? null, { shouldValidate: true });
+    setIsEventModalOpen(false);
+  };
+
+  const handleConfirmDraft = (ids: Set<number>) => {
+    const id = Array.from(ids)[0];
+    const draft = id != null ? (drafts ?? []).find((candidate) => candidate.draftId === id) ?? null : null;
+    setDraftOverride(draft);
+    setValue('linkedId', draft?.draftId ?? null, { shouldValidate: true });
+    setIsDraftModalOpen(false);
+  };
+
+  const clearLinkedRecord = () => {
+    setEventOverride(null);
+    setDraftOverride(null);
+    setValue('linkedId', null, { shouldValidate: true });
   };
 
   const submitItem = (values: FormValues) => {
@@ -227,27 +251,66 @@ export function PaymentPlanItemForm({
             onChange={(value) => {
               field.onChange(value);
               setValue('linkedId', null);
+              setEventOverride(null);
+              setDraftOverride(null);
             }}
           />
         )}
       />
 
       {linkKind !== 'NONE' && (
-        <Controller
-          name="linkedId"
-          control={control}
-          render={({ field }) => (
-            <SearchableSelect
-              label={linkKind === 'EVENT' ? t('paymentPlans.linkedEvent') : t('paymentPlans.linkedDraft')}
-              placeholder={t('common.select')}
-              options={linkKind === 'EVENT' ? eventOptions : draftOptions}
-              error={errors.linkedId?.message}
-              value={field.value == null ? '' : String(field.value)}
-              onChange={(value) => field.onChange(value ? Number(value) : null)}
-            />
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">
+            {linkKind === 'EVENT' ? t('paymentPlans.linkedEvent') : t('paymentPlans.linkedDraft')}
+          </p>
+
+          {selectedRecord ? (
+            <div className="p-2 border border-dn-primary/30 bg-dn-primary/5 rounded-2xl flex items-center justify-between gap-3">
+              <EventCard event={selectedRecord} disableLink />
+              <button
+                type="button"
+                onClick={clearLinkedRecord}
+                className="shrink-0 flex items-center justify-center rounded-full p-2 text-dn-error hover:bg-dn-error/10 transition-colors"
+                title={t('common.clear')}
+              >
+                <Icon name="close" className="text-xl" />
+              </button>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => (linkKind === 'EVENT' ? setIsEventModalOpen(true) : setIsDraftModalOpen(true))}
+            >
+              <Icon name="add" className="text-sm" />
+              {t('common.select')}
+            </Button>
           )}
-        />
+
+          {errors.linkedId?.message && <p className="text-xs text-dn-error px-1">{errors.linkedId.message}</p>}
+        </div>
       )}
+
+      <EventMultiSelectModal
+        open={isEventModalOpen}
+        onClose={() => setIsEventModalOpen(false)}
+        title={t('paymentPlans.linkedEvent')}
+        onConfirm={handleConfirmEvent}
+        minSelection={0}
+        maxSelection={1}
+        initialSelectedIds={linkedId != null ? new Set([linkedId]) : new Set()}
+      />
+
+      <DraftMultiSelectModal
+        open={isDraftModalOpen}
+        onClose={() => setIsDraftModalOpen(false)}
+        title={t('paymentPlans.linkedDraft')}
+        onConfirm={handleConfirmDraft}
+        minSelection={0}
+        maxSelection={1}
+        initialSelectedIds={linkedId != null ? new Set([linkedId]) : new Set()}
+      />
 
       <div className="flex items-center justify-between gap-2 pt-2">
         {editTarget ? (
