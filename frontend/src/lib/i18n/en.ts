@@ -508,6 +508,7 @@ const en = {
     deletePlan: 'Delete Plan',
     deleteConfirm: 'Are you sure you want to delete this payment plan? This action cannot be undone.',
     activate: 'Activate',
+    markCompleted: 'Mark as Completed',
     types: {
       INSTALLMENT: 'Cuotas (Installment)',
       RECURRING: 'Subscription (Recurring)',

@@ -96,6 +96,12 @@ export function PaymentPlanDetailPage() {
       dto: { ...plan, status: isActive ? 'PAUSED' : 'ACTIVE' },
     });
 
+  const markCompleted = () =>
+    updatePlan.mutate({
+      id: plan.id,
+      dto: { ...plan, status: 'COMPLETED' },
+    });
+
   const toggleAutomation = () =>
     updatePlan.mutate({
       id: plan.id,
@@ -161,12 +167,23 @@ export function PaymentPlanDetailPage() {
                 <Icon name={isActive ? 'pause' : 'play_arrow'} className="text-base" />
               </Button>
             )}
+            {isGroup && isActive && (
+              <Button
+                variant="secondary"
+                size="sm"
+                title={t('paymentPlans.markCompleted')}
+                onClick={markCompleted}
+                loading={updatePlan.isPending}
+              >
+                <Icon name="task_alt" className="text-base" />
+              </Button>
+            )}
             <Link to={Routes.PAYMENT_PLAN_EDIT(plan.id)} state={linkStateFromHere()}>
               <Button variant="secondary" size="sm" title={t('common.edit')}>
                 <Icon name="edit" className="text-base" />
               </Button>
             </Link>
-            {isGroup || isCancelled ? (
+            {isCancelled ? (
               <Button
                 variant="danger"
                 size="sm"
@@ -183,6 +200,16 @@ export function PaymentPlanDetailPage() {
                 onClick={() => setIsCancelConfirmOpen(true)}
               >
                 <Icon name="block" className="text-base" />
+              </Button>
+            )}
+            {isGroup && !isCancelled && (
+              <Button
+                variant="danger"
+                size="sm"
+                title={t('paymentPlans.deletePlan')}
+                onClick={() => setIsDeleteConfirmOpen(true)}
+              >
+                <Icon name="delete" className="text-base" />
               </Button>
             )}
           </div>

@@ -507,6 +507,7 @@ const es = {
     deletePlan: 'Eliminar Plan',
     deleteConfirm: '¿Estás seguro de que deseas eliminar este plan de pago? Esta acción no se puede deshacer.',
     activate: 'Activar',
+    markCompleted: 'Marcar como Completado',
     types: {
       INSTALLMENT: 'Cuotas',
       RECURRING: 'Suscripción (Recurrente)',

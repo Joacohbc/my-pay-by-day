@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/contexts/AlertContext';
-import type { CreatePaymentPlanDto, PaymentPlan } from '@/models';
+import type { CreatePaymentPlanDto, PaymentPlan, PaymentPlanStatus } from '@/models';
 import { useCreatePaymentPlan, useUpdatePaymentPlan } from '@/hooks/usePaymentPlans';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
@@ -13,17 +13,21 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { GroupMembersPicker } from '@/components/paymentPlans/GroupMembersPicker';
 import { nameField, descriptionField } from '@/lib/validation';
 import { findFirstFieldErrorMessage } from '@/lib/formErrors';
 import { prependMissingArchived } from '@/lib/prependMissingArchived';
 import { getLocalizedTodayString } from '@/lib/format';
 
+const GROUP_PLAN_STATUSES: PaymentPlanStatus[] = ['ACTIVE', 'COMPLETED', 'CANCELLED'];
+
 function buildSchema(t: (key: string) => string) {
   return z.object({
     name: nameField(t),
     description: descriptionField(t),
     startDate: z.string().min(1, t('common.required')),
+    status: z.enum(['ACTIVE', 'COMPLETED', 'CANCELLED'], { error: t('common.required') }),
     categoryId: z.number().nullable(),
     tagIds: z.array(z.number()),
   });
@@ -36,6 +40,7 @@ function toFormValues(plan?: PaymentPlan | null): FormValues {
     name: plan?.name ?? '',
     description: plan?.description ?? '',
     startDate: plan?.startDate ?? getLocalizedTodayString(),
+    status: (plan?.status as FormValues['status']) ?? 'ACTIVE',
     categoryId: plan?.category?.id ?? null,
     tagIds: plan?.tags?.map((tag) => tag.id) ?? [],
   };
@@ -95,6 +100,7 @@ export function GroupPlanForm({ editTarget, onCancel, onSuccess }: GroupPlanForm
       name: values.name,
       description: values.description || undefined,
       planType: 'GROUP',
+      status: editTarget ? values.status : undefined,
       startDate: values.startDate,
       isAutomated: false,
       autoCreateDraft: false,
@@ -145,6 +151,25 @@ export function GroupPlanForm({ editTarget, onCancel, onSuccess }: GroupPlanForm
           />
         )}
       />
+
+      {editTarget && (
+        <Controller
+          name="status"
+          control={control}
+          render={({ field }) => (
+            <SearchableSelect
+              label={t('paymentPlans.statusLabel')}
+              options={GROUP_PLAN_STATUSES.map((status) => ({
+                value: status,
+                label: t(`paymentPlans.status.${status}`),
+              }))}
+              error={errors.status?.message}
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        />
+      )}
 
       <Controller
         name="categoryId"
