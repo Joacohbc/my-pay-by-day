@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
+import { useState, useCallback, useMemo, useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
 import { Routes, saveEventsSearch, saveEventsScrollTop, getEventsScrollTop } from '@/lib/routes';
@@ -23,7 +23,7 @@ import {
   EventsListView,
   type AdvancedFiltersState,
 } from '@/components/events/EventsListView';
-import { formatCurrencyShort, eventNetAmount } from '@/lib/format';
+import { formatCurrencyShort, formatDate, eventNetAmount } from '@/lib/format';
 import type { DateField } from '@/services/events.service';
 import { useAccumulatedData } from '@/hooks/useAccumulatedData';
 
@@ -71,6 +71,27 @@ const SCROLL_POSITION_SAVE_DELAY_MS = 150;
 
 function getEventsScrollContainer(): HTMLElement | null {
   return document.getElementById(EVENTS_SCROLL_CONTAINER_ID);
+}
+
+/** Tracks whether `elementRef` is currently scrolled into view within the events scroll container. */
+function useIsElementInView(elementRef: RefObject<HTMLElement | null>, hasContent: boolean) {
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    if (!hasContent) return;
+    const element = elementRef.current;
+    const container = getEventsScrollContainer();
+    if (!element || !container) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { root: container, threshold: 0 }
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [elementRef, hasContent]);
+
+  return isVisible;
 }
 
 /** Restores the list's scroll offset once its content is ready, then keeps it saved as the user scrolls. */
@@ -280,6 +301,17 @@ export function EventsPage() {
     [events]
   );
 
+  const cardsGridRef = useRef<HTMLDivElement>(null);
+  const areCardsVisible = useIsElementInView(cardsGridRef, events.length > 0);
+
+  const loadedDateRange = useMemo(() => {
+    if (events.length === 0) return null;
+    return {
+      from: events[events.length - 1].transactionDate,
+      to: events[0].transactionDate,
+    };
+  }, [events]);
+
   const totalExpenses = useMemo(
     () =>
       events
@@ -294,8 +326,29 @@ export function EventsPage() {
     );
   }
 
+  const showStickyTotals = !areCardsVisible && !!loadedDateRange;
+
   return (
     <div className="space-y-4">
+      {loadedDateRange && (
+        <div
+          className={`sticky top-0 z-20 grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-out ${
+            showStickyTotals ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+          }`}
+        >
+          <div className="min-h-0 bg-dn-bg/95 backdrop-blur-sm border-b border-dn-border px-4 sm:px-5 py-1.5 flex flex-col items-center gap-0.5">
+            <div className="flex items-center gap-3 text-xs sm:text-sm font-mono font-semibold">
+              <span className="text-dn-success">{formatCurrencyShort(totalIncome)}</span>
+              <span className="text-dn-text-main">{formatCurrencyShort(totalExpenses)}</span>
+              <span className="text-dn-text-main">{formatCurrencyShort(totalTransfers)}</span>
+            </div>
+            <p className="text-[10px] text-dn-text-muted">
+              {formatDate(loadedDateRange.from)} – {formatDate(loadedDateRange.to)}
+            </p>
+          </div>
+        </div>
+      )}
+
       <PageHeader
         title={t('events.title')}
         subtitle={t('events.eventsCount', { count: totalElements })}
@@ -312,7 +365,7 @@ export function EventsPage() {
         }
       />
 
-      <div className="grid grid-cols-3 gap-2 px-4 sm:gap-3 sm:px-5">
+      <div ref={cardsGridRef} className="grid grid-cols-3 gap-2 px-4 sm:gap-3 sm:px-5">
         <Card padding={false} className="p-3 sm:p-4 text-center min-w-0 flex flex-col justify-center">
           <p className="text-[10px] sm:text-xs text-dn-text-muted mb-1 truncate" title={t('events.income')}>{t('events.income')}</p>
           <p className="text-sm sm:text-lg font-mono font-semibold text-dn-success break-all">
@@ -332,6 +385,12 @@ export function EventsPage() {
           </p>
         </Card>
       </div>
+
+      {loadedDateRange && (
+        <p className="px-4 sm:px-5 -mt-2 text-[10px] sm:text-xs text-dn-text-muted text-center">
+          {formatDate(loadedDateRange.from)} – {formatDate(loadedDateRange.to)}
+        </p>
+      )}
 
       <PendingEventsSync />
 
