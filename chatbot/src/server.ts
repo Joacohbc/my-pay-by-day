@@ -5,6 +5,7 @@ import { config } from '@/config.js';
 import { resolveRequestId } from '@/context.js';
 import { db } from '@/db/index.js';
 import { recoverTasks } from '@/agent/executor.js';
+import { verifyProviderConnection } from '@/models.js';
 import { agentTasksRoute } from '@/routes/agent-tasks.js';
 import { audioRoute } from '@/routes/audio.js';
 import { chatRoute } from '@/routes/chat.js';
@@ -69,7 +70,17 @@ app.route('/ai/extract', extractRoute);
 app.route('/ai/audio', audioRoute);
 app.route('/agent-tasks', agentTasksRoute);
 
-function start(): void {
+async function start(): Promise<void> {
+  try {
+    await verifyProviderConnection();
+  } catch (error) {
+    logger.error('AI provider connectivity check failed at startup, refusing to serve requests', {
+      aiProvider: config.ai.provider,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    process.exit(1);
+  }
+
   db();
   recoverTasks();
   startHeartbeat();

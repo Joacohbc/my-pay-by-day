@@ -1,18 +1,41 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createVertex } from '@ai-sdk/google-vertex';
-import { extractReasoningMiddleware, wrapLanguageModel, type LanguageModel, type TranscriptionModel } from 'ai';
+import { extractReasoningMiddleware, generateText, wrapLanguageModel, type LanguageModel, type TranscriptionModel } from 'ai';
 import { config } from '@/config.js';
+
+function resolveVertexGoogleAuthOptions(rawCredentials?: string) {
+  if (!rawCredentials) return undefined;
+  const trimmed = rawCredentials.trim();
+  if (trimmed.startsWith('{')) {
+    return { credentials: JSON.parse(trimmed) };
+  }
+  const resolvedPath = resolve(process.cwd(), trimmed);
+  if (existsSync(resolvedPath)) {
+    const fileContent = readFileSync(resolvedPath, 'utf8');
+    return { credentials: JSON.parse(fileContent) };
+  }
+  const fallbackPath = resolve(process.cwd(), '..', trimmed);
+  if (existsSync(fallbackPath)) {
+    const fileContent = readFileSync(fallbackPath, 'utf8');
+    return { credentials: JSON.parse(fileContent) };
+  }
+  return { credentials: JSON.parse(trimmed) };
+}
 
 const openRouter = createOpenRouter({
   apiKey: config.openRouter.apiKey,
   baseURL: config.openRouter.baseUrl,
 });
 
+const vertexAuthOptions = resolveVertexGoogleAuthOptions(config.vertex.serviceAccountJson);
+
 const vertex = createVertex({
   project: config.vertex.project,
   location: config.vertex.location,
-  ...(config.vertex.serviceAccountJson && {
-    googleAuthOptions: { credentials: JSON.parse(config.vertex.serviceAccountJson) },
+  ...(vertexAuthOptions && {
+    googleAuthOptions: vertexAuthOptions,
   }),
 });
 
@@ -47,6 +70,23 @@ export function largeModel(): LanguageModel {
 /** Fast/cheap model for short text generation, extraction and summarisation. */
 export function fastModel(): LanguageModel {
   return isVertex ? vertexChatModel(config.models.fast) : openRouterChatModel(config.models.fast);
+}
+
+/**
+ * Confirms the configured LLM provider is actually reachable before the server starts accepting
+ * traffic. Vertex AI credentials and API-enablement failures (bad service account JSON, disabled
+ * `aiplatform.googleapis.com`) only ever surfaced previously as a vague `llm_error` on the first
+ * user chat request. A one-token ping at boot turns that into a loud, immediate startup failure
+ * instead of a silently-listening server that fails every request. No-op on OpenRouter, whose
+ * API key is validated per-request by the provider itself with no separate enablement step.
+ */
+export async function verifyProviderConnection(): Promise<void> {
+  if (!isVertex) return;
+  await generateText({
+    model: vertexChatModel(config.models.fast),
+    prompt: 'ping',
+    maxOutputTokens: 1,
+  });
 }
 
 const AUDIO_FORMAT_BY_MEDIA_TYPE: Record<string, string> = {

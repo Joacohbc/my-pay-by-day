@@ -31,8 +31,8 @@ export const config = {
     /** GCP region serving the Vertex AI endpoint, e.g. 'us-central1'. */
     location: env('GOOGLE_VERTEX_LOCATION', 'us-central1'),
     /**
-     * Service account key JSON, as a single-line string, used to authenticate with Vertex AI instead
-     * of file-based Application Default Credentials (`GOOGLE_APPLICATION_CREDENTIALS`).
+     * Service account key JSON (as a single-line string or file path), used to authenticate with Vertex AI
+     * instead of file-based Application Default Credentials (`GOOGLE_APPLICATION_CREDENTIALS`).
      */
     serviceAccountJson: process.env.GOOGLE_VERTEX_CREDENTIALS_JSON,
   },
