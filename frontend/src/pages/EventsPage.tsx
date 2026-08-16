@@ -9,11 +9,16 @@ import { useFinanceEventDrafts } from '@/hooks/useDrafts';
 import { useDuplicates } from '@/hooks/useDuplicates';
 import { useSearchParamsBatch } from '@/hooks/useSearchParamsState';
 import type { ParamConfig } from '@/hooks/useSearchParamsState';
+import { useEventGroupPlans } from '@/hooks/useEventGroupPlans';
+import { useCreatePaymentPlan, useAddEventToGroupPlan } from '@/hooks/usePaymentPlans';
+import { useAlert } from '@/contexts/AlertContext';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import { PendingEventsSync } from '@/components/events/PendingEventsSync';
 import { MergeEventsModal } from '@/components/events/MergeEventsModal';
 import { BulkUpdateEventsModal } from '@/components/events/BulkUpdateEventsModal';
-import type { Template, EventType } from '@/models';
+import { GroupableEventCard } from '@/components/events/GroupableEventCard';
+import { EventGroupFolderCard } from '@/components/events/EventGroupFolderCard';
+import type { Template, EventType, FinanceEvent, PaymentPlan } from '@/models';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -23,7 +28,7 @@ import {
   EventsListView,
   type AdvancedFiltersState,
 } from '@/components/events/EventsListView';
-import { formatCurrencyShort, formatDate } from '@/lib/format';
+import { formatCurrencyShort, formatDate, getLocalizedTodayString } from '@/lib/format';
 import type { DateField } from '@/services/events.service';
 import { useAccumulatedData } from '@/hooks/useAccumulatedData';
 
@@ -64,6 +69,61 @@ function resolveEventsPageQuery(currentPage: number, restoredPage: number): Even
 
 function countTotalPages(totalElements: number): number {
   return totalElements ? Math.ceil(totalElements / EVENTS_PAGE_SIZE) : 1;
+}
+
+interface EventGroupRun {
+  plan: PaymentPlan;
+  members: FinanceEvent[];
+}
+
+interface EventGroupRuns {
+  /** The event list with every run of 2+ consecutive same-group rows collapsed down to its first member. */
+  displayEvents: FinanceEvent[];
+  /** Anchor event id (the run's first member) → the full run, for rows that collapsed. */
+  runByAnchorEventId: Map<number, EventGroupRun>;
+}
+
+/**
+ * A run of same-group rows only reads well as a folder when it is unbroken — scattered members of
+ * the same plan elsewhere in the list stay individual (their shared stripe color is enough there).
+ * This walks the already-sorted event list once and only folds strictly consecutive runs.
+ */
+function computeEventGroupRuns(events: FinanceEvent[], planByEventId: Map<number, PaymentPlan>): EventGroupRuns {
+  const displayEvents: FinanceEvent[] = [];
+  const runByAnchorEventId = new Map<number, EventGroupRun>();
+
+  let index = 0;
+  while (index < events.length) {
+    const event = events[index];
+    const plan = planByEventId.get(event.id);
+    displayEvents.push(event);
+
+    if (!plan) {
+      index++;
+      continue;
+    }
+
+    const members = [event];
+    let next = index + 1;
+    while (next < events.length && planByEventId.get(events[next].id)?.id === plan.id) {
+      members.push(events[next]);
+      next++;
+    }
+    if (members.length > 1) {
+      runByAnchorEventId.set(event.id, { plan, members });
+    }
+    index = next;
+  }
+
+  return { displayEvents, runByAnchorEventId };
+}
+
+function nextGroupInstallmentNumber(plan: PaymentPlan): number {
+  return (plan.items ?? []).reduce((max, item) => Math.max(max, item.installmentNumber), 0) + 1;
+}
+
+function toDateOnly(dateTime: string): string {
+  return dateTime.slice(0, 10);
 }
 
 const EVENTS_SCROLL_CONTAINER_ID = 'app-scroll-container';
@@ -140,6 +200,7 @@ export function EventsPage() {
   const { t } = useTranslation();
   const { navigate, navigatePush } = useAppNavigation();
   const location = useLocation();
+  const alert = useAlert();
 
   // --- 1. URL State Management ---
   const { values, setValues, clearAll } = useSearchParamsBatch(FILTER_PARAMS);
@@ -285,6 +346,86 @@ export function EventsPage() {
 
   useRestoredScrollPosition(events.length > 0);
 
+  // --- 5. Drag-to-group (long-press an event card onto another to form/extend a GROUP plan) ---
+  const { planByEventId } = useEventGroupPlans();
+  const createGroupPlan = useCreatePaymentPlan();
+  const addEventToGroup = useAddEventToGroupPlan();
+
+  const { displayEvents, runByAnchorEventId } = useMemo(
+    () => computeEventGroupRuns(events, planByEventId),
+    [events, planByEventId]
+  );
+
+  const addEventToPlan = useCallback(
+    (plan: PaymentPlan, eventToAdd: FinanceEvent) => {
+      addEventToGroup.mutate({
+        planId: plan.id,
+        dto: {
+          installmentNumber: nextGroupInstallmentNumber(plan),
+          expectedDate: toDateOnly(eventToAdd.transactionDate),
+          itemStatus: 'PAID',
+          eventId: eventToAdd.id,
+        },
+      });
+    },
+    [addEventToGroup]
+  );
+
+  const handleDropEvent = useCallback(
+    (sourceEventId: number, targetEventId: number) => {
+      const sourceEvent = events.find((e) => e.id === sourceEventId);
+      const targetEvent = events.find((e) => e.id === targetEventId);
+      if (!sourceEvent || !targetEvent) return;
+
+      const sourcePlan = planByEventId.get(sourceEventId);
+      const targetPlan = planByEventId.get(targetEventId);
+
+      if (sourcePlan && targetPlan) {
+        if (sourcePlan.id !== targetPlan.id) {
+          alert.error(t('events.group.alreadyGrouped'));
+        }
+        return;
+      }
+      if (sourcePlan) {
+        addEventToPlan(sourcePlan, targetEvent);
+        return;
+      }
+      if (targetPlan) {
+        addEventToPlan(targetPlan, sourceEvent);
+        return;
+      }
+
+      createGroupPlan.mutate({
+        name: t('events.group.defaultName', { name: targetEvent.name || t('drafts.untitledDraft') }),
+        planType: 'GROUP',
+        startDate: getLocalizedTodayString(),
+        isAutomated: false,
+        autoCreateDraft: false,
+        generateItems: false,
+        eventIds: [sourceEventId, targetEventId],
+      });
+    },
+    [events, planByEventId, addEventToPlan, createGroupPlan, alert, t]
+  );
+
+  const renderEventRow = useCallback(
+    (event: FinanceEvent, iconSource: 'category' | 'node') => {
+      const run = runByAnchorEventId.get(event.id);
+      if (run) {
+        return <EventGroupFolderCard plan={run.plan} members={run.members} iconSource={iconSource} />;
+      }
+      return (
+        <GroupableEventCard
+          event={event}
+          iconSource={iconSource}
+          groupPlan={planByEventId.get(event.id)}
+          onDropEvent={handleDropEvent}
+        />
+      );
+    },
+    [runByAnchorEventId, planByEventId, handleDropEvent]
+  );
+
   const { data: draftEvents } = useFinanceEventDrafts();
   const draftsCount = draftEvents?.length ?? 0;
 
@@ -390,7 +531,8 @@ export function EventsPage() {
       <PendingEventsSync />
 
       <EventsListView
-        events={events}
+        events={displayEvents}
+        renderItem={renderEventRow}
         isLoading={isLoading}
         search={search}
         onSearchChange={setSearch}

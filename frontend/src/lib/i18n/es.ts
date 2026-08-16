@@ -265,6 +265,13 @@ const es = {
     iconSourceCategory: 'Ícono de categoría',
     iconSourceNode: 'Ícono de nodo',
     eventType: 'Tipo de Evento',
+    group: {
+      defaultName: 'Grupo: {{name}}',
+      badge: 'Agrupado',
+      alreadyGrouped: 'Ambos eventos ya pertenecen a un grupo. Combinar grupos todavía no está soportado.',
+      memberCount: '{{count}} en este grupo',
+      viewGroup: 'Ver grupo',
+    },
   },
 
   // ─── Event Types ─────────────────────────────────────────────────────────

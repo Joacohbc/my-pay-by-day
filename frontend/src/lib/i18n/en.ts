@@ -266,6 +266,13 @@ const en = {
     iconSourceCategory: 'Category icon',
     iconSourceNode: 'Node icon',
     eventType: 'Event Type',
+    group: {
+      defaultName: 'Group: {{name}}',
+      badge: 'Grouped',
+      alreadyGrouped: 'Both events already belong to a group. Merging groups is not supported yet.',
+      memberCount: '{{count}} in this group',
+      viewGroup: 'View group',
+    },
   },
 
   // ─── Event Types ─────────────────────────────────────────────────────────
