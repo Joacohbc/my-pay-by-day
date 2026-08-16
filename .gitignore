@@ -21,3 +21,10 @@ TODO.md
 
 # host-mounted service data (backend/chatbot SQLite)
 data/
+
+# GCP secrets / service account credentials
+*client_secret*.json
+*service_account*.json
+*credentials*.json
+service-account.json
+

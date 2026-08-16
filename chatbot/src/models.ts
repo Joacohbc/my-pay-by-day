@@ -1,11 +1,53 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { extractReasoningMiddleware, wrapLanguageModel, type LanguageModel, type TranscriptionModel } from 'ai';
+import { createVertex } from '@ai-sdk/google-vertex';
+import { extractReasoningMiddleware, generateText, wrapLanguageModel, type LanguageModel, type TranscriptionModel } from 'ai';
 import { config } from '@/config.js';
 
-const provider = createOpenRouter({
+function resolveVertexGoogleAuthOptions(rawCredentials?: string) {
+  if (!rawCredentials) return undefined;
+  const trimmed = rawCredentials.trim();
+  if (trimmed.startsWith('{')) {
+    return { credentials: JSON.parse(trimmed) };
+  }
+  const resolvedPath = resolve(process.cwd(), trimmed);
+  if (existsSync(resolvedPath)) {
+    const fileContent = readFileSync(resolvedPath, 'utf8');
+    return { credentials: JSON.parse(fileContent) };
+  }
+  const fallbackPath = resolve(process.cwd(), '..', trimmed);
+  if (existsSync(fallbackPath)) {
+    const fileContent = readFileSync(fallbackPath, 'utf8');
+    return { credentials: JSON.parse(fileContent) };
+  }
+  return { credentials: JSON.parse(trimmed) };
+}
+
+const openRouter = createOpenRouter({
   apiKey: config.openRouter.apiKey,
   baseURL: config.openRouter.baseUrl,
 });
+
+const vertexAuthOptions = resolveVertexGoogleAuthOptions(config.vertex.serviceAccountJson);
+
+const vertex = createVertex({
+  project: config.vertex.project,
+  location: config.vertex.location,
+  ...(vertexAuthOptions && {
+    googleAuthOptions: vertexAuthOptions,
+  }),
+});
+
+const isVertex = config.ai.provider === 'vertex';
+
+function openRouterChatModel(modelId: string) {
+  return openRouter.chat(modelId, { usage: { include: true } });
+}
+
+function vertexChatModel(modelId: string) {
+  return vertex(modelId);
+}
 
 /**
  * Multimodal model (text + image + audio) for chat and the agent loop.
@@ -14,18 +56,37 @@ const provider = createOpenRouter({
  * instead of always using OpenRouter's separate reasoning_details field — when it does, the raw
  * closing tag leaks into the visible text (e.g. a reply literally starting with `</mm:think>`).
  * extractReasoningMiddleware strips that wrapper into a proper reasoning part before it reaches
- * streamText's text output.
+ * streamText's text output. Vertex's Gemini models never emit this tag, so the middleware is scoped
+ * to OpenRouter rather than added as a harmless no-op layer on every provider.
  */
 export function largeModel(): LanguageModel {
+  if (isVertex) return vertexChatModel(config.models.large);
   return wrapLanguageModel({
-    model: provider.chat(config.models.large, { usage: { include: true } }),
+    model: openRouterChatModel(config.models.large),
     middleware: extractReasoningMiddleware({ tagName: 'mm:think' }),
   });
 }
 
 /** Fast/cheap model for short text generation, extraction and summarisation. */
 export function fastModel(): LanguageModel {
-  return provider.chat(config.models.fast, { usage: { include: true } });
+  return isVertex ? vertexChatModel(config.models.fast) : openRouterChatModel(config.models.fast);
+}
+
+/**
+ * Confirms the configured LLM provider is actually reachable before the server starts accepting
+ * traffic. Vertex AI credentials and API-enablement failures (bad service account JSON, disabled
+ * `aiplatform.googleapis.com`) only ever surfaced previously as a vague `llm_error` on the first
+ * user chat request. A one-token ping at boot turns that into a loud, immediate startup failure
+ * instead of a silently-listening server that fails every request. No-op on OpenRouter, whose
+ * API key is validated per-request by the provider itself with no separate enablement step.
+ */
+export async function verifyProviderConnection(): Promise<void> {
+  if (!isVertex) return;
+  await generateText({
+    model: vertexChatModel(config.models.fast),
+    prompt: 'ping',
+    maxOutputTokens: 1,
+  });
 }
 
 const AUDIO_FORMAT_BY_MEDIA_TYPE: Record<string, string> = {
@@ -69,7 +130,7 @@ function transcriptionProviderMetadata(usage: OpenRouterTranscriptionUsage | und
  * never timings, so segments/language/durationInSeconds stay empty. That is a permanent limitation
  * of the underlying provider, not a stopgap.
  */
-export function audioTranscriptionModel(): TranscriptionModel {
+function openRouterAudioTranscriptionModel(): TranscriptionModel {
   return {
     specificationVersion: 'v3' as const,
     provider: 'openrouter',
@@ -123,4 +184,13 @@ export function audioTranscriptionModel(): TranscriptionModel {
       };
     },
   };
+}
+
+/**
+ * Speech-to-text model for the audio routes. On OpenRouter this is the custom adapter above;
+ * on Vertex it is Google Cloud Speech-to-Text (Chirp), reached through `config.models.audio`
+ * holding a Chirp model id (e.g. `chirp_2`, `chirp_3`) instead of an OpenRouter model slug.
+ */
+export function audioTranscriptionModel(): TranscriptionModel {
+  return isVertex ? vertex.transcription(config.models.audio) : openRouterAudioTranscriptionModel();
 }

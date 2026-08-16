@@ -3,11 +3,22 @@ import { z } from 'zod';
 import { stringifiedArray } from '@/bot/dto.js';
 import type { KindedToolSet } from '@/tools/types.js';
 
-const askUserInputSchema = z.discriminatedUnion('mode', [
-  z.object({ mode: z.literal('OPEN'), question: z.string() }),
-  z.object({ mode: z.literal('CHOICE'), question: z.string(), options: stringifiedArray(z.array(z.string()).min(2).max(5)) }),
-  z.object({ mode: z.literal('YES_NO'), question: z.string() }),
-]);
+/**
+ * A plain object rather than `z.discriminatedUnion` — the union compiles to a top-level `anyOf` in
+ * the generated JSON Schema, which Vertex AI's Gemini function calling rejects outright ("parameters
+ * schema should be of type OBJECT"). OpenRouter's providers tolerate it, so this only surfaces on
+ * Vertex. `options` is validated as CHOICE-only via `.refine` instead of the type system.
+ */
+const askUserInputSchema = z
+  .object({
+    mode: z.enum(['OPEN', 'CHOICE', 'YES_NO']),
+    question: z.string(),
+    options: stringifiedArray(z.array(z.string()).min(2).max(5)).optional(),
+  })
+  .refine((input) => input.mode !== 'CHOICE' || input.options !== undefined, {
+    message: 'options is required when mode is "CHOICE"',
+    path: ['options'],
+  });
 
 /**
  * Reads the human's answer for this exact tool call out of the messages the model was given.
