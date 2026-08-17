@@ -15,4 +15,18 @@ public class PaymentPlanItemRepository implements PanacheRepository<PaymentPlanI
 	public List<PaymentPlanItemEntity> findDueItems(LocalDate beforeOrEqualDate) {
 		return list("itemStatus = ?1 and expectedDate <= ?2", PaymentPlanItemStatus.PENDING, beforeOrEqualDate);
 	}
+
+	public List<PaymentPlanItemEntity> findByDraftIds(List<Long> draftIds) {
+		if (draftIds == null || draftIds.isEmpty()) {
+			return List.of();
+		}
+		return list("draft.id in ?1", draftIds);
+	}
+
+	public List<PaymentPlanItemEntity> findByEventIds(List<Long> eventIds) {
+		if (eventIds == null || eventIds.isEmpty()) {
+			return List.of();
+		}
+		return list("event.id in ?1", eventIds);
+	}
 }

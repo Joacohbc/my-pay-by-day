@@ -5,6 +5,8 @@ import { Icon } from '@/components/ui/Icon';
 
 interface DraftsPageActionsProps {
   hasDrafts: boolean;
+  /** Drafts still waiting on the user; the ones a payment plan already tracks need no action. */
+  hasUnplannedDrafts: boolean;
   isSelectionMode: boolean;
   onSelect: () => void;
   onBulkActions: () => void;
@@ -13,6 +15,7 @@ interface DraftsPageActionsProps {
 
 export function DraftsPageActions({
   hasDrafts,
+  hasUnplannedDrafts,
   isSelectionMode,
   onSelect,
   onBulkActions,
@@ -39,7 +42,7 @@ export function DraftsPageActions({
     }
   };
 
-  const pendingDraftsBadge = hasDrafts && (
+  const pendingDraftsBadge = hasUnplannedDrafts && (
     <span className="w-2 h-2 rounded-full bg-dn-error inline-block shrink-0" />
   );
 

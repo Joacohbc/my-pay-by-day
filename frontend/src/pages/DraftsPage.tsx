@@ -14,18 +14,23 @@ import { draftsService } from '@/services/drafts.service';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateDomains, EVENT_MUTATION_DOMAINS } from '@/lib/cacheInvalidation';
 import type { DraftConfirmMode, FinanceEvent } from '@/models';
+import { usePlanByRowId } from '@/hooks/usePlanByRowId';
+import { computeGroupRuns } from '@/lib/groupRuns';
+import { getGroupColor } from '@/lib/groupColors';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EventCard } from '@/components/events/EventCard';
+import { EventGroupFolderCard } from '@/components/events/EventGroupFolderCard';
 import { BulkActionsModal } from '@/components/events/BulkActionsModal';
 import { EventsListView } from '@/components/events/EventsListView';
 import { DraftsPageActions } from '@/components/events/DraftsPageActions';
 import { logger } from '@/lib/logger';
 
 type DraftSegment = 'RECENT' | 'LINKED' | 'UNLINKED';
+type PlanFilter = 'ALL' | 'IN_PLAN' | 'NOT_IN_PLAN';
 
 const LONG_PRESS_MS = 450;
 
@@ -33,6 +38,8 @@ const getDraftSelectionId = (draft: FinanceEvent) => draft.draftId ?? draft.id;
 
 const isLinkedDraft = (draft: FinanceEvent) =>
   typeof draft.id === 'number' && draft.id > 0;
+
+const isPlannedDraft = (draft: FinanceEvent) => !!draft.paymentPlanId;
 
 
 export function DraftsPage() {
@@ -45,6 +52,7 @@ export function DraftsPage() {
   const deleteDraft = useDeleteDraft();
 
   const [segment, setSegment] = useState<DraftSegment>('RECENT');
+  const [planFilter, setPlanFilter] = useState<PlanFilter>('ALL');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 250);
 
@@ -68,6 +76,15 @@ export function DraftsPage() {
     [allDrafts]
   );
 
+  const planFilterCounts = useMemo(
+    () => ({
+      ALL: allDrafts.length,
+      IN_PLAN: allDrafts.filter(isPlannedDraft).length,
+      NOT_IN_PLAN: allDrafts.filter((d) => !isPlannedDraft(d)).length,
+    }),
+    [allDrafts]
+  );
+
   const segmentedDrafts = useMemo(() => {
     const normalized = normalizeText(debouncedSearch.trim());
     return allDrafts
@@ -77,13 +94,25 @@ export function DraftsPage() {
         return true;
       })
       .filter((draft) => {
+        if (planFilter === 'IN_PLAN') return isPlannedDraft(draft);
+        if (planFilter === 'NOT_IN_PLAN') return !isPlannedDraft(draft);
+        return true;
+      })
+      .filter((draft) => {
         if (!normalized) return true;
         return (
           (draft.name ? normalizeText(draft.name).includes(normalized) : false) ||
           (draft.description ? normalizeText(draft.description).includes(normalized) : false)
         );
       });
-  }, [allDrafts, segment, debouncedSearch]);
+  }, [allDrafts, segment, planFilter, debouncedSearch]);
+
+  const planByDraftId = usePlanByRowId(allDrafts, getDraftSelectionId);
+
+  const { displayItems: displayDrafts, runByAnchorId: runByAnchorDraftId } = useMemo(
+    () => computeGroupRuns(segmentedDrafts, planByDraftId, getDraftSelectionId),
+    [segmentedDrafts, planByDraftId]
+  );
 
   const selectedDrafts = useMemo(
     () => allDrafts.filter((draft) => selectedDraftIds.has(getDraftSelectionId(draft))),
@@ -216,6 +245,7 @@ export function DraftsPage() {
 
   const selectedCount = selectedDrafts.length;
   const hasDrafts = allDrafts.length > 0;
+  const hasUnplannedDrafts = allDrafts.some((draft) => !draft.paymentPlanId);
   const actionsBusy = isConfirming || isDeletingSelected || deleteDraft.isPending;
 
   const pills = [
@@ -228,7 +258,13 @@ export function DraftsPage() {
     },
   ];
 
-  const renderDraftItem = (draft: FinanceEvent) => {
+  const planFilterPills: { label: string; value: PlanFilter; badge: number }[] = [
+    { label: t('drafts.planFilter.all'), value: 'ALL', badge: planFilterCounts.ALL },
+    { label: t('drafts.planFilter.inPlan'), value: 'IN_PLAN', badge: planFilterCounts.IN_PLAN },
+    { label: t('drafts.planFilter.notInPlan'), value: 'NOT_IN_PLAN', badge: planFilterCounts.NOT_IN_PLAN },
+  ];
+
+  const renderDraftRow = (draft: FinanceEvent) => {
     const selectionId = getDraftSelectionId(draft);
     const isSelected = selectedDraftIds.has(selectionId);
     const targetRoute = draftRoute(draft);
@@ -290,6 +326,52 @@ export function DraftsPage() {
     );
   };
 
+  /**
+   * A draft whose plan sits elsewhere in the list (not an unbroken run) stays a standalone row,
+   * tagged with a colored stripe and a link to its plan — the same treatment `GroupableEventCard`
+   * gives confirmed events, so a plan-linked draft reads consistently whether it is still a draft
+   * or has already been confirmed.
+   */
+  const renderDraftItem = (draft: FinanceEvent) => {
+    const run = runByAnchorDraftId.get(getDraftSelectionId(draft));
+    if (run) {
+      return (
+        <EventGroupFolderCard
+          plan={run.plan}
+          members={run.members}
+          getId={getDraftSelectionId}
+          renderMember={renderDraftRow}
+          icon="payments"
+        />
+      );
+    }
+
+    const plan = planByDraftId.get(getDraftSelectionId(draft));
+    const rowContent = renderDraftRow(draft);
+    if (!plan) return rowContent;
+
+    const groupColor = getGroupColor(plan.id);
+    return (
+      <div className="flex items-stretch gap-2.5">
+        <span aria-hidden="true" style={{ backgroundColor: groupColor }} className="w-1 shrink-0 rounded-full" />
+        <div className="flex-1 min-w-0">
+          {rowContent}
+          <Link
+            to={Routes.PAYMENT_PLAN_DETAIL(plan.id)}
+            state={linkStateFromHere()}
+            onClick={(event) => event.stopPropagation()}
+            className="mt-0.5 ml-3 inline-flex items-center gap-1 text-[11px] font-medium hover:underline"
+            style={{ color: groupColor }}
+            title={t('events.group.viewGroup')}
+          >
+            <Icon name="payments" className="text-xs" />
+            {plan.name}
+          </Link>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4 pb-24">
       <PageHeader
@@ -298,6 +380,7 @@ export function DraftsPage() {
         action={
           <DraftsPageActions
             hasDrafts={hasDrafts}
+            hasUnplannedDrafts={hasUnplannedDrafts}
             isSelectionMode={isSelectionMode}
             onSelect={() => enterSelectionMode()}
             onBulkActions={() => setShowBulkActions(true)}
@@ -308,7 +391,7 @@ export function DraftsPage() {
       />
 
       <EventsListView
-        events={segmentedDrafts}
+        events={displayDrafts}
         isLoading={isLoading}
         search={search}
         onSearchChange={setSearch}
@@ -317,7 +400,31 @@ export function DraftsPage() {
         keyResolver={getDraftSelectionId}
         emptyTitle={t('drafts.noDraftsTitle')}
         emptyDescription={t('drafts.noDraftsDescription')}
-      />
+      >
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {planFilterPills.map(({ label, value, badge }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setPlanFilter(value)}
+              className={[
+                'shrink-0 px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5',
+                planFilter === value
+                  ? 'bg-dn-primary/20 text-dn-primary'
+                  : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
+              ].join(' ')}
+            >
+              {value === 'IN_PLAN' && <Icon name="payments" className="text-sm" />}
+              {label}
+              {badge > 0 && (
+                <span className="bg-dn-surface text-dn-text-muted text-[10px] leading-tight font-semibold px-1.5 py-0.5 rounded-full min-w-4.5 text-center inline-block">
+                  {badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </EventsListView>
 
       {isSelectionMode && selectedCount > 0 && (
         <div className="fixed bottom-22 left-0 right-0 z-30 px-5">

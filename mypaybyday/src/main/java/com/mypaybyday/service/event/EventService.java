@@ -13,6 +13,7 @@ import jakarta.transaction.Transactional;
 import com.mypaybyday.dto.BulkPatchEventDto;
 import com.mypaybyday.dto.CategoryBalanceDto;
 import com.mypaybyday.dto.EventQuery;
+import com.mypaybyday.dto.EventTotalsDto;
 import com.mypaybyday.dto.FileDto;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.FinanceLineItemDto;
@@ -105,6 +106,11 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 	@Transactional
 	public PagedResponse<FinanceEventDto> listAll(EventQuery query) {
 		return eventGetService.listAll(query);
+	}
+
+	@Transactional
+	public EventTotalsDto summary(EventQuery query) {
+		return eventGetService.summary(query);
 	}
 
 	@Transactional

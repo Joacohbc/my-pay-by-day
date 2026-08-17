@@ -15,8 +15,9 @@ import { ErrorState } from '@/components/ui/ErrorState';
 export function PaymentPlanEditPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const { navigateBack } = useAppNavigation();
+  const { navigate, navigateBack } = useAppNavigation();
   const goBack = () => navigateBack(Routes.PAYMENT_PLAN_DETAIL(Number(id)));
+  const goToDetail = () => navigate(Routes.PAYMENT_PLAN_DETAIL(Number(id)));
 
   const { data: plan, isLoading } = usePaymentPlan(Number(id));
 
@@ -28,7 +29,7 @@ export function PaymentPlanEditPage() {
       <PageHeader title={t('paymentPlans.editTitle')} back={goBack} />
 
       <div className="px-5 pb-6">
-        <PlanEditForm plan={plan} onCancel={goBack} onSuccess={goBack} />
+        <PlanEditForm plan={plan} onCancel={goToDetail} onSuccess={goToDetail} />
       </div>
     </div>
   );

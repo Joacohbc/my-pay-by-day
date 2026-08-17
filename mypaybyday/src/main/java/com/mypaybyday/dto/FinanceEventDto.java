@@ -23,6 +23,7 @@ import com.mypaybyday.enums.EventType;
  * @param relatedEvents   list of related events
  * @param subscriptionId  identifier of the subscription
  * @param draftId         identifier of the draft event
+ * @param paymentPlanId   identifier of the PaymentPlan this event (or draft) is a member of, or {@code null} if unlinked
  */
 public record FinanceEventDto(
 	Long id,
@@ -38,7 +39,8 @@ public record FinanceEventDto(
 	List<RelatedEventDto> relatedEvents,
 	Long subscriptionId,
 	Long draftId,
-	List<FileDto> files
+	List<FileDto> files,
+	Long paymentPlanId
 ) {
 
 	public FinanceEventDto fromDraft(Long id, Long draftId) {
@@ -56,7 +58,28 @@ public record FinanceEventDto(
 			this.relatedEvents,
 			this.subscriptionId,
 			draftId,
-			this.files
+			this.files,
+			this.paymentPlanId
+		);
+	}
+
+	public FinanceEventDto withPaymentPlanId(Long paymentPlanId) {
+		return new FinanceEventDto(
+			this.id,
+			this.name,
+			this.description,
+			this.type,
+			this.amount,
+			this.transactionId,
+			this.transactionDate,
+			this.lineItems,
+			this.category,
+			this.tags,
+			this.relatedEvents,
+			this.subscriptionId,
+			this.draftId,
+			this.files,
+			paymentPlanId
 		);
 	}
 
@@ -111,7 +134,9 @@ public record FinanceEventDto(
 
 			event.files != null
 				? event.files.stream().map(FileDto::from).toList()
-				: List.of()
+				: List.of(),
+
+			null
 		);
 	}
 }

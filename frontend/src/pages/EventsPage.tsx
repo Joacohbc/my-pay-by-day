@@ -1,19 +1,28 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
-import { Routes, saveEventsSearch } from '@/lib/routes';
-import { useEvents } from '@/hooks/useEvents';
+import { Routes, saveEventsSearch, saveEventsScrollTop, getEventsScrollTop } from '@/lib/routes';
+import { useEvents, useEventsSummary } from '@/hooks/useEvents';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
-import { useDebounce } from '@/hooks/useDebounce';
+import { useDebounce, useDebounceCallback } from '@/hooks/useDebounce';
 import { useFinanceEventDrafts } from '@/hooks/useDrafts';
 import { useDuplicates } from '@/hooks/useDuplicates';
 import { useSearchParamsBatch } from '@/hooks/useSearchParamsState';
 import type { ParamConfig } from '@/hooks/useSearchParamsState';
+import { usePlanByRowId } from '@/hooks/usePlanByRowId';
+import { useEventGroupSelection } from '@/hooks/useEventGroupSelection';
+import { computeGroupRuns } from '@/lib/groupRuns';
+import { APP_SCROLL_CONTAINER_ID } from '@/layouts/AppLayout';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import { PendingEventsSync } from '@/components/events/PendingEventsSync';
 import { MergeEventsModal } from '@/components/events/MergeEventsModal';
 import { BulkUpdateEventsModal } from '@/components/events/BulkUpdateEventsModal';
-import type { Template, EventType } from '@/models';
+import { EventCard } from '@/components/events/EventCard';
+import { GroupableEventCard } from '@/components/events/GroupableEventCard';
+import { EventGroupFolderCard } from '@/components/events/EventGroupFolderCard';
+import { EventGroupSelectionBar } from '@/components/events/EventGroupSelectionBar';
+import { AssignSelectionToGroupModal } from '@/components/events/AssignSelectionToGroupModal';
+import type { Template, EventType, FinanceEvent } from '@/models';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -23,11 +32,104 @@ import {
   EventsListView,
   type AdvancedFiltersState,
 } from '@/components/events/EventsListView';
-import { formatCurrencyShort, eventNetAmount } from '@/lib/format';
+import { formatCurrencyShort, formatDate } from '@/lib/format';
 import type { DateField } from '@/services/events.service';
 import { useAccumulatedData } from '@/hooks/useAccumulatedData';
 
 type FilterType = 'ALL' | EventType;
+
+const EVENTS_PAGE_SIZE = 20;
+
+const getEventId = (event: FinanceEvent) => event.id;
+
+interface EventsPageQuery {
+  requestPage: number;
+  requestSize: number;
+  accumulationPage: number;
+}
+
+/**
+ * A page restored from the URL (e.g. returning from an event's detail view after
+ * scrolling past page 0) needs every item from page 0 through it, not just its own
+ * slice — otherwise that range is unreachable by scrolling up. `restoredPage` only
+ * ever grows while scrolling, so once `currentPage` passes it this collapses back
+ * to a normal single-page request with no extra state to track the transition.
+ */
+function resolveEventsPageQuery(currentPage: number, restoredPage: number): EventsPageQuery {
+  const isWithinRestoredRange = currentPage <= restoredPage;
+
+  if (isWithinRestoredRange) {
+    return {
+      requestPage: 0,
+      requestSize: (restoredPage + 1) * EVENTS_PAGE_SIZE,
+      accumulationPage: 0,
+    };
+  }
+
+  return {
+    requestPage: currentPage,
+    requestSize: EVENTS_PAGE_SIZE,
+    accumulationPage: currentPage,
+  };
+}
+
+function countTotalPages(totalElements: number): number {
+  return totalElements ? Math.ceil(totalElements / EVENTS_PAGE_SIZE) : 1;
+}
+
+const SCROLL_POSITION_SAVE_DELAY_MS = 150;
+
+function getEventsScrollContainer(): HTMLElement | null {
+  return document.getElementById(APP_SCROLL_CONTAINER_ID);
+}
+
+/** Tracks whether `elementRef` is currently scrolled into view within the events scroll container. */
+function useIsElementInView(elementRef: RefObject<HTMLElement | null>, hasContent: boolean) {
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    if (!hasContent) return;
+    const element = elementRef.current;
+    const container = getEventsScrollContainer();
+    if (!element || !container) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { root: container, threshold: 0 }
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [elementRef, hasContent]);
+
+  return isVisible;
+}
+
+/** Restores the list's scroll offset once its content is ready, then keeps it saved as the user scrolls. */
+function useRestoredScrollPosition(hasContentToRestore: boolean) {
+  const hasRestoredRef = useRef(false);
+
+  useLayoutEffect(() => {
+    if (hasRestoredRef.current || !hasContentToRestore) return;
+    const container = getEventsScrollContainer();
+    if (!container) return;
+
+    container.scrollTop = getEventsScrollTop();
+    hasRestoredRef.current = true;
+  }, [hasContentToRestore]);
+
+  const persistScrollPosition = useDebounceCallback(() => {
+    const container = getEventsScrollContainer();
+    if (container) saveEventsScrollTop(container.scrollTop);
+  }, SCROLL_POSITION_SAVE_DELAY_MS);
+
+  useEffect(() => {
+    const container = getEventsScrollContainer();
+    if (!container) return;
+
+    container.addEventListener('scroll', persistScrollPosition, { passive: true });
+    return () => container.removeEventListener('scroll', persistScrollPosition);
+  }, [persistScrollPosition]);
+}
 
 const FILTER_PARAMS = {
   page: { key: 'page', defaultValue: 0, type: 'number' },
@@ -157,60 +259,113 @@ export function EventsPage() {
   };
 
   // --- 4. Data Fetching ---
+  const [restoredPage] = useState(page);
+  const eventsPageQuery = resolveEventsPageQuery(page, restoredPage);
+
+  const eventFilters = useMemo(
+    () => ({
+      search: debouncedSearch,
+      startDate,
+      endDate,
+      dateField,
+      type: filter !== 'ALL' ? (filter as EventType) : undefined,
+      categoryIds: categoryIdsArr.length ? categoryIdsArr : undefined,
+      tagIds: tagIdsArr.length ? tagIdsArr : undefined,
+      nodeId: nodeIdNum,
+      minAmount: minAmountNum,
+      maxAmount: maxAmountNum,
+    }),
+    [debouncedSearch, startDate, endDate, dateField, filter, categoryIdsArr, tagIdsArr, nodeIdNum, minAmountNum, maxAmountNum]
+  );
+
   const { data: paged, isLoading, error } = useEvents({
-    page,
-    size: 20,
-    search: debouncedSearch,
-    startDate,
-    endDate,
-    dateField,
-    type: filter !== 'ALL' ? (filter as EventType) : undefined,
-    categoryIds: categoryIdsArr.length ? categoryIdsArr : undefined,
-    tagIds: tagIdsArr.length ? tagIdsArr : undefined,
-    nodeId: nodeIdNum,
-    minAmount: minAmountNum,
-    maxAmount: maxAmountNum,
+    ...eventFilters,
+    page: eventsPageQuery.requestPage,
+    size: eventsPageQuery.requestSize,
   });
+
+  const { data: summary } = useEventsSummary(eventFilters);
 
   const { displayedData: events } = useAccumulatedData(
     paged?.content,
-    page,
+    eventsPageQuery.accumulationPage,
     setPage,
     [debouncedSearch, filter, startDate, endDate, dateField, categoryIdsStr, tagIdsStr, nodeIdStr, minAmountStr, maxAmountStr]
   );
 
+  useRestoredScrollPosition(events.length > 0);
+
+  const planByEventId = usePlanByRowId(events, getEventId);
+
+  const { displayItems: displayEvents, runByAnchorId: runByAnchorEventId } = useMemo(
+    () => computeGroupRuns(events, planByEventId, getEventId),
+    [events, planByEventId]
+  );
+
+  const {
+    selectedEventIds,
+    selectedEvents,
+    isSelectionMode,
+    isAssignModalOpen,
+    isAddingToGroup,
+    startSelection,
+    toggleSelected,
+    cancelSelection,
+    confirmSelection,
+    closeAssignModal,
+  } = useEventGroupSelection(events, planByEventId);
+
+  const renderEventRow = useCallback(
+    (event: FinanceEvent, iconSource: 'category' | 'node') => {
+      const run = runByAnchorEventId.get(event.id);
+      if (run) {
+        return (
+          <EventGroupFolderCard
+            plan={run.plan}
+            members={run.members}
+            getId={getEventId}
+            renderMember={(member) => <EventCard event={member} iconSource={iconSource} />}
+          />
+        );
+      }
+      return (
+        <GroupableEventCard
+          event={event}
+          iconSource={iconSource}
+          groupPlan={planByEventId.get(event.id)}
+          isSelectionMode={isSelectionMode}
+          isSelected={selectedEventIds.has(event.id)}
+          onLongPress={startSelection}
+          onToggleSelected={toggleSelected}
+        />
+      );
+    },
+    [runByAnchorEventId, planByEventId, isSelectionMode, selectedEventIds, startSelection, toggleSelected]
+  );
+
   const { data: draftEvents } = useFinanceEventDrafts();
-  const draftsCount = draftEvents?.length ?? 0;
+  const draftsCount = draftEvents?.filter((draft) => !draft.paymentPlanId).length ?? 0;
 
   const { data: pendingDuplicates } = useDuplicates('FINANCE_EVENT', 'PENDING');
   const duplicatesCount = pendingDuplicates?.length ?? 0;
 
-  const totalPages = paged?.totalPages ?? 1;
   const totalElements = paged?.totalElements ?? 0;
+  const totalPages = countTotalPages(totalElements);
 
-  const totalIncome = useMemo(
-    () =>
-      events
-        .filter((e) => e.type === 'INBOUND')
-        .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0),
-    [events]
-  );
+  const totalIncome = summary?.income ?? 0;
+  const totalExpenses = summary?.outbound ?? 0;
+  const totalTransfers = summary?.transfers ?? 0;
 
-  const totalTransfers = useMemo(
-    () =>
-      events
-        .filter((e) => e.type === 'OTHER')
-        .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0),
-    [events]
-  );
+  const cardsGridRef = useRef<HTMLDivElement>(null);
+  const areCardsVisible = useIsElementInView(cardsGridRef, events.length > 0);
 
-  const totalExpenses = useMemo(
-    () =>
-      events
-        .filter((e) => e.type === 'OUTBOUND')
-        .reduce((s, e) => s + Math.abs(eventNetAmount(e)), 0),
-    [events]
-  );
+  const loadedDateRange = useMemo(() => {
+    if (events.length === 0) return null;
+    return {
+      from: events[events.length - 1].transactionDate,
+      to: events[0].transactionDate,
+    };
+  }, [events]);
 
   if (error) {
     return (
@@ -218,8 +373,32 @@ export function EventsPage() {
     );
   }
 
+  const showStickyTotals = !areCardsVisible && !!loadedDateRange;
+
   return (
     <div className="space-y-4">
+      {loadedDateRange && (
+        <div
+          className={`sticky top-0 z-20 grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-out ${
+            showStickyTotals ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+          }`}
+        >
+          <div className="min-h-0 bg-dn-bg/95 backdrop-blur-sm border-b border-dn-border px-4 sm:px-5 py-1.5 flex flex-col items-center gap-0.5">
+            <div className="flex items-center gap-3 text-xs sm:text-sm font-mono font-semibold">
+              <span className="text-dn-success">{formatCurrencyShort(totalIncome)}</span>
+              <span className="text-dn-text-main">{formatCurrencyShort(totalExpenses)}</span>
+              <span className="text-dn-text-main">{formatCurrencyShort(totalTransfers)}</span>
+            </div>
+            <p className="text-[10px] text-dn-text-muted">
+              {formatDate(loadedDateRange.from)} – {formatDate(loadedDateRange.to)}
+              {events.length < totalElements && (
+                <> · {t('events.loadedOfTotal', { loaded: events.length, total: totalElements })}</>
+              )}
+            </p>
+          </div>
+        </div>
+      )}
+
       <PageHeader
         title={t('events.title')}
         subtitle={t('events.eventsCount', { count: totalElements })}
@@ -236,7 +415,7 @@ export function EventsPage() {
         }
       />
 
-      <div className="grid grid-cols-3 gap-2 px-4 sm:gap-3 sm:px-5">
+      <div ref={cardsGridRef} className="grid grid-cols-3 gap-2 px-4 sm:gap-3 sm:px-5">
         <Card padding={false} className="p-3 sm:p-4 text-center min-w-0 flex flex-col justify-center">
           <p className="text-[10px] sm:text-xs text-dn-text-muted mb-1 truncate" title={t('events.income')}>{t('events.income')}</p>
           <p className="text-sm sm:text-lg font-mono font-semibold text-dn-success break-all">
@@ -257,10 +436,20 @@ export function EventsPage() {
         </Card>
       </div>
 
+      {loadedDateRange && (
+        <p className="px-4 sm:px-5 -mt-2 text-[10px] sm:text-xs text-dn-text-muted text-center">
+          {formatDate(loadedDateRange.from)} – {formatDate(loadedDateRange.to)}
+          {events.length < totalElements && (
+            <> · {t('events.loadedOfTotal', { loaded: events.length, total: totalElements })}</>
+          )}
+        </p>
+      )}
+
       <PendingEventsSync />
 
       <EventsListView
-        events={events}
+        events={displayEvents}
+        renderItem={renderEventRow}
         isLoading={isLoading}
         search={search}
         onSearchChange={setSearch}
@@ -299,6 +488,22 @@ export function EventsPage() {
       <BulkUpdateEventsModal
         open={showBulkUpdate}
         onClose={() => setShowBulkUpdate(false)}
+      />
+
+      {isSelectionMode && (
+        <EventGroupSelectionBar
+          count={selectedEventIds.size}
+          isPending={isAddingToGroup}
+          onConfirm={confirmSelection}
+          onCancel={cancelSelection}
+        />
+      )}
+
+      <AssignSelectionToGroupModal
+        open={isAssignModalOpen}
+        onClose={closeAssignModal}
+        selectedEvents={selectedEvents}
+        onAssigned={cancelSelection}
       />
     </div>
   );

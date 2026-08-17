@@ -79,6 +79,18 @@ export function useCreatePaymentPlanItem(planId: number) {
   });
 }
 
+/**
+ * Adds an existing event to a GROUP plan whose id is only known at mutate time (e.g. a
+ * drag-and-drop drop target), unlike `useCreatePaymentPlanItem` which binds the plan up front.
+ */
+export function useAddEventToGroupPlan() {
+  return useMutation({
+    mutationFn: ({ planId, dto }: { planId: number; dto: CreatePaymentPlanItemDto }) =>
+      paymentPlansService.createItem(planId, dto),
+    ...usePaymentPlanMutationFeedback(),
+  });
+}
+
 export function useUpdatePaymentPlanItem(planId: number) {
   return useMutation({
     mutationFn: ({ itemId, dto }: { itemId: number; dto: CreatePaymentPlanItemDto }) =>

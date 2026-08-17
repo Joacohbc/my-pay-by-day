@@ -166,6 +166,7 @@ export interface FinanceEvent extends Identifiable {
   isDraft?: boolean;
   draftId?: number;
   files?: FileDto[];
+  paymentPlanId?: number | null;
 }
 
 export interface CreateEventDto {

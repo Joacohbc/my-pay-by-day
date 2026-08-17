@@ -16,6 +16,16 @@
   --color-dn-info: #7DD3FC;
   --color-dn-warning: #F0D697;
 
+  /* ─── Group Identity Colors (fixed order, cycled by plan id — dark-surface-validated) ─── */
+  --color-dn-group-1: #3987e5;
+  --color-dn-group-2: #d95926;
+  --color-dn-group-3: #199e70;
+  --color-dn-group-4: #c98500;
+  --color-dn-group-5: #d55181;
+  --color-dn-group-6: #008300;
+  --color-dn-group-7: #9085e9;
+  --color-dn-group-8: #e66767;
+
   /* ─── Typography ─── */
   --font-display: 'Work Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;

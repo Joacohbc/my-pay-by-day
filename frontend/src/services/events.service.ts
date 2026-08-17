@@ -20,26 +20,44 @@ export interface EventFilters {
   maxAmount?: number;
 }
 
+/** Aggregate income/outbound/transfer totals for every event matching a filter set, independent of pagination. */
+export interface EventTotals {
+  income: number;
+  outbound: number;
+  transfers: number;
+  totalElements: number;
+}
+
+function buildEventFilterParams(filters: EventFilters): URLSearchParams {
+  const params = new URLSearchParams();
+
+  if (filters.search) params.append('search', filters.search);
+  if (filters.startDate) params.append('startDate', filters.startDate);
+  if (filters.endDate) params.append('endDate', filters.endDate);
+  if (filters.dateField) params.append('dateField', filters.dateField);
+  if (filters.type && filters.type !== 'ALL') params.append('type', filters.type);
+  if (filters.categoryId) params.append('categoryId', filters.categoryId.toString());
+  if (filters.tagId) params.append('tagId', filters.tagId.toString());
+  filters.categoryIds?.forEach((id) => params.append('categoryIds', id.toString()));
+  filters.tagIds?.forEach((id) => params.append('tagIds', id.toString()));
+  if (filters.nodeId) params.append('nodeId', filters.nodeId.toString());
+  if (filters.minAmount !== undefined) params.append('minAmount', filters.minAmount.toString());
+  if (filters.maxAmount !== undefined) params.append('maxAmount', filters.maxAmount.toString());
+
+  return params;
+}
+
 export const eventsService = {
   getAll: (filters: EventFilters = {}) => {
-    const params = new URLSearchParams();
+    const params = buildEventFilterParams(filters);
     params.append('page', (filters.page ?? 0).toString());
     params.append('size', (filters.size ?? 20).toString());
 
-    if (filters.search) params.append('search', filters.search);
-    if (filters.startDate) params.append('startDate', filters.startDate);
-    if (filters.endDate) params.append('endDate', filters.endDate);
-    if (filters.dateField) params.append('dateField', filters.dateField);
-    if (filters.type && filters.type !== 'ALL') params.append('type', filters.type);
-    if (filters.categoryId) params.append('categoryId', filters.categoryId.toString());
-    if (filters.tagId) params.append('tagId', filters.tagId.toString());
-    filters.categoryIds?.forEach((id) => params.append('categoryIds', id.toString()));
-    filters.tagIds?.forEach((id) => params.append('tagIds', id.toString()));
-    if (filters.nodeId) params.append('nodeId', filters.nodeId.toString());
-    if (filters.minAmount !== undefined) params.append('minAmount', filters.minAmount.toString());
-    if (filters.maxAmount !== undefined) params.append('maxAmount', filters.maxAmount.toString());
-
     return api.get<PagedResponse<FinanceEvent>>(`/events?${params.toString()}`);
+  },
+  getSummary: (filters: EventFilters = {}) => {
+    const params = buildEventFilterParams(filters);
+    return api.get<EventTotals>(`/events/summary?${params.toString()}`);
   },
   getById: (id: number) => api.get<FinanceEvent>(`/events/${id}`),
   create: (dto: CreateEventDto) => api.post<FinanceEvent>('/events', dto),

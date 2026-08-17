@@ -3,8 +3,10 @@ package com.mypaybyday.service;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -287,6 +289,7 @@ public class PaymentPlanService implements DataSectionTransfer<PaymentPlanExport
 	@Transactional
 	public PaymentPlanItemDto createItem(Long planId, CreatePaymentPlanItemDto dto) throws BusinessException {
 		PaymentPlanEntity plan = findEntityById(planId);
+		paymentPlanItemValidator.validatePlanAcceptsNewItems(plan);
 		paymentPlanItemValidator.validateHasRoomForAnotherItem(plan);
 
 		PaymentPlanItemEntity item = new PaymentPlanItemEntity();
@@ -348,6 +351,27 @@ public class PaymentPlanService implements DataSectionTransfer<PaymentPlanExport
 	@Transactional
 	public void unlinkDraft(Long draftId) {
 		detachItems(paymentPlanItemRepository.list("draft.id", draftId), item -> item.draft = null);
+	}
+
+	/**
+	 * Batch lookup of which PaymentPlan (if any) each draft is a pending member of, so the Drafts
+	 * list can tell plan-generated drafts (already tracked, no action needed) apart from freestanding
+	 * ones without an N+1 query per draft.
+	 */
+	@Transactional
+	public Map<Long, Long> findPlanIdsByDraftIds(List<Long> draftIds) {
+		return paymentPlanItemRepository.findByDraftIds(draftIds).stream()
+			.collect(Collectors.toMap(item -> item.draft.id, item -> item.paymentPlan.id, (first, second) -> first));
+	}
+
+	/**
+	 * Batch lookup of which PaymentPlan (if any) each event belongs to, so an event list can render
+	 * its grouping without an N+1 query per event.
+	 */
+	@Transactional
+	public Map<Long, Long> findPlanIdsByEventIds(List<Long> eventIds) {
+		return paymentPlanItemRepository.findByEventIds(eventIds).stream()
+			.collect(Collectors.toMap(item -> item.event.id, item -> item.paymentPlan.id, (first, second) -> first));
 	}
 
 	/** Called before an event is deleted outright, so no item is left pointing at it. */

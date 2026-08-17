@@ -42,12 +42,14 @@ export interface EventsListViewProps {
 
   pills?: PillsConfig;
 
-  renderItem?: (event: FinanceEvent) => ReactNode;
+  renderItem?: (event: FinanceEvent, iconSource: 'category' | 'node') => ReactNode;
   keyResolver?: (event: FinanceEvent) => string | number;
 
   emptyTitle: string;
   emptyDescription?: string;
   emptyAction?: ReactNode;
+
+  children?: ReactNode;
 }
 
 const EMPTY_FILTERS: AdvancedFiltersState = {
@@ -90,6 +92,7 @@ export function EventsListView({
   emptyTitle,
   emptyDescription,
   emptyAction,
+  children,
 }: EventsListViewProps) {
   const { t } = useTranslation();
 
@@ -173,7 +176,9 @@ export function EventsListView({
           onMinAmountChange={(v) => updateAdvanced({ minAmount: v })}
           onMaxAmountChange={(v) => updateAdvanced({ maxAmount: v })}
           pills={pills}
-        />
+        >
+          {children}
+        </EventSearchbarFilter>
       </div>
 
       <div className="px-5">
@@ -203,7 +208,7 @@ export function EventsListView({
                       key={keyResolver ? keyResolver(event) : event.id}
                       className="py-3 first:pt-0 last:pb-0 animate-in"
                     >
-                      {renderItem ? renderItem(event) : <EventCard event={event} iconSource={iconSource} />}
+                      {renderItem ? renderItem(event, iconSource) : <EventCard event={event} iconSource={iconSource} />}
                     </div>
                   ))}
                 </Card>

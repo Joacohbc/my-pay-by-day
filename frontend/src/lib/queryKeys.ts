@@ -11,6 +11,8 @@ export const eventKeys = {
   list: (filters: EventFilters) => [...eventKeys.lists(), filters] as const,
   details: () => [...eventKeys.all, 'detail'] as const,
   detail: (id: number) => [...eventKeys.details(), id] as const,
+  summaries: () => [...eventKeys.all, 'summary'] as const,
+  summary: (filters: EventFilters) => [...eventKeys.summaries(), filters] as const,
 };
 
 export const categoryKeys = {

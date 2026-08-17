@@ -8,6 +8,7 @@ import java.util.List;
 import com.mypaybyday.dto.ErrorResponseDto;
 import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.EventQuery.DateField;
+import com.mypaybyday.dto.EventTotalsDto;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.BulkPatchEventDto;
 import com.mypaybyday.dto.MergeEventsRequestDto;
@@ -61,6 +62,35 @@ public class EventResource {
 
 	return RestResponse.ok(eventService.listAll(EventQuery.builder()
 		.page(page).size(size)
+		.search(search).startDate(startDate).endDate(endDate).dateField(dateField)
+		.type(type).categoryId(categoryId).tagId(tagId)
+		.categoryIds(categoryIds).tagIds(tagIds).nodeId(nodeId)
+		.minAmount(minAmount).maxAmount(maxAmount)
+		.build()));
+    }
+
+    @GET
+    @Path("/summary")
+    @Operation(summary = "Get income/outbound/transfer totals for the filtered events",
+	description = "Returns aggregate totals across every FinanceEvent matching the given filters, independent of "
+		+ "pagination, so a filtered event list and its own totals never disagree.")
+    @APIResponse(responseCode = "200", description = "Aggregate totals",
+	content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = EventTotalsDto.class)))
+    public RestResponse<EventTotalsDto> summary(
+	@Parameter(description = "Filter by text in name or description") @QueryParam("search") String search,
+	@Parameter(description = "Filter by start date (YYYY-MM-DD)") @QueryParam("startDate") String startDate,
+	@Parameter(description = "Filter by end date (YYYY-MM-DD)") @QueryParam("endDate") String endDate,
+	@Parameter(description = "Date field to filter on: TRANSACTION, CREATED, UPDATED") @QueryParam("dateField") @DefaultValue("TRANSACTION") DateField dateField,
+	@Parameter(description = "Filter by event type") @QueryParam("type") EventType type,
+	@Parameter(description = "Filter by category ID") @QueryParam("categoryId") Long categoryId,
+	@Parameter(description = "Filter by tag ID") @QueryParam("tagId") Long tagId,
+	@Parameter(description = "Filter by multiple category IDs (OR)") @QueryParam("categoryIds") List<Long> categoryIds,
+	@Parameter(description = "Filter by multiple tag IDs (OR)") @QueryParam("tagIds") List<Long> tagIds,
+	@Parameter(description = "Filter by finance node ID") @QueryParam("nodeId") Long nodeId,
+	@Parameter(description = "Filter by minimum total amount (inclusive)") @QueryParam("minAmount") BigDecimal minAmount,
+	@Parameter(description = "Filter by maximum total amount (inclusive)") @QueryParam("maxAmount") BigDecimal maxAmount) {
+
+	return RestResponse.ok(eventService.summary(EventQuery.builder()
 		.search(search).startDate(startDate).endDate(endDate).dateField(dateField)
 		.type(type).categoryId(categoryId).tagId(tagId)
 		.categoryIds(categoryIds).tagIds(tagIds).nodeId(nodeId)

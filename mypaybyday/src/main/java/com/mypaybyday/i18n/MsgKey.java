@@ -107,6 +107,7 @@ public enum MsgKey {
 	PAYMENT_PLAN_ITEM_BEFORE_PLAN_START("error.payment_plan_item.before_plan_start"),
 	PAYMENT_PLAN_ITEM_AFTER_PLAN_END("error.payment_plan_item.after_plan_end"),
 	PAYMENT_PLAN_ITEM_LIMIT_REACHED("error.payment_plan_item.limit_reached"),
+	PAYMENT_PLAN_ITEM_PLAN_CLOSED("error.payment_plan_item.plan_closed"),
 
 	// ── Event Draft ──────────────────────────────────────
 	DRAFT_NOT_FOUND("error.draft.not_found"),

@@ -56,6 +56,18 @@ export function eventsRoute(): string {
   return `${Routes.EVENTS}${saved || ''}`;
 }
 
+const EVENTS_SCROLL_TOP_KEY = 'events.lastScrollTop';
+
+export function saveEventsScrollTop(scrollTop: number) {
+  sessionStorage.setItem(EVENTS_SCROLL_TOP_KEY, String(scrollTop));
+}
+
+/** Returns the scroll offset (px) the events list was left at, or 0 if none was saved. */
+export function getEventsScrollTop(): number {
+  const saved = Number(sessionStorage.getItem(EVENTS_SCROLL_TOP_KEY));
+  return Number.isFinite(saved) ? saved : 0;
+}
+
 /**
  * Builds the URL that opens a draft in the event editor. Drafts attached to an existing
  * event edit that event; standalone drafts open the creation form, which rehydrates itself
