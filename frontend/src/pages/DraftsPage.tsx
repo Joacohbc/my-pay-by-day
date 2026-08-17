@@ -26,6 +26,7 @@ import { DraftsPageActions } from '@/components/events/DraftsPageActions';
 import { logger } from '@/lib/logger';
 
 type DraftSegment = 'RECENT' | 'LINKED' | 'UNLINKED';
+type PlanFilter = 'ALL' | 'IN_PLAN' | 'NOT_IN_PLAN';
 
 const LONG_PRESS_MS = 450;
 
@@ -33,6 +34,8 @@ const getDraftSelectionId = (draft: FinanceEvent) => draft.draftId ?? draft.id;
 
 const isLinkedDraft = (draft: FinanceEvent) =>
   typeof draft.id === 'number' && draft.id > 0;
+
+const isPlannedDraft = (draft: FinanceEvent) => !!draft.paymentPlanId;
 
 
 export function DraftsPage() {
@@ -45,6 +48,7 @@ export function DraftsPage() {
   const deleteDraft = useDeleteDraft();
 
   const [segment, setSegment] = useState<DraftSegment>('RECENT');
+  const [planFilter, setPlanFilter] = useState<PlanFilter>('ALL');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 250);
 
@@ -68,6 +72,15 @@ export function DraftsPage() {
     [allDrafts]
   );
 
+  const planFilterCounts = useMemo(
+    () => ({
+      ALL: allDrafts.length,
+      IN_PLAN: allDrafts.filter(isPlannedDraft).length,
+      NOT_IN_PLAN: allDrafts.filter((d) => !isPlannedDraft(d)).length,
+    }),
+    [allDrafts]
+  );
+
   const segmentedDrafts = useMemo(() => {
     const normalized = normalizeText(debouncedSearch.trim());
     return allDrafts
@@ -77,13 +90,18 @@ export function DraftsPage() {
         return true;
       })
       .filter((draft) => {
+        if (planFilter === 'IN_PLAN') return isPlannedDraft(draft);
+        if (planFilter === 'NOT_IN_PLAN') return !isPlannedDraft(draft);
+        return true;
+      })
+      .filter((draft) => {
         if (!normalized) return true;
         return (
           (draft.name ? normalizeText(draft.name).includes(normalized) : false) ||
           (draft.description ? normalizeText(draft.description).includes(normalized) : false)
         );
       });
-  }, [allDrafts, segment, debouncedSearch]);
+  }, [allDrafts, segment, planFilter, debouncedSearch]);
 
   const selectedDrafts = useMemo(
     () => allDrafts.filter((draft) => selectedDraftIds.has(getDraftSelectionId(draft))),
@@ -215,7 +233,7 @@ export function DraftsPage() {
   if (error) return <ErrorState message={String(error)} />;
 
   const selectedCount = selectedDrafts.length;
-  const hasDrafts = allDrafts.length > 0;
+  const hasDrafts = allDrafts.some((draft) => !draft.paymentPlanId);
   const actionsBusy = isConfirming || isDeletingSelected || deleteDraft.isPending;
 
   const pills = [
@@ -226,6 +244,12 @@ export function DraftsPage() {
       value: 'UNLINKED',
       badge: segmentCounts.UNLINKED,
     },
+  ];
+
+  const planFilterPills: { label: string; value: PlanFilter; badge: number }[] = [
+    { label: t('drafts.planFilter.all'), value: 'ALL', badge: planFilterCounts.ALL },
+    { label: t('drafts.planFilter.inPlan'), value: 'IN_PLAN', badge: planFilterCounts.IN_PLAN },
+    { label: t('drafts.planFilter.notInPlan'), value: 'NOT_IN_PLAN', badge: planFilterCounts.NOT_IN_PLAN },
   ];
 
   const renderDraftItem = (draft: FinanceEvent) => {
@@ -317,7 +341,31 @@ export function DraftsPage() {
         keyResolver={getDraftSelectionId}
         emptyTitle={t('drafts.noDraftsTitle')}
         emptyDescription={t('drafts.noDraftsDescription')}
-      />
+      >
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {planFilterPills.map(({ label, value, badge }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setPlanFilter(value)}
+              className={[
+                'shrink-0 px-4 py-1.5 rounded-pill text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5',
+                planFilter === value
+                  ? 'bg-dn-primary/20 text-dn-primary'
+                  : 'bg-dn-surface-low text-dn-text-muted hover:bg-dn-surface',
+              ].join(' ')}
+            >
+              {value === 'IN_PLAN' && <Icon name="payments" className="text-sm" />}
+              {label}
+              {badge > 0 && (
+                <span className="bg-dn-surface text-dn-text-muted text-[10px] leading-tight font-semibold px-1.5 py-0.5 rounded-full min-w-4.5 text-center inline-block">
+                  {badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </EventsListView>
 
       {isSelectionMode && selectedCount > 0 && (
         <div className="fixed bottom-22 left-0 right-0 z-30 px-5">

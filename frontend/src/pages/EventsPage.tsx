@@ -435,7 +435,7 @@ export function EventsPage() {
   );
 
   const { data: draftEvents } = useFinanceEventDrafts();
-  const draftsCount = draftEvents?.length ?? 0;
+  const draftsCount = draftEvents?.filter((draft) => !draft.paymentPlanId).length ?? 0;
 
   const { data: pendingDuplicates } = useDuplicates('FINANCE_EVENT', 'PENDING');
   const duplicatesCount = pendingDuplicates?.length ?? 0;

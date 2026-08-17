@@ -1201,6 +1201,70 @@ export interface paths {
         };
         trace?: never;
     };
+    "/events/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get income/outbound/transfer totals for the filtered events
+         * @description Returns aggregate totals across every FinanceEvent matching the given filters, independent of pagination, so a filtered event list and its own totals never disagree.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by category ID */
+                    categoryId?: number;
+                    /** @description Filter by multiple category IDs (OR) */
+                    categoryIds?: number[];
+                    /** @description Date field to filter on: TRANSACTION, CREATED, UPDATED */
+                    dateField?: components["schemas"]["DateField"] & unknown;
+                    /** @description Filter by end date (YYYY-MM-DD) */
+                    endDate?: string;
+                    /** @description Filter by maximum total amount (inclusive) */
+                    maxAmount?: number;
+                    /** @description Filter by minimum total amount (inclusive) */
+                    minAmount?: number;
+                    /** @description Filter by finance node ID */
+                    nodeId?: number;
+                    /** @description Filter by text in name or description */
+                    search?: string;
+                    /** @description Filter by start date (YYYY-MM-DD) */
+                    startDate?: string;
+                    /** @description Filter by tag ID */
+                    tagId?: number;
+                    /** @description Filter by multiple tag IDs (OR) */
+                    tagIds?: number[];
+                    /** @description Filter by event type */
+                    type?: components["schemas"]["EventType"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Aggregate totals */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventTotalsDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/events/{id}": {
         parameters: {
             query?: never;
@@ -4735,6 +4799,13 @@ export interface components {
         ErrorResponse: {
             error?: string;
         };
+        EventTotalsDto: {
+            income?: number;
+            outbound?: number;
+            transfers?: number;
+            /** Format: int64 */
+            totalElements?: number;
+        };
         /** @enum {string} */
         EventType: "INBOUND" | "OUTBOUND" | "OTHER";
         FileDto: {
@@ -4792,6 +4863,8 @@ export interface components {
             /** Format: int64 */
             draftId?: number;
             files?: components["schemas"]["FileDto"][];
+            /** Format: int64 */
+            paymentPlanId?: number;
         };
         FinanceEventEntity: {
             /** Format: int64 */

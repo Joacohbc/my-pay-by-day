@@ -82,8 +82,16 @@ export function EventCard({ event, disableLink, iconSource = 'category' }: Event
       <div className="flex items-center gap-4 min-w-0 flex-1">
         {/* Icon */}
         {event.isDraft ? (
-          <div className="w-12 h-12 rounded-full flex items-center justify-center bg-dn-surface-low text-dn-text-muted border border-dashed border-white/20">
+          <div className="relative w-12 h-12 rounded-full flex items-center justify-center bg-dn-surface-low text-dn-text-muted border border-dashed border-white/20">
             <Icon name="draft" />
+            {event.paymentPlanId && (
+              <span
+                title={t('drafts.linkedToPlan')}
+                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-dn-primary text-white flex items-center justify-center ring-2 ring-dn-bg"
+              >
+                <Icon name="payments" className="text-[11px]" />
+              </span>
+            )}
           </div>
         ) : iconSource === 'category' && event.category ? (
           <CategoryIcon category={event.category} size="lg" shape="rounded-full" />

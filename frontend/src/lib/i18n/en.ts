@@ -963,10 +963,16 @@ const en = {
     select: 'Select',
     noDraftsTitle: 'No drafts yet',
     noDraftsDescription: 'Drafts you save will appear here until you confirm or discard them.',
+    linkedToPlan: 'Linked to a payment plan',
     segments: {
       recent: 'Recent',
       linked: 'Editing existing',
       unlinked: 'Not yet created',
+    },
+    planFilter: {
+      all: 'All',
+      inPlan: 'In a plan',
+      notInPlan: 'No plan',
     },
   },
 

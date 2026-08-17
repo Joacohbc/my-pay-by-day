@@ -962,10 +962,16 @@ const es = {
     select: 'Seleccionar',
     noDraftsTitle: 'Aún no hay borradores',
     noDraftsDescription: 'Los borradores que guardes aparecerán aquí hasta que los confirmes o descartes.',
+    linkedToPlan: 'Vinculado a un plan de pagos',
     segments: {
       recent: 'Recientes',
       linked: 'Editando existentes',
       unlinked: 'Sin crear aún',
+    },
+    planFilter: {
+      all: 'Todos',
+      inPlan: 'En un plan',
+      notInPlan: 'Sin plan',
     },
   },
 

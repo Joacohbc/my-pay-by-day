@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -93,14 +94,18 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 	}
 
 	public List<FinanceEventDto> listFinanceEventDrafts() {
-		return listByEntityType(EntityType.FINANCE_EVENT).stream()
+		List<DraftEntity> drafts = listByEntityType(EntityType.FINANCE_EVENT);
+		Map<Long, Long> planIdByDraftId = paymentPlanService.findPlanIdsByDraftIds(drafts.stream().map(d -> d.id).toList());
+		return drafts.stream()
 			.map(this::mapToFinanceEventDto)
+			.map(dto -> dto.withPaymentPlanId(planIdByDraftId.get(dto.draftId())))
 			.toList();
 	}
 
 	public Optional<FinanceEventDto> findFinanceEventDraftByEntityId(Long originalEntityId) {
 		return draftRepository.findByOriginalEntityIdAndType(originalEntityId, EntityType.FINANCE_EVENT)
-			.map(this::mapToFinanceEventDto);
+			.map(this::mapToFinanceEventDto)
+			.map(dto -> dto.withPaymentPlanId(paymentPlanService.findPlanIdsByDraftIds(List.of(dto.draftId())).get(dto.draftId())));
 	}
 
 
@@ -227,7 +232,7 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 		
 		Long origId = input.id() != null ? input.id() : (current != null ? current.id() : null);
 
-		return new FinanceEventDto(origId, name, desc, type, amount, current != null ? current.transactionId() : null, date, lineItems, category, tags, current != null ? current.relatedEvents() : null, current != null ? current.subscriptionId() : null, current != null ? current.draftId() : null, current != null ? current.files() : null);
+		return new FinanceEventDto(origId, name, desc, type, amount, current != null ? current.transactionId() : null, date, lineItems, category, tags, current != null ? current.relatedEvents() : null, current != null ? current.subscriptionId() : null, current != null ? current.draftId() : null, current != null ? current.files() : null, current != null ? current.paymentPlanId() : null);
 	}
 
 	@Transactional

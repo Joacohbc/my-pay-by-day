@@ -48,6 +48,8 @@ export interface EventsListViewProps {
   emptyTitle: string;
   emptyDescription?: string;
   emptyAction?: ReactNode;
+
+  children?: ReactNode;
 }
 
 const EMPTY_FILTERS: AdvancedFiltersState = {
@@ -90,6 +92,7 @@ export function EventsListView({
   emptyTitle,
   emptyDescription,
   emptyAction,
+  children,
 }: EventsListViewProps) {
   const { t } = useTranslation();
 
@@ -173,7 +176,9 @@ export function EventsListView({
           onMinAmountChange={(v) => updateAdvanced({ minAmount: v })}
           onMaxAmountChange={(v) => updateAdvanced({ maxAmount: v })}
           pills={pills}
-        />
+        >
+          {children}
+        </EventSearchbarFilter>
       </div>
 
       <div className="px-5">
