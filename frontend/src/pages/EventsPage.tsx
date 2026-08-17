@@ -12,11 +12,13 @@ import type { ParamConfig } from '@/hooks/useSearchParamsState';
 import { useEventGroupPlans } from '@/hooks/useEventGroupPlans';
 import { useAddEventToGroupPlan } from '@/hooks/usePaymentPlans';
 import { nextGroupInstallmentNumber, toDateOnly } from '@/lib/groupPlanHelpers';
+import { computeGroupRuns } from '@/lib/groupRuns';
 import { useAlert } from '@/contexts/AlertContext';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import { PendingEventsSync } from '@/components/events/PendingEventsSync';
 import { MergeEventsModal } from '@/components/events/MergeEventsModal';
 import { BulkUpdateEventsModal } from '@/components/events/BulkUpdateEventsModal';
+import { EventCard } from '@/components/events/EventCard';
 import { GroupableEventCard } from '@/components/events/GroupableEventCard';
 import { EventGroupFolderCard } from '@/components/events/EventGroupFolderCard';
 import { EventGroupSelectionBar } from '@/components/events/EventGroupSelectionBar';
@@ -72,53 +74,6 @@ function resolveEventsPageQuery(currentPage: number, restoredPage: number): Even
 
 function countTotalPages(totalElements: number): number {
   return totalElements ? Math.ceil(totalElements / EVENTS_PAGE_SIZE) : 1;
-}
-
-interface EventGroupRun {
-  plan: PaymentPlan;
-  members: FinanceEvent[];
-}
-
-interface EventGroupRuns {
-  /** The event list with every run of 2+ consecutive same-group rows collapsed down to its first member. */
-  displayEvents: FinanceEvent[];
-  /** Anchor event id (the run's first member) → the full run, for rows that collapsed. */
-  runByAnchorEventId: Map<number, EventGroupRun>;
-}
-
-/**
- * A run of same-group rows only reads well as a folder when it is unbroken — scattered members of
- * the same plan elsewhere in the list stay individual (their shared stripe color is enough there).
- * This walks the already-sorted event list once and only folds strictly consecutive runs.
- */
-function computeEventGroupRuns(events: FinanceEvent[], planByEventId: Map<number, PaymentPlan>): EventGroupRuns {
-  const displayEvents: FinanceEvent[] = [];
-  const runByAnchorEventId = new Map<number, EventGroupRun>();
-
-  let index = 0;
-  while (index < events.length) {
-    const event = events[index];
-    const plan = planByEventId.get(event.id);
-    displayEvents.push(event);
-
-    if (!plan) {
-      index++;
-      continue;
-    }
-
-    const members = [event];
-    let next = index + 1;
-    while (next < events.length && planByEventId.get(events[next].id)?.id === plan.id) {
-      members.push(events[next]);
-      next++;
-    }
-    if (members.length > 1) {
-      runByAnchorEventId.set(event.id, { plan, members });
-    }
-    index = next;
-  }
-
-  return { displayEvents, runByAnchorEventId };
 }
 
 const EVENTS_SCROLL_CONTAINER_ID = 'app-scroll-container';
@@ -346,8 +301,8 @@ export function EventsPage() {
   const addEventToGroup = useAddEventToGroupPlan();
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
-  const { displayEvents, runByAnchorEventId } = useMemo(
-    () => computeEventGroupRuns(events, planByEventId),
+  const { displayItems: displayEvents, runByAnchorId: runByAnchorEventId } = useMemo(
+    () => computeGroupRuns(events, planByEventId, (e) => e.id),
     [events, planByEventId]
   );
 
@@ -417,7 +372,14 @@ export function EventsPage() {
     (event: FinanceEvent, iconSource: 'category' | 'node') => {
       const run = runByAnchorEventId.get(event.id);
       if (run) {
-        return <EventGroupFolderCard plan={run.plan} members={run.members} iconSource={iconSource} />;
+        return (
+          <EventGroupFolderCard
+            plan={run.plan}
+            members={run.members}
+            getId={(e) => e.id}
+            renderMember={(member) => <EventCard event={member} iconSource={iconSource} />}
+          />
+        );
       }
       return (
         <GroupableEventCard

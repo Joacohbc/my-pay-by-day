@@ -13,13 +13,17 @@ import {
 import { draftsService } from '@/services/drafts.service';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateDomains, EVENT_MUTATION_DOMAINS } from '@/lib/cacheInvalidation';
-import type { DraftConfirmMode, FinanceEvent } from '@/models';
+import type { DraftConfirmMode, FinanceEvent, PaymentPlan } from '@/models';
+import { usePaymentPlans } from '@/hooks/usePaymentPlans';
+import { computeGroupRuns } from '@/lib/groupRuns';
+import { getGroupColor } from '@/lib/groupColors';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EventCard } from '@/components/events/EventCard';
+import { EventGroupFolderCard } from '@/components/events/EventGroupFolderCard';
 import { BulkActionsModal } from '@/components/events/BulkActionsModal';
 import { EventsListView } from '@/components/events/EventsListView';
 import { DraftsPageActions } from '@/components/events/DraftsPageActions';
@@ -102,6 +106,23 @@ export function DraftsPage() {
         );
       });
   }, [allDrafts, segment, planFilter, debouncedSearch]);
+
+  const { data: plans = [] } = usePaymentPlans();
+
+  const planByDraftId = useMemo(() => {
+    const planById = new Map(plans.map((plan) => [plan.id, plan] as const));
+    const map = new Map<number, PaymentPlan>();
+    for (const draft of allDrafts) {
+      const plan = draft.paymentPlanId ? planById.get(draft.paymentPlanId) : undefined;
+      if (plan) map.set(getDraftSelectionId(draft), plan);
+    }
+    return map;
+  }, [allDrafts, plans]);
+
+  const { displayItems: displayDrafts, runByAnchorId: runByAnchorDraftId } = useMemo(
+    () => computeGroupRuns(segmentedDrafts, planByDraftId, getDraftSelectionId),
+    [segmentedDrafts, planByDraftId]
+  );
 
   const selectedDrafts = useMemo(
     () => allDrafts.filter((draft) => selectedDraftIds.has(getDraftSelectionId(draft))),
@@ -252,7 +273,7 @@ export function DraftsPage() {
     { label: t('drafts.planFilter.notInPlan'), value: 'NOT_IN_PLAN', badge: planFilterCounts.NOT_IN_PLAN },
   ];
 
-  const renderDraftItem = (draft: FinanceEvent) => {
+  const renderDraftRow = (draft: FinanceEvent) => {
     const selectionId = getDraftSelectionId(draft);
     const isSelected = selectedDraftIds.has(selectionId);
     const targetRoute = draftRoute(draft);
@@ -314,6 +335,52 @@ export function DraftsPage() {
     );
   };
 
+  /**
+   * A draft whose plan sits elsewhere in the list (not an unbroken run) stays a standalone row,
+   * tagged with a colored stripe and a link to its plan — the same treatment `GroupableEventCard`
+   * gives confirmed events, so a plan-linked draft reads consistently whether it is still a draft
+   * or has already been confirmed.
+   */
+  const renderDraftItem = (draft: FinanceEvent) => {
+    const run = runByAnchorDraftId.get(getDraftSelectionId(draft));
+    if (run) {
+      return (
+        <EventGroupFolderCard
+          plan={run.plan}
+          members={run.members}
+          getId={getDraftSelectionId}
+          renderMember={renderDraftRow}
+          icon="payments"
+        />
+      );
+    }
+
+    const plan = planByDraftId.get(getDraftSelectionId(draft));
+    const rowContent = renderDraftRow(draft);
+    if (!plan) return rowContent;
+
+    const groupColor = getGroupColor(plan.id);
+    return (
+      <div className="flex items-stretch gap-2.5">
+        <span aria-hidden="true" style={{ backgroundColor: groupColor }} className="w-1 shrink-0 rounded-full" />
+        <div className="flex-1 min-w-0">
+          {rowContent}
+          <Link
+            to={Routes.PAYMENT_PLAN_DETAIL(plan.id)}
+            state={linkStateFromHere()}
+            onClick={(event) => event.stopPropagation()}
+            className="mt-0.5 ml-3 inline-flex items-center gap-1 text-[11px] font-medium hover:underline"
+            style={{ color: groupColor }}
+            title={t('events.group.viewGroup')}
+          >
+            <Icon name="payments" className="text-xs" />
+            {plan.name}
+          </Link>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4 pb-24">
       <PageHeader
@@ -332,7 +399,7 @@ export function DraftsPage() {
       />
 
       <EventsListView
-        events={segmentedDrafts}
+        events={displayDrafts}
         isLoading={isLoading}
         search={search}
         onSearchChange={setSearch}
