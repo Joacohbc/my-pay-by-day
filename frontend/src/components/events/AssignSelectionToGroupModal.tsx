@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { CreatePaymentPlanDto, CreatePaymentPlanItemDto, FinanceEvent, PaymentPlan } from '@/models';
+import type { CreatePaymentPlanDto, FinanceEvent, PaymentPlan } from '@/models';
 import { useCreatePaymentPlan, useAddEventToGroupPlan, usePaymentPlans } from '@/hooks/usePaymentPlans';
-import { nextGroupInstallmentNumber, toDateOnly } from '@/lib/groupPlanHelpers';
+import { addEventsToGroupPlan } from '@/lib/groupPlanHelpers';
 import { getLocalizedTodayString } from '@/lib/format';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -38,9 +38,11 @@ export function AssignSelectionToGroupModal({
   const createGroupPlan = useCreatePaymentPlan();
   const addEventToGroup = useAddEventToGroupPlan();
 
-  const firstEventName = selectedEvents[0]?.name || t('drafts.untitledDraft');
   const [targetPlanValue, setTargetPlanValue] = useState<string>(NEW_GROUP_VALUE);
-  const [newGroupName, setNewGroupName] = useState(() => t('events.group.defaultName', { name: firstEventName }));
+  const [nameOverride, setNameOverride] = useState('');
+
+  const firstEventName = selectedEvents[0]?.name || t('drafts.untitledDraft');
+  const defaultGroupName = t('events.group.defaultName', { name: firstEventName });
 
   const groupPlanOptions = useMemo(
     () => [
@@ -54,27 +56,23 @@ export function AssignSelectionToGroupModal({
 
   const closeAndReset = () => {
     setTargetPlanValue(NEW_GROUP_VALUE);
+    setNameOverride('');
     onClose();
   };
 
-  const assignToExistingPlan = (plan: PaymentPlan) => {
-    let installmentNumber = nextGroupInstallmentNumber(plan);
-    for (const event of selectedEvents) {
-      const dto: CreatePaymentPlanItemDto = {
-        installmentNumber: installmentNumber++,
-        expectedDate: toDateOnly(event.transactionDate),
-        itemStatus: 'PAID',
-        eventId: event.id,
-      };
-      addEventToGroup.mutate({ planId: plan.id, dto });
+  const assignToExistingPlan = async (plan: PaymentPlan) => {
+    try {
+      await addEventsToGroupPlan(plan, selectedEvents, addEventToGroup.mutateAsync);
+    } catch {
+      return;
     }
     onAssigned();
     closeAndReset();
   };
 
-  const createNewPlan = () => {
+  const createNewPlan = async () => {
     const dto: CreatePaymentPlanDto = {
-      name: newGroupName.trim() || t('events.group.defaultName', { name: firstEventName }),
+      name: nameOverride.trim() || defaultGroupName,
       planType: 'GROUP',
       startDate: getLocalizedTodayString(),
       isAutomated: false,
@@ -82,12 +80,14 @@ export function AssignSelectionToGroupModal({
       generateItems: false,
       eventIds: selectedEvents.map((event) => event.id),
     };
-    createGroupPlan.mutate(dto, {
-      onSuccess: () => {
-        onAssigned();
-        closeAndReset();
-      },
-    });
+
+    try {
+      await createGroupPlan.mutateAsync(dto);
+    } catch {
+      return;
+    }
+    onAssigned();
+    closeAndReset();
   };
 
   const confirm = () => {
@@ -132,8 +132,9 @@ export function AssignSelectionToGroupModal({
         {targetPlanValue === NEW_GROUP_VALUE && (
           <Input
             label={t('paymentPlans.nameLabel')}
-            value={newGroupName}
-            onChange={(e) => setNewGroupName(e.target.value)}
+            placeholder={defaultGroupName}
+            value={nameOverride}
+            onChange={(e) => setNameOverride(e.target.value)}
           />
         )}
       </div>

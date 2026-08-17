@@ -13,8 +13,8 @@ import {
 import { draftsService } from '@/services/drafts.service';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateDomains, EVENT_MUTATION_DOMAINS } from '@/lib/cacheInvalidation';
-import type { DraftConfirmMode, FinanceEvent, PaymentPlan } from '@/models';
-import { usePaymentPlans } from '@/hooks/usePaymentPlans';
+import type { DraftConfirmMode, FinanceEvent } from '@/models';
+import { usePlanByRowId } from '@/hooks/usePlanByRowId';
 import { computeGroupRuns } from '@/lib/groupRuns';
 import { getGroupColor } from '@/lib/groupColors';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -107,17 +107,7 @@ export function DraftsPage() {
       });
   }, [allDrafts, segment, planFilter, debouncedSearch]);
 
-  const { data: plans = [] } = usePaymentPlans();
-
-  const planByDraftId = useMemo(() => {
-    const planById = new Map(plans.map((plan) => [plan.id, plan] as const));
-    const map = new Map<number, PaymentPlan>();
-    for (const draft of allDrafts) {
-      const plan = draft.paymentPlanId ? planById.get(draft.paymentPlanId) : undefined;
-      if (plan) map.set(getDraftSelectionId(draft), plan);
-    }
-    return map;
-  }, [allDrafts, plans]);
+  const planByDraftId = usePlanByRowId(allDrafts, getDraftSelectionId);
 
   const { displayItems: displayDrafts, runByAnchorId: runByAnchorDraftId } = useMemo(
     () => computeGroupRuns(segmentedDrafts, planByDraftId, getDraftSelectionId),
@@ -254,7 +244,8 @@ export function DraftsPage() {
   if (error) return <ErrorState message={String(error)} />;
 
   const selectedCount = selectedDrafts.length;
-  const hasDrafts = allDrafts.some((draft) => !draft.paymentPlanId);
+  const hasDrafts = allDrafts.length > 0;
+  const hasUnplannedDrafts = allDrafts.some((draft) => !draft.paymentPlanId);
   const actionsBusy = isConfirming || isDeletingSelected || deleteDraft.isPending;
 
   const pills = [
@@ -389,6 +380,7 @@ export function DraftsPage() {
         action={
           <DraftsPageActions
             hasDrafts={hasDrafts}
+            hasUnplannedDrafts={hasUnplannedDrafts}
             isSelectionMode={isSelectionMode}
             onSelect={() => enterSelectionMode()}
             onBulkActions={() => setShowBulkActions(true)}

@@ -74,8 +74,26 @@ export function GroupableEventCard({
     if (distance > MOVE_CANCEL_PX) clearTimer();
   };
 
-  const handlePointerUp = () => clearTimer();
-  const handlePointerCancel = () => clearTimer();
+  /**
+   * The click that follows a long-press is dispatched before this task runs, so clearing the flag
+   * here still lets `handleClickCapture` swallow it — while a press that ends with no click at all
+   * (a scroll, a cancelled pointer) no longer leaves the flag armed against the next real tap.
+   */
+  const scheduleLongPressFlagReset = () => {
+    window.setTimeout(() => {
+      pressRef.current.firedLongPress = false;
+    }, 0);
+  };
+
+  const handlePointerUp = () => {
+    clearTimer();
+    scheduleLongPressFlagReset();
+  };
+
+  const handlePointerCancel = () => {
+    clearTimer();
+    scheduleLongPressFlagReset();
+  };
 
   const handleClickCapture = (e: React.MouseEvent) => {
     if (pressRef.current.firedLongPress) {

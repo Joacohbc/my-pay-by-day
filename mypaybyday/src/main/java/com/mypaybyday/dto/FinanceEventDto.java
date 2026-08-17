@@ -23,7 +23,7 @@ import com.mypaybyday.enums.EventType;
  * @param relatedEvents   list of related events
  * @param subscriptionId  identifier of the subscription
  * @param draftId         identifier of the draft event
- * @param paymentPlanId   identifier of the PaymentPlan this draft is a pending member of, or {@code null} if unlinked
+ * @param paymentPlanId   identifier of the PaymentPlan this event (or draft) is a member of, or {@code null} if unlinked
  */
 public record FinanceEventDto(
 	Long id,

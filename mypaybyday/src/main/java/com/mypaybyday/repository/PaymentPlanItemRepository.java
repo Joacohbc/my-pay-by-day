@@ -22,4 +22,11 @@ public class PaymentPlanItemRepository implements PanacheRepository<PaymentPlanI
 		}
 		return list("draft.id in ?1", draftIds);
 	}
+
+	public List<PaymentPlanItemEntity> findByEventIds(List<Long> eventIds) {
+		if (eventIds == null || eventIds.isEmpty()) {
+			return List.of();
+		}
+		return list("event.id in ?1", eventIds);
+	}
 }

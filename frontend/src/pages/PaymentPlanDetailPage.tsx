@@ -115,6 +115,71 @@ export function PaymentPlanDetailPage() {
       dto: { ...plan, isAutomated: !plan.isAutomated },
     });
 
+  /**
+   * A closed plan only offers the way back (reopen); an automated one toggles between paused and
+   * active; a group or custom plan has no cadence to pause, so it shows nothing here.
+   */
+  const renderLifecycleAction = () => {
+    if (isClosed) {
+      return (
+        <Button
+          variant="secondary"
+          size="sm"
+          title={t('paymentPlans.activate')}
+          onClick={reopenPlan}
+          loading={updatePlan.isPending}
+        >
+          <Icon name="play_arrow" className="text-base" />
+        </Button>
+      );
+    }
+
+    if (!supportsAutomation) return null;
+
+    return (
+      <Button
+        variant="secondary"
+        size="sm"
+        title={isActive ? t('common.pause') : t('paymentPlans.activate')}
+        onClick={toggleStatus}
+        loading={updatePlan.isPending}
+      >
+        <Icon name={isActive ? 'pause' : 'play_arrow'} className="text-base" />
+      </Button>
+    );
+  };
+
+  /**
+   * Cancelling keeps a plan around as a closed record, which only makes sense for one with a
+   * schedule left to abandon. A group is just a bundle of events, so its destructive action is the
+   * outright delete — and so is a closed plan's, since there is nothing left to cancel.
+   */
+  const renderDestructiveAction = () => {
+    if (isClosed || isGroup) {
+      return (
+        <Button
+          variant="danger"
+          size="sm"
+          title={t('paymentPlans.deletePlan')}
+          onClick={() => setIsDeleteConfirmOpen(true)}
+        >
+          <Icon name="delete" className="text-base" />
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        variant="danger"
+        size="sm"
+        title={t('paymentPlans.cancelPlan')}
+        onClick={() => setIsCancelConfirmOpen(true)}
+      >
+        <Icon name="block" className="text-base" />
+      </Button>
+    );
+  };
+
   const closeItemModal = () => navigate(Routes.PAYMENT_PLAN_DETAIL(plan.id));
   const editedItem = plan.items?.find((item) => String(item.id) === itemId);
   const nextInstallmentNumber = (plan.items ?? []).reduce((max, item) => Math.max(max, item.installmentNumber), 0) + 1;
@@ -163,29 +228,7 @@ export function PaymentPlanDetailPage() {
         back={goBack}
         action={
           <div className="flex gap-2">
-            {isClosed ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                title={t('paymentPlans.activate')}
-                onClick={reopenPlan}
-                loading={updatePlan.isPending}
-              >
-                <Icon name="play_arrow" className="text-base" />
-              </Button>
-            ) : (
-              supportsAutomation && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  title={isActive ? t('common.pause') : t('paymentPlans.activate')}
-                  onClick={toggleStatus}
-                  loading={updatePlan.isPending}
-                >
-                  <Icon name={isActive ? 'pause' : 'play_arrow'} className="text-base" />
-                </Button>
-              )
-            )}
+            {renderLifecycleAction()}
             {isGroup && isActive && (
               <Button
                 variant="secondary"
@@ -202,35 +245,7 @@ export function PaymentPlanDetailPage() {
                 <Icon name="edit" className="text-base" />
               </Button>
             </Link>
-            {isClosed ? (
-              <Button
-                variant="danger"
-                size="sm"
-                title={t('paymentPlans.deletePlan')}
-                onClick={() => setIsDeleteConfirmOpen(true)}
-              >
-                <Icon name="delete" className="text-base" />
-              </Button>
-            ) : (
-              <Button
-                variant="danger"
-                size="sm"
-                title={t('paymentPlans.cancelPlan')}
-                onClick={() => setIsCancelConfirmOpen(true)}
-              >
-                <Icon name="block" className="text-base" />
-              </Button>
-            )}
-            {isGroup && !isClosed && (
-              <Button
-                variant="danger"
-                size="sm"
-                title={t('paymentPlans.deletePlan')}
-                onClick={() => setIsDeleteConfirmOpen(true)}
-              >
-                <Icon name="delete" className="text-base" />
-              </Button>
-            )}
+            {renderDestructiveAction()}
           </div>
         }
       />

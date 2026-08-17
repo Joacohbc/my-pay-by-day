@@ -32,6 +32,7 @@ import { formatDateFromParts, getLocalizedTodayString } from '@/lib/format';
 import { isGroupPlan } from '@/components/paymentPlans/planPresentation';
 import { requiredCountField, toOptionalNumber } from '@/lib/validation';
 import { findFirstFieldErrorMessage } from '@/lib/formErrors';
+import { logger } from '@/lib/logger';
 
 const ITEM_STATUSES: PaymentPlanItemStatus[] = ['PENDING', 'DRAFTED', 'PAID', 'SKIPPED', 'OVERDUE'];
 
@@ -132,7 +133,16 @@ export function PaymentPlanItemForm({
 
   const handleConfirmEvent = async (ids: Set<number>) => {
     const id = Array.from(ids)[0];
-    const event = id != null ? await eventsService.getById(id) : null;
+
+    let event: FinanceEvent | null = null;
+    try {
+      event = id != null ? await eventsService.getById(id) : null;
+    } catch (error) {
+      logger.error('Failed to load the event picked for a payment plan item', { error, eventId: id });
+      alert.error(error instanceof Error ? error.message : t('common.error'));
+      return;
+    }
+
     setEventOverride(event);
     setValue('linkedId', event?.id ?? null, { shouldValidate: true });
     setIsEventModalOpen(false);

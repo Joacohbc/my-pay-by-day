@@ -9,11 +9,10 @@ import { useFinanceEventDrafts } from '@/hooks/useDrafts';
 import { useDuplicates } from '@/hooks/useDuplicates';
 import { useSearchParamsBatch } from '@/hooks/useSearchParamsState';
 import type { ParamConfig } from '@/hooks/useSearchParamsState';
-import { useEventGroupPlans } from '@/hooks/useEventGroupPlans';
-import { useAddEventToGroupPlan } from '@/hooks/usePaymentPlans';
-import { nextGroupInstallmentNumber, toDateOnly } from '@/lib/groupPlanHelpers';
+import { usePlanByRowId } from '@/hooks/usePlanByRowId';
+import { useEventGroupSelection } from '@/hooks/useEventGroupSelection';
 import { computeGroupRuns } from '@/lib/groupRuns';
-import { useAlert } from '@/contexts/AlertContext';
+import { APP_SCROLL_CONTAINER_ID } from '@/layouts/AppLayout';
 import { TemplatePickerModal } from '@/components/events/TemplatePickerModal';
 import { PendingEventsSync } from '@/components/events/PendingEventsSync';
 import { MergeEventsModal } from '@/components/events/MergeEventsModal';
@@ -23,7 +22,7 @@ import { GroupableEventCard } from '@/components/events/GroupableEventCard';
 import { EventGroupFolderCard } from '@/components/events/EventGroupFolderCard';
 import { EventGroupSelectionBar } from '@/components/events/EventGroupSelectionBar';
 import { AssignSelectionToGroupModal } from '@/components/events/AssignSelectionToGroupModal';
-import type { Template, EventType, FinanceEvent, PaymentPlan } from '@/models';
+import type { Template, EventType, FinanceEvent } from '@/models';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -40,6 +39,8 @@ import { useAccumulatedData } from '@/hooks/useAccumulatedData';
 type FilterType = 'ALL' | EventType;
 
 const EVENTS_PAGE_SIZE = 20;
+
+const getEventId = (event: FinanceEvent) => event.id;
 
 interface EventsPageQuery {
   requestPage: number;
@@ -76,11 +77,10 @@ function countTotalPages(totalElements: number): number {
   return totalElements ? Math.ceil(totalElements / EVENTS_PAGE_SIZE) : 1;
 }
 
-const EVENTS_SCROLL_CONTAINER_ID = 'app-scroll-container';
 const SCROLL_POSITION_SAVE_DELAY_MS = 150;
 
 function getEventsScrollContainer(): HTMLElement | null {
-  return document.getElementById(EVENTS_SCROLL_CONTAINER_ID);
+  return document.getElementById(APP_SCROLL_CONTAINER_ID);
 }
 
 /** Tracks whether `elementRef` is currently scrolled into view within the events scroll container. */
@@ -150,7 +150,6 @@ export function EventsPage() {
   const { t } = useTranslation();
   const { navigate, navigatePush } = useAppNavigation();
   const location = useLocation();
-  const alert = useAlert();
 
   // --- 1. URL State Management ---
   const { values, setValues, clearAll } = useSearchParamsBatch(FILTER_PARAMS);
@@ -296,77 +295,25 @@ export function EventsPage() {
 
   useRestoredScrollPosition(events.length > 0);
 
-  // --- 5. Long-press to group (long-press one card arms selection, tapping others adds them, a floating bar confirms) ---
-  const { planByEventId } = useEventGroupPlans();
-  const addEventToGroup = useAddEventToGroupPlan();
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const planByEventId = usePlanByRowId(events, getEventId);
 
   const { displayItems: displayEvents, runByAnchorId: runByAnchorEventId } = useMemo(
-    () => computeGroupRuns(events, planByEventId, (e) => e.id),
+    () => computeGroupRuns(events, planByEventId, getEventId),
     [events, planByEventId]
   );
 
-  const [selectedEventIds, setSelectedEventIds] = useState<Set<number>>(new Set());
-  const isSelectionMode = selectedEventIds.size > 0;
-
-  const handleLongPress = useCallback((eventId: number) => {
-    setSelectedEventIds(new Set([eventId]));
-  }, []);
-
-  const handleToggleSelected = useCallback((eventId: number) => {
-    setSelectedEventIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(eventId)) {
-        next.delete(eventId);
-      } else {
-        next.add(eventId);
-      }
-      return next;
-    });
-  }, []);
-
-  const handleCancelSelection = useCallback(() => setSelectedEventIds(new Set()), []);
-
-  const handleConfirmSelection = useCallback(() => {
-    const selectedEvents = events.filter((e) => selectedEventIds.has(e.id));
-    if (selectedEvents.length < 2) return;
-
-    const distinctPlans = new Map<number, PaymentPlan>();
-    const ungroupedEvents: FinanceEvent[] = [];
-    for (const selectedEvent of selectedEvents) {
-      const plan = planByEventId.get(selectedEvent.id);
-      if (plan) {
-        distinctPlans.set(plan.id, plan);
-      } else {
-        ungroupedEvents.push(selectedEvent);
-      }
-    }
-
-    if (distinctPlans.size > 1) {
-      alert.error(t('events.group.alreadyGrouped'));
-      return;
-    }
-
-    if (distinctPlans.size === 1) {
-      const [targetPlan] = distinctPlans.values();
-      let installmentNumber = nextGroupInstallmentNumber(targetPlan);
-      for (const eventToAdd of ungroupedEvents) {
-        addEventToGroup.mutate({
-          planId: targetPlan.id,
-          dto: {
-            installmentNumber: installmentNumber++,
-            expectedDate: toDateOnly(eventToAdd.transactionDate),
-            itemStatus: 'PAID',
-            eventId: eventToAdd.id,
-          },
-        });
-      }
-      setSelectedEventIds(new Set());
-      return;
-    }
-
-    setIsAssignModalOpen(true);
-  }, [events, selectedEventIds, planByEventId, addEventToGroup, alert, t]);
+  const {
+    selectedEventIds,
+    selectedEvents,
+    isSelectionMode,
+    isAssignModalOpen,
+    isAddingToGroup,
+    startSelection,
+    toggleSelected,
+    cancelSelection,
+    confirmSelection,
+    closeAssignModal,
+  } = useEventGroupSelection(events, planByEventId);
 
   const renderEventRow = useCallback(
     (event: FinanceEvent, iconSource: 'category' | 'node') => {
@@ -376,7 +323,7 @@ export function EventsPage() {
           <EventGroupFolderCard
             plan={run.plan}
             members={run.members}
-            getId={(e) => e.id}
+            getId={getEventId}
             renderMember={(member) => <EventCard event={member} iconSource={iconSource} />}
           />
         );
@@ -388,12 +335,12 @@ export function EventsPage() {
           groupPlan={planByEventId.get(event.id)}
           isSelectionMode={isSelectionMode}
           isSelected={selectedEventIds.has(event.id)}
-          onLongPress={handleLongPress}
-          onToggleSelected={handleToggleSelected}
+          onLongPress={startSelection}
+          onToggleSelected={toggleSelected}
         />
       );
     },
-    [runByAnchorEventId, planByEventId, isSelectionMode, selectedEventIds, handleLongPress, handleToggleSelected]
+    [runByAnchorEventId, planByEventId, isSelectionMode, selectedEventIds, startSelection, toggleSelected]
   );
 
   const { data: draftEvents } = useFinanceEventDrafts();
@@ -546,17 +493,17 @@ export function EventsPage() {
       {isSelectionMode && (
         <EventGroupSelectionBar
           count={selectedEventIds.size}
-          isPending={addEventToGroup.isPending}
-          onConfirm={handleConfirmSelection}
-          onCancel={handleCancelSelection}
+          isPending={isAddingToGroup}
+          onConfirm={confirmSelection}
+          onCancel={cancelSelection}
         />
       )}
 
       <AssignSelectionToGroupModal
         open={isAssignModalOpen}
-        onClose={() => setIsAssignModalOpen(false)}
-        selectedEvents={events.filter((e) => selectedEventIds.has(e.id))}
-        onAssigned={handleCancelSelection}
+        onClose={closeAssignModal}
+        selectedEvents={selectedEvents}
+        onAssigned={cancelSelection}
       />
     </div>
   );

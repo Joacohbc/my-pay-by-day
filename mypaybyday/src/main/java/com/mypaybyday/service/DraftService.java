@@ -207,6 +207,11 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 		return create(EntityType.FINANCE_EVENT, dto);
 	}
 
+	/**
+	* Builds the DTO that gets serialized into the draft's stored payload. {@code paymentPlanId} is
+	* left out on purpose: plan membership lives on the PaymentPlanItem row and is resolved on every
+	* read, so persisting it here would only bake in a value that goes stale.
+	*/
 	private FinanceEventDto buildFinanceEventDto(FinanceEventDraftInputDto input, FinanceEventDto current) {
 		String name = input.name() != null ? input.name() : (current != null ? current.name() : null);
 		String desc = input.description() != null ? input.description() : (current != null ? current.description() : null);
@@ -232,7 +237,7 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 		
 		Long origId = input.id() != null ? input.id() : (current != null ? current.id() : null);
 
-		return new FinanceEventDto(origId, name, desc, type, amount, current != null ? current.transactionId() : null, date, lineItems, category, tags, current != null ? current.relatedEvents() : null, current != null ? current.subscriptionId() : null, current != null ? current.draftId() : null, current != null ? current.files() : null, current != null ? current.paymentPlanId() : null);
+		return new FinanceEventDto(origId, name, desc, type, amount, current != null ? current.transactionId() : null, date, lineItems, category, tags, current != null ? current.relatedEvents() : null, current != null ? current.subscriptionId() : null, current != null ? current.draftId() : null, current != null ? current.files() : null, null);
 	}
 
 	@Transactional

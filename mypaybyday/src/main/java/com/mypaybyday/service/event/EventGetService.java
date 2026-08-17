@@ -9,7 +9,6 @@ import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -29,6 +28,7 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.i18n.TimezoneContext;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.service.CategoryService;
+import com.mypaybyday.service.PaymentPlanService;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
@@ -38,11 +38,14 @@ public class EventGetService {
 
 	private final EventRepository eventRepository;
 	private final CategoryService categoryService;
+	private final PaymentPlanService paymentPlanService;
 	private final Messages messages;
 
-	public EventGetService(EventRepository eventRepository, CategoryService categoryService, Messages messages) {
+	public EventGetService(EventRepository eventRepository, CategoryService categoryService,
+			PaymentPlanService paymentPlanService, Messages messages) {
 		this.eventRepository = eventRepository;
 		this.categoryService = categoryService;
+		this.paymentPlanService = paymentPlanService;
 		this.messages = messages;
 	}
 
@@ -56,19 +59,14 @@ public class EventGetService {
 			int totalElements = matchingEvents.size();
 			int start = Math.min(queryRequest.page() * queryRequest.size(), totalElements);
 			int end = Math.min(start + queryRequest.size(), totalElements);
-			List<FinanceEventDto> content = matchingEvents.subList(start, end)
-					.stream()
-					.map(FinanceEventDto::from)
-					.toList();
+			List<FinanceEventDto> content = toDtosWithPlanIds(matchingEvents.subList(start, end));
 			return PagedResponse.of(content, queryRequest.page(), queryRequest.size(), totalElements);
 		}
 
 		long totalElements = panacheQuery.count();
-		List<FinanceEventDto> content = panacheQuery
+		List<FinanceEventDto> content = toDtosWithPlanIds(panacheQuery
 				.page(Page.of(queryRequest.page(), queryRequest.size()))
-				.stream()
-				.map(FinanceEventDto::from)
-				.toList();
+				.list());
 		return PagedResponse.of(content, queryRequest.page(), queryRequest.size(), totalElements);
 	}
 
@@ -76,10 +74,15 @@ public class EventGetService {
 	* Aggregate income/outbound/transfer totals across every event matching the query's filters,
 	* independent of pagination. Mirrors {@link com.mypaybyday.service.TimePeriodService#getBalance}'s
 	* aggregation so a filtered event list and its own totals card never disagree.
+	*
+	* <p>The sum runs in Java rather than as a SQL {@code SUM} because
+	* {@code FinanceLineItemEntity.amount} is encrypted at rest through a JPA converter: the database
+	* only ever sees ciphertext, so the database cannot add it up. That is also why filtering by
+	* amount or by text happens in memory.
 	*/
 	@Transactional
 	public EventTotalsDto summary(EventQuery queryRequest) {
-		List<FinanceEventEntity> matchingEvents = applyInMemoryFilters(buildFilteredQuery(queryRequest).list(), queryRequest);
+		List<FinanceEventEntity> matchingEvents = applyInMemoryFilters(buildTotalsQuery(queryRequest).list(), queryRequest);
 
 		BigDecimal income = BigDecimal.ZERO;
 		BigDecimal outbound = BigDecimal.ZERO;
@@ -106,8 +109,40 @@ public class EventGetService {
 		return new EventTotalsDto(income, outbound, transfers, matchingEvents.size());
 	}
 
+	private List<FinanceEventDto> toDtosWithPlanIds(List<FinanceEventEntity> events) {
+		Map<Long, Long> planIdByEventId = paymentPlanService.findPlanIdsByEventIds(
+				events.stream().map(event -> event.id).toList());
+
+		return events.stream()
+				.map(FinanceEventDto::from)
+				.map(dto -> dto.withPaymentPlanId(planIdByEventId.get(dto.id())))
+				.toList();
+	}
+
 	private PanacheQuery<FinanceEventEntity> buildFilteredQuery(EventQuery queryRequest) {
-		StringBuilder query = new StringBuilder("select e from FinanceEvent e where 1=1");
+		EventFilterFragment fragment = buildFilterFragment(queryRequest);
+		return eventRepository.find("select e from FinanceEvent e" + fragment.clause(), fragment.params());
+	}
+
+	/**
+	* Same match set as {@link #buildFilteredQuery}, with the line items already fetched: the totals
+	* read every one of them, and lazy-loading them turns one query into one per event. It cannot be
+	* the shared query — a fetch join over a collection makes Hibernate paginate in memory, and the
+	* list endpoint paginates.
+	*/
+	private PanacheQuery<FinanceEventEntity> buildTotalsQuery(EventQuery queryRequest) {
+		EventFilterFragment fragment = buildFilterFragment(queryRequest);
+		return eventRepository.find(
+				"select e from FinanceEvent e left join fetch e.transaction t left join fetch t.lineItems"
+						+ fragment.clause(),
+				fragment.params());
+	}
+
+	private record EventFilterFragment(String clause, Map<String, Object> params) {
+	}
+
+	private EventFilterFragment buildFilterFragment(EventQuery queryRequest) {
+		StringBuilder query = new StringBuilder(" where 1=1");
 		Map<String, Object> params = new HashMap<>();
 
 		DateField dateField = queryRequest.dateField() != null ? queryRequest.dateField() : DateField.TRANSACTION;
@@ -169,13 +204,19 @@ public class EventGetService {
 		}
 
 		query.append(" ORDER BY ").append(dateFieldExpression).append(" DESC");
-		return eventRepository.find(query.toString(), params);
+		return new EventFilterFragment(query.toString(), params);
+	}
+
+	private boolean hasSearchTerm(EventQuery queryRequest) {
+		return queryRequest.search() != null && !queryRequest.search().isBlank();
+	}
+
+	private boolean hasAmountRange(EventQuery queryRequest) {
+		return queryRequest.minAmount() != null || queryRequest.maxAmount() != null;
 	}
 
 	private boolean requiresInMemoryFiltering(EventQuery queryRequest) {
-		boolean hasSearch = queryRequest.search() != null && !queryRequest.search().isBlank();
-		boolean hasAmountRange = queryRequest.minAmount() != null || queryRequest.maxAmount() != null;
-		return hasSearch || hasAmountRange;
+		return hasSearchTerm(queryRequest) || hasAmountRange(queryRequest);
 	}
 
 	private List<FinanceEventEntity> applyInMemoryFilters(List<FinanceEventEntity> events, EventQuery queryRequest) {
@@ -183,29 +224,38 @@ public class EventGetService {
 			return events;
 		}
 
-		boolean hasSearch = queryRequest.search() != null && !queryRequest.search().isBlank();
-		boolean hasAmountRange = queryRequest.minAmount() != null || queryRequest.maxAmount() != null;
-		Log.debugf("Event search using in-memory filtering (search=%b amountRange=%b)", hasSearch, hasAmountRange);
-		String searchLower = hasSearch ? queryRequest.search().toLowerCase() : null;
+		Log.debugf("Event search using in-memory filtering (search=%b amountRange=%b)",
+				hasSearchTerm(queryRequest), hasAmountRange(queryRequest));
 
 		return events.stream()
-				.filter(event -> {
-					if (hasSearch) {
-						boolean nameMatch = event.name != null && event.name.toLowerCase().contains(searchLower);
-						boolean descriptionMatch = event.description != null && event.description.toLowerCase().contains(searchLower);
-						boolean categoryMatch = event.category != null
-								&& event.category.name != null
-								&& event.category.name.toLowerCase().contains(searchLower);
-						if (!nameMatch && !descriptionMatch && !categoryMatch) return false;
-					}
-					if (hasAmountRange) {
-						BigDecimal total = eventTotalAmount(event);
-						if (queryRequest.minAmount() != null && total.compareTo(queryRequest.minAmount()) < 0) return false;
-						if (queryRequest.maxAmount() != null && total.compareTo(queryRequest.maxAmount()) > 0) return false;
-					}
-					return true;
-				})
-				.collect(Collectors.toList());
+				.filter(event -> matchesSearch(event, queryRequest))
+				.filter(event -> matchesAmountRange(event, queryRequest))
+				.toList();
+	}
+
+	private boolean matchesSearch(FinanceEventEntity event, EventQuery queryRequest) {
+		if (!hasSearchTerm(queryRequest)) {
+			return true;
+		}
+
+		String searchLower = queryRequest.search().toLowerCase();
+		boolean nameMatch = event.name != null && event.name.toLowerCase().contains(searchLower);
+		boolean descriptionMatch = event.description != null && event.description.toLowerCase().contains(searchLower);
+		boolean categoryMatch = event.category != null
+				&& event.category.name != null
+				&& event.category.name.toLowerCase().contains(searchLower);
+		return nameMatch || descriptionMatch || categoryMatch;
+	}
+
+	private boolean matchesAmountRange(FinanceEventEntity event, EventQuery queryRequest) {
+		if (!hasAmountRange(queryRequest)) {
+			return true;
+		}
+
+		BigDecimal total = eventTotalAmount(event);
+		boolean aboveMinimum = queryRequest.minAmount() == null || total.compareTo(queryRequest.minAmount()) >= 0;
+		boolean belowMaximum = queryRequest.maxAmount() == null || total.compareTo(queryRequest.maxAmount()) <= 0;
+		return aboveMinimum && belowMaximum;
 	}
 
 	private BigDecimal eventTransferAmount(FinanceEventEntity event) {
@@ -231,7 +281,7 @@ public class EventGetService {
 		if (event == null) {
 			throw messages.reject(MsgKey.EVENT_NOT_FOUND);
 		}
-		return FinanceEventDto.from(event);
+		return toDtosWithPlanIds(List.of(event)).get(0);
 	}
 
 	@Transactional

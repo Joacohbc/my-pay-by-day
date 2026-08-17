@@ -24,6 +24,7 @@ import { DraftMultiSelectModal } from '@/components/events/DraftMultiSelectModal
 import { nameField, descriptionField } from '@/lib/validation';
 import { findFirstFieldErrorMessage } from '@/lib/formErrors';
 import { prependMissingArchived } from '@/lib/prependMissingArchived';
+import { logger } from '@/lib/logger';
 import { getLocalizedTodayString } from '@/lib/format';
 
 const GROUP_PLAN_STATUSES: PaymentPlanStatus[] = ['ACTIVE', 'COMPLETED', 'CANCELLED'];
@@ -113,8 +114,16 @@ export function GroupPlanForm({ editTarget, onCancel, onSuccess }: GroupPlanForm
   const handleConfirmEvents = async (ids: Set<number>) => {
     const cache = new Map(selectedEvents.map((event) => [event.id, event]));
     const missingIds = Array.from(ids).filter((id) => !cache.has(id));
-    const fetched = await Promise.all(missingIds.map((id) => eventsService.getById(id)));
-    fetched.forEach((event) => cache.set(event.id, event));
+
+    try {
+      const fetched = await Promise.all(missingIds.map((id) => eventsService.getById(id)));
+      fetched.forEach((event) => cache.set(event.id, event));
+    } catch (error) {
+      logger.error('Failed to load the events picked for a group plan', { error, eventCount: missingIds.length });
+      alert.error(error instanceof Error ? error.message : t('common.error'));
+      return;
+    }
+
     setSelectedEvents(Array.from(ids, (id) => cache.get(id)).filter((event): event is FinanceEvent => !!event));
     setIsEventModalOpen(false);
   };

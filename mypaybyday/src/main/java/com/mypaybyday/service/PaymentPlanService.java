@@ -364,6 +364,16 @@ public class PaymentPlanService implements DataSectionTransfer<PaymentPlanExport
 			.collect(Collectors.toMap(item -> item.draft.id, item -> item.paymentPlan.id, (first, second) -> first));
 	}
 
+	/**
+	 * Batch lookup of which PaymentPlan (if any) each event belongs to, so an event list can render
+	 * its grouping without an N+1 query per event.
+	 */
+	@Transactional
+	public Map<Long, Long> findPlanIdsByEventIds(List<Long> eventIds) {
+		return paymentPlanItemRepository.findByEventIds(eventIds).stream()
+			.collect(Collectors.toMap(item -> item.event.id, item -> item.paymentPlan.id, (first, second) -> first));
+	}
+
 	/** Called before an event is deleted outright, so no item is left pointing at it. */
 	@Transactional
 	public void unlinkEvent(Long eventId) {
