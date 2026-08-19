@@ -15,11 +15,27 @@ export function usePlanByRowId(
 
   return useMemo(() => {
     const planById = new Map(plans.map((plan) => [plan.id, plan] as const));
+    const planByEventId = new Map<number, PaymentPlan>();
+    const planByDraftId = new Map<number, PaymentPlan>();
+
+    for (const plan of plans) {
+      for (const item of plan.items ?? []) {
+        if (item.eventId) planByEventId.set(item.eventId, plan);
+        if (item.draftId) planByDraftId.set(item.draftId, plan);
+      }
+    }
+
     const planByRowId = new Map<number, PaymentPlan>();
 
     for (const row of rows) {
-      const plan = row.paymentPlanId ? planById.get(row.paymentPlanId) : undefined;
-      if (plan) planByRowId.set(getRowId(row), plan);
+      const rowId = getRowId(row);
+      const plan =
+        (row.paymentPlanId ? planById.get(row.paymentPlanId) : undefined) ??
+        (row.isDraft ? planByDraftId.get(rowId) : planByEventId.get(rowId)) ??
+        (row.id ? planByEventId.get(row.id) : undefined) ??
+        (row.draftId ? planByDraftId.get(row.draftId) : undefined);
+
+      if (plan) planByRowId.set(rowId, plan);
     }
 
     return planByRowId;

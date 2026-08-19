@@ -167,7 +167,8 @@ public class EventMergeService {
 		}
 
 		Log.infof("Merged %d events into base id=%d: sources=%s", sourceIds.size(), baseEventId, sourceIds);
-		return FinanceEventDto.from(baseEvent);
+		Long planId = paymentPlanService.findPlanIdsByEventIds(List.of(baseEventId)).get(baseEventId);
+		return FinanceEventDto.from(baseEvent).withPaymentPlanId(planId);
 	}
 
 	@Transactional
@@ -187,7 +188,8 @@ public class EventMergeService {
 		}
 
 		Log.infof("Linked event id=%d related=%s", eventId, relatedIds);
-		return FinanceEventDto.from(event);
+		Long planId = paymentPlanService.findPlanIdsByEventIds(List.of(eventId)).get(eventId);
+		return FinanceEventDto.from(event).withPaymentPlanId(planId);
 	}
 
 	@Transactional
@@ -207,7 +209,8 @@ public class EventMergeService {
 		}
 
 		Log.infof("Unlinked event id=%d related=%s", eventId, relatedIds);
-		return FinanceEventDto.from(event);
+		Long planId = paymentPlanService.findPlanIdsByEventIds(List.of(eventId)).get(eventId);
+		return FinanceEventDto.from(event).withPaymentPlanId(planId);
 	}
 
 	@Transactional

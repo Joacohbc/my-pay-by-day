@@ -1,17 +1,23 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import type { FinanceEvent } from '@/models';
+import type { FinanceEvent, PaymentPlan } from '@/models';
 import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatDate, eventNetAmount } from '@/lib/format';
 import { NodeIcon } from '@/components/ui/NodeIcon';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useNodes } from '@/hooks/useNodes';
+import { usePaymentPlans } from '@/hooks/usePaymentPlans';
+import { planTypeIcons } from '@/components/paymentPlans/planPresentation';
+import { getGroupColor } from '@/lib/groupColors';
 
 interface EventCardProps {
   readonly disableLink?: boolean;
   readonly event: FinanceEvent;
   readonly iconSource?: 'category' | 'node';
+  readonly groupPlan?: PaymentPlan;
+  readonly hidePlanBadge?: boolean;
 }
 
 const typeConfig = {
@@ -35,7 +41,7 @@ const typeConfig = {
   },
 };
 
-export function EventCard({ event, disableLink, iconSource = 'category' }: EventCardProps) {
+export function EventCard({ event, disableLink, iconSource = 'category', groupPlan, hidePlanBadge }: EventCardProps) {
   const { t } = useTranslation();
   const { linkStateFromHere } = useAppNavigation();
   const cfg = typeConfig[event.type as keyof typeof typeConfig] || typeConfig.OTHER;
@@ -45,6 +51,28 @@ export function EventCard({ event, disableLink, iconSource = 'category' }: Event
 
   const { data: nodesResponse } = useNodes();
   const nodes = Array.isArray(nodesResponse) ? nodesResponse : nodesResponse || [];
+
+  const { data: plans = [] } = usePaymentPlans();
+  const assignedPlans = useMemo(() => {
+    const matched = new Map<number, PaymentPlan>();
+    if (groupPlan) matched.set(groupPlan.id, groupPlan);
+    if (event.paymentPlanId) {
+      const p = plans.find((pl) => pl.id === event.paymentPlanId);
+      if (p) matched.set(p.id, p);
+    }
+    for (const pl of plans) {
+      if (event.id && pl.items?.some((i) => i.eventId === event.id)) {
+        matched.set(pl.id, pl);
+      }
+      if (event.draftId && pl.items?.some((i) => i.draftId === event.draftId)) {
+        matched.set(pl.id, pl);
+      }
+    }
+    return Array.from(matched.values());
+  }, [groupPlan, event.paymentPlanId, event.id, event.draftId, plans]);
+
+  const primaryPlan = assignedPlans[0];
+  const groupColor = primaryPlan ? getGroupColor(primaryPlan.id) : undefined;
 
   const MAX_ICONS = 3;
   const uniqueNodes = lineItems.reduce<{ item: typeof lineItems[0]; count: number }[]>((acc, item) => {
@@ -77,26 +105,41 @@ export function EventCard({ event, disableLink, iconSource = 'category' }: Event
     </div>
   );
 
+  const planBadgeElement = primaryPlan ? (
+    <span
+      title={assignedPlans.map((p) => `${p.name} (${t(`paymentPlans.types.${p.planType}`)})`).join(', ')}
+      className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full text-white flex items-center justify-center ring-2 ring-dn-bg z-10"
+      style={{ backgroundColor: groupColor }}
+    >
+      <Icon name={planTypeIcons[primaryPlan.planType] || 'payments'} className="text-[11px]" />
+    </span>
+  ) : event.paymentPlanId ? (
+    <span
+      title={t('drafts.linkedToPlan')}
+      className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-dn-primary text-white flex items-center justify-center ring-2 ring-dn-bg z-10"
+    >
+      <Icon name="payments" className="text-[11px]" />
+    </span>
+  ) : null;
+
   const content = (
     <>
       <div className="flex items-center gap-4 min-w-0 flex-1">
         {/* Icon */}
         {event.isDraft ? (
-          <div className="relative w-12 h-12 rounded-full flex items-center justify-center bg-dn-surface-low text-dn-text-muted border border-dashed border-white/20">
+          <div className="relative w-12 h-12 rounded-full flex items-center justify-center bg-dn-surface-low text-dn-text-muted border border-dashed border-white/20 shrink-0">
             <Icon name="draft" />
-            {event.paymentPlanId && (
-              <span
-                title={t('drafts.linkedToPlan')}
-                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-dn-primary text-white flex items-center justify-center ring-2 ring-dn-bg"
-              >
-                <Icon name="payments" className="text-[11px]" />
-              </span>
-            )}
+            {planBadgeElement}
           </div>
-        ) : iconSource === 'category' && event.category ? (
-          <CategoryIcon category={event.category} size="lg" shape="rounded-full" />
         ) : (
-          nodeIconGroup
+          <div className="relative shrink-0">
+            {iconSource === 'category' && event.category ? (
+              <CategoryIcon category={event.category} size="lg" shape="rounded-full" />
+            ) : (
+              nodeIconGroup
+            )}
+            {planBadgeElement}
+          </div>
         )}
 
         {/* Info */}
@@ -104,9 +147,36 @@ export function EventCard({ event, disableLink, iconSource = 'category' }: Event
           <span className="text-base font-medium text-dn-text-main flex items-center gap-2 min-w-0">
             <span className="truncate">{event.name || t('drafts.untitledDraft')}</span>
           </span>
-          <span className="text-xs text-dn-text-muted">
-            {event.category?.name ?? t(cfg.labelKey)}
-            {date ? ` · ${formatDate(date)}` : ''}
+          <span className="text-xs text-dn-text-muted flex items-center gap-1.5 flex-wrap">
+            <span>{event.category?.name ?? t(cfg.labelKey)}</span>
+            {date ? <span>· {formatDate(date)}</span> : null}
+            {!hidePlanBadge && assignedPlans.length === 1 && (
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0"
+                style={{ backgroundColor: `${getGroupColor(assignedPlans[0].id)}1a`, color: getGroupColor(assignedPlans[0].id) }}
+                title={`${assignedPlans[0].name} · ${t(`paymentPlans.types.${assignedPlans[0].planType}`)}`}
+              >
+                <Icon name={planTypeIcons[assignedPlans[0].planType] || 'payments'} className="text-[10px]" />
+                <span className="truncate max-w-[120px]">{assignedPlans[0].name}</span>
+              </span>
+            )}
+            {!hidePlanBadge && assignedPlans.length > 1 && (
+              <span className="inline-flex items-center gap-1 shrink-0">
+                {assignedPlans.map((assignedPlan) => {
+                  const planColor = getGroupColor(assignedPlan.id);
+                  return (
+                    <span
+                      key={assignedPlan.id}
+                      className="inline-flex items-center justify-center w-5 h-5 rounded-full shrink-0"
+                      style={{ backgroundColor: `${planColor}22`, color: planColor }}
+                      title={`${assignedPlan.name} (${t(`paymentPlans.types.${assignedPlan.planType}`)})`}
+                    >
+                      <Icon name={planTypeIcons[assignedPlan.planType] || 'payments'} className="text-[11px]" />
+                    </span>
+                  );
+                })}
+              </span>
+            )}
           </span>
         </div>
       </div>

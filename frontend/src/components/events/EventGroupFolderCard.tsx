@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { PaymentPlan } from '@/models';
 import { Icon } from '@/components/ui/Icon';
 import { getGroupColor } from '@/lib/groupColors';
+import { planTypeIcons } from '@/components/paymentPlans/planPresentation';
 
 interface EventGroupFolderCardProps<T> {
   readonly plan: PaymentPlan;
@@ -20,11 +21,12 @@ interface EventGroupFolderCardProps<T> {
  * elsewhere in the list, tied together only by the shared stripe color. Generic over the row type
  * so both confirmed events and drafts can fold into the same visual without duplicating it.
  */
-export function EventGroupFolderCard<T>({ plan, members, getId, renderMember, icon = 'workspaces' }: EventGroupFolderCardProps<T>) {
+export function EventGroupFolderCard<T>({ plan, members, getId, renderMember, icon }: EventGroupFolderCardProps<T>) {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const groupColor = getGroupColor(plan.id);
   const anchorId = getId(members[0]);
+  const resolvedIcon = icon || planTypeIcons[plan.planType] || 'payments';
 
   return (
     <div data-event-id={anchorId} className="flex items-stretch gap-2.5 rounded-lg">
@@ -41,7 +43,7 @@ export function EventGroupFolderCard<T>({ plan, members, getId, renderMember, ic
               className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center"
               style={{ backgroundColor: `${groupColor}22`, color: groupColor }}
             >
-              <Icon name={icon} />
+              <Icon name={resolvedIcon} />
             </div>
             <div className="flex flex-col flex-1 min-w-0 text-left">
               <span className="text-base font-medium text-dn-text-main truncate">{plan.name}</span>

@@ -17,6 +17,7 @@ import type { DraftConfirmMode, FinanceEvent } from '@/models';
 import { usePlanByRowId } from '@/hooks/usePlanByRowId';
 import { computeGroupRuns } from '@/lib/groupRuns';
 import { getGroupColor } from '@/lib/groupColors';
+import { planTypeIcons } from '@/components/paymentPlans/planPresentation';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -298,7 +299,8 @@ export function DraftsPage() {
       </div>
     );
 
-    const body = <EventCard event={draft} disableLink />;
+    const plan = planByDraftId.get(getDraftSelectionId(draft));
+    const body = <EventCard event={draft} disableLink groupPlan={plan} hidePlanBadge={Boolean(plan)} />;
 
     if (isSelectionMode) {
       return (
@@ -341,7 +343,6 @@ export function DraftsPage() {
           members={run.members}
           getId={getDraftSelectionId}
           renderMember={renderDraftRow}
-          icon="payments"
         />
       );
     }
@@ -362,9 +363,9 @@ export function DraftsPage() {
             onClick={(event) => event.stopPropagation()}
             className="mt-0.5 ml-3 inline-flex items-center gap-1 text-[11px] font-medium hover:underline"
             style={{ color: groupColor }}
-            title={t('events.group.viewGroup')}
+            title={plan.name}
           >
-            <Icon name="payments" className="text-xs" />
+            <Icon name={planTypeIcons[plan.planType] || 'payments'} className="text-xs" />
             {plan.name}
           </Link>
         </div>

@@ -1,12 +1,14 @@
-import { useRef } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useRef, useMemo } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import type { FinanceEvent, PaymentPlan } from '@/models';
 import { EventCard } from '@/components/events/EventCard';
 import { Icon } from '@/components/ui/Icon';
 import { Routes } from '@/lib/routes';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
+import { usePaymentPlans } from '@/hooks/usePaymentPlans';
 import { getGroupColor } from '@/lib/groupColors';
+import { planTypeIcons } from '@/components/paymentPlans/planPresentation';
 
 const LONG_PRESS_MS = 450;
 const MOVE_CANCEL_PX = 10;
@@ -47,6 +49,25 @@ export function GroupableEventCard({
     /** Set once a long-press fires so the click the browser dispatches right after pointerup can still be told apart from a plain tap, even though React state hasn't re-rendered yet by then. */
     firedLongPress: boolean;
   }>({ startX: 0, startY: 0, firedLongPress: false });
+
+  const { data: plans = [] } = usePaymentPlans();
+  const assignedPlans = useMemo(() => {
+    const matched = new Map<number, PaymentPlan>();
+    if (groupPlan) matched.set(groupPlan.id, groupPlan);
+    if (event.paymentPlanId) {
+      const p = plans.find((pl) => pl.id === event.paymentPlanId);
+      if (p) matched.set(p.id, p);
+    }
+    for (const pl of plans) {
+      if (event.id && pl.items?.some((i) => i.eventId === event.id)) {
+        matched.set(pl.id, pl);
+      }
+    }
+    return Array.from(matched.values());
+  }, [groupPlan, event.paymentPlanId, event.id, plans]);
+
+  const primaryPlan = assignedPlans[0];
+  const primaryColor = primaryPlan ? getGroupColor(primaryPlan.id) : undefined;
 
   const clearTimer = () => {
     if (pressRef.current.timer !== undefined) {
@@ -109,8 +130,6 @@ export function GroupableEventCard({
     }
   };
 
-  const groupColor = groupPlan ? getGroupColor(groupPlan.id) : undefined;
-
   return (
     <div
       data-event-id={event.id}
@@ -123,8 +142,8 @@ export function GroupableEventCard({
         isSelected ? 'relative z-10 scale-[1.01] ring-2 ring-dn-primary/70' : ''
       }`}
     >
-      {groupColor && (
-        <span aria-hidden="true" style={{ backgroundColor: groupColor }} className="w-1 shrink-0 rounded-full" />
+      {primaryColor && (
+        <span aria-hidden="true" style={{ backgroundColor: primaryColor }} className="w-1 shrink-0 rounded-full" />
       )}
 
       {isSelectionMode && (
@@ -139,20 +158,47 @@ export function GroupableEventCard({
       )}
 
       <div className="flex-1 min-w-0">
-        <EventCard event={event} iconSource={iconSource} disableLink={isSelectionMode} />
+        <EventCard
+          event={event}
+          iconSource={iconSource}
+          disableLink={isSelectionMode}
+          groupPlan={groupPlan}
+          hidePlanBadge={Boolean(groupPlan)}
+        />
 
-        {groupPlan && groupColor && (
+        {assignedPlans.length === 1 && primaryPlan && primaryColor && (
           <Link
-            to={Routes.PAYMENT_PLAN_DETAIL(groupPlan.id)}
+            to={Routes.PAYMENT_PLAN_DETAIL(primaryPlan.id)}
             state={linkStateFromHere()}
             onClick={(e) => e.stopPropagation()}
             className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium hover:underline"
-            style={{ color: groupColor }}
-            title={t('events.group.viewGroup')}
+            style={{ color: primaryColor }}
+            title={primaryPlan.name}
           >
-            <Icon name="workspaces" className="text-xs" />
-            {groupPlan.name}
+            <Icon name={planTypeIcons[primaryPlan.planType] || 'payments'} className="text-xs" />
+            {primaryPlan.name}
           </Link>
+        )}
+
+        {assignedPlans.length > 1 && (
+          <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+            {assignedPlans.map((plan) => {
+              const pColor = getGroupColor(plan.id);
+              return (
+                <Link
+                  key={plan.id}
+                  to={Routes.PAYMENT_PLAN_DETAIL(plan.id)}
+                  state={linkStateFromHere()}
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center justify-center w-5 h-5 rounded-full hover:opacity-80 transition-opacity"
+                  style={{ backgroundColor: `${pColor}22`, color: pColor }}
+                  title={`${plan.name} (${t(`paymentPlans.types.${plan.planType}`)})`}
+                >
+                  <Icon name={planTypeIcons[plan.planType] || 'payments'} className="text-[11px]" />
+                </Link>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

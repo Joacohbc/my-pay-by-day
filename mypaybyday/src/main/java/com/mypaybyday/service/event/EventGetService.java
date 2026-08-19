@@ -286,7 +286,7 @@ public class EventGetService {
 
 	@Transactional
 	public List<FinanceEventDto> findByDateRange(LocalDateTime from, LocalDateTime to) throws BusinessException {
-		return findEventEntitiesByDateRange(from, to).stream().map(FinanceEventDto::from).toList();
+		return toDtosWithPlanIds(findEventEntitiesByDateRange(from, to));
 	}
 
 	@Transactional

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, Link } from 'react-router';
 import { eventsRoute, similarEventsRoute } from '@/lib/routes';
@@ -14,7 +15,6 @@ import { Icon } from '@/components/ui/Icon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatDateTime, eventNetAmount } from '@/lib/format';
-import { useState } from 'react';
 import { RelatedEventsSection } from '@/components/events/RelatedEventsSection';
 import { EventDuplicatesSection } from '@/components/events/EventDuplicatesSection';
 import { EventPaymentPlansSection } from '@/components/paymentPlans/EventPaymentPlansSection';
@@ -69,8 +69,12 @@ function EventDetailSkeleton({ onBack }: { onBack: () => void }) {
             <Skeleton className="h-4 w-24" />
           </div>
           <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-            <Skeleton className="h-4 w-16" />
             <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-4 w-16" />
           </div>
         </Card>
       </div>

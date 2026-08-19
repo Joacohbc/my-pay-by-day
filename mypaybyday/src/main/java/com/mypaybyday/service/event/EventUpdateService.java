@@ -3,6 +3,7 @@ package com.mypaybyday.service.event;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -26,6 +27,7 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.service.CategoryService;
+import com.mypaybyday.service.PaymentPlanService;
 import com.mypaybyday.service.TagService;
 import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.validation.EventValidator;
@@ -40,6 +42,7 @@ public class EventUpdateService {
 	private final EventValidator eventValidator;
 	private final TransactionService transactionService;
 	private final EventFileResolverService eventFileResolverService;
+	private final PaymentPlanService paymentPlanService;
 	private final Messages messages;
 	private final Event<DuplicateDetectionEvent> duplicateDetectionEventBus;
 
@@ -50,6 +53,7 @@ public class EventUpdateService {
 			EventValidator eventValidator,
 			TransactionService transactionService,
 			EventFileResolverService eventFileResolverService,
+			PaymentPlanService paymentPlanService,
 			Messages messages,
 			Event<DuplicateDetectionEvent> duplicateDetectionEventBus) {
 		this.eventRepository = eventRepository;
@@ -58,6 +62,7 @@ public class EventUpdateService {
 		this.eventValidator = eventValidator;
 		this.transactionService = transactionService;
 		this.eventFileResolverService = eventFileResolverService;
+		this.paymentPlanService = paymentPlanService;
 		this.messages = messages;
 		this.duplicateDetectionEventBus = duplicateDetectionEventBus;
 	}
@@ -115,7 +120,8 @@ public class EventUpdateService {
 		eventValidator.validate(event);
 		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forEvent(id));
 		Log.infof("Updated event id=%d transaction=%s", id, event.transaction != null ? event.transaction.id : null);
-		return FinanceEventDto.from(event);
+		Long planId = paymentPlanService.findPlanIdsByEventIds(List.of(id)).get(id);
+		return FinanceEventDto.from(event).withPaymentPlanId(planId);
 	}
 
 	@Transactional
@@ -168,6 +174,10 @@ public class EventUpdateService {
 		}
 		Log.infof("Bulk updated %d events: ids=%s", updatedIds.size(), updatedIds);
 
-		return events.stream().map(FinanceEventDto::from).toList();
+		Map<Long, Long> planIdByEventId = paymentPlanService.findPlanIdsByEventIds(updatedIds);
+		return events.stream()
+				.map(FinanceEventDto::from)
+				.map(dto -> dto.withPaymentPlanId(planIdByEventId.get(dto.id())))
+				.toList();
 	}
 }

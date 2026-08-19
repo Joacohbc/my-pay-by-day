@@ -18,6 +18,7 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.service.CategoryService;
+import com.mypaybyday.service.PaymentPlanService;
 import com.mypaybyday.service.TagService;
 import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.validation.EventValidator;
@@ -33,6 +34,7 @@ public class EventCreateService {
 	private final Messages messages;
 	private final EventValidator eventValidator;
 	private final EventFileResolverService eventFileResolverService;
+	private final PaymentPlanService paymentPlanService;
 	private final Event<DuplicateDetectionEvent> duplicateDetectionEventBus;
 
 	public EventCreateService(
@@ -43,6 +45,7 @@ public class EventCreateService {
 			Messages messages,
 			EventValidator eventValidator,
 			EventFileResolverService eventFileResolverService,
+			PaymentPlanService paymentPlanService,
 			Event<DuplicateDetectionEvent> duplicateDetectionEventBus) {
 		this.eventRepository = eventRepository;
 		this.transactionService = transactionService;
@@ -51,6 +54,7 @@ public class EventCreateService {
 		this.messages = messages;
 		this.eventValidator = eventValidator;
 		this.eventFileResolverService = eventFileResolverService;
+		this.paymentPlanService = paymentPlanService;
 		this.duplicateDetectionEventBus = duplicateDetectionEventBus;
 	}
 
@@ -76,6 +80,8 @@ public class EventCreateService {
 		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forEvent(event.id));
 		Log.infof("Created event id=%d type=%s category=%s transaction=%d", event.id, event.type,
 				event.category != null ? event.category.id : null, createdTransaction.id);
-		return FinanceEventDto.from(event);
+
+		Long planId = paymentPlanService.findPlanIdsByEventIds(List.of(event.id)).get(event.id);
+		return FinanceEventDto.from(event).withPaymentPlanId(planId);
 	}
 }
