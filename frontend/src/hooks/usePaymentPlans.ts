@@ -13,7 +13,7 @@ function usePaymentPlanMutationFeedback() {
 
   return {
     onSuccess: () => {
-      invalidateDomains(queryClient, ['paymentPlans']);
+      invalidateDomains(queryClient, ['paymentPlans', 'events', 'drafts']);
       alert.success(t('common.saved'));
     },
     onError: (error: unknown) => alert.error(error instanceof Error ? error.message : t('common.error')),

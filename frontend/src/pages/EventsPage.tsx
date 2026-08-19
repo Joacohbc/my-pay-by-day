@@ -324,7 +324,9 @@ export function EventsPage() {
             plan={run.plan}
             members={run.members}
             getId={getEventId}
-            renderMember={(member) => <EventCard event={member} iconSource={iconSource} />}
+            renderMember={(member) => (
+              <EventCard event={member} iconSource={iconSource} groupPlan={run.plan} hidePlanBadge={true} />
+            )}
           />
         );
       }

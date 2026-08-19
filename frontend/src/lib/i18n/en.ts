@@ -271,7 +271,6 @@ const en = {
       defaultName: 'Group: {{name}}',
       alreadyGrouped: 'Both events already belong to a group. Merging groups is not supported yet.',
       memberCount: '{{count}} in this group',
-      viewGroup: 'View group',
       selectedCount_one: '{{count}} event selected',
       selectedCount_other: '{{count}} events selected',
       createGroupAction: 'Create group',

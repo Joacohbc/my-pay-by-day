@@ -270,7 +270,6 @@ const es = {
       defaultName: 'Grupo: {{name}}',
       alreadyGrouped: 'Ambos eventos ya pertenecen a un grupo. Combinar grupos todavía no está soportado.',
       memberCount: '{{count}} en este grupo',
-      viewGroup: 'Ver grupo',
       selectedCount_one: '{{count}} evento seleccionado',
       selectedCount_other: '{{count}} eventos seleccionados',
       createGroupAction: 'Crear grupo',
