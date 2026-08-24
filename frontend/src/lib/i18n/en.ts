@@ -122,6 +122,11 @@ const en = {
     stepLimit: {
       title: 'The assistant reached its step limit for this turn — send a message to let it continue.',
     },
+    retry: {
+      failed: 'The assistant could not finish this reply.',
+      action: 'Retry',
+      extractionFailed: 'The assistant could not read that — your message was restored so you can try again.',
+    },
     approval: {
       title: 'Approval required',
       approve: 'Approve',

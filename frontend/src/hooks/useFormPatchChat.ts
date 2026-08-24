@@ -74,11 +74,15 @@ export function useFormPatchChat({
   // eslint-disable-next-line react-hooks/refs
   const transport = useMemo(() => new DefaultChatTransport({ api: `${BASE_URL}/ai/form-chat`, prepareSendMessagesRequest }), [prepareSendMessagesRequest]);
 
+  // /ai/form-chat is stateless — it receives the whole conversation each time — so a plain regenerate
+  // resends it without the server-side duplication the persisted chat route has to guard against.
   const {
     messages: uiMessages,
     status,
+    error,
     setMessages,
     sendMessage,
+    regenerate,
     stop,
   } = useChat({
     id: chatId,
@@ -170,6 +174,10 @@ export function useFormPatchChat({
     [chatId],
   );
 
+  const handleRetry = useCallback(() => {
+    void regenerate();
+  }, [regenerate]);
+
   const handleAddFile = (file: FileDto) => setDraftFiles((prev) => [...prev, file]);
   const handleRemoveFile = (fileId: number) => setDraftFiles((prev) => prev.filter((f) => f.id !== fileId));
 
@@ -178,6 +186,8 @@ export function useFormPatchChat({
     input,
     setInput,
     isPending,
+    error,
+    handleRetry,
     draftFiles,
     handleSend,
     handleAudioRecorded,

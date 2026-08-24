@@ -16,6 +16,8 @@ export function FormPatchAiChatWidget({ entityType, getCurrentValues, onPatch }:
     input,
     setInput,
     isPending,
+    error,
+    handleRetry,
     draftFiles,
     handleSend,
     handleAudioRecordedEnhanced,
@@ -30,6 +32,8 @@ export function FormPatchAiChatWidget({ entityType, getCurrentValues, onPatch }:
   return (
     <AiChatWidget
       isLoading={isPending}
+      hasFailed={error != null}
+      onRetry={handleRetry}
       hasMessages={messages.length > 0}
       inputContent={input}
       setInputContent={setInput}

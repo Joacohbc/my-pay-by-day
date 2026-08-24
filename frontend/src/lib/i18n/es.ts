@@ -121,6 +121,11 @@ const es = {
     stepLimit: {
       title: 'El asistente alcanzó el límite de pasos de este turno — enviá un mensaje para que continúe.',
     },
+    retry: {
+      failed: 'El asistente no pudo terminar esta respuesta.',
+      action: 'Reintentar',
+      extractionFailed: 'El asistente no pudo leer eso — se restauró tu mensaje para que lo intentes de nuevo.',
+    },
     approval: {
       title: 'Se requiere aprobación',
       approve: 'Aprobar',

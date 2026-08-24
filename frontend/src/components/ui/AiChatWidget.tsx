@@ -3,11 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
 import { ChatInput } from '@/components/chat/ChatInput';
+import { ChatErrorCard } from '@/components/chat/ChatErrorCard';
 import type { FileDto } from '@/models';
 import type { FormPatchEntityType } from '@/hooks/useFormPatchChat';
 
 interface AiChatWidgetProps {
   isLoading?: boolean;
+  /** Set when the last generation failed; renders the retry affordance. */
+  hasFailed?: boolean;
+  onRetry?: () => void;
   hasMessages: boolean;
   children: ReactNode;
   inputContent: string;
@@ -31,6 +35,8 @@ interface AiChatWidgetProps {
 
 export function AiChatWidget({
   isLoading = false,
+  hasFailed = false,
+  onRetry,
   hasMessages,
   children,
   inputContent,
@@ -109,6 +115,7 @@ export function AiChatWidget({
               {t('ai.chatWidget.thinking')}
             </div>
           )}
+          {hasFailed && !isLoading && onRetry && <ChatErrorCard onRetry={onRetry} />}
           <div ref={messagesEndRef} />
         </div>
 

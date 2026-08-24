@@ -18,6 +18,8 @@ export function EventAiChatWidget({ draftId, onEnsureDraft, onDraftIdResolved, o
     input,
     setInput,
     isPending,
+    error,
+    handleRetry,
     draftFiles,
     handleSend,
     handleAudioRecordedEnhanced,
@@ -41,6 +43,8 @@ export function EventAiChatWidget({ draftId, onEnsureDraft, onDraftIdResolved, o
   return (
     <AiChatWidget
       isLoading={isPending}
+      hasFailed={error != null}
+      onRetry={handleRetry}
       hasMessages={messages.length > 0}
       inputContent={input}
       setInputContent={setInput}

@@ -6,6 +6,7 @@ import { useChatUI } from '@/hooks/useChatUI';
 import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
+import { ChatErrorCard } from '@/components/chat/ChatErrorCard';
 import { ChatList } from '@/components/chat/ChatList';
 import { TasksPanel } from '@/components/agent-tasks/TasksPanel';
 import { useChatStore } from '@/store/chatStore';
@@ -19,6 +20,8 @@ export function ChatPage() {
     input,
     setInput,
     isPending,
+    error,
+    handleRetry,
     isClearing,
     messageCount,
     maxMessages,
@@ -166,6 +169,12 @@ export function ChatPage() {
                       <Icon name="schedule" className="text-[12px] animate-pulse" />
                       {t('chat.sendingIn', { count: countdown })}
                     </p>
+                  </div>
+                )}
+
+                {error && !isPending && (
+                  <div className="max-w-4xl mx-auto px-4 md:px-8 mt-4">
+                    <ChatErrorCard onRetry={handleRetry} />
                   </div>
                 )}
 

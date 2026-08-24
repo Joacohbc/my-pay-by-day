@@ -89,8 +89,13 @@ export function useEntityChat({
   }, [buildContext]);
 
   const prepareSendMessagesRequest = useCallback(
-    ({ messages }: { messages: UIMessage[] }) => {
+    ({ messages, trigger }: { messages: UIMessage[]; trigger: 'submit-message' | 'regenerate-message' }) => {
       const lastMessage = messages[messages.length - 1];
+      const requestHeaders = { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency(), 'X-Request-Id': buildChatRequestId(chatId, lastMessage?.id), 'X-Source': 'frontend' };
+      if (trigger === 'regenerate-message') {
+        // The server owns the history; resending the user's turn on a retry would duplicate it.
+        return { headers: requestHeaders, body: { chatId, messages: [], retry: true } };
+      }
       let newMessages: UIMessage[];
       if (lastMessage?.role === 'assistant') {
         newMessages = [lastMessage];
@@ -99,7 +104,7 @@ export function useEntityChat({
         newMessages = lastAssistantIndex === -1 ? messages : messages.slice(messages.length - lastAssistantIndex);
       }
       return {
-        headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency(), 'X-Request-Id': buildChatRequestId(chatId, lastMessage?.id), 'X-Source': 'frontend' },
+        headers: requestHeaders,
         body: {
           chatId,
           messages: newMessages,
@@ -120,8 +125,10 @@ export function useEntityChat({
   const {
     messages: uiMessages,
     status,
+    error,
     setMessages,
     sendMessage,
+    regenerate,
     stop,
     addToolApprovalResponse,
   } = useChat({
@@ -227,6 +234,10 @@ export function useEntityChat({
     [setInput, chatId],
   );
 
+  const handleRetry = useCallback(() => {
+    void regenerate();
+  }, [regenerate]);
+
   const handleToolApproval = useCallback(
     (approvalId: string, approved: boolean) => {
       addToolApprovalResponse({ id: approvalId, approved });
@@ -249,6 +260,8 @@ export function useEntityChat({
     input,
     setInput,
     isPending,
+    error,
+    handleRetry,
     draftFiles,
     handleSend,
     handleAudioRecorded,

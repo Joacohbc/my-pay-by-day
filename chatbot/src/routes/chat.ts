@@ -147,6 +147,9 @@ interface ChatBody {
   messages?: UIMessage[];
   scope?: ChatScope;
   scopeCurrentValues?: string;
+  /** Re-runs the answer for the history already stored, after a generation failed. Carries no
+   * messages: the server owns the conversation, so resending the user's turn would duplicate it. */
+  retry?: boolean;
 }
 
 export const chatRoute = new Hono();
@@ -187,8 +190,14 @@ chatRoute.post('/', async (c) => {
   }
   const approvalUIMessages = incoming.filter(isApprovalResponseMessage);
 
-  if (userMessages.length === 0 && approvalUIMessages.length === 0) {
+  if (userMessages.length === 0 && approvalUIMessages.length === 0 && !body.retry) {
     return errorJson(c, 'error.message_required', 400);
+  }
+
+  if (body.retry) {
+    const dropped = conversationMemory.dropIncompleteTail(chatId);
+    log.info('chat retry', { droppedMessages: dropped });
+    if (conversationMemory.count(chatId) === 0) return errorJson(c, 'error.message_required', 400);
   }
 
   if (userMessages.length > 0) {

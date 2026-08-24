@@ -135,9 +135,17 @@ export function useChatUI() {
     () =>
       new DefaultChatTransport({
         api: `${BASE_URL}/ai/chat`,
-        prepareSendMessagesRequest: ({ messages }) => {
+        prepareSendMessagesRequest: ({ messages, trigger }) => {
           const lastMessage = messages[messages.length - 1];
           let newMessages: UIMessage[];
+          if (trigger === 'regenerate-message') {
+            // A retry adds nothing to the conversation: the server owns the history and would append
+            // a resent user turn a second time. It regenerates from what it already has.
+            return {
+              headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency(), 'X-Request-Id': buildChatRequestId(chatId, lastMessage?.id), 'X-Source': 'frontend' },
+              body: { chatId, messages: [], retry: true },
+            };
+          }
           if (lastMessage?.role === 'assistant') {
             // An approval decision mutates the tool part inside this same trailing assistant
             // message (no new user message is appended) — send it as-is instead of trimming
@@ -156,7 +164,7 @@ export function useChatUI() {
     [chatId],
   );
 
-  const { messages: uiMessages, status, setMessages, sendMessage, stop, addToolApprovalResponse } = useChat({
+  const { messages: uiMessages, status, error, setMessages, sendMessage, regenerate, stop, addToolApprovalResponse } = useChat({
     id: chatId,
     transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
@@ -371,6 +379,7 @@ export function useChatUI() {
       setMessages((prev) => prev.filter((m) => m.id !== optimisticMessage.id));
       setInput(userText);
       setDraftFiles(currentFiles);
+      showError(t('chat.retry.extractionFailed'));
     } finally {
       setIsExtracting(false);
     }
@@ -487,6 +496,10 @@ export function useChatUI() {
     [chatId, setMessages],
   );
 
+  const handleRetry = useCallback(() => {
+    void regenerate();
+  }, [regenerate]);
+
   const handleToolApproval = useCallback(
     (approvalId: string, approved: boolean) => {
       addToolApprovalResponse({ id: approvalId, approved });
@@ -512,6 +525,8 @@ export function useChatUI() {
     input,
     setInput,
     isPending,
+    error,
+    handleRetry,
     isClearing,
     isExtracting,
     messageCount,

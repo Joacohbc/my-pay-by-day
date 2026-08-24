@@ -47,6 +47,29 @@ export function textOf(message: ModelMessage): string {
   return '';
 }
 
+function toolCallIdsOf(message: ModelMessage): string[] {
+  if (message.role !== 'assistant' || !Array.isArray(message.content)) return [];
+  return message.content.filter((part) => part.type === 'tool-call').map((part) => part.toolCallId);
+}
+
+function resultCallIdsOf(message: ModelMessage): string[] {
+  if (message.role !== 'tool' || !Array.isArray(message.content)) return [];
+  return message.content.filter((part) => part.type === 'tool-result').map((part) => part.toolCallId);
+}
+
+/** Index of the last row after which the history is a valid model context: every tool call issued so
+ * far has its result. -1 when even the first rows are already incomplete. */
+function lastIndexEndingACompleteTurn(messages: ModelMessage[]): number {
+  const awaitingResult = new Set<string>();
+  let lastComplete = -1;
+  messages.forEach((message, index) => {
+    for (const toolCallId of toolCallIdsOf(message)) awaitingResult.add(toolCallId);
+    for (const toolCallId of resultCallIdsOf(message)) awaitingResult.delete(toolCallId);
+    if (awaitingResult.size === 0) lastComplete = index;
+  });
+  return lastComplete;
+}
+
 /** Persistent per-chat conversation memory backed by SQLite (replaces the Java DbChatMemoryStore). */
 export const conversationMemory = {
   load(chatId: string): ModelMessage[] {
@@ -200,6 +223,23 @@ export const conversationMemory = {
 
   setTitle(chatId: string, title: string): void {
     db().prepare('UPDATE conversation SET title = ? WHERE chat_id = ?').run(title, chatId);
+  },
+
+  /**
+   * Drops the trailing assistant/tool rows of a generation that never finished — a tool call with no
+   * result, left behind by an aborted or failed stream. Sending that to the model again is a protocol
+   * error, so a retry starts from the last complete turn instead.
+   *
+   * @returns how many rows were removed
+   */
+  dropIncompleteTail(chatId: string): number {
+    const stored = this.loadWithDisplay(chatId);
+    const lastCompleteIndex = lastIndexEndingACompleteTurn(stored.map((entry) => entry.message));
+    const removed = stored.length - (lastCompleteIndex + 1);
+    if (removed <= 0) return 0;
+    const kept = stored.slice(0, lastCompleteIndex + 1);
+    this.replace(chatId, kept.map((entry) => entry.message), kept.map((entry) => entry.display));
+    return removed;
   },
 
   /** Removes every message from the most recent message (of any role) that contains the given text. */
