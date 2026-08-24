@@ -1,9 +1,22 @@
 # MarkItDown document-to-markdown sidecar for the backend — standalone service image.
 # Build context is the repo root.
+#
+# Mirrors the base image, runtime dependencies and tool-path variables of the official
+# MarkItDown Dockerfile (https://github.com/microsoft/markitdown/blob/main/Dockerfile); its
+# ENTRYPOINT is the CLI, which this service replaces with the HTTP wrapper in server.py.
+#
 # glibc base (Debian) is required: MarkItDown's content sniffer magika depends on
 # onnxruntime, which publishes only manylinux/glibc wheels (no musl/Alpine).
 
-FROM python:3.12-slim
+FROM python:3.13-slim-bullseye
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV EXIFTOOL_PATH=/usr/bin/exiftool
+ENV FFMPEG_PATH=/usr/bin/ffmpeg
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg exiftool \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -r -g 10001 appuser && useradd -r -u 10001 -g appuser -m -d /home/appuser appuser
 
