@@ -58,6 +58,16 @@ function styleBlock(lang: string, currency: string): string {
   return STYLE.replace('{{LANGUAGE}}', languageName(lang)) + '\n' + formattingGuidance(lang, currency);
 }
 
+const APPROVAL_GUIDANCE = `
+\nACTIONS THE USER MUST APPROVE (important):
+- Editing or deleting an existing event pauses for the user's explicit approval before it runs. The approval card
+  shows them the arguments you sent, so send every field you intend to change rather than relying on your reply
+  to describe it.
+- In the same turn, state in one short sentence what you are about to do and to which event ("I'll change the
+  amount of 'Dinner with friends' to $42"), before the action. Never leave the approval as the only explanation:
+  a card the user cannot connect to anything they asked for gets rejected.
+- If they reject it, do not retry the same action — ask what they want changed instead.`;
+
 const ASK_USER_GUIDANCE = `
 \nASKING THE USER (important):
 - Whenever your reply would end with a question expecting a specific answer — a yes/no confirmation, a choice
@@ -155,6 +165,7 @@ export function chatSystemPrompt(
     `you about"), use listPreviousChats to find that chat and readPreviousChat to read it, instead of asking them to`,
     `repeat themselves.`,
     DELEGATION_GUIDANCE,
+    APPROVAL_GUIDANCE,
     ASK_USER_GUIDANCE,
     scopeBlock(scope, scopeCurrentValues),
     memoriesBlock(memories, true),

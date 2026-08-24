@@ -187,6 +187,7 @@ export function ChatMessage({ message, onDelete, onApprove, onAskUserAnswer }: C
           key={call.toolCallId ?? `approval-${idx}`}
           toolLabel={toolFriendlyNames[call.name] || call.name}
           approvalId={call.approval?.id ?? `approval-${idx}`}
+          args={call.args}
           decision={call.state === 'approval-responded' ? (call.approval?.approved ?? true) : undefined}
           draftId={callArgs?.draftId}
           eventId={callArgs?.eventId}

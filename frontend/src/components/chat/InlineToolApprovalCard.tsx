@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { InlineDraftApprovalSummary } from '@/components/chat/InlineDraftApprovalSummary';
+import { ToolCallArgsSummary } from '@/components/chat/ToolCallArgsSummary';
 
 /** Tailwind scans for whole class names, so each outcome carries its classes spelled out. */
 const APPROVAL_PENDING = {
@@ -30,6 +31,8 @@ const APPROVAL_REJECTED = {
 interface InlineToolApprovalCardProps {
   toolLabel: string;
   approvalId: string;
+  /** The tool call's arguments, rendered so the user can see what they are approving. */
+  args?: unknown;
   /** Set once the user answered: the card keeps the decision visible instead of asking again. */
   decision?: boolean;
   draftId?: number;
@@ -38,7 +41,7 @@ interface InlineToolApprovalCardProps {
   onReject: (approvalId: string) => void;
 }
 
-export function InlineToolApprovalCard({ toolLabel, approvalId, decision, draftId, eventId, onApprove, onReject }: InlineToolApprovalCardProps) {
+export function InlineToolApprovalCard({ toolLabel, approvalId, args, decision, draftId, eventId, onApprove, onReject }: InlineToolApprovalCardProps) {
   const { t } = useTranslation();
   const [isResponding, setIsResponding] = useState(false);
 
@@ -57,8 +60,12 @@ export function InlineToolApprovalCard({ toolLabel, approvalId, decision, draftI
         {t(outcome.titleKey)}
       </div>
       <p className="text-sm text-dn-text-main">{toolLabel}</p>
+      <ToolCallArgsSummary args={args} />
       {(draftId != null || eventId != null) && (
-        <div className="rounded-lg bg-dn-bg/40 px-3 py-2">
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] uppercase tracking-[0.15em] text-dn-text-muted/70 font-black">
+            {t('chat.approval.currentState')}
+          </span>
           <InlineDraftApprovalSummary draftId={draftId} eventId={eventId} />
         </div>
       )}
