@@ -9,6 +9,7 @@ import { AudioMessagePlayer } from '@/components/chat/AudioMessagePlayer';
 import { InlineTaskCard } from '@/components/agent-tasks/InlineTaskCard';
 import { InlineEventCard, InlineDraftCard, InlineTagCard, InlineCategoryCard } from '@/components/chat/InlineEntityCard';
 import { InlineToolApprovalCard } from '@/components/chat/InlineToolApprovalCard';
+import { InlineToolApprovalGroupCard, type PendingApproval } from '@/components/chat/InlineToolApprovalGroupCard';
 import { InlineQuestionCard, type AskUserArgs as AskUserQuestionArgs } from '@/components/chat/InlineQuestionCard';
 import { extractEntityRefs, toolCallEntityKey, type ChatEntityRef } from '@/components/chat/chatEntityRefs';
 import { getFileIcon, getFileTypeLabel } from '@/lib/fileUtils';
@@ -149,6 +150,26 @@ export function ChatMessage({ message, onDelete, onApprove, onAskUserAnswer }: C
       .catch((error) => logger.child('chatMessage').debug('Clipboard copy failed', { error }));
   };
 
+  // askUser is excluded: its question card is its own conversation, not a write to authorize.
+  const pendingApprovalIndexes = message.parts.flatMap((part, idx) =>
+    part.type === 'tool' && part.call.state === 'approval-requested' && part.call.name !== 'askUser' && part.call.approval != null
+      ? [idx]
+      : [],
+  );
+  const isGroupedApproval = pendingApprovalIndexes.length > 1;
+
+  function pendingApprovalAt(idx: number): PendingApproval {
+    const call = (message.parts[idx] as Extract<ChatMessagePart, { type: 'tool' }>).call;
+    const callArgs = call.args as { draftId?: number; eventId?: number } | undefined;
+    return {
+      approvalId: call.approval!.id,
+      toolLabel: toolFriendlyNames[call.name] || call.name,
+      args: call.args,
+      draftId: callArgs?.draftId,
+      eventId: callArgs?.eventId,
+    };
+  }
+
   function renderToolPart(call: ChatToolCall, idx: number, seenTaskIds: Set<string>) {
     if (call.name === 'askUser') {
       const key = call.toolCallId ?? `question-${idx}`;
@@ -176,6 +197,17 @@ export function ChatMessage({ message, onDelete, onApprove, onAskUserAnswer }: C
           approvalId={call.approval?.id ?? key}
           answer={answer}
           onAnswer={(id, ans) => onAskUserAnswer?.(id, ans)}
+        />
+      );
+    }
+
+    if (isGroupedApproval && pendingApprovalIndexes.includes(idx)) {
+      if (idx !== pendingApprovalIndexes[0]) return null;
+      return (
+        <InlineToolApprovalGroupCard
+          key={`approval-group-${idx}`}
+          approvals={pendingApprovalIndexes.map(pendingApprovalAt)}
+          onRespond={(id, approved) => onApprove?.(id, approved)}
         />
       );
     }

@@ -128,6 +128,10 @@ const en = {
       reject: 'Reject',
       approved: 'Approved',
       rejected: 'Rejected',
+      pendingCount_one: '{{count}} action needs your approval',
+      pendingCount_other: '{{count}} actions need your approval',
+      approveAll: 'Approve all',
+      rejectAll: 'Reject all',
       currentState: 'Current state',
       args: {
         name: 'Name',

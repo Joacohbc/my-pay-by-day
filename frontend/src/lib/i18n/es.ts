@@ -127,6 +127,10 @@ const es = {
       reject: 'Rechazar',
       approved: 'Aprobado',
       rejected: 'Rechazado',
+      pendingCount_one: '{{count}} acción requiere tu aprobación',
+      pendingCount_other: '{{count}} acciones requieren tu aprobación',
+      approveAll: 'Aprobar todas',
+      rejectAll: 'Rechazar todas',
       currentState: 'Estado actual',
       args: {
         name: 'Nombre',
