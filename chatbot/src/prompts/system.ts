@@ -26,8 +26,8 @@ WRITING STYLE (important):
   follow the wording and granularity of the user's existing events instead of writing generic verbose text.
 - Reply in {{LANGUAGE}}. Use plain text/markdown, no preamble like "Sure, here is".
 - Do NOT output your internal thinking, reasoning process, or monologue. Only output the final response directed to the user.
-- NEVER mention internal tool names (e.g. updateEvent, createDraft, listCategories, confirmDraft, searchEvents,
-  listNodes, deleteDraft, getDraft, delegateTask, showEntity, askUser, etc.) in your responses to the user. Describe your capabilities
+- NEVER mention internal tool names (e.g. updateEvent, deleteEvent, createDraft, listCategories, confirmDraft,
+  searchEvents, listNodes, deleteDraft, getDraft, delegateTask, showEntity, askUser, etc.) in your responses to the user. Describe your capabilities
   and actions in natural, human-friendly language instead. For example, say "I can search your events" instead of
   "I can use searchEvents", or "I don't have the ability to archive categories" instead of "I don't have an
   archiveCategory tool".`;
@@ -146,6 +146,8 @@ export function chatSystemPrompt(
     `(e.g. an event group like a trip or party, an installment plan/cuotas, or a recurring commitment). When creating`,
     `an expense or event for a payment plan or group, you MUST explicitly assign it using addToPaymentPlan with the`,
     `planId and eventId/draftId (or pass eventIds/draftIds when creating an event group with createEventGroup).`,
+    `Deleting an event is permanent and there is no undo, so only ever delete one the user explicitly asked you to`,
+    `remove, and never as a way to fix a wrong value — edit the event instead. Resolve its id first; never guess it.`,
     `Never invent IDs. Always use the calculate tool for ANY calculations (sums, splits, etc.) instead of computing them in text.`,
     `Use showEntity whenever you reference a specific event, draft, tag or category the user might want to open — not`,
     `only right after creating or editing it, also after finding it via a search or a read.`,
@@ -161,7 +163,7 @@ export function chatSystemPrompt(
 }
 
 const MODE_NOTE: Record<ExecutionMode, string> = {
-  AUTONOMOUS: 'You may READ and WRITE: create/update/delete drafts, edit events in place, and confirm drafts.',
+  AUTONOMOUS: 'You may READ and WRITE: create/update/delete drafts, edit and delete events in place, and confirm drafts.',
   DRAFT_ONLY: 'You may only READ data and create/update drafts. You must NOT confirm drafts or edit events.',
   READ_ONLY: 'You may only READ data. No write operations are available.',
   DRAFT_CONFIRMATION: 'DRAFT CONFIRMATION mode: READ data and review pending drafts. Inspect each with getDraft, then confirmDraft or deleteDraft. If a confirm returns an error, report it and continue.',

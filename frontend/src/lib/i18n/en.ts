@@ -126,6 +126,8 @@ const en = {
       title: 'Approval required',
       approve: 'Approve',
       reject: 'Reject',
+      approved: 'Approved',
+      rejected: 'Rejected',
     },
     question: {
       title: 'Question',

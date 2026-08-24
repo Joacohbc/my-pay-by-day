@@ -5,16 +5,40 @@ import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { InlineDraftApprovalSummary } from '@/components/chat/InlineDraftApprovalSummary';
 
+/** Tailwind scans for whole class names, so each outcome carries its classes spelled out. */
+const APPROVAL_PENDING = {
+  card: 'border-dn-warning/30 bg-dn-warning/5',
+  text: 'text-dn-warning',
+  icon: 'priority_high',
+  titleKey: 'chat.approval.title',
+} as const;
+
+const APPROVAL_APPROVED = {
+  card: 'border-green-500/30 bg-green-500/5',
+  text: 'text-green-500',
+  icon: 'check_circle',
+  titleKey: 'chat.approval.approved',
+} as const;
+
+const APPROVAL_REJECTED = {
+  card: 'border-dn-error/30 bg-dn-error/5',
+  text: 'text-dn-error',
+  icon: 'cancel',
+  titleKey: 'chat.approval.rejected',
+} as const;
+
 interface InlineToolApprovalCardProps {
   toolLabel: string;
   approvalId: string;
+  /** Set once the user answered: the card keeps the decision visible instead of asking again. */
+  decision?: boolean;
   draftId?: number;
   eventId?: number;
   onApprove: (approvalId: string) => void;
   onReject: (approvalId: string) => void;
 }
 
-export function InlineToolApprovalCard({ toolLabel, approvalId, draftId, eventId, onApprove, onReject }: InlineToolApprovalCardProps) {
+export function InlineToolApprovalCard({ toolLabel, approvalId, decision, draftId, eventId, onApprove, onReject }: InlineToolApprovalCardProps) {
   const { t } = useTranslation();
   const [isResponding, setIsResponding] = useState(false);
 
@@ -23,11 +47,14 @@ export function InlineToolApprovalCard({ toolLabel, approvalId, draftId, eventId
     (approved ? onApprove : onReject)(approvalId);
   };
 
+  const isSettled = decision !== undefined;
+  const outcome = !isSettled ? APPROVAL_PENDING : decision ? APPROVAL_APPROVED : APPROVAL_REJECTED;
+
   return (
-    <Card className="flex flex-col gap-2 mt-2 border border-dn-warning/30 bg-dn-warning/5">
-      <div className="flex items-center gap-1.5 text-xs font-medium text-dn-warning">
-        <Icon name="priority_high" className="text-[14px]" />
-        {t('chat.approval.title')}
+    <Card className={`flex flex-col gap-2 mt-2 border ${outcome.card}`}>
+      <div className={`flex items-center gap-1.5 text-xs font-medium ${outcome.text}`}>
+        <Icon name={outcome.icon} className="text-[14px]" />
+        {t(outcome.titleKey)}
       </div>
       <p className="text-sm text-dn-text-main">{toolLabel}</p>
       {(draftId != null || eventId != null) && (
@@ -35,14 +62,16 @@ export function InlineToolApprovalCard({ toolLabel, approvalId, draftId, eventId
           <InlineDraftApprovalSummary draftId={draftId} eventId={eventId} />
         </div>
       )}
-      <div className="flex gap-2">
-        <Button size="sm" onClick={() => respond(true)} disabled={isResponding}>
-          {t('chat.approval.approve')}
-        </Button>
-        <Button size="sm" variant="secondary" onClick={() => respond(false)} disabled={isResponding}>
-          {t('chat.approval.reject')}
-        </Button>
-      </div>
+      {!isSettled && (
+        <div className="flex gap-2">
+          <Button size="sm" onClick={() => respond(true)} disabled={isResponding}>
+            {t('chat.approval.approve')}
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => respond(false)} disabled={isResponding}>
+            {t('chat.approval.reject')}
+          </Button>
+        </div>
+      )}
     </Card>
   );
 }

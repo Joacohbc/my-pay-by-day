@@ -25,6 +25,8 @@ export function ChatPage() {
     draftFiles,
     pendingFiles,
     messagesEndRef,
+    messagesContainerRef,
+    handleMessagesScroll,
     countdown,
     triggerSendNow,
     stop,
@@ -49,7 +51,9 @@ export function ChatPage() {
   const isChatListVisible = showChatList && !showTasksPanel;
 
   const lastMessage = messages.at(-1);
-  const hasPendingApproval = lastMessage?.toolCalls?.some((tc) => tc.state === 'approval-requested') ?? false;
+  // Scans every message, not just the last: an approval left unanswered in an earlier turn still
+  // blocks the conversation, and the user typing into it would go nowhere.
+  const hasPendingApproval = messages.some((msg) => msg.toolCalls?.some((tc) => tc.state === 'approval-requested'));
   const showContinueCard =
     !isPending && lastMessage?.role === 'assistant' && lastMessage.stoppedByStepLimit && !hasPendingApproval;
 
@@ -119,7 +123,7 @@ export function ChatPage() {
             <TasksPanel />
           ) : (
             <>
-              <div className="flex-1 overflow-y-auto w-full">
+              <div ref={messagesContainerRef} onScroll={handleMessagesScroll} className="flex-1 overflow-y-auto w-full">
                 {messages.length === 0 ? (
                   <ChatEmptyState />
                 ) : (

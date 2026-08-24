@@ -72,6 +72,20 @@ function approvalReasonsByApprovalId(history: ModelMessage[]): Map<string, strin
   return reasons;
 }
 
+/** Maps approvalId -> the decision, for every approval the user actually answered. Unlike the
+ * reasons map this records rejections and answers without a reason too, which is what tells a
+ * reload that an approval is settled even when its tool never produced an output. */
+function approvalDecisionsByApprovalId(history: ModelMessage[]): Map<string, boolean> {
+  const decisions = new Map<string, boolean>();
+  for (const message of history) {
+    if (message.role !== 'tool' || !Array.isArray(message.content)) continue;
+    for (const part of message.content) {
+      if (part.type === 'tool-approval-response') decisions.set(part.approvalId, part.approved);
+    }
+  }
+  return decisions;
+}
+
 function isApprovalResponseMessage(message: UIMessage): boolean {
   return message.role === 'assistant' && message.parts.some((part) => 'state' in part && part.state === 'approval-responded');
 }
@@ -296,6 +310,22 @@ chatRoute.post('/', async (c) => {
   );
 });
 
+/** The display shape of a legacy tool-call, so its state resolves through the same rules as a
+ * persisted display part instead of a second copy of them. */
+function legacyToolDisplayPart(
+  part: { toolName: string; toolCallId: string; input: unknown },
+  overlays: DisplayOverlays,
+): DisplayPart {
+  const approvalId = overlays.pendingApprovalsByToolCallId.get(part.toolCallId);
+  return {
+    type: 'tool',
+    toolName: part.toolName,
+    toolCallId: part.toolCallId,
+    state: approvalId != null ? 'approval-requested' : 'result',
+    input: part.input,
+  };
+}
+
 /** Rebuilds UI parts from a raw ModelMessage — the fallback for rows persisted before display_json existed. */
 function reconstructLegacyParts(msg: ModelMessage, overlays: DisplayOverlays): Record<string, unknown>[] {
   const parts: Record<string, unknown>[] = [];
@@ -325,35 +355,11 @@ function reconstructLegacyParts(msg: ModelMessage, overlays: DisplayOverlays): R
         ...(fileId != null ? { fileId } : { url: inlineDataUrl }),
       });
     } else if (part.type === 'tool-call') {
-      const approvalId = overlays.pendingApprovalsByToolCallId.get(part.toolCallId);
-      const isPendingApproval = approvalId != null && !overlays.outputsByCallId.has(part.toolCallId);
       parts.push(
-        isPendingApproval
-          ? {
-              type: `tool-${part.toolName}`,
-              toolName: part.toolName,
-              toolCallId: part.toolCallId,
-              state: 'approval-requested',
-              input: part.input,
-              approval: { id: approvalId },
-            }
-          : {
-              type: `tool-${part.toolName}`,
-              toolName: part.toolName,
-              toolCallId: part.toolCallId,
-              state: 'result',
-              input: part.input,
-              output: overlays.outputsByCallId.get(part.toolCallId),
-              ...(approvalId != null
-                ? {
-                    approval: {
-                      id: approvalId,
-                      approved: true,
-                      reason: overlays.approvalReasonsByApprovalId.get(approvalId),
-                    },
-                  }
-                : {}),
-            },
+        toUIParts(
+          { role: 'assistant', parts: [legacyToolDisplayPart(part, overlays)] },
+          overlays,
+        )[0],
       );
     }
   }
@@ -368,6 +374,7 @@ chatRoute.get('/:chatId', (c) => {
     outputsByCallId: toolOutputsByCallId(history),
     pendingApprovalsByToolCallId: pendingApprovalsByToolCallId(history),
     approvalReasonsByApprovalId: approvalReasonsByApprovalId(history),
+    approvalDecisionsByApprovalId: approvalDecisionsByApprovalId(history),
   };
   const uiMessages = stored
     .filter(({ message }) => message.role === 'user' || message.role === 'assistant')

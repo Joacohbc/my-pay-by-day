@@ -376,5 +376,23 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
           }),
       }),
     },
+
+    deleteEvent: {
+      kind: 'WRITE',
+      ui: { invalidates: EVENT_MUTATION_DOMAINS, label: { en: 'Deleting transaction...', es: 'Eliminando transacción...' } },
+      tool: tool({
+        description:
+          'Permanently delete an existing finance event and its transaction. This cannot be undone, so only use it ' +
+          'when the user explicitly asked for that event to be removed — to correct a wrong value, edit the event ' +
+          'instead. Resolve the id with searchEvents/getEvent first and never guess it.',
+        inputSchema: z.object({ eventId: NumericId }),
+        execute: ({ eventId }) =>
+          safe(async () => {
+            const resolvedEventId = scope?.type === 'event' ? scope.id : eventId;
+            await unwrap(client.DELETE('/events/{id}', { params: { path: { id: resolvedEventId } } }));
+            return { ok: true, deletedEventId: resolvedEventId };
+          }),
+      }),
+    },
   } satisfies KindedToolSet;
 }

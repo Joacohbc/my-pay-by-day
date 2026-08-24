@@ -37,8 +37,14 @@ const INLINE_TOOL_NAMES = new Set([
   'askUser',
 ]);
 
+const APPROVAL_STATES = new Set(['approval-requested', 'approval-responded']);
+
+function isApprovalState(state: string): boolean {
+  return APPROVAL_STATES.has(state);
+}
+
 function isInlineToolCall(call: ChatToolCall): boolean {
-  return INLINE_TOOL_NAMES.has(call.name) || call.state === 'approval-requested';
+  return INLINE_TOOL_NAMES.has(call.name) || isApprovalState(call.state);
 }
 
 const MarkdownSpan = ({ text }: { text: string }) => (
@@ -77,7 +83,7 @@ export function ChatMessage({ message, onDelete, onApprove, onAskUserAnswer }: C
     Object.keys(CHAT_TOOL_MANIFEST).map((toolName) => [toolName, t(`chat.tools.${toolName}`)]),
   );
   const isUser = message.role === 'user';
-  const allToolsDone = message.toolCalls.every((tc) => tc.state === 'result');
+  const allToolsDone = message.toolCalls.every((tc) => tc.state === 'result' || tc.state === 'approval-responded');
 
   const lowSignalCalls = message.toolCalls.filter((tc) => !isInlineToolCall(tc));
   const toolStepGroups = lowSignalCalls.reduce<{ name: string; count: number; isDone: boolean; args?: unknown; output?: unknown }[]>(
@@ -146,7 +152,7 @@ export function ChatMessage({ message, onDelete, onApprove, onAskUserAnswer }: C
   function renderToolPart(call: ChatToolCall, idx: number, seenTaskIds: Set<string>) {
     if (call.name === 'askUser') {
       const key = call.toolCallId ?? `question-${idx}`;
-      if (call.state === 'approval-requested') {
+      if (call.state === 'approval-requested' && call.approval != null) {
         return (
           <InlineQuestionCard
             key={key}
@@ -174,13 +180,14 @@ export function ChatMessage({ message, onDelete, onApprove, onAskUserAnswer }: C
       );
     }
 
-    if (call.state === 'approval-requested') {
+    if (isApprovalState(call.state)) {
       const callArgs = call.args as { draftId?: number; eventId?: number } | undefined;
       return (
         <InlineToolApprovalCard
           key={call.toolCallId ?? `approval-${idx}`}
           toolLabel={toolFriendlyNames[call.name] || call.name}
-          approvalId={call.approval!.id}
+          approvalId={call.approval?.id ?? `approval-${idx}`}
+          decision={call.state === 'approval-responded' ? (call.approval?.approved ?? true) : undefined}
           draftId={callArgs?.draftId}
           eventId={callArgs?.eventId}
           onApprove={(id) => onApprove?.(id, true)}

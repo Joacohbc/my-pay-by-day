@@ -23,6 +23,9 @@ import { logger } from '@/lib/logger';
 
 const chatLog = logger.child('chat');
 
+/** How close to the bottom still counts as "following along", in pixels. */
+const AUTOSCROLL_THRESHOLD_PX = 120;
+
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -253,6 +256,7 @@ export function useChatUI() {
   const [isExtracting, setIsExtracting] = useState(false);
   const [isUploadingPendingFiles, setIsUploadingPendingFiles] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (useChatStore.getState().sharedText) setSharedText(null);
@@ -300,13 +304,32 @@ export function useChatUI() {
   const isStreamActive = status === 'submitted' || status === 'streaming';
   const isPending = isStreamActive || isBackendGenerating || isExtracting || isUploadingPendingFiles;
 
+  // Scrolls the message list itself rather than calling scrollIntoView, which also scrolls every
+  // scrollable ancestor and the visual viewport — on a phone with the keyboard open that drags the
+  // whole page upward on each new message.
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
   }, []);
 
+  const isScrolledToBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return true;
+    const distanceToBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    return distanceToBottom < AUTOSCROLL_THRESHOLD_PX;
+  }, []);
+
+  // Reading back through the conversation must not be yanked back down by an arriving message.
+  const wasAtBottomRef = useRef(true);
   useEffect(() => {
+    if (!wasAtBottomRef.current) return;
     scrollToBottom();
   }, [messages, isPending, scrollToBottom]);
+
+  const handleMessagesScroll = useCallback(() => {
+    wasAtBottomRef.current = isScrolledToBottom();
+  }, [isScrolledToBottom]);
 
   const imagePreviewUrls = useMemo(() => draftFiles.map((f) => filesService.getContentUrl(f.id)), [draftFiles]);
 
@@ -497,6 +520,8 @@ export function useChatUI() {
     pendingFiles,
     imagePreviewUrls,
     messagesEndRef,
+    messagesContainerRef,
+    handleMessagesScroll,
     countdown,
     triggerSendNow,
     stop: handleStop,

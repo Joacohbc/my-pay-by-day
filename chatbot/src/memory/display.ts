@@ -13,7 +13,7 @@ export type DisplayPart =
       type: 'tool';
       toolName: string;
       toolCallId: string;
-      state: 'result' | 'approval-requested';
+      state: 'result' | 'approval-requested' | 'approval-responded';
       input?: unknown;
       /** Display-rich output (for delegateTask this is the full sub-agent UIMessage, not the model summary). */
       output?: unknown;
@@ -32,6 +32,21 @@ export interface DisplayOverlays {
   outputsByCallId: Map<string, unknown>;
   pendingApprovalsByToolCallId: Map<string, string>;
   approvalReasonsByApprovalId: Map<string, string>;
+  /** Decision per answered approval. An approval the user answered whose tool never got to run — the
+   * generation was aborted or failed in between — has no output, and without this it would be
+   * indistinguishable from one still waiting and be rendered as pending again on every reload. */
+  approvalDecisionsByApprovalId: Map<string, boolean>;
+}
+
+/** Resolves what a persisted tool part's state actually is now, given what later rows revealed. */
+function resolvedToolState(
+  part: Extract<DisplayPart, { type: 'tool' }>,
+  approvalId: string | undefined,
+  overlays: DisplayOverlays,
+): 'result' | 'approval-requested' | 'approval-responded' {
+  if (part.state === 'result' || overlays.outputsByCallId.has(part.toolCallId)) return 'result';
+  if (approvalId != null && overlays.approvalDecisionsByApprovalId.has(approvalId)) return 'approval-responded';
+  return part.state;
 }
 
 export function parseDisplayJson(displayJson: string | null): DisplayMessage | null {
@@ -44,17 +59,20 @@ export function parseDisplayJson(displayJson: string | null): DisplayMessage | n
 }
 
 function toolPartToUI(part: Extract<DisplayPart, { type: 'tool' }>, overlays: DisplayOverlays): Record<string, unknown> {
-  const resolvedLater = part.state === 'approval-requested' && overlays.outputsByCallId.has(part.toolCallId);
-  const state = resolvedLater ? 'result' : part.state;
-  const output = part.output ?? overlays.outputsByCallId.get(part.toolCallId);
   const approvalId = part.approval?.id ?? overlays.pendingApprovalsByToolCallId.get(part.toolCallId);
+  const state = resolvedToolState(part, approvalId, overlays);
+  const output = part.output ?? overlays.outputsByCallId.get(part.toolCallId);
 
   const approval =
     approvalId == null
       ? undefined
       : state === 'approval-requested'
         ? { id: approvalId }
-        : { id: approvalId, approved: true, reason: overlays.approvalReasonsByApprovalId.get(approvalId) };
+        : {
+            id: approvalId,
+            approved: overlays.approvalDecisionsByApprovalId.get(approvalId) ?? true,
+            reason: overlays.approvalReasonsByApprovalId.get(approvalId),
+          };
 
   return {
     type: `tool-${part.toolName}`,

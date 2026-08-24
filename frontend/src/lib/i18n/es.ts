@@ -125,6 +125,8 @@ const es = {
       title: 'Se requiere aprobación',
       approve: 'Aprobar',
       reject: 'Rechazar',
+      approved: 'Aprobado',
+      rejected: 'Rechazado',
     },
     question: {
       title: 'Pregunta',
