@@ -1,6 +1,7 @@
 package com.mypaybyday.service;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -53,8 +54,9 @@ public class EmailFileService {
 	 *
 	 * @param request the email to store
 	 * @return the stored file
-	 * @throws BusinessException when the email is invalid, exceeds the maximum file size, or its HTML
-	 *                           body could not be converted and no plain-text body was supplied
+	 * @throws BusinessException when the email is invalid, its date is unreadable, it exceeds the
+	 *                           maximum file size, or its HTML body could not be converted and no
+	 *                           plain-text body was supplied
 	 */
 	public FileDto upload(EmailUploadRequestDto request) throws BusinessException {
 		EmailUploadRequestDto sanitized = emailFileValidator.validate(request);
@@ -62,7 +64,7 @@ public class EmailFileService {
 			sanitized.subject(),
 			sanitized.from(),
 			sanitized.to(),
-			sanitized.messageDate(),
+			serverDateTimeOf(sanitized.messageDate()),
 			markdownBodyOf(sanitized),
 			sanitized.textBody()
 		);
@@ -91,6 +93,14 @@ public class EmailFileService {
 			throw messages.reject(MsgKey.FILE_EMAIL_INVALID_TYPE);
 		}
 		return deserialize(file.data);
+	}
+
+	private LocalDateTime serverDateTimeOf(String isoMessageDate) throws BusinessException {
+		if (isoMessageDate == null || isoMessageDate.isBlank()) {
+			return null;
+		}
+		return EmailFileFormat.parseMessageDate(isoMessageDate)
+			.orElseThrow(() -> messages.reject(MsgKey.FILE_EMAIL_DATE_INVALID, isoMessageDate));
 	}
 
 	private String markdownBodyOf(EmailUploadRequestDto request) throws BusinessException {

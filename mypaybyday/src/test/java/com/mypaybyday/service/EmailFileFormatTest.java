@@ -1,7 +1,11 @@
 package com.mypaybyday.service;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 
 import com.mypaybyday.dto.EmailFileDto;
 
@@ -13,12 +17,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EmailFileFormatTest {
 
+	private static final LocalDateTime SENT_AT = LocalDateTime.of(2026, 7, 31, 9, 5);
+
 	private static EmailFileDto emailWith(String subject, String markdownBody, String textBody) {
 		return new EmailFileDto(
 			subject,
 			"bank@example.com",
 			List.of("me@example.com"),
-			LocalDateTime.of(2026, 7, 31, 9, 5),
+			SENT_AT,
 			markdownBody,
 			textBody
 		);
@@ -56,10 +62,38 @@ class EmailFileFormatTest {
 		assertEquals("# Payment received\n\n"
 			+ "**From:** bank@example.com" + hardLineBreak
 			+ "**To:** me@example.com" + hardLineBreak
-			+ "**Date:** 2026-07-31 09:05\n\n"
+			+ "**Date:** 2026-07-31 09:05 UTC" + serverOffsetAt(SENT_AT) + "\n\n"
 			+ "---\n\n"
 			+ "You **paid** $10", markdown);
 	}
+
+	@Test
+	void markdownStatesTheOffsetTheDateBelongsTo() {
+		String markdown = EmailFileFormat.renderMarkdown(emailWith("Payment received", "body", null));
+
+		assertTrue(markdown.contains("**Date:** 2026-07-31 09:05 UTC" + serverOffsetAt(SENT_AT)));
+	}
+
+	@Test
+	void messageDateWithAnOffsetIsConvertedToServerTime() {
+		OffsetDateTime sentAt = OffsetDateTime.of(2026, 7, 31, 9, 5, 0, 0, ZoneOffset.ofHours(-3));
+
+		Optional<LocalDateTime> parsed = EmailFileFormat.parseMessageDate("2026-07-31T09:05:00-03:00");
+
+		assertEquals(Optional.of(sentAt.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime()), parsed);
+	}
+
+	@Test
+	void messageDateWithoutAnOffsetIsTakenAsServerTime() {
+		assertEquals(Optional.of(SENT_AT), EmailFileFormat.parseMessageDate("2026-07-31T09:05:00"));
+	}
+
+	@Test
+	void messageDateThatIsNotADateIsRejected() {
+		assertEquals(Optional.empty(), EmailFileFormat.parseMessageDate("last tuesday"));
+		assertEquals(Optional.empty(), EmailFileFormat.parseMessageDate(""));
+	}
+
 
 	@Test
 	void markdownFallsBackToThePlainTextBodyWhenThereIsNoHtmlConversion() {
@@ -91,5 +125,9 @@ class EmailFileFormatTest {
 	void emailFilesAreLabelledAsEmailWhateverTheFileNameIs() {
 		assertEquals("EMAIL", FileTypeLabels.labelFor("Payment received.email", EmailFileFormat.MIME_TYPE));
 		assertEquals("EMAIL", FileTypeLabels.labelFor(null, EmailFileFormat.MIME_TYPE));
+	}
+
+	private static String serverOffsetAt(LocalDateTime serverDateTime) {
+		return serverDateTime.atZone(ZoneId.systemDefault()).getOffset().getId().replace("Z", "+00:00");
 	}
 }

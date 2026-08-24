@@ -66,7 +66,8 @@ public class FileResource {
 	@APIResponses({
 		@APIResponse(responseCode = "201", description = "Email stored successfully",
 				content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = FileDto.class))),
-		@APIResponse(responseCode = "400", description = "Validation error, file too large, or the HTML body could not be converted")
+		@APIResponse(responseCode = "400", description = "Validation error, invalid date, file too large, or the HTML body could not be converted",
+				content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<FileDto> uploadEmail(EmailUploadRequestDto request) throws BusinessException {
 		return RestResponse.status(RestResponse.Status.CREATED, emailFileService.upload(request));

@@ -1,5 +1,6 @@
 package com.mypaybyday.service;
 
+import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -10,7 +11,9 @@ import java.util.function.Supplier;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mypaybyday.dto.Base64FileUploadRequestDto;
+import com.mypaybyday.dto.EmailFileDto;
 import com.mypaybyday.dto.EventSummaryDto;
 import com.mypaybyday.dto.FileDto;
 import com.mypaybyday.dto.FileExportDto;
@@ -38,11 +41,14 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 	private final Messages messages;
 	private final MarkItDownClient markItDownClient;
 	private final ArchivedItemImporter archivedItemImporter;
+	private final ObjectMapper objectMapper;
 
-	public FileService(Messages messages, MarkItDownClient markItDownClient, ArchivedItemImporter archivedItemImporter) {
+	public FileService(Messages messages, MarkItDownClient markItDownClient, ArchivedItemImporter archivedItemImporter,
+			ObjectMapper objectMapper) {
 		this.messages = messages;
 		this.markItDownClient = markItDownClient;
 		this.archivedItemImporter = archivedItemImporter;
+		this.objectMapper = objectMapper;
 	}
 
 	@ConfigProperty(name = "mypaybyday.files.max-size")
@@ -146,6 +152,9 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 	@Transactional
 	public String getMarkdownContent(Long id) throws BusinessException {
 		FileEntity file = getFileContent(id);
+		if (EmailFileFormat.isEmailFile(file.mimeType)) {
+			return refreshedEmailMarkdown(file);
+		}
 		if (file.markdownContent != null) {
 			return file.markdownContent;
 		}
@@ -158,6 +167,22 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 			file.markdownContent = markdown;
 		}
 		return markdown;
+	}
+
+	/**
+	 * Renders an email's Markdown from the JSON it is stored as, rather than trusting the copy
+	 * persisted at upload: the rendering is derived data, so a fix to how an email reads applies to
+	 * the ones already stored instead of only to the next one uploaded.
+	 */
+	private String refreshedEmailMarkdown(FileEntity file) {
+		try {
+			String markdown = EmailFileFormat.renderMarkdown(objectMapper.readValue(file.data, EmailFileDto.class));
+			file.markdownContent = markdown;
+			return markdown;
+		} catch (IOException e) {
+			Log.warnf("Stored email file id=%d could not be re-rendered: %s", file.id, e.getMessage());
+			return file.markdownContent;
+		}
 	}
 
 	private String computeHash(byte[] data) {

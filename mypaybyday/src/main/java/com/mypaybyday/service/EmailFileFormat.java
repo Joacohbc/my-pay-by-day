@@ -1,7 +1,12 @@
 package com.mypaybyday.service;
 
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import com.mypaybyday.dto.EmailFileDto;
@@ -23,7 +28,11 @@ public final class EmailFileFormat {
 
 	private static final Pattern FILE_NAME_UNSAFE_CHARS = Pattern.compile("[^\\p{L}\\p{N} _-]+");
 
-	private static final DateTimeFormatter HEADER_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+	/**
+	 * Carries the offset the stored wall-clock time belongs to. Without it the AI, grounded in the
+	 * reader's own timezone, reads a server-time header as local time and reports the wrong day.
+	 */
+	private static final DateTimeFormatter HEADER_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'xxx");
 
 	private static final String UNKNOWN_HEADER_VALUE = "unknown";
 
@@ -32,6 +41,30 @@ public final class EmailFileFormat {
 
 	public static boolean isEmailFile(String mimeType) {
 		return MIME_TYPE.equals(mimeType);
+	}
+
+	/**
+	 * Reads the date an email was sent into the server wall-clock time every business date is stored
+	 * in. A value carrying an offset (what the email's own Date header has) is converted; one without
+	 * is taken as already being server time.
+	 *
+	 * @param isoMessageDate the date as received, ISO-8601, with or without an offset
+	 * @return the date in server time, or empty when the value is not a date
+	 */
+	public static Optional<LocalDateTime> parseMessageDate(String isoMessageDate) {
+		try {
+			return Optional.of(OffsetDateTime.parse(isoMessageDate).atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime());
+		} catch (DateTimeParseException withoutOffset) {
+			return parseServerLocalDate(isoMessageDate);
+		}
+	}
+
+	private static Optional<LocalDateTime> parseServerLocalDate(String isoMessageDate) {
+		try {
+			return Optional.of(LocalDateTime.parse(isoMessageDate));
+		} catch (DateTimeParseException notADate) {
+			return Optional.empty();
+		}
 	}
 
 	/**
@@ -103,6 +136,9 @@ public final class EmailFileFormat {
 	}
 
 	private static String messageDateOf(EmailFileDto email) {
-		return email.messageDate() == null ? UNKNOWN_HEADER_VALUE : HEADER_DATE_FORMAT.format(email.messageDate());
+		if (email.messageDate() == null) {
+			return UNKNOWN_HEADER_VALUE;
+		}
+		return HEADER_DATE_FORMAT.format(email.messageDate().atZone(ZoneId.systemDefault()));
 	}
 }

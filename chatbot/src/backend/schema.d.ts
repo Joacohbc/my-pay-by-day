@@ -1695,12 +1695,14 @@ export interface paths {
                         "application/json": components["schemas"]["FileDto"];
                     };
                 };
-                /** @description Validation error, file too large, or the HTML body could not be converted */
+                /** @description Validation error, invalid date, file too large, or the HTML body could not be converted */
                 400: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -4786,8 +4788,12 @@ export interface components {
             from: string;
             /** @description Addresses the email was sent to */
             to?: string[];
-            /** @description Wall-clock date and time the email was sent */
-            messageDate?: components["schemas"]["LocalDateTime"];
+            /**
+             * Format: date-time
+             * @description Date and time the email was sent, ISO-8601. Include the offset the email was sent with (2026-08-24T01:30:00-03:00); a value without one is read as server time.
+             * @example 2026-08-24T01:30:00-03:00
+             */
+            messageDate?: string;
             /** @description HTML part of the email, converted to Markdown before being stored */
             htmlBody?: string;
             /** @description Plain-text part of the email, stored as received */
