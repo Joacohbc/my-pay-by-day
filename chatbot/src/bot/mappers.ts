@@ -11,6 +11,7 @@ interface DraftInput {
   categoryId?: number | null;
   tagIds?: number[] | null;
   date?: string | null;
+  fileIds?: number[] | null;
 }
 
 /** Maps the LLM's flat {nodeId, amount} shape to the backend's {financeNodeId, amount} draft line item shape. */
@@ -54,6 +55,7 @@ export function toDraftPayload(input: DraftInput, timezone: string): FinanceEven
     categoryId: input.categoryId ?? undefined,
     tagIds: input.tagIds ?? undefined,
     lineItems: toDraftLineItems(input.lineItems),
+    fileIds: input.fileIds ?? undefined,
   };
 }
 
@@ -71,6 +73,7 @@ export function toDraftPatchPayload(patch: Omit<BotDraftPatch, 'draftId'>, timez
     categoryId: patch.categoryId ?? undefined,
     tagIds: patch.tagIds ?? undefined,
     lineItems: toDraftLineItems(patch.lineItems),
+    fileIds: patch.fileIds ?? undefined,
   };
 }
 

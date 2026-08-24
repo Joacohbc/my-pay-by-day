@@ -503,7 +503,8 @@ public class PaymentPlanService implements DataSectionTransfer<PaymentPlanExport
 			item.expectedDate.atStartOfDay(),
 			plan.category != null ? plan.category.id : null,
 			plan.tags != null ? plan.tags.stream().map(tag -> tag.id).toList() : List.of(),
-			lineItems
+			lineItems,
+			null
 		);
 	}
 

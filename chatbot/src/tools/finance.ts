@@ -49,6 +49,16 @@ async function upsertDraftForEvent(
   return { ok: true, draftId: updated.id, originalEventId: updated.originalEntityId ?? undefined };
 }
 
+/**
+ * Attaches the files the current turn arrived with, unless the model chose the attachments itself.
+ * The user uploading a receipt is what links it to the event they are creating from it — expecting
+ * the model to copy the ids across would lose the file whenever it forgets.
+ */
+function withTurnAttachments<T extends { fileIds?: number[] | null }>(input: T, attachedFileIds: number[] | undefined): T {
+  if (input.fileIds != null || attachedFileIds == null || attachedFileIds.length === 0) return input;
+  return { ...input, fileIds: attachedFileIds };
+}
+
 export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
   const client = createApiClient(ctx);
   // When the chat is scoped to a draft/event open in a form (ctx.scope), the write tools below are
@@ -257,8 +267,9 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
           'group, or installment (cuota). If this draft belongs to a payment plan or group, you MUST also call addToPaymentPlan ' +
           'with planId and draftId (or eventId once confirmed) to assign it to that group/plan/cuota.',
         inputSchema: botEventInputSchema.extend({ targetEventId: NumericId.nullish() }),
-        execute: ({ targetEventId, ...input }) =>
+        execute: ({ targetEventId, ...rawInput }) =>
           safe(async () => {
+            const input = withTurnAttachments(rawInput, ctx.attachedFileIds);
             // A draft is already open in the form: never spawn a second one, always fold the request into it.
             if (scope?.type === 'draft') {
               return patchDraftById(client, scope.id, { targetEventId, ...input }, ctx.timezone);
