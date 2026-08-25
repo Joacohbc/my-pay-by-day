@@ -534,9 +534,96 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 				Long remappedOriginalId = context.remap(DataSection.EVENTS, dto.originalEntityId());
 				entity.setOriginalEntityId(remappedOriginalId != null ? remappedOriginalId : dto.originalEntityId());
 			}
-			entity.setRawPayloadJson(dto.rawPayloadJson());
+			entity.setRawPayloadJson(remapPayloadJson(dto.entityType(), dto.rawPayloadJson(), context));
 			draftRepository.persist(entity);
 			context.rememberId(section(), dto.id(), entity.id);
 		});
+	}
+
+	/**
+	 * A draft's payload is opaque JSON, not entity columns, so unlike {@code EventService.importData}
+	 * it is never touched by the entity-level {@code context.remap} calls the rest of the import does.
+	 * Every id embedded in it (category, tags, line-item nodes, files, subscription) is remapped here
+	 * so a re-imported draft points at the freshly-imported entities instead of their pre-import ids.
+	 * An id with no remap entry (not part of this import) is kept as-is, the same tolerant fallback
+	 * already used for {@code originalEntityId} above.
+	 */
+	private String remapPayloadJson(EntityType entityType, String rawPayloadJson, ImportContext context) {
+		if (entityType != EntityType.FINANCE_EVENT) {
+			return rawPayloadJson;
+		}
+		try {
+			FinanceEventDto dto = objectMapper.readValue(rawPayloadJson, FinanceEventDto.class);
+			FinanceEventDto remapped = new FinanceEventDto(
+					dto.id(),
+					dto.name(),
+					dto.description(),
+					dto.type(),
+					dto.amount(),
+					dto.transactionId(),
+					dto.transactionDate(),
+					remapLineItems(dto.lineItems(), context),
+					remapCategory(dto.category(), context),
+					remapTags(dto.tags(), context),
+					dto.relatedEvents(),
+					remapId(DataSection.SUBSCRIPTIONS, dto.subscriptionId(), context),
+					dto.draftId(),
+					remapFiles(dto.files(), context),
+					dto.paymentPlanId());
+			return objectMapper.writeValueAsString(remapped);
+		} catch (JsonProcessingException e) {
+			Log.warnf(e, "Failed to remap ids in imported draft payload; storing it as-is");
+			return rawPayloadJson;
+		}
+	}
+
+	private static Long remapId(DataSection section, Long oldId, ImportContext context) {
+		if (oldId == null) {
+			return null;
+		}
+		Long remappedId = context.remap(section, oldId);
+		return remappedId != null ? remappedId : oldId;
+	}
+
+	private static CategoryDto remapCategory(CategoryDto category, ImportContext context) {
+		if (category == null) {
+			return null;
+		}
+		return new CategoryDto(
+				remapId(DataSection.CATEGORIES, category.id(), context),
+				category.name(), category.description(), category.icon(), category.color(), category.archived());
+	}
+
+	private static List<TagDto> remapTags(List<TagDto> tags, ImportContext context) {
+		if (tags == null) {
+			return null;
+		}
+		return tags.stream()
+				.map(tag -> new TagDto(
+						remapId(DataSection.TAGS, tag.id(), context),
+						tag.name(), tag.description(), tag.color(), tag.archived()))
+				.toList();
+	}
+
+	private static List<FinanceLineItemDto> remapLineItems(List<FinanceLineItemDto> lineItems, ImportContext context) {
+		if (lineItems == null) {
+			return null;
+		}
+		return lineItems.stream()
+				.map(li -> new FinanceLineItemDto(
+						remapId(DataSection.FINANCE_NODES, li.financeNodeId(), context),
+						li.financeNodeName(), li.financeNodeIcon(), li.amount()))
+				.toList();
+	}
+
+	private static List<FileDto> remapFiles(List<FileDto> files, ImportContext context) {
+		if (files == null) {
+			return null;
+		}
+		return files.stream()
+				.map(file -> new FileDto(
+						remapId(DataSection.FILES, file.id(), context),
+						file.fileName(), file.mimeType(), file.typeLabel(), file.size(), file.isOrphan()))
+				.toList();
 	}
 }

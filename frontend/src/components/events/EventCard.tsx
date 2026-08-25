@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { FinanceEvent, PaymentPlan } from '@/models';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, AttachmentIcon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatCurrency, formatDate, eventNetAmount } from '@/lib/format';
 import { NodeIcon } from '@/components/ui/NodeIcon';
@@ -150,6 +150,11 @@ export function EventCard({ event, disableLink, iconSource = 'category', groupPl
           <span className="text-xs text-dn-text-muted flex items-center gap-1.5 flex-wrap">
             <span>{event.category?.name ?? t(cfg.labelKey)}</span>
             {date ? <span>· {formatDate(date)}</span> : null}
+            {event.files && event.files.length > 0 && (
+              <span title={t('events.hasAttachments', { count: event.files.length })} className="inline-flex items-center shrink-0">
+                <AttachmentIcon className="text-[13px]" />
+              </span>
+            )}
             {!hidePlanBadge && assignedPlans.length === 1 && (
               <span
                 className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0"

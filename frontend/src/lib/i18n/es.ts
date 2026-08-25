@@ -244,6 +244,8 @@ const es = {
     date: 'Fecha',
     lineItems: 'Partidas',
     noLineItems: 'Sin partidas',
+    hasAttachments: '{{count}} archivo adjunto',
+    hasAttachments_other: '{{count}} archivos adjuntos',
     editEvent: 'Editar Evento',
     newEventTitle: 'Nuevo Evento',
     updateEvent: 'Actualizar Evento',

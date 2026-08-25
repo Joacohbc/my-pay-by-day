@@ -118,6 +118,7 @@ export const botEventPatchSchema = z.object({
   categoryId: NumericId.nullish(),
   tagIds: NumericIdArray.nullish(),
   date: z.string().nullish(),
+  fileIds: NumericIdArray.nullish().describe('Replaces the attached files; like lineItems it is never merged.'),
 });
 
 /** Partial edit of an existing draft. Every field except `draftId` is optional; omitted fields are preserved. */

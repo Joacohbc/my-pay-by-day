@@ -120,6 +120,7 @@ export function toEventPatch(patch: BotEventPatch, current: FinanceEventDto, tim
   if (patch.type != null) body.type = patch.type;
   if (patch.categoryId != null) body.category = { id: patch.categoryId };
   if (patch.tagIds != null) body.tags = patch.tagIds.map((id) => ({ id }));
+  if (patch.fileIds != null) body.fileIds = patch.fileIds;
 
   const wantsTransaction = patch.date != null || patch.lineItems != null;
   if (wantsTransaction) {

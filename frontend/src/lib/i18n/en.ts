@@ -245,6 +245,8 @@ const en = {
     date: 'Date',
     lineItems: 'Line Items',
     noLineItems: 'No line items',
+    hasAttachments: '{{count}} attached file',
+    hasAttachments_other: '{{count}} attached files',
     editEvent: 'Edit Event',
     newEventTitle: 'New Event',
     updateEvent: 'Update Event',

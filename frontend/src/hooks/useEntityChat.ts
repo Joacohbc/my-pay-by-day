@@ -50,7 +50,11 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-async function toFilePart(file: FileDto): Promise<FileUIPart> {
+/** Keeps the inline data URL (needed for vision) while also carrying the backend identity
+ * (fileId/typeLabel) so the persisted history can reference the real stored file instead of
+ * the base64 copy — matches useChatUI.ts's toFilePart, which this widget's uploads must also
+ * satisfy for withTurnAttachments to auto-attach them to the draft being created. */
+async function toFilePart(file: FileDto): Promise<FileUIPart & { fileId: number; typeLabel?: string }> {
   const response = await fetch(filesService.getContentUrl(file.id));
   const blob = await response.blob();
   return {
@@ -58,6 +62,8 @@ async function toFilePart(file: FileDto): Promise<FileUIPart> {
     mediaType: file.mimeType || blob.type || 'image/jpeg',
     url: await blobToDataUrl(blob),
     filename: file.fileName,
+    fileId: file.id,
+    typeLabel: file.typeLabel,
   };
 }
 

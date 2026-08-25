@@ -9,12 +9,14 @@ import { CategorySelector } from '@/components/ui/CategorySelector';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { TagGroupSelector } from '@/components/ui/TagGroupSelector';
 import { EventAiChatWidget } from '@/components/events/EventAiChatWidget';
+import { FileUploader } from '@/components/ui/FileUploader';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { useTagGroups } from '@/hooks/useTagGroups';
 import { useNodes } from '@/hooks/useNodes';
 import { useAiFieldController } from '@/hooks/useAiFieldController';
-import type { CreateEventDto, PatchEventDto, FinanceEvent, FinanceEventDraftInputDto } from '@/models';
+import { filesService } from '@/services/files.service';
+import type { CreateEventDto, PatchEventDto, FinanceEvent, FinanceEventDraftInputDto, FileDto } from '@/models';
 import { buildSchema, buildFormDefaults, MIN_LINE_ITEMS, toDraftDto } from '@/components/events/EventFormMapper';
 import { prependMissingArchived } from '@/lib/prependMissingArchived';
 
@@ -252,6 +254,13 @@ export function EventForm({
         { shouldDirty: true },
       );
     }
+    if (Array.isArray(patch.fileIds)) {
+      const fileIds = patch.fileIds as number[];
+      void (async () => {
+        const files = await Promise.all(fileIds.map((id) => filesService.getById(id)));
+        setValue('files', files, { shouldDirty: true });
+      })();
+    }
   };
 
   const handleEnsureDraft = async () => {
@@ -266,6 +275,10 @@ export function EventForm({
     onDraftIdResolved?.(id);
     setValue('draftId', id, { shouldDirty: false });
   };
+
+  const files = watch('files') ?? [];
+  const handleAddFile = (file: FileDto) => setValue('files', [...files, file], { shouldDirty: true });
+  const handleRemoveFile = (fileId: number) => setValue('files', files.filter((f) => f.id !== fileId), { shouldDirty: true });
 
   if (!formReady) return <FullPageSpinner />
 
@@ -312,6 +325,8 @@ export function EventForm({
         />
 
         <LineItemsEditor nodes={nodes} minItems={2} />
+
+        <FileUploader files={files} onAddFile={handleAddFile} onRemoveFile={handleRemoveFile} />
 
         <Button
           type="submit"
