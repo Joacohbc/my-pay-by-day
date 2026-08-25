@@ -33,6 +33,12 @@ public class DuplicateRecordRepository implements PanacheRepository<DuplicateRec
 		return find("entityType = ?1 and (entityId1 = ?2 or entityId2 = ?2)", type, entityId).list();
 	}
 
+	/** Bulk-deletes every record — pending or already resolved — naming this entity, on either side of
+	 * the pair. Returns how many were removed. */
+	public long deleteAllByEntity(EntityType type, Long entityId) {
+		return delete("entityType = ?1 and (entityId1 = ?2 or entityId2 = ?2)", type, entityId);
+	}
+
 	public Optional<DuplicateRecordEntity> findByEntities(EntityType type, Long entityId1, Long entityId2) {
 		return find("entityType = ?1 and ((entityId1 = ?2 and entityId2 = ?3) or (entityId1 = ?3 and entityId2 = ?2))", type, entityId1, entityId2).firstResultOptional();
 	}

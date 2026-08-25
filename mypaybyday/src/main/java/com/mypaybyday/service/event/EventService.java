@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.BulkPatchEventDto;
@@ -41,6 +42,7 @@ import com.mypaybyday.repository.TagRepository;
 import com.mypaybyday.repository.TransactionRepository;
 import com.mypaybyday.service.DraftService;
 import com.mypaybyday.service.PaymentPlanService;
+import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.service.transfer.ArchivedItemImporter;
 import com.mypaybyday.service.transfer.DataSectionTransfer;
 import com.mypaybyday.service.transfer.ImportContext;
@@ -67,6 +69,7 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 	private final DraftService entityDraftService;
 	private final PaymentPlanService paymentPlanService;
 	private final ArchivedItemImporter archivedItemImporter;
+	private final Event<DuplicateDetectionEvent> duplicateDetectionEventBus;
 
 	public EventService(
 			EventGetService eventGetService,
@@ -84,7 +87,8 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 			Messages messages,
 			DraftService entityDraftService,
 			PaymentPlanService paymentPlanService,
-			ArchivedItemImporter archivedItemImporter) {
+			ArchivedItemImporter archivedItemImporter,
+			Event<DuplicateDetectionEvent> duplicateDetectionEventBus) {
 		this.eventGetService = eventGetService;
 		this.eventCreateService = eventCreateService;
 		this.eventUpdateService = eventUpdateService;
@@ -101,6 +105,7 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 		this.entityDraftService = entityDraftService;
 		this.paymentPlanService = paymentPlanService;
 		this.archivedItemImporter = archivedItemImporter;
+		this.duplicateDetectionEventBus = duplicateDetectionEventBus;
 	}
 
 	@Transactional
@@ -153,6 +158,7 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 		paymentPlanService.unlinkEvent(id);
 		eventRepository.delete(event);
 		Log.infof("Deleted event id=%d", id);
+		duplicateDetectionEventBus.fireAsync(DuplicateDetectionEvent.forEvent(id));
 	}
 
 	@Transactional
