@@ -91,6 +91,7 @@ export interface BotEventInput {
   categoryId?: number;
   tagIds?: number[];
   date?: string;
+  fileIds?: number[];
 }
 
 export const botEventInputSchema = z.object({
@@ -101,6 +102,10 @@ export const botEventInputSchema = z.object({
   categoryId: NumericId.nullish(),
   tagIds: NumericIdArray.nullish(),
   date: z.string().nullish().describe('YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss in the user timezone.'),
+  fileIds: NumericIdArray.nullish().describe(
+    'Ids of stored files to attach. The files the user sent with their message are attached on their own, ' +
+      'so only pass this to attach a different file or to change the list.',
+  ),
 });
 
 /** Partial edit of an existing event. Every field except `eventId` is optional. */
@@ -126,6 +131,7 @@ export const botDraftPatchSchema = z.object({
   categoryId: NumericId.nullish(),
   tagIds: NumericIdArray.nullish(),
   date: z.string().nullish(),
+  fileIds: NumericIdArray.nullish().describe('Replaces the attached files; like lineItems it is never merged.'),
 });
 
 export const botEventFilterSchema = z.object({

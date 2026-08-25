@@ -72,6 +72,28 @@ function approvalReasonsByApprovalId(history: ModelMessage[]): Map<string, strin
   return reasons;
 }
 
+/** Maps approvalId -> the decision, for every approval the user actually answered. Unlike the
+ * reasons map this records rejections and answers without a reason too, which is what tells a
+ * reload that an approval is settled even when its tool never produced an output. */
+function approvalDecisionsByApprovalId(history: ModelMessage[]): Map<string, boolean> {
+  const decisions = new Map<string, boolean>();
+  for (const message of history) {
+    if (message.role !== 'tool' || !Array.isArray(message.content)) continue;
+    for (const part of message.content) {
+      if (part.type === 'tool-approval-response') decisions.set(part.approvalId, part.approved);
+    }
+  }
+  return decisions;
+}
+
+/** The stored files this turn arrived with, so a draft it produces keeps them attached. */
+function attachedFileIdsOf(userUIMessages: UIMessage[]): number[] {
+  return userUIMessages
+    .flatMap(fileRefsOf)
+    .map((ref) => ref.fileId)
+    .filter((fileId): fileId is number => fileId != null);
+}
+
 function isApprovalResponseMessage(message: UIMessage): boolean {
   return message.role === 'assistant' && message.parts.some((part) => 'state' in part && part.state === 'approval-responded');
 }
@@ -146,7 +168,14 @@ chatRoute.post('/', async (c) => {
   const body = (await c.req.json()) as ChatBody;
   const chatId = body.chatId ?? body.id;
   if (!chatId) return errorJson(c, 'error.chat_id_required', 400);
-  const ctx = { ...requestContextFrom(c), chatId, scope: body.scope };
+  const incoming = body.messages ?? [];
+  const userUIMessages = incoming.filter((m) => m.role === 'user');
+  const ctx = {
+    ...requestContextFrom(c),
+    chatId,
+    scope: body.scope,
+    attachedFileIds: attachedFileIdsOf(userUIMessages),
+  };
   const log = chatLog.with({ requestId: ctx.requestId, chatId });
 
   const chatTools = toolsForModeWithApproval(
@@ -159,8 +188,6 @@ chatRoute.post('/', async (c) => {
     CHAT_APPROVAL_KINDS,
   );
 
-  const incoming = body.messages ?? [];
-  const userUIMessages = incoming.filter((m) => m.role === 'user');
   const userMessages = await convertToModelMessages(userUIMessages);
   const conversionIsOneToOne = userMessages.length === userUIMessages.length;
   if (conversionIsOneToOne) {

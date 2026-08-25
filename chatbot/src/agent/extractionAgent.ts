@@ -50,6 +50,8 @@ export async function runExtractionAgent(ctx: RequestContext, input: ExtractInpu
     buildExtractionUserContent(input),
     fetchTemplateContext(ctx, input.templateId),
   ]);
+  // The receipt the draft was extracted from belongs on the draft, whether or not the model says so.
+  const extractionCtx: RequestContext = { ...ctx, attachedFileIds: (input.files ?? []).map((file) => file.fileId) };
   const userMessage: ModelMessage = { role: 'user', content: displayContent };
 
   const startedAt = performance.now();
@@ -66,7 +68,7 @@ export async function runExtractionAgent(ctx: RequestContext, input: ExtractInpu
         templateContext,
       }),
       messages: [{ role: 'user', content: modelContent }],
-      tools: toolsForMode(buildAllTools(ctx), 'DRAFT_ONLY'),
+      tools: toolsForMode(buildAllTools(extractionCtx), 'DRAFT_ONLY'),
       stopWhen: stepCountIs(config.agent.subagentMaxSteps),
       onStepFinish: (step) => logLlmGeneration('extraction', step.response.modelId, step),
     });

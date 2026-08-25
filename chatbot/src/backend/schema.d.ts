@@ -4843,6 +4843,7 @@ export interface components {
             categoryId?: number;
             tagIds?: number[];
             lineItems?: components["schemas"]["FinanceLineItemDto"][];
+            fileIds?: number[];
         };
         FinanceEventDto: {
             /** Format: int64 */

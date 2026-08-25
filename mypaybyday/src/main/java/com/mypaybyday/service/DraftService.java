@@ -65,6 +65,7 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 	private final TransactionValidator transactionValidator;
 	private final PaymentPlanService paymentPlanService;
 	private final ArchivedItemImporter archivedItemImporter;
+	private final FileService fileService;
 
 	public DraftService(
 			EntityDraftRepository draftRepository,
@@ -74,7 +75,8 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 			EventUpdateService eventUpdateService,
 			TransactionValidator transactionValidator,
 			PaymentPlanService paymentPlanService,
-			ArchivedItemImporter archivedItemImporter) {
+			ArchivedItemImporter archivedItemImporter,
+			FileService fileService) {
 		this.draftRepository = draftRepository;
 		this.messages = messages;
 		this.objectMapper = objectMapper;
@@ -83,6 +85,7 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 		this.transactionValidator = transactionValidator;
 		this.paymentPlanService = paymentPlanService;
 		this.archivedItemImporter = archivedItemImporter;
+		this.fileService = fileService;
 	}
 
 	public List<DraftEntity> listAll() {
@@ -228,6 +231,11 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 			tags = input.tagIds().stream().map(TagDto::ofId).toList();
 		}
 
+		List<FileDto> files = current != null ? current.files() : null;
+		if (input.fileIds() != null) {
+			files = resolveFiles(input.fileIds());
+		}
+
 		List<FinanceLineItemDto> lineItems = current != null ? current.lineItems() : List.of();
 		BigDecimal amount = current != null ? current.amount() : BigDecimal.ZERO;
 
@@ -237,7 +245,24 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 		
 		Long origId = input.id() != null ? input.id() : (current != null ? current.id() : null);
 
-		return new FinanceEventDto(origId, name, desc, type, amount, current != null ? current.transactionId() : null, date, lineItems, category, tags, current != null ? current.relatedEvents() : null, current != null ? current.subscriptionId() : null, current != null ? current.draftId() : null, current != null ? current.files() : null, null);
+		return new FinanceEventDto(origId, name, desc, type, amount, current != null ? current.transactionId() : null, date, lineItems, category, tags, current != null ? current.relatedEvents() : null, current != null ? current.subscriptionId() : null, current != null ? current.draftId() : null, files, null);
+	}
+
+	/**
+	 * Resolves the attached file ids into the metadata the stored payload carries. A file that no
+	 * longer exists is dropped rather than failing the draft: the attachment is context, and losing
+	 * it must not cost the user the draft they were writing.
+	 */
+	private List<FileDto> resolveFiles(List<Long> fileIds) {
+		List<FileDto> files = new ArrayList<>();
+		for (Long fileId : fileIds) {
+			try {
+				files.add(fileService.getFileMetadata(fileId));
+			} catch (BusinessException e) {
+				Log.warnf("Skipping unknown file %d while saving a draft", fileId);
+			}
+		}
+		return files;
 	}
 
 	@Transactional
@@ -371,6 +396,10 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 						return tag;
 					})
 					.collect(Collectors.toSet());
+		}
+
+		if (dto.files() != null) {
+			event.fileIds = dto.files().stream().map(FileDto::id).toList();
 		}
 
 		FinanceTransactionEntity tx = new FinanceTransactionEntity();
