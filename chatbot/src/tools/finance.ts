@@ -267,7 +267,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
           'and pass it explicitly. ' +
           'CRITICAL FOR PAYMENT PLANS & GROUPS: Creating a draft does NOT automatically assign it to a payment plan, ' +
           'group, or installment (cuota). If this draft belongs to a payment plan or group, you MUST also call addToPaymentPlan ' +
-          'with planId and draftId (or eventId once confirmed) to assign it to that group/plan/cuota.',
+          'with planId and draftIds (or eventIds once confirmed) to assign it to that group/plan/cuota.',
         inputSchema: botEventInputSchema.extend({ targetEventId: NumericId.nullish() }),
         execute: ({ targetEventId, ...rawInput }) =>
           safe(async () => {

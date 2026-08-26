@@ -7,7 +7,7 @@ import { InlineDraftApprovalSummary } from '@/components/chat/InlineDraftApprova
 import { ToolApprovalArgs } from '@/components/chat/ToolApprovalArgs';
 import { useApprovalArgLookups } from '@/hooks/useApprovalArgLookups';
 import { selectApprovalArgs, toApprovalSummaryValues } from '@/lib/chat/approvalArgs';
-import { approvalToolViewOf, entityArgOf } from '@/lib/chat/approvalToolViews';
+import { approvalToolViewOf, entityArgNamesOf, entityCardsOf } from '@/lib/chat/approvalToolViews';
 
 interface InlineToolApprovalCardProps {
   toolName: string;
@@ -23,12 +23,6 @@ function targetPlanIdOf(args: unknown): number {
   if (args == null || typeof args !== 'object') return 0;
   const planId = (args as Record<string, unknown>).planId;
   return typeof planId === 'number' ? planId : 0;
-}
-
-function entityIdOf(args: unknown, entityArg: string | undefined): number | undefined {
-  if (!entityArg || args == null || typeof args !== 'object') return undefined;
-  const entityId = (args as Record<string, unknown>)[entityArg];
-  return typeof entityId === 'number' ? entityId : undefined;
 }
 
 export function InlineToolApprovalCard({
@@ -49,9 +43,8 @@ export function InlineToolApprovalCard({
   };
 
   const view = approvalToolViewOf(toolName);
-  const entityArg = entityArgOf(view, args);
-  const entityId = entityIdOf(args, entityArg);
-  const detailEntries = selectApprovalArgs(args, entityArg ? [entityArg] : []);
+  const entityCards = entityCardsOf(view, args);
+  const detailEntries = selectApprovalArgs(args, entityArgNamesOf(view));
   const summary = view
     ? t(view.summaryKey, toApprovalSummaryValues(selectApprovalArgs(args), lookups))
     : fallbackLabel;
@@ -65,12 +58,15 @@ export function InlineToolApprovalCard({
 
       <p className="text-sm text-dn-text-main">{summary}</p>
 
-      {entityId != null && (
-        <div className="rounded-lg bg-dn-bg/40 px-3 py-2">
-          <InlineDraftApprovalSummary
-            draftId={entityArg === 'draftId' ? entityId : undefined}
-            eventId={entityArg === 'eventId' ? entityId : undefined}
-          />
+      {entityCards.length > 0 && (
+        <div className="flex flex-col gap-2 rounded-lg bg-dn-bg/40 px-3 py-2">
+          {entityCards.map(({ entity, id }) => (
+            <InlineDraftApprovalSummary
+              key={`${entity}-${id}`}
+              draftId={entity === 'draft' ? id : undefined}
+              eventId={entity === 'event' ? id : undefined}
+            />
+          ))}
         </div>
       )}
 

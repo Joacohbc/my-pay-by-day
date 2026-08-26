@@ -12,18 +12,37 @@ export interface ApprovalToolView {
    * `{{planId}}` renders the plan's name, `{{itemId}}` the cuota it points at.
    */
   summaryKey: string;
-  /** Arguments holding an event or draft to render as a card instead of a row. First match wins. */
-  entityArgs?: readonly string[];
+  /** Arguments whose ids are rendered as entity cards instead of detail rows. */
+  entityArgs?: readonly ApprovalEntityArg[];
   /** Leading order for the detail rows. Arguments not listed keep following them. */
   detailArgs?: readonly string[];
 }
 
-const EVENT_OR_DRAFT = ['draftId', 'eventId'] as const;
+/** An argument holding one id or a list of them, and which entity those ids name. */
+export interface ApprovalEntityArg {
+  name: string;
+  entity: 'event' | 'draft';
+}
+
+export interface ApprovalEntityCard {
+  entity: 'event' | 'draft';
+  id: number;
+}
+
+const EVENT_OR_DRAFT: readonly ApprovalEntityArg[] = [
+  { name: 'draftId', entity: 'draft' },
+  { name: 'eventId', entity: 'event' },
+];
+
+const EVENT_OR_DRAFT_MEMBERS: readonly ApprovalEntityArg[] = [
+  { name: 'draftIds', entity: 'draft' },
+  { name: 'eventIds', entity: 'event' },
+];
 
 const APPROVAL_TOOL_VIEWS: Record<string, ApprovalToolView> = {
   updateEvent: {
     summaryKey: 'chat.approval.tools.updateEvent',
-    entityArgs: ['eventId'],
+    entityArgs: [{ name: 'eventId', entity: 'event' }],
     detailArgs: ['name', 'type', 'date', 'lineItems', 'categoryId', 'tagIds', 'description', 'fileIds'],
   },
   createEventGroup: {
@@ -48,7 +67,7 @@ const APPROVAL_TOOL_VIEWS: Record<string, ApprovalToolView> = {
   },
   addToPaymentPlan: {
     summaryKey: 'chat.approval.tools.addToPaymentPlan',
-    entityArgs: EVENT_OR_DRAFT,
+    entityArgs: EVENT_OR_DRAFT_MEMBERS,
     detailArgs: ['itemId'],
   },
   removeFromPaymentPlan: {
@@ -66,8 +85,20 @@ export function approvalToolViewOf(toolName: string): ApprovalToolView | undefin
   return APPROVAL_TOOL_VIEWS[toolName];
 }
 
-export function entityArgOf(view: ApprovalToolView | undefined, args: unknown): string | undefined {
-  if (!view?.entityArgs || args == null || typeof args !== 'object') return undefined;
+/** Every entity the call carries, in the order the tool declares — one card each. */
+export function entityCardsOf(view: ApprovalToolView | undefined, args: unknown): ApprovalEntityCard[] {
+  if (!view?.entityArgs || args == null || typeof args !== 'object') return [];
   const presentArgs = args as Record<string, unknown>;
-  return view.entityArgs.find((argName) => typeof presentArgs[argName] === 'number');
+  return view.entityArgs.flatMap(({ name, entity }) => idsOf(presentArgs[name]).map((id) => ({ entity, id })));
+}
+
+/** The argument names the cards already cover, so the detail rows do not repeat them. */
+export function entityArgNamesOf(view: ApprovalToolView | undefined): string[] {
+  return (view?.entityArgs ?? []).map((entityArg) => entityArg.name);
+}
+
+function idsOf(value: unknown): number[] {
+  if (typeof value === 'number') return [value];
+  if (Array.isArray(value)) return value.filter((item): item is number => typeof item === 'number');
+  return [];
 }

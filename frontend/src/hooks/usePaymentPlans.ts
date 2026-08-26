@@ -4,7 +4,7 @@ import { useAlert } from '@/contexts/AlertContext';
 import { paymentPlanKeys } from '@/lib/queryKeys';
 import { invalidateDomains } from '@/lib/cacheInvalidation';
 import { paymentPlansService } from '@/services/paymentPlans.service';
-import type { CreatePaymentPlanDto, CreatePaymentPlanItemDto } from '@/models';
+import type { AttachToPaymentPlanDto, CreatePaymentPlanDto, CreatePaymentPlanItemDto } from '@/models';
 
 function usePaymentPlanMutationFeedback() {
   const queryClient = useQueryClient();
@@ -64,14 +64,6 @@ export function useUpdatePaymentPlan() {
   });
 }
 
-export function usePaymentPlanItem(planId: number, itemId: number) {
-  return useQuery({
-    queryKey: paymentPlanKeys.item(planId, itemId),
-    queryFn: () => paymentPlansService.getItemById(planId, itemId),
-    enabled: planId > 0 && itemId > 0,
-  });
-}
-
 export function useCreatePaymentPlanItem(planId: number) {
   return useMutation({
     mutationFn: (dto: CreatePaymentPlanItemDto) => paymentPlansService.createItem(planId, dto),
@@ -80,13 +72,15 @@ export function useCreatePaymentPlanItem(planId: number) {
 }
 
 /**
- * Adds an existing event to a GROUP plan whose id is only known at mutate time (e.g. a
- * drag-and-drop drop target), unlike `useCreatePaymentPlanItem` which binds the plan up front.
+ * Links existing events/drafts to a plan. Every member of a batch goes in one call: the backend
+ * claims their entries in a single transaction, so nothing is left to a stale client-side snapshot
+ * of which entries are free. The plan is named at mutate time, since a drop target only knows it
+ * then.
  */
-export function useAddEventToGroupPlan() {
+export function useAttachToPaymentPlan() {
   return useMutation({
-    mutationFn: ({ planId, dto }: { planId: number; dto: CreatePaymentPlanItemDto }) =>
-      paymentPlansService.createItem(planId, dto),
+    mutationFn: ({ planId, dto }: { planId: number; dto: AttachToPaymentPlanDto }) =>
+      paymentPlansService.attachMembers(planId, dto),
     ...usePaymentPlanMutationFeedback(),
   });
 }

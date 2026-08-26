@@ -1,19 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { CreatePaymentPlanItemDto, FinanceEvent, PaymentPlan, PaymentPlanItem } from '@/models';
-import { useCreatePaymentPlanItem, usePaymentPlans, useUpdatePaymentPlanItem } from '@/hooks/usePaymentPlans';
+import type { FinanceEvent, PaymentPlan, PaymentPlanItem } from '@/models';
+import { useAttachToPaymentPlan, usePaymentPlans } from '@/hooks/usePaymentPlans';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
-import { formatDateFromParts, getLocalizedTodayString } from '@/lib/format';
+import { formatDateFromParts } from '@/lib/format';
 import { isGroupPlan, itemNumberKey } from '@/components/paymentPlans/planPresentation';
-
-const NEW_ITEM_VALUE = 'NEW';
-const ISO_DATE_LENGTH = 'YYYY-MM-DD'.length;
-
-function toDateOnly(localDateTime?: string): string {
-  return localDateTime ? localDateTime.slice(0, ISO_DATE_LENGTH) : getLocalizedTodayString();
-}
 
 function isAssignable(plan: PaymentPlan): boolean {
   return plan.status !== 'CANCELLED';
@@ -23,21 +16,15 @@ function hasNoLinkedEvent(item: PaymentPlanItem): boolean {
   return item.eventId == null;
 }
 
-/**
- * A cuota or subscription cycle that is already waiting is the natural target; when none is free
- * the event opens a new entry, which is how a payment that predates the plan's schedule gets in.
- */
-function defaultItemValueFor(plan?: PaymentPlan): string {
-  if (!plan) return '';
-
-  const firstAssignableItem = (plan.items ?? []).find(hasNoLinkedEvent);
-  return firstAssignableItem ? String(firstAssignableItem.id) : NEW_ITEM_VALUE;
-}
-
-/** An installment plan is finite, so it can never take one more cuota than it declares. */
+/** An installment plan is finite, so a full one can only take the event into a cuota already there. */
 function canOpenNewItem(plan: PaymentPlan): boolean {
   if (plan.planType !== 'INSTALLMENT') return true;
   return (plan.items ?? []).length < (plan.totalInstallments ?? 0);
+}
+
+function firstFreeItemValueOf(plan?: PaymentPlan): string {
+  const firstFreeItem = (plan?.items ?? []).find(hasNoLinkedEvent);
+  return firstFreeItem ? String(firstFreeItem.id) : '';
 }
 
 interface AssignEventToPlanModalProps {
@@ -49,11 +36,9 @@ interface AssignEventToPlanModalProps {
 export function AssignEventToPlanModal({ open, onClose, event }: AssignEventToPlanModalProps) {
   const { t } = useTranslation();
   const { data: plans = [] } = usePaymentPlans();
+  const attachToPlan = useAttachToPaymentPlan();
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const [selectedItemValue, setSelectedItemValue] = useState('');
-
-  const createItem = useCreatePaymentPlanItem(selectedPlanId ?? 0);
-  const updateItem = useUpdatePaymentPlanItem(selectedPlanId ?? 0);
 
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId);
   const planOptions = useMemo(
@@ -65,36 +50,18 @@ export function AssignEventToPlanModal({ open, onClose, event }: AssignEventToPl
     [plans, t]
   );
 
-  const assignableItems = useMemo(
-    () => (selectedPlan?.items ?? []).filter(hasNoLinkedEvent),
-    [selectedPlan]
-  );
-
-  const canCreateItem = selectedPlan != null && canOpenNewItem(selectedPlan);
+  const freeItems = useMemo(() => (selectedPlan?.items ?? []).filter(hasNoLinkedEvent), [selectedPlan]);
 
   const itemOptions = useMemo(() => {
     if (!selectedPlan) return [];
 
-    const describeItem = (item: PaymentPlanItem) => {
-      const number = t(itemNumberKey(selectedPlan.planType), { number: item.installmentNumber });
-      return `${number} · ${formatDateFromParts(item.expectedDate)}`;
-    };
-
-    const existingItemOptions = assignableItems.map((item) => ({
+    return freeItems.map((item) => ({
       value: String(item.id),
-      label: describeItem(item),
+      label: `${t(itemNumberKey(selectedPlan.planType), { number: item.installmentNumber })} · ${formatDateFromParts(item.expectedDate)}`,
     }));
+  }, [freeItems, selectedPlan, t]);
 
-    if (!canOpenNewItem(selectedPlan)) return existingItemOptions;
-
-    const newItemLabel = isGroupPlan(selectedPlan.planType)
-      ? t('paymentPlans.assignNewGroupItem')
-      : t('paymentPlans.assignNewItem');
-    return [{ value: NEW_ITEM_VALUE, label: newItemLabel }, ...existingItemOptions];
-  }, [assignableItems, selectedPlan, t]);
-
-  const nextInstallmentNumber =
-    (selectedPlan?.items ?? []).reduce((max, item) => Math.max(max, item.installmentNumber), 0) + 1;
+  const canAssign = selectedPlan != null && (freeItems.length > 0 || canOpenNewItem(selectedPlan));
 
   const closeAndReset = () => {
     setSelectedPlanId(null);
@@ -105,43 +72,30 @@ export function AssignEventToPlanModal({ open, onClose, event }: AssignEventToPl
   const selectPlan = (value: string | number | null) => {
     const nextPlan = value ? plans.find((plan) => plan.id === Number(value)) : undefined;
     setSelectedPlanId(nextPlan?.id ?? null);
-    setSelectedItemValue(defaultItemValueFor(nextPlan));
+    setSelectedItemValue(firstFreeItemValueOf(nextPlan));
   };
 
-  const assignToNewItem = () => {
-    const dto: CreatePaymentPlanItemDto = {
-      installmentNumber: nextInstallmentNumber,
-      expectedDate: toDateOnly(event.transactionDate),
-      itemStatus: 'PAID',
-      eventId: event.id,
-    };
-    createItem.mutate(dto, { onSuccess: closeAndReset });
-  };
-
-  const assignToExistingItem = (target: PaymentPlanItem) => {
-    const dto: CreatePaymentPlanItemDto = {
-      installmentNumber: target.installmentNumber,
-      expectedDate: target.expectedDate,
-      itemStatus: 'PAID',
-      eventId: event.id,
-    };
-    updateItem.mutate({ itemId: target.id, dto }, { onSuccess: closeAndReset });
-  };
-
+  /**
+   * Nothing here resolves which entry the event lands in: with no cuota chosen the backend claims
+   * the first free one — or opens a new one — inside the same transaction that links the event.
+   */
   const assign = () => {
     if (!selectedPlan) return;
 
-    if (selectedItemValue === NEW_ITEM_VALUE && canCreateItem) {
-      assignToNewItem();
-      return;
-    }
-
-    const target = assignableItems.find((item) => String(item.id) === selectedItemValue);
-    if (!target) return;
-    assignToExistingItem(target);
+    attachToPlan.mutate(
+      {
+        planId: selectedPlan.id,
+        dto: { eventIds: [event.id], itemId: selectedItemValue ? Number(selectedItemValue) : undefined },
+      },
+      { onSuccess: closeAndReset }
+    );
   };
 
-  const isPending = createItem.isPending || updateItem.isPending;
+  const assignmentHint = () => {
+    if (!selectedPlan || freeItems.length > 0) return t('paymentPlans.assignHint');
+    if (!canOpenNewItem(selectedPlan)) return t('paymentPlans.assignNoFreeItems');
+    return isGroupPlan(selectedPlan.planType) ? t('paymentPlans.assignNewGroupItem') : t('paymentPlans.assignNewItem');
+  };
 
   return (
     <Modal
@@ -156,8 +110,8 @@ export function AssignEventToPlanModal({ open, onClose, event }: AssignEventToPl
           <Button
             type="button"
             size="sm"
-            loading={isPending}
-            disabled={!selectedPlan || !selectedItemValue}
+            loading={attachToPlan.isPending}
+            disabled={!canAssign}
             onClick={assign}
           >
             {t('paymentPlans.assignSubmit')}
@@ -187,9 +141,7 @@ export function AssignEventToPlanModal({ open, onClose, event }: AssignEventToPl
           />
         )}
 
-        <p className="text-xs text-dn-text-muted leading-relaxed">
-          {selectedPlan && itemOptions.length === 0 ? t('paymentPlans.assignNoFreeItems') : t('paymentPlans.assignHint')}
-        </p>
+        <p className="text-xs text-dn-text-muted leading-relaxed">{assignmentHint()}</p>
       </div>
     </Modal>
   );

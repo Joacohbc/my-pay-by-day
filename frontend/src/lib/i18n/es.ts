@@ -147,7 +147,7 @@ const es = {
         createRecurringPlan: 'Crear el plan recurrente «{{name}}»',
         createCustomPlan: 'Crear el plan personalizado «{{name}}»',
         updatePaymentPlan: 'Actualizar el plan «{{planId}}»',
-        addToPaymentPlan: 'Agregar este registro al plan «{{planId}}»',
+        addToPaymentPlan: 'Agregar al plan «{{planId}}»',
         removeFromPaymentPlan: 'Quitar este registro del plan «{{planId}}»',
         updatePaymentPlanItem: 'Actualizar {{itemId}} del plan «{{planId}}»',
       },

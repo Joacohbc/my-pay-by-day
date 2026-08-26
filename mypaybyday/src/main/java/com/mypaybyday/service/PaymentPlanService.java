@@ -1,6 +1,7 @@
 package com.mypaybyday.service;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import java.util.stream.Collectors;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
+import com.mypaybyday.dto.AttachToPaymentPlanDto;
 import com.mypaybyday.dto.CreatePaymentPlanDto;
 import com.mypaybyday.dto.CreatePaymentPlanItemDto;
 import com.mypaybyday.dto.FinanceEventDraftInputDto;
@@ -121,11 +123,11 @@ public class PaymentPlanService implements DataSectionTransfer<PaymentPlanExport
 		if (shouldGenerateItems && entity.totalInstallments != null) {
 			preGenerateItems(entity);
 		}
-		if (entity.planType == PaymentPlanType.GROUP) {
-			linkGroupMembers(entity, dto.eventIds(), dto.draftIds());
-		}
-
 		paymentPlanRepository.persist(entity);
+
+		if (entity.planType == PaymentPlanType.GROUP) {
+			attachMembers(entity, idsOrEmpty(dto.eventIds()), idsOrEmpty(dto.draftIds()), null);
+		}
 
 		Log.infof("Created payment plan id=%d name=%s type=%s", entity.id, entity.name, entity.planType);
 		return PaymentPlanDto.from(entity);
@@ -223,31 +225,6 @@ public class PaymentPlanService implements DataSectionTransfer<PaymentPlanExport
 		return item;
 	}
 
-	/**
-	 * Links pre-existing events/drafts as group members in one shot, so the Group creation UI
-	 * never forces the user through the per-item add flow. Linked events are already-settled
-	 * money movements (PAID); linked drafts are still pending confirmation (DRAFTED). Drafts have
-	 * no structured date of their own (raw JSON payload), so members fall back to the group's date.
-	 */
-	private void linkGroupMembers(PaymentPlanEntity plan, List<Long> eventIds, List<Long> draftIds) {
-		int installmentNumber = 1;
-		for (Long eventId : eventIds != null ? eventIds : List.<Long>of()) {
-			FinanceEventEntity event = eventRepository.findById(eventId);
-			if (event == null) continue;
-			LocalDate eventDate = event.transaction != null ? event.transaction.transactionDate.toLocalDate() : plan.startDate;
-			PaymentPlanItemEntity item = newItem(plan, installmentNumber++, eventDate, PaymentPlanItemStatus.PAID);
-			item.event = event;
-			plan.items.add(item);
-		}
-		for (Long draftId : draftIds != null ? draftIds : List.<Long>of()) {
-			DraftEntity draft = entityDraftRepository.findById(draftId);
-			if (draft == null) continue;
-			PaymentPlanItemEntity item = newItem(plan, installmentNumber++, plan.startDate, PaymentPlanItemStatus.DRAFTED);
-			item.draft = draft;
-			plan.items.add(item);
-		}
-	}
-
 	@Transactional
 	public PaymentPlanDto cancel(Long id) throws BusinessException {
 		PaymentPlanEntity entity = findEntityById(id);
@@ -270,20 +247,6 @@ public class PaymentPlanService implements DataSectionTransfer<PaymentPlanExport
 		}
 		paymentPlanRepository.delete(entity);
 		Log.infof("Deleted payment plan id=%d", id);
-	}
-
-	@Transactional
-	public List<PaymentPlanItemDto> listItems(Long planId) throws BusinessException {
-		PaymentPlanEntity plan = findEntityById(planId);
-		return plan.items.stream()
-			.sorted((left, right) -> Integer.compare(left.installmentNumber, right.installmentNumber))
-			.map(PaymentPlanItemDto::from)
-			.toList();
-	}
-
-	@Transactional
-	public PaymentPlanItemDto findItemById(Long planId, Long itemId) throws BusinessException {
-		return PaymentPlanItemDto.from(findItemEntityById(planId, itemId));
 	}
 
 	@Transactional
@@ -323,6 +286,133 @@ public class PaymentPlanService implements DataSectionTransfer<PaymentPlanExport
 
 		Log.infof("Updated payment plan item id=%d for plan id=%d", itemId, planId);
 		return PaymentPlanItemDto.from(item);
+	}
+
+	/**
+	 * Links several events/drafts to a plan in a single transaction. Attaching them one request at a
+	 * time is not equivalent: a caller that resolves the free entries of the same plan concurrently
+	 * reads one snapshot for all of them, so every member lands on the same entry (silently
+	 * overwriting the previous link) or claims the same installment number. Here each entry is
+	 * claimed before the next member is resolved, and the whole batch fails together.
+	 */
+	@Transactional
+	public PaymentPlanDto attachMembers(Long planId, AttachToPaymentPlanDto dto) throws BusinessException {
+		PaymentPlanEntity plan = findEntityById(planId);
+
+		List<Long> eventIds = idsOrEmpty(dto.eventIds());
+		List<Long> draftIds = idsOrEmpty(dto.draftIds());
+		int memberCount = eventIds.size() + draftIds.size();
+
+		if (memberCount == 0) {
+			throw messages.reject(MsgKey.PAYMENT_PLAN_ATTACH_MEMBERS_REQUIRED);
+		}
+		if (dto.itemId() != null && memberCount > 1) {
+			throw messages.reject(MsgKey.PAYMENT_PLAN_ATTACH_TARGET_ITEM_AMBIGUOUS, memberCount);
+		}
+
+		paymentPlanItemValidator.validatePlanAcceptsNewItems(plan);
+		attachMembers(plan, eventIds, draftIds, dto.itemId());
+
+		paymentPlanRepository.persist(plan);
+		Log.infof("Attached %d member(s) to payment plan id=%d", memberCount, planId);
+		return PaymentPlanDto.from(plan);
+	}
+
+	/** The single path that links an event or a draft into a plan entry, batch or creation alike. */
+	private void attachMembers(PaymentPlanEntity plan, List<Long> eventIds, List<Long> draftIds, Long targetItemId)
+			throws BusinessException {
+		for (Long eventId : eventIds) {
+			attachEvent(plan, targetItemId, eventId);
+		}
+		for (Long draftId : draftIds) {
+			attachDraft(plan, targetItemId, draftId);
+		}
+	}
+
+	private List<Long> idsOrEmpty(List<Long> ids) {
+		return ids != null ? ids : List.of();
+	}
+
+	private void attachEvent(PaymentPlanEntity plan, Long targetItemId, Long eventId) throws BusinessException {
+		FinanceEventEntity event = eventRepository.findById(eventId);
+		if (event == null) {
+			throw messages.reject(MsgKey.EVENT_NOT_FOUND, eventId);
+		}
+
+		PaymentPlanItemEntity item = claimItem(plan, targetItemId, scheduleDateFor(plan, event));
+		item.event = event;
+		item.draft = null;
+		item.itemStatus = PaymentPlanItemStatus.PAID;
+
+		paymentPlanItemValidator.validate(item);
+		paymentPlanItemRepository.persist(item);
+	}
+
+	private void attachDraft(PaymentPlanEntity plan, Long targetItemId, Long draftId) throws BusinessException {
+		DraftEntity draft = entityDraftRepository.findById(draftId);
+		if (draft == null) {
+			throw messages.reject(MsgKey.DRAFT_NOT_FOUND, draftId);
+		}
+
+		PaymentPlanItemEntity item = claimItem(plan, targetItemId, plan.startDate);
+		item.draft = draft;
+		item.event = null;
+		item.itemStatus = PaymentPlanItemStatus.DRAFTED;
+
+		paymentPlanItemValidator.validate(item);
+		paymentPlanItemRepository.persist(item);
+	}
+
+	/**
+	 * The entry the next member takes: the one it names, the first one still free, or a new one at
+	 * the end of the schedule. Adding it to the plan here is what keeps it out of reach of the
+	 * members resolved after it.
+	 */
+	private PaymentPlanItemEntity claimItem(PaymentPlanEntity plan, Long targetItemId, LocalDate expectedDate)
+			throws BusinessException {
+		if (targetItemId != null) {
+			return findItemEntityById(plan.id, targetItemId);
+		}
+
+		PaymentPlanItemEntity freeItem = firstFreeItem(plan);
+		if (freeItem != null) {
+			return freeItem;
+		}
+
+		paymentPlanItemValidator.validateHasRoomForAnotherItem(plan);
+		PaymentPlanItemEntity openedItem = newItem(plan, nextInstallmentNumber(plan), expectedDate, PaymentPlanItemStatus.PENDING);
+		plan.items.add(openedItem);
+		return openedItem;
+	}
+
+	private PaymentPlanItemEntity firstFreeItem(PaymentPlanEntity plan) {
+		return plan.items.stream()
+			.filter(item -> item.event == null && item.draft == null)
+			.min(Comparator.comparingInt(item -> item.installmentNumber))
+			.orElse(null);
+	}
+
+	/**
+	 * A newly opened entry is dated by the payment it holds, which is the date the user recognises.
+	 * An event outside the window the plan covers would fail validation, so the plan's start date
+	 * stands in for it rather than rejecting an attachment the user explicitly asked for.
+	 */
+	private LocalDate scheduleDateFor(PaymentPlanEntity plan, FinanceEventEntity event) {
+		if (event.transaction == null) {
+			return plan.startDate;
+		}
+		LocalDate eventDate = event.transaction.transactionDate.toLocalDate();
+		return isWithinPlanWindow(plan, eventDate) ? eventDate : plan.startDate;
+	}
+
+	private boolean isWithinPlanWindow(PaymentPlanEntity plan, LocalDate date) {
+		if (plan.planType == PaymentPlanType.GROUP) {
+			return true;
+		}
+		LocalDate scheduleEndDate = plan.scheduleEndDate();
+		boolean startsBeforePlan = plan.startDate != null && date.isBefore(plan.startDate);
+		boolean endsAfterPlan = scheduleEndDate != null && date.isAfter(scheduleEndDate);
+		return !startsBeforePlan && !endsAfterPlan;
 	}
 
 	@Transactional

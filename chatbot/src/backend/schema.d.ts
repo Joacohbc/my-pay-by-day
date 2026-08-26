@@ -2663,41 +2663,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * List the items of a payment plan
-         * @description Retrieves every scheduled item / cuota of a payment plan, ordered by installment number.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Items retrieved successfully */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PaymentPlanItemDto"][];
-                    };
-                };
-                /** @description Payment plan not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponse"];
-                    };
-                };
-            };
-        };
+        get?: never;
         put?: never;
         /**
          * Create a payment plan item
@@ -2753,39 +2719,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/payment-plans/{id}/items/{itemId}": {
+    "/payment-plans/{id}/items/attach": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
+        get?: never;
+        put?: never;
         /**
-         * Get a payment plan item by ID
-         * @description Retrieves a single scheduled item / cuota of a payment plan.
+         * Attach events or drafts to a payment plan
+         * @description Links existing events and/or drafts to the plan in a single transaction: each member fills the first free entry, the entry named by itemId, or a newly opened one when none is free. The whole batch succeeds or fails together.
          */
-        get: {
+        post: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
                     id: number;
-                    itemId: number;
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AttachToPaymentPlanDto"];
+                };
+            };
             responses: {
-                /** @description Item found */
+                /** @description Members attached successfully */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["PaymentPlanItemDto"];
+                        "application/json": components["schemas"]["PaymentPlanDto"];
                     };
                 };
-                /** @description Payment plan or item not found */
+                /** @description Invalid attachment request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Payment plan, item, event or draft not found */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -2796,6 +2776,20 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payment-plans/{id}/items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
         /**
          * Update a payment plan item
          * @description Updates a scheduled item / cuota of a payment plan.
@@ -4566,6 +4560,18 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description DTO for attaching existing events and/or drafts to a payment plan in a single atomic call */
+        AttachToPaymentPlanDto: {
+            /** @description Events to attach. Each one fills a free entry, or a newly opened one when none is free. */
+            eventIds?: number[];
+            /** @description Drafts to attach. Each one fills a free entry, or a newly opened one when none is free. */
+            draftIds?: number[];
+            /**
+             * Format: int64
+             * @description The specific entry to fill. Only valid when attaching exactly one member.
+             */
+            itemId?: number;
+        };
         /** @description Request object for base64 file upload */
         Base64FileUploadRequestDto: {
             /** @description Name of the file */

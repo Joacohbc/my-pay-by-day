@@ -64,6 +64,18 @@ export interface CreatePaymentPlanDto {
   draftIds?: number[];
 }
 
+/**
+ * Links existing events/drafts to a plan. The backend claims one entry per member inside a single
+ * transaction, which is why a batch belongs in one call: resolving the free entries client-side
+ * gives every member the same stale snapshot, so they overwrite each other.
+ */
+export interface AttachToPaymentPlanDto {
+  eventIds?: number[];
+  draftIds?: number[];
+  /** The entry to fill. Only valid with a single member; omitted means the first free one. */
+  itemId?: number;
+}
+
 export interface CreatePaymentPlanItemDto {
   installmentNumber?: number;
   expectedDate: string;
