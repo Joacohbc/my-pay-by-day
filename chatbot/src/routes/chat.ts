@@ -155,6 +155,10 @@ interface ChatBody {
   messages?: UIMessage[];
   scope?: ChatScope;
   scopeCurrentValues?: string;
+  /** Re-runs the generation over the conversation already persisted, appending nothing new. Sent by the
+   * client's retry button after a stream failed: the user's message and every completed step are already
+   * in memory, so re-sending them would duplicate the turn instead of finishing it. */
+  retry?: boolean;
 }
 
 export const chatRoute = new Hono();
@@ -200,11 +204,16 @@ chatRoute.post('/', async (c) => {
   }
   const approvalUIMessages = incoming.filter(isApprovalResponseMessage);
 
-  if (userMessages.length === 0 && approvalUIMessages.length === 0) {
+  const isRetry = body.retry === true;
+
+  if (isRetry) {
+    if (conversationMemory.count(chatId) === 0) return errorJson(c, 'error.nothing_to_retry', 400);
+    log.info('chat retry', { tz: ctx.timezone, lang: ctx.lang });
+  } else if (userMessages.length === 0 && approvalUIMessages.length === 0) {
     return errorJson(c, 'error.message_required', 400);
   }
 
-  if (userMessages.length > 0) {
+  if (!isRetry && userMessages.length > 0) {
     const userText = userMessages
       .map((m) => {
         if (typeof m.content === 'string') return m.content;
@@ -222,7 +231,7 @@ chatRoute.post('/', async (c) => {
     conversationMemory.append(chatId, userMessages, displays);
   }
 
-  if (approvalUIMessages.length > 0) {
+  if (!isRetry && approvalUIMessages.length > 0) {
     // Never trust the client's echoed assistant message wholesale — the tool-call/tool-approval-request
     // it carries is already persisted from the prior turn's onFinish. Extract only the one new fact the
     // client is allowed to report: the approval decision (a 'tool'-role message), and discard the rest.

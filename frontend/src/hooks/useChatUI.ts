@@ -132,8 +132,21 @@ export function useChatUI() {
     () =>
       new DefaultChatTransport({
         api: `${BASE_URL}/ai/chat`,
-        prepareSendMessagesRequest: ({ messages }) => {
+        prepareSendMessagesRequest: ({ messages, trigger }) => {
           const lastMessage = messages[messages.length - 1];
+          const requestHeaders = {
+            'X-Timezone': getUserTimezone(),
+            'X-Language': i18n.language,
+            'X-Currency': getCurrency(),
+            'X-Request-Id': buildChatRequestId(chatId, lastMessage?.id),
+            'X-Source': 'frontend',
+          };
+          // A retry re-runs the failed turn over the conversation the server already persisted, so it
+          // must carry no messages: the user turn and every completed step are already in memory, and
+          // re-sending them would append the turn a second time instead of finishing it.
+          if (trigger === 'regenerate-message') {
+            return { headers: requestHeaders, body: { chatId, messages: [], retry: true } };
+          }
           let newMessages: UIMessage[];
           if (lastMessage?.role === 'assistant') {
             // An approval decision mutates the tool part inside this same trailing assistant
@@ -144,16 +157,23 @@ export function useChatUI() {
             const lastAssistantIndex = [...messages].reverse().findIndex((m) => m.role === 'assistant');
             newMessages = lastAssistantIndex === -1 ? messages : messages.slice(messages.length - lastAssistantIndex);
           }
-          return {
-            headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency(), 'X-Request-Id': buildChatRequestId(chatId, lastMessage?.id), 'X-Source': 'frontend' },
-            body: { chatId, messages: newMessages },
-          };
+          return { headers: requestHeaders, body: { chatId, messages: newMessages } };
         },
       }),
     [chatId],
   );
 
-  const { messages: uiMessages, status, setMessages, sendMessage, stop, addToolApprovalResponse } = useChat({
+  const {
+    messages: uiMessages,
+    status,
+    error,
+    setMessages,
+    sendMessage,
+    regenerate,
+    clearError,
+    stop,
+    addToolApprovalResponse,
+  } = useChat({
     id: chatId,
     transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
@@ -471,12 +491,51 @@ export function useChatUI() {
     [addToolApprovalResponse],
   );
 
+  // askUser is excluded: its approval carries the user's written answer, so it can only be resolved
+  // by the question card itself, never by a blanket approve/reject.
+  const pendingApprovalIds = useMemo(
+    () =>
+      messages
+        .flatMap((message) => message.toolCalls)
+        .filter((call) => call.state === 'approval-requested' && call.name !== 'askUser' && call.approval)
+        .map((call) => call.approval!.id),
+    [messages],
+  );
+
+  const handleApproveAll = useCallback(
+    (approved: boolean) => {
+      for (const approvalId of pendingApprovalIds) addToolApprovalResponse({ id: approvalId, approved });
+    },
+    [pendingApprovalIds, addToolApprovalResponse],
+  );
+
   const handleAskUserAnswer = useCallback(
     (approvalId: string, answer: string) => {
       addToolApprovalResponse({ id: approvalId, approved: true, reason: answer });
     },
     [addToolApprovalResponse],
   );
+
+  // The failed turn is already half-persisted server-side, so a retry first re-reads what actually
+  // landed: a stream that broke after the reply completed needs no retry at all, and everything the
+  // model did before failing must stay visible instead of being regenerated from scratch.
+  const handleRetry = useCallback(async () => {
+    clearError();
+    let history: UIMessage[] | undefined;
+    try {
+      history = await reloadHistory();
+    } catch (error) {
+      chatLog.debug('History reload before retry failed', { error, chatId });
+    }
+    const lastServerMessage = history?.at(-1);
+    const turnAlreadyAnswered = lastServerMessage?.role === 'assistant' && textOf(lastServerMessage).trim().length > 0;
+    if (history?.length === 0 || turnAlreadyAnswered) return;
+    try {
+      await regenerate();
+    } catch (error) {
+      chatLog.error('Chat retry failed', { error, chatId });
+    }
+  }, [clearError, reloadHistory, regenerate, chatId]);
 
   const handleAddFiles = (files: FileDto[]) => setDraftFiles([...draftFiles, ...files]);
   const handleAddFile = (file: FileDto) => handleAddFiles([file]);
@@ -489,6 +548,8 @@ export function useChatUI() {
     input,
     setInput,
     isPending,
+    streamError: error,
+    handleRetry,
     isClearing,
     isExtracting,
     messageCount,
@@ -504,6 +565,8 @@ export function useChatUI() {
     handleQuickCreate,
     handleToolApproval,
     handleAskUserAnswer,
+    pendingApprovalIds,
+    handleApproveAll,
     handleNewChat,
     handleClearMemory,
     handleDeleteMessage,

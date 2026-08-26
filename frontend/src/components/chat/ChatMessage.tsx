@@ -175,14 +175,13 @@ export function ChatMessage({ message, onDelete, onApprove, onAskUserAnswer }: C
     }
 
     if (call.state === 'approval-requested') {
-      const callArgs = call.args as { draftId?: number; eventId?: number } | undefined;
       return (
         <InlineToolApprovalCard
           key={call.toolCallId ?? `approval-${idx}`}
-          toolLabel={toolFriendlyNames[call.name] || call.name}
+          toolName={call.name}
+          fallbackLabel={toolFriendlyNames[call.name] || call.name}
+          args={call.args}
           approvalId={call.approval!.id}
-          draftId={callArgs?.draftId}
-          eventId={callArgs?.eventId}
           onApprove={(id) => onApprove?.(id, true)}
           onReject={(id) => onApprove?.(id, false)}
         />

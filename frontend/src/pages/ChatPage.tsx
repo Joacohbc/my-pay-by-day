@@ -7,6 +7,8 @@ import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
 import { ChatList } from '@/components/chat/ChatList';
+import { ChatErrorCard } from '@/components/chat/ChatErrorCard';
+import { BulkApprovalBar } from '@/components/chat/BulkApprovalBar';
 import { TasksPanel } from '@/components/agent-tasks/TasksPanel';
 import { useChatStore } from '@/store/chatStore';
 
@@ -19,6 +21,8 @@ export function ChatPage() {
     input,
     setInput,
     isPending,
+    streamError,
+    handleRetry,
     isClearing,
     messageCount,
     maxMessages,
@@ -32,6 +36,8 @@ export function ChatPage() {
     handleQuickCreate,
     handleToolApproval,
     handleAskUserAnswer,
+    pendingApprovalIds,
+    handleApproveAll,
     handleNewChat,
     handleClearMemory,
     handleDeleteMessage,
@@ -50,6 +56,7 @@ export function ChatPage() {
 
   const lastMessage = messages.at(-1);
   const hasPendingApproval = lastMessage?.toolCalls?.some((tc) => tc.state === 'approval-requested') ?? false;
+  const showBulkApproval = pendingApprovalIds.length > 1;
   const showContinueCard =
     !isPending && lastMessage?.role === 'assistant' && lastMessage.stoppedByStepLimit && !hasPendingApproval;
 
@@ -165,6 +172,12 @@ export function ChatPage() {
                   </div>
                 )}
 
+                {streamError && (
+                  <div className="max-w-4xl mx-auto px-4 md:px-8 mt-4">
+                    <ChatErrorCard error={streamError} onRetry={handleRetry} />
+                  </div>
+                )}
+
                 {showContinueCard && (
                   <div className="max-w-4xl mx-auto px-4 md:px-8 mt-4">
                     <Card className="flex items-center gap-2 text-sm text-dn-text-main border border-dn-warning/30 bg-dn-warning/5">
@@ -176,6 +189,14 @@ export function ChatPage() {
 
                 <div ref={messagesEndRef} className="h-8" />
               </div>
+
+              {showBulkApproval && (
+                <BulkApprovalBar
+                  pendingCount={pendingApprovalIds.length}
+                  onApproveAll={() => handleApproveAll(true)}
+                  onRejectAll={() => handleApproveAll(false)}
+                />
+              )}
 
               <ChatInput
                 inputContent={input}
