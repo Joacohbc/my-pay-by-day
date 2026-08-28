@@ -208,6 +208,8 @@ export interface FinanceEventDraftInputDto {
   categoryId?: number;
   tagIds?: number[];
   lineItems?: { financeNodeId: number; amount: number }[];
+  /** Replaces the draft's attachments; omit to keep the ones it already has. */
+  fileIds?: number[];
 }
 
 export type DraftConfirmMode = 'MERGE' | 'CREATE_ONLY';

@@ -72,8 +72,6 @@ export const paymentPlanKeys = {
   all: ['paymentPlans'] as const,
   lists: () => [...paymentPlanKeys.all, 'list'] as const,
   detail: (id: number) => [...paymentPlanKeys.all, 'detail', id] as const,
-  items: (planId: number) => [...paymentPlanKeys.detail(planId), 'items'] as const,
-  item: (planId: number, itemId: number) => [...paymentPlanKeys.items(planId), itemId] as const,
 };
 
 export const templateKeys = {

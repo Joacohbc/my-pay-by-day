@@ -12,6 +12,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
+import com.mypaybyday.dto.AttachToPaymentPlanDto;
 import com.mypaybyday.dto.CreatePaymentPlanDto;
 import com.mypaybyday.dto.CreatePaymentPlanItemDto;
 import com.mypaybyday.dto.ErrorResponseDto;
@@ -107,30 +108,6 @@ public class PaymentPlanResource {
 		return RestResponse.ok(paymentPlanService.update(id, dto));
 	}
 
-	@GET
-	@Path("/{id}/items")
-	@Operation(summary = "List the items of a payment plan", description = "Retrieves every scheduled item / cuota of a payment plan, ordered by installment number.")
-	@APIResponses({
-		@APIResponse(responseCode = "200", description = "Items retrieved successfully"),
-		@APIResponse(responseCode = "404", description = "Payment plan not found",
-				content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
-	})
-	public RestResponse<List<PaymentPlanItemDto>> listItems(@PathParam("id") Long id) throws BusinessException {
-		return RestResponse.ok(paymentPlanService.listItems(id));
-	}
-
-	@GET
-	@Path("/{id}/items/{itemId}")
-	@Operation(summary = "Get a payment plan item by ID", description = "Retrieves a single scheduled item / cuota of a payment plan.")
-	@APIResponses({
-		@APIResponse(responseCode = "200", description = "Item found"),
-		@APIResponse(responseCode = "404", description = "Payment plan or item not found",
-				content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
-	})
-	public RestResponse<PaymentPlanItemDto> findItemById(@PathParam("id") Long id, @PathParam("itemId") Long itemId) throws BusinessException {
-		return RestResponse.ok(paymentPlanService.findItemById(id, itemId));
-	}
-
 	@POST
 	@Path("/{id}/items")
 	@Operation(summary = "Create a payment plan item", description = "Adds a scheduled item / cuota to a payment plan. The installment number is assigned automatically when omitted.")
@@ -143,6 +120,21 @@ public class PaymentPlanResource {
 	})
 	public RestResponse<PaymentPlanItemDto> createItem(@PathParam("id") Long id, CreatePaymentPlanItemDto dto) throws BusinessException {
 		return RestResponse.status(RestResponse.Status.CREATED, paymentPlanService.createItem(id, dto));
+	}
+
+	@POST
+	@Path("/{id}/items/attach")
+	@Operation(summary = "Attach events or drafts to a payment plan",
+			description = "Links existing events and/or drafts to the plan in a single transaction: each member fills the first free entry, the entry named by itemId, or a newly opened one when none is free. The whole batch succeeds or fails together.")
+	@APIResponses({
+		@APIResponse(responseCode = "200", description = "Members attached successfully"),
+		@APIResponse(responseCode = "400", description = "Invalid attachment request",
+				content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
+		@APIResponse(responseCode = "404", description = "Payment plan, item, event or draft not found",
+				content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
+	})
+	public RestResponse<PaymentPlanDto> attachMembers(@PathParam("id") Long id, AttachToPaymentPlanDto dto) throws BusinessException {
+		return RestResponse.ok(paymentPlanService.attachMembers(id, dto));
 	}
 
 	@PUT

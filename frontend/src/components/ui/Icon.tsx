@@ -14,3 +14,4 @@ export function Icon({ name, className = '' }: IconProps) {
 export const TimePeriodIcon = () => <Icon name="calendar_month" />;
 export const StarIcon = () => <Icon name="star" />;
 export const StarFilledIcon = () => <Icon name="star" className="text-dn-warning" />;
+export const AttachmentIcon = ({ className }: { className?: string }) => <Icon name="attach_file" className={className} />;

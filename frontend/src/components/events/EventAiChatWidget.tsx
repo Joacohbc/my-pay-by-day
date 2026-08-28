@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { AiChatWidget } from '@/components/ui/AiChatWidget';
 import { ChatMessage } from '@/components/chat/ChatMessage';
+import { ChatErrorCard } from '@/components/chat/ChatErrorCard';
 import { useEntityChat } from '@/hooks/useEntityChat';
 
 interface EventAiChatWidgetProps {
@@ -26,6 +27,8 @@ export function EventAiChatWidget({ draftId, onEnsureDraft, onDraftIdResolved, o
     handleRemoveFile,
     handleToolApproval,
     handleAskUserAnswer,
+    streamError,
+    handleRetry,
     countdown,
     triggerSendNow,
     handleStop,
@@ -59,6 +62,7 @@ export function EventAiChatWidget({ draftId, onEnsureDraft, onDraftIdResolved, o
       {messages.map((message) => (
         <ChatMessage key={message.id} message={message} onApprove={handleToolApproval} onAskUserAnswer={handleAskUserAnswer} />
       ))}
+      {streamError && <ChatErrorCard error={streamError} onRetry={handleRetry} />}
     </AiChatWidget>
   );
 }

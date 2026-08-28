@@ -49,6 +49,16 @@ async function upsertDraftForEvent(
   return { ok: true, draftId: updated.id, originalEventId: updated.originalEntityId ?? undefined };
 }
 
+/**
+ * Attaches the files the current turn arrived with, unless the model chose the attachments itself.
+ * The user uploading a receipt is what links it to the event they are creating from it — expecting
+ * the model to copy the ids across would lose the file whenever it forgets.
+ */
+function withTurnAttachments<T extends { fileIds?: number[] | null }>(input: T, attachedFileIds: number[] | undefined): T {
+  if (input.fileIds != null || attachedFileIds == null || attachedFileIds.length === 0) return input;
+  return { ...input, fileIds: attachedFileIds };
+}
+
 export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
   const client = createApiClient(ctx);
   // When the chat is scoped to a draft/event open in a form (ctx.scope), the write tools below are
@@ -252,13 +262,16 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
           'no-op — confirming that draft creates a brand-new duplicate event instead of updating the original. ' +
           'If you are unsure whether you are editing or creating, resolve the event id first (searchEvents/getEvent) ' +
           'and pass targetEventId. Provide the full lineItems list (2 for a simple purchase, 3+ for a split), ' +
-          'category, tags and date. ' +
+          'category, tags and date. Files sent with this message attach automatically; to attach one uploaded ' +
+          'earlier in the conversation, find its fileId with getWorkspaceInfo (or listFiles for the whole library) ' +
+          'and pass it explicitly. ' +
           'CRITICAL FOR PAYMENT PLANS & GROUPS: Creating a draft does NOT automatically assign it to a payment plan, ' +
           'group, or installment (cuota). If this draft belongs to a payment plan or group, you MUST also call addToPaymentPlan ' +
-          'with planId and draftId (or eventId once confirmed) to assign it to that group/plan/cuota.',
+          'with planId and draftIds (or eventIds once confirmed) to assign it to that group/plan/cuota.',
         inputSchema: botEventInputSchema.extend({ targetEventId: NumericId.nullish() }),
-        execute: ({ targetEventId, ...input }) =>
+        execute: ({ targetEventId, ...rawInput }) =>
           safe(async () => {
+            const input = withTurnAttachments(rawInput, ctx.attachedFileIds);
             // A draft is already open in the form: never spawn a second one, always fold the request into it.
             if (scope?.type === 'draft') {
               return patchDraftById(client, scope.id, { targetEventId, ...input }, ctx.timezone);
@@ -355,15 +368,18 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
       tool: tool({
         description:
           'Edit an existing finance event in place. Only the provided fields change; supports name, description, ' +
-          'type, category, tags, date and lineItems. To change the amount or a node, send the FULL lineItems list ' +
-          '(fetch it with getEvent first if you only need to tweak one item) — it always replaces the current list ' +
-          'wholesale, it does not merge item-by-item. ' +
+          'type, category, tags, date, lineItems and fileIds. Files the user sent with their message are attached ' +
+          'automatically; to attach a different file (including one uploaded earlier in the conversation, found via ' +
+          'getWorkspaceInfo or listFiles) or to replace the list, pass fileIds explicitly. To change the amount ' +
+          'or a node, send the FULL lineItems list (fetch it with getEvent first if you only need to tweak one item) ' +
+          '— it always replaces the current list wholesale, it does not merge item-by-item. ' +
           'CRITICAL FOR PAYMENT PLANS & GROUPS: Updating or creating an event does NOT automatically assign it to a ' +
           'payment plan, group, or installment (cuota). If this event belongs to a group or payment plan, you MUST call ' +
           'addToPaymentPlan to assign it.',
         inputSchema: botEventPatchSchema,
-        execute: ({ eventId, ...patch }) =>
+        execute: ({ eventId, ...rawPatch }) =>
           safe(async () => {
+            const patch = withTurnAttachments(rawPatch, ctx.attachedFileIds);
             // The scoped event id always wins over whatever eventId the model picked, so an open form can
             // never be silently patched onto the wrong event.
             const resolvedEventId = scope?.type === 'event' ? scope.id : eventId;

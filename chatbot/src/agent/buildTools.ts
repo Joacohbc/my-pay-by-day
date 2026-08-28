@@ -5,6 +5,7 @@ import { currentRequestFields, runWithRequestContext } from '@/logging/requestSt
 import { buildCalculatorTools } from '@/tools/calculator.js';
 import { buildConversationTools } from '@/tools/conversations.js';
 import { buildDateTools } from '@/tools/dates.js';
+import { buildFileTools } from '@/tools/files.js';
 import { buildFinanceTools } from '@/tools/finance.js';
 import { buildMemoryTools } from '@/tools/memory.js';
 import { buildPaymentPlanTools } from '@/tools/paymentPlans.js';
@@ -124,6 +125,7 @@ function withToolLogging(toolSet: KindedToolSet, requestId: string): KindedToolS
 export function buildAllTools(ctx: RequestContext, extra: KindedToolSet = {}): KindedToolSet {
   return withToolLogging({
     ...buildDateTools(ctx),
+    ...buildFileTools(ctx),
     ...buildFinanceTools(ctx),
     ...buildPaymentPlanTools(ctx),
     ...buildMemoryTools(),

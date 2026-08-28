@@ -19,5 +19,6 @@ public record FinanceEventDraftInputDto(
 	LocalDateTime transactionDate,
 	Long categoryId,
 	List<Long> tagIds,
-	List<FinanceLineItemDto> lineItems
+	List<FinanceLineItemDto> lineItems,
+	List<Long> fileIds
 ) {}

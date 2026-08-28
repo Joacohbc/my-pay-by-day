@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CreatePaymentPlanDto, FinanceEvent, PaymentPlan } from '@/models';
-import { useCreatePaymentPlan, useAddEventToGroupPlan, usePaymentPlans } from '@/hooks/usePaymentPlans';
-import { addEventsToGroupPlan } from '@/lib/groupPlanHelpers';
+import { useCreatePaymentPlan, useAttachToPaymentPlan, usePaymentPlans } from '@/hooks/usePaymentPlans';
 import { getLocalizedTodayString } from '@/lib/format';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -36,7 +35,7 @@ export function AssignSelectionToGroupModal({
   const { t } = useTranslation();
   const { data: plans = [] } = usePaymentPlans();
   const createGroupPlan = useCreatePaymentPlan();
-  const addEventToGroup = useAddEventToGroupPlan();
+  const attachToPlan = useAttachToPaymentPlan();
 
   const [targetPlanValue, setTargetPlanValue] = useState<string>(NEW_GROUP_VALUE);
   const [nameOverride, setNameOverride] = useState('');
@@ -62,7 +61,10 @@ export function AssignSelectionToGroupModal({
 
   const assignToExistingPlan = async (plan: PaymentPlan) => {
     try {
-      await addEventsToGroupPlan(plan, selectedEvents, addEventToGroup.mutateAsync);
+      await attachToPlan.mutateAsync({
+        planId: plan.id,
+        dto: { eventIds: selectedEvents.map((selectedEvent) => selectedEvent.id) },
+      });
     } catch {
       return;
     }
@@ -99,7 +101,7 @@ export function AssignSelectionToGroupModal({
     if (plan) assignToExistingPlan(plan);
   };
 
-  const isPending = createGroupPlan.isPending || addEventToGroup.isPending;
+  const isPending = createGroupPlan.isPending || attachToPlan.isPending;
 
   return (
     <Modal

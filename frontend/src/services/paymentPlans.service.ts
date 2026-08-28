@@ -1,4 +1,10 @@
-import type { CreatePaymentPlanDto, CreatePaymentPlanItemDto, PaymentPlan, PaymentPlanItem } from '@/models';
+import type {
+  AttachToPaymentPlanDto,
+  CreatePaymentPlanDto,
+  CreatePaymentPlanItemDto,
+  PaymentPlan,
+  PaymentPlanItem,
+} from '@/models';
 import { api } from '@/services/api';
 
 export const paymentPlansService = {
@@ -9,14 +15,12 @@ export const paymentPlansService = {
   cancel: (id: number): Promise<PaymentPlan> => api.post<PaymentPlan>(`/payment-plans/${id}/cancel`),
   delete: (id: number): Promise<void> => api.delete<void>(`/payment-plans/${id}`),
 
-  listItems: (planId: number): Promise<PaymentPlanItem[]> =>
-    api.get<PaymentPlanItem[]>(`/payment-plans/${planId}/items`),
-  getItemById: (planId: number, itemId: number): Promise<PaymentPlanItem> =>
-    api.get<PaymentPlanItem>(`/payment-plans/${planId}/items/${itemId}`),
   createItem: (planId: number, data: CreatePaymentPlanItemDto): Promise<PaymentPlanItem> =>
     api.post<PaymentPlanItem>(`/payment-plans/${planId}/items`, data),
   updateItem: (planId: number, itemId: number, data: CreatePaymentPlanItemDto): Promise<PaymentPlanItem> =>
     api.put<PaymentPlanItem>(`/payment-plans/${planId}/items/${itemId}`, data),
+  attachMembers: (planId: number, data: AttachToPaymentPlanDto): Promise<PaymentPlan> =>
+    api.post<PaymentPlan>(`/payment-plans/${planId}/items/attach`, data),
   deleteItem: (planId: number, itemId: number): Promise<void> =>
     api.delete<void>(`/payment-plans/${planId}/items/${itemId}`),
 };

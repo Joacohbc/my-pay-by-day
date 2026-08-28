@@ -72,6 +72,28 @@ function approvalReasonsByApprovalId(history: ModelMessage[]): Map<string, strin
   return reasons;
 }
 
+/** Maps approvalId -> the decision, for every approval the user actually answered. Unlike the
+ * reasons map this records rejections and answers without a reason too, which is what tells a
+ * reload that an approval is settled even when its tool never produced an output. */
+function approvalDecisionsByApprovalId(history: ModelMessage[]): Map<string, boolean> {
+  const decisions = new Map<string, boolean>();
+  for (const message of history) {
+    if (message.role !== 'tool' || !Array.isArray(message.content)) continue;
+    for (const part of message.content) {
+      if (part.type === 'tool-approval-response') decisions.set(part.approvalId, part.approved);
+    }
+  }
+  return decisions;
+}
+
+/** The stored files this turn arrived with, so a draft it produces keeps them attached. */
+function attachedFileIdsOf(userUIMessages: UIMessage[]): number[] {
+  return userUIMessages
+    .flatMap(fileRefsOf)
+    .map((ref) => ref.fileId)
+    .filter((fileId): fileId is number => fileId != null);
+}
+
 function isApprovalResponseMessage(message: UIMessage): boolean {
   return message.role === 'assistant' && message.parts.some((part) => 'state' in part && part.state === 'approval-responded');
 }
@@ -133,6 +155,10 @@ interface ChatBody {
   messages?: UIMessage[];
   scope?: ChatScope;
   scopeCurrentValues?: string;
+  /** Re-runs the generation over the conversation already persisted, appending nothing new. Sent by the
+   * client's retry button after a stream failed: the user's message and every completed step are already
+   * in memory, so re-sending them would duplicate the turn instead of finishing it. */
+  retry?: boolean;
 }
 
 export const chatRoute = new Hono();
@@ -146,7 +172,14 @@ chatRoute.post('/', async (c) => {
   const body = (await c.req.json()) as ChatBody;
   const chatId = body.chatId ?? body.id;
   if (!chatId) return errorJson(c, 'error.chat_id_required', 400);
-  const ctx = { ...requestContextFrom(c), chatId, scope: body.scope };
+  const incoming = body.messages ?? [];
+  const userUIMessages = incoming.filter((m) => m.role === 'user');
+  const ctx = {
+    ...requestContextFrom(c),
+    chatId,
+    scope: body.scope,
+    attachedFileIds: attachedFileIdsOf(userUIMessages),
+  };
   const log = chatLog.with({ requestId: ctx.requestId, chatId });
 
   const chatTools = toolsForModeWithApproval(
@@ -159,8 +192,6 @@ chatRoute.post('/', async (c) => {
     CHAT_APPROVAL_KINDS,
   );
 
-  const incoming = body.messages ?? [];
-  const userUIMessages = incoming.filter((m) => m.role === 'user');
   const userMessages = await convertToModelMessages(userUIMessages);
   const conversionIsOneToOne = userMessages.length === userUIMessages.length;
   if (conversionIsOneToOne) {
@@ -173,11 +204,16 @@ chatRoute.post('/', async (c) => {
   }
   const approvalUIMessages = incoming.filter(isApprovalResponseMessage);
 
-  if (userMessages.length === 0 && approvalUIMessages.length === 0) {
+  const isRetry = body.retry === true;
+
+  if (isRetry) {
+    if (conversationMemory.count(chatId) === 0) return errorJson(c, 'error.nothing_to_retry', 400);
+    log.info('chat retry', { tz: ctx.timezone, lang: ctx.lang });
+  } else if (userMessages.length === 0 && approvalUIMessages.length === 0) {
     return errorJson(c, 'error.message_required', 400);
   }
 
-  if (userMessages.length > 0) {
+  if (!isRetry && userMessages.length > 0) {
     const userText = userMessages
       .map((m) => {
         if (typeof m.content === 'string') return m.content;
@@ -195,7 +231,7 @@ chatRoute.post('/', async (c) => {
     conversationMemory.append(chatId, userMessages, displays);
   }
 
-  if (approvalUIMessages.length > 0) {
+  if (!isRetry && approvalUIMessages.length > 0) {
     // Never trust the client's echoed assistant message wholesale — the tool-call/tool-approval-request
     // it carries is already persisted from the prior turn's onFinish. Extract only the one new fact the
     // client is allowed to report: the approval decision (a 'tool'-role message), and discard the rest.

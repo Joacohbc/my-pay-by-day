@@ -56,8 +56,8 @@ function findItem(plan: PaymentPlan, itemId: number): PaymentPlanItem | undefine
   return (plan.items ?? []).find((item) => item.id === itemId);
 }
 
-function nextInstallmentNumber(plan: PaymentPlan): number {
-  return (plan.items ?? []).reduce((max, item) => Math.max(max, item.installmentNumber ?? 0), 0) + 1;
+function memberCountOf(input: { eventIds?: number[] | null; draftIds?: number[] | null }): number {
+  return (input.eventIds?.length ?? 0) + (input.draftIds?.length ?? 0);
 }
 
 /**
@@ -159,48 +159,6 @@ function describePlan(plan: PaymentPlan) {
 export function buildPaymentPlanTools(ctx: RequestContext): KindedToolSet {
   const client = createApiClient(ctx);
 
-  function createItem(planId: number, body: { installmentNumber: number; expectedDate: string; itemStatus?: PaymentPlanItem['itemStatus']; eventId?: number; draftId?: number }) {
-    return unwrap(client.POST('/payment-plans/{id}/items', { params: { path: { id: planId } }, body }));
-  }
-
-  /**
-   * The backend silently skips an eventId/draftId that does not exist, so the created plan is
-   * read back and any id missing from its items is reported rather than leaving the group
-   * looking complete.
-   */
-  function missingGroupMembers(plan: PaymentPlan, eventIds: number[], draftIds: number[]) {
-    const linkedEventIds = new Set((plan.items ?? []).map((item) => item.eventId).filter((id): id is number => id != null));
-    const linkedDraftIds = new Set((plan.items ?? []).map((item) => item.draftId).filter((id): id is number => id != null));
-    return [...eventIds.filter((id) => !linkedEventIds.has(id)), ...draftIds.filter((id) => !linkedDraftIds.has(id))];
-  }
-
-  async function resolveTargetItem(plan: PaymentPlan, itemId: number | null | undefined) {
-    if (isClosed(plan)) {
-      throw new BackendError(
-        400,
-        `Plan ${plan.id} ("${plan.name}") has status ${plan.status} and is closed. Reopen it (status ACTIVE) before attaching anything to it.`,
-      );
-    }
-
-    if (itemId != null) {
-      const requested = findItem(plan, itemId);
-      if (!requested) throw new BackendError(404, `Payment plan item not found: ${itemId}`);
-      return requested;
-    }
-
-    const freeItem = (plan.items ?? []).find((item) => item.eventId == null && item.draftId == null);
-    if (freeItem) return freeItem;
-
-    if (!hasRoomForAnotherItem(plan)) {
-      throw new BackendError(
-        400,
-        `Plan ${plan.id} ("${plan.name}") is split into ${plan.totalInstallments} cuotas and already has them all, so no entry is free.`,
-      );
-    }
-
-    return createItem(plan.id, { installmentNumber: nextInstallmentNumber(plan), expectedDate: plan.startDate });
-  }
-
   return {
     // ===================== READ =====================
     listPaymentPlans: {
@@ -267,15 +225,7 @@ export function buildPaymentPlanTools(ctx: RequestContext): KindedToolSet {
               }),
             );
 
-            const missing = missingGroupMembers(plan, eventIds, draftIds);
-
-            return {
-              ...describePlan(plan),
-              linkedCount: (plan.items ?? []).length,
-              ...(missing.length > 0 && {
-                warning: `These ids do not exist and were not linked: ${missing.join(', ')}`,
-              }),
-            };
+            return { ...describePlan(plan), linkedCount: (plan.items ?? []).length };
           }),
       }),
     },
@@ -413,48 +363,32 @@ export function buildPaymentPlanTools(ctx: RequestContext): KindedToolSet {
       ui: { invalidates: PLAN_LINK_DOMAINS, label: { en: 'Adding to payment plan...', es: 'Agregando al plan de pago...' } },
       tool: tool({
         description:
-          'Attach an existing event or draft to a plan of any kind, and mark that entry as paid. Pass eventId OR draftId, ' +
-          'never both. In a group or a custom plan this adds a new entry; in a cuota or subscription plan it fills the first ' +
-          'cuota that has no event yet, the one named by itemId, or a new cycle when none is free. This is the tool for ' +
-          '"add this expense to the trip group" and for "this payment covers cuota 3". Fails on a COMPLETED or CANCELLED ' +
-          'plan — reopen it to ACTIVE with updatePaymentPlan first.',
+          'Attach existing events and/or drafts to a plan of any kind, and mark those entries as paid. Pass every member of ' +
+          'the batch in one call: the backend fills the entries in a single transaction, so attaching six events here is ' +
+          'correct while six separate calls would race and overwrite each other. In a group or a custom plan each member ' +
+          'adds a new entry; in a cuota or subscription plan each fills the next cuota that has no event yet, or opens a new ' +
+          'cycle when none is free. Use itemId only to say "this payment covers cuota 3", which means a single member. ' +
+          'Fails on a COMPLETED or CANCELLED plan — reopen it to ACTIVE with updatePaymentPlan first.',
         inputSchema: z
           .object({
             planId: NumericId,
-            eventId: NumericId.nullish(),
-            draftId: NumericId.nullish(),
-            itemId: NumericId.nullish().describe('The specific entry to fill. Defaults to the first one with no event.'),
+            eventIds: z.array(NumericId).nullish().describe('Every event to attach, in the order they should fill the plan.'),
+            draftIds: z.array(NumericId).nullish().describe('Every draft to attach, in the order they should fill the plan.'),
+            itemId: NumericId.nullish().describe('The specific entry to fill. Only valid when attaching exactly one member.'),
           })
-          .refine((input) => (input.eventId == null) !== (input.draftId == null), {
-            error: 'Pass exactly one of eventId or draftId.',
+          .refine((input) => memberCountOf(input) > 0, { error: 'Pass at least one eventId or draftId.' })
+          .refine((input) => input.itemId == null || memberCountOf(input) === 1, {
+            error: 'itemId names a single entry, so it can only be used when attaching exactly one event or draft.',
           }),
-        execute: ({ planId, eventId, draftId, itemId }) =>
+        execute: ({ planId, eventIds, draftIds, itemId }) =>
           safe(async () => {
-            const plan = await fetchPlan(client, planId);
-            const target = await resolveTargetItem(plan, itemId);
-            const updated = await putItem(
-              client,
-              planId,
-              target.id,
-              mergeItemPatch(
-                target,
-                {
-                  itemStatus: eventId != null ? 'PAID' : 'DRAFTED',
-                  eventId: eventId ?? undefined,
-                  draftId: draftId ?? undefined,
-                },
-                { keepCurrent: false },
-              ),
+            const updated = await unwrap(
+              client.POST('/payment-plans/{id}/items/attach', {
+                params: { path: { id: planId } },
+                body: { eventIds: eventIds ?? [], draftIds: draftIds ?? [], itemId: itemId ?? undefined },
+              }),
             );
-            return {
-              ok: true,
-              planId,
-              planName: plan.name,
-              itemId: updated.id,
-              installmentNumber: updated.installmentNumber,
-              eventId: updated.eventId ?? undefined,
-              draftId: updated.draftId ?? undefined,
-            };
+            return describePlan(updated);
           }),
       }),
     },

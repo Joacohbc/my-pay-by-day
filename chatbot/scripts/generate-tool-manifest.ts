@@ -7,6 +7,7 @@ import { buildCalculatorTools } from '@/tools/calculator.js';
 import { buildConversationTools } from '@/tools/conversations.js';
 import { buildDateTools } from '@/tools/dates.js';
 import { buildDelegateTools } from '@/tools/delegate.js';
+import { buildFileTools } from '@/tools/files.js';
 import { buildFinanceTools } from '@/tools/finance.js';
 import { buildInteractionTools } from '@/tools/interaction.js';
 import { buildMemoryTools } from '@/tools/memory.js';
@@ -20,6 +21,7 @@ const stubContext: RequestContext = { timezone: 'UTC', lang: 'en', currency: 'US
 function collectAllTools(): KindedToolSet {
   return {
     ...buildDateTools(stubContext),
+    ...buildFileTools(stubContext),
     ...buildFinanceTools(stubContext),
     ...buildPaymentPlanTools(stubContext),
     ...buildMemoryTools(),

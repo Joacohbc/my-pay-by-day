@@ -1,8 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FinanceEvent, PaymentPlan } from '@/models';
-import { useAddEventToGroupPlan } from '@/hooks/usePaymentPlans';
-import { addEventsToGroupPlan } from '@/lib/groupPlanHelpers';
+import { useAttachToPaymentPlan } from '@/hooks/usePaymentPlans';
 import { useAlert } from '@/contexts/AlertContext';
 
 const MIN_EVENTS_TO_GROUP = 2;
@@ -16,7 +15,7 @@ const MIN_EVENTS_TO_GROUP = 2;
 export function useEventGroupSelection(events: FinanceEvent[], planByEventId: Map<number, PaymentPlan>) {
   const { t } = useTranslation();
   const alert = useAlert();
-  const addEventToGroup = useAddEventToGroupPlan();
+  const attachToPlan = useAttachToPaymentPlan();
 
   const [selectedEventIds, setSelectedEventIds] = useState<Set<number>>(new Set());
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -74,19 +73,22 @@ export function useEventGroupSelection(events: FinanceEvent[], planByEventId: Ma
 
     const [targetPlan] = plansInSelection.values();
     try {
-      await addEventsToGroupPlan(targetPlan, ungroupedEvents, addEventToGroup.mutateAsync);
+      await attachToPlan.mutateAsync({
+        planId: targetPlan.id,
+        dto: { eventIds: ungroupedEvents.map((ungroupedEvent) => ungroupedEvent.id) },
+      });
     } catch {
       return;
     }
     cancelSelection();
-  }, [selectedEvents, planByEventId, addEventToGroup, alert, t, cancelSelection]);
+  }, [selectedEvents, planByEventId, attachToPlan, alert, t, cancelSelection]);
 
   return {
     selectedEventIds,
     selectedEvents,
     isSelectionMode,
     isAssignModalOpen,
-    isAddingToGroup: addEventToGroup.isPending,
+    isAddingToGroup: attachToPlan.isPending,
     startSelection,
     toggleSelected,
     cancelSelection,

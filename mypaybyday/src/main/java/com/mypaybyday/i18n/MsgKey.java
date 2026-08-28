@@ -97,6 +97,8 @@ public enum MsgKey {
 	PAYMENT_PLAN_TEMPLATE_NOT_FOUND("error.payment_plan.template_not_found"),
 	PAYMENT_PLAN_NOT_CANCELLED_FOR_DELETE("error.payment_plan.not_cancelled_for_delete"),
 	PAYMENT_PLAN_STATUS_NOT_ALLOWED_FOR_TYPE("error.payment_plan.status_not_allowed_for_type"),
+	PAYMENT_PLAN_ATTACH_MEMBERS_REQUIRED("error.payment_plan.attach_members_required"),
+	PAYMENT_PLAN_ATTACH_TARGET_ITEM_AMBIGUOUS("error.payment_plan.attach_target_item_ambiguous"),
 
 	// ── PaymentPlanItemEntity ──────────────────────────────────
 	PAYMENT_PLAN_ITEM_NOT_FOUND("error.payment_plan_item.not_found"),

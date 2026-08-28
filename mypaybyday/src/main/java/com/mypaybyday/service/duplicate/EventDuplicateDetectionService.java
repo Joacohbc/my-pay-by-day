@@ -55,7 +55,10 @@ public class EventDuplicateDetectionService {
 	@Transactional
 	public void detectDuplicates(Long eventId) {
 		FinanceEventEntity event = eventRepository.findById(eventId);
-		if (event == null) return;
+		if (event == null) {
+			discardDuplicateRecordsFor(eventId);
+			return;
+		}
 
 		LOG.infof("Starting duplicate detection for Event %d: %s", event.id, event.name);
 
@@ -175,6 +178,18 @@ public class EventDuplicateDetectionService {
 		if (event != null) {
 			eventRepository.delete(event);
 		}
+	}
+
+	/**
+	 * Deletes every duplicate record — pending or already resolved — that names an event id which no
+	 * longer resolves to anything. Reached only when {@link #detectDuplicates} was triggered for an id
+	 * that just got deleted: there is nothing left to compare it against, so any record still pointing
+	 * at it (on either side of the pair, including ones from a different pairing than whatever the
+	 * caller was resolving) is stale rather than pending.
+	 */
+	private void discardDuplicateRecordsFor(Long eventId) {
+		long deleted = duplicateRecordRepository.deleteAllByEntity(EntityType.FINANCE_EVENT, eventId);
+		if (deleted > 0) LOG.infof("Discarded %d stale duplicate record(s) for deleted Event %d", deleted, eventId);
 	}
 
 	private double calculateDateScore(FinanceEventEntity e1, FinanceEventEntity e2, int thresholdMinutes) {

@@ -50,7 +50,11 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-async function toFilePart(file: FileDto): Promise<FileUIPart> {
+/** Keeps the inline data URL (needed for vision) while also carrying the backend identity
+ * (fileId/typeLabel) so the persisted history can reference the real stored file instead of
+ * the base64 copy — matches useChatUI.ts's toFilePart, which this widget's uploads must also
+ * satisfy for withTurnAttachments to auto-attach them to the draft being created. */
+async function toFilePart(file: FileDto): Promise<FileUIPart & { fileId: number; typeLabel?: string }> {
   const response = await fetch(filesService.getContentUrl(file.id));
   const blob = await response.blob();
   return {
@@ -58,6 +62,8 @@ async function toFilePart(file: FileDto): Promise<FileUIPart> {
     mediaType: file.mimeType || blob.type || 'image/jpeg',
     url: await blobToDataUrl(blob),
     filename: file.fileName,
+    fileId: file.id,
+    typeLabel: file.typeLabel,
   };
 }
 
@@ -89,8 +95,23 @@ export function useEntityChat({
   }, [buildContext]);
 
   const prepareSendMessagesRequest = useCallback(
-    ({ messages }: { messages: UIMessage[] }) => {
+    ({ messages, trigger }: { messages: UIMessage[]; trigger: 'submit-message' | 'regenerate-message' }) => {
       const lastMessage = messages[messages.length - 1];
+      const requestHeaders = {
+        'X-Timezone': getUserTimezone(),
+        'X-Language': i18n.language,
+        'X-Currency': getCurrency(),
+        'X-Request-Id': buildChatRequestId(chatId, lastMessage?.id),
+        'X-Source': 'frontend',
+      };
+      const scope = resolvedScopeId.current ? { type: scopeType, id: resolvedScopeId.current } : undefined;
+      // See useChatUI: a retry re-runs the turn the server already persisted, so it sends no messages.
+      if (trigger === 'regenerate-message') {
+        return {
+          headers: requestHeaders,
+          body: { chatId, messages: [], retry: true, scope, scopeCurrentValues: buildContextRef.current() },
+        };
+      }
       let newMessages: UIMessage[];
       if (lastMessage?.role === 'assistant') {
         newMessages = [lastMessage];
@@ -99,13 +120,8 @@ export function useEntityChat({
         newMessages = lastAssistantIndex === -1 ? messages : messages.slice(messages.length - lastAssistantIndex);
       }
       return {
-        headers: { 'X-Timezone': getUserTimezone(), 'X-Language': i18n.language, 'X-Currency': getCurrency(), 'X-Request-Id': buildChatRequestId(chatId, lastMessage?.id), 'X-Source': 'frontend' },
-        body: {
-          chatId,
-          messages: newMessages,
-          scope: resolvedScopeId.current ? { type: scopeType, id: resolvedScopeId.current } : undefined,
-          scopeCurrentValues: buildContextRef.current(),
-        },
+        headers: requestHeaders,
+        body: { chatId, messages: newMessages, scope, scopeCurrentValues: buildContextRef.current() },
       };
     },
     [chatId, scopeType],
@@ -120,8 +136,11 @@ export function useEntityChat({
   const {
     messages: uiMessages,
     status,
+    error,
     setMessages,
     sendMessage,
+    regenerate,
+    clearError,
     stop,
     addToolApprovalResponse,
   } = useChat({
@@ -241,6 +260,12 @@ export function useEntityChat({
     [addToolApprovalResponse],
   );
 
+  const handleRetry = useCallback(async () => {
+    if (uiMessages.length === 0) return;
+    clearError();
+    await regenerate();
+  }, [uiMessages.length, clearError, regenerate]);
+
   const handleAddFile = (file: FileDto) => setDraftFiles((prev) => [...prev, file]);
   const handleRemoveFile = (fileId: number) => setDraftFiles((prev) => prev.filter((f) => f.id !== fileId));
 
@@ -258,6 +283,8 @@ export function useEntityChat({
     handleRemoveFile,
     handleToolApproval,
     handleAskUserAnswer,
+    streamError: error,
+    handleRetry,
     countdown,
     triggerSendNow,
     handleStop: stop,

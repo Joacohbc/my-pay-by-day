@@ -28,6 +28,7 @@ export type FinanceEventDto = Schemas['FinanceEventDto'];
 export type FinanceEventDraftInputDto = Schemas['FinanceEventDraftInputDto'];
 export type FinanceNodeDto = Schemas['FinanceNodeDto'];
 export type EventType = Schemas['EventType'];
+export type FileDto = Schemas['FileDto'];
 
 /**
  * Correlation id for an outgoing backend call: the ambient one when the call runs inside a tool's
@@ -55,6 +56,7 @@ export interface EventPatchBody {
     transactionDate?: ServerDateTime | null;
     lineItems?: Array<{ financeNode: { id: number } | null; amount: number }>;
   };
+  fileIds?: number[] | null;
 }
 
 /**

@@ -65,6 +65,7 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 	private final TransactionValidator transactionValidator;
 	private final PaymentPlanService paymentPlanService;
 	private final ArchivedItemImporter archivedItemImporter;
+	private final FileService fileService;
 
 	public DraftService(
 			EntityDraftRepository draftRepository,
@@ -74,7 +75,8 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 			EventUpdateService eventUpdateService,
 			TransactionValidator transactionValidator,
 			PaymentPlanService paymentPlanService,
-			ArchivedItemImporter archivedItemImporter) {
+			ArchivedItemImporter archivedItemImporter,
+			FileService fileService) {
 		this.draftRepository = draftRepository;
 		this.messages = messages;
 		this.objectMapper = objectMapper;
@@ -83,6 +85,7 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 		this.transactionValidator = transactionValidator;
 		this.paymentPlanService = paymentPlanService;
 		this.archivedItemImporter = archivedItemImporter;
+		this.fileService = fileService;
 	}
 
 	public List<DraftEntity> listAll() {
@@ -228,6 +231,11 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 			tags = input.tagIds().stream().map(TagDto::ofId).toList();
 		}
 
+		List<FileDto> files = current != null ? current.files() : null;
+		if (input.fileIds() != null) {
+			files = resolveFiles(input.fileIds());
+		}
+
 		List<FinanceLineItemDto> lineItems = current != null ? current.lineItems() : List.of();
 		BigDecimal amount = current != null ? current.amount() : BigDecimal.ZERO;
 
@@ -237,7 +245,24 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 		
 		Long origId = input.id() != null ? input.id() : (current != null ? current.id() : null);
 
-		return new FinanceEventDto(origId, name, desc, type, amount, current != null ? current.transactionId() : null, date, lineItems, category, tags, current != null ? current.relatedEvents() : null, current != null ? current.subscriptionId() : null, current != null ? current.draftId() : null, current != null ? current.files() : null, null);
+		return new FinanceEventDto(origId, name, desc, type, amount, current != null ? current.transactionId() : null, date, lineItems, category, tags, current != null ? current.relatedEvents() : null, current != null ? current.subscriptionId() : null, current != null ? current.draftId() : null, files, null);
+	}
+
+	/**
+	 * Resolves the attached file ids into the metadata the stored payload carries. A file that no
+	 * longer exists is dropped rather than failing the draft: the attachment is context, and losing
+	 * it must not cost the user the draft they were writing.
+	 */
+	private List<FileDto> resolveFiles(List<Long> fileIds) {
+		List<FileDto> files = new ArrayList<>();
+		for (Long fileId : fileIds) {
+			try {
+				files.add(fileService.getFileMetadata(fileId));
+			} catch (BusinessException e) {
+				Log.warnf("Skipping unknown file %d while saving a draft", fileId);
+			}
+		}
+		return files;
 	}
 
 	@Transactional
@@ -373,6 +398,10 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 					.collect(Collectors.toSet());
 		}
 
+		if (dto.files() != null) {
+			event.fileIds = dto.files().stream().map(FileDto::id).toList();
+		}
+
 		FinanceTransactionEntity tx = new FinanceTransactionEntity();
 		tx.transactionDate = dto.transactionDate();
 
@@ -505,9 +534,96 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 				Long remappedOriginalId = context.remap(DataSection.EVENTS, dto.originalEntityId());
 				entity.setOriginalEntityId(remappedOriginalId != null ? remappedOriginalId : dto.originalEntityId());
 			}
-			entity.setRawPayloadJson(dto.rawPayloadJson());
+			entity.setRawPayloadJson(remapPayloadJson(dto.entityType(), dto.rawPayloadJson(), context));
 			draftRepository.persist(entity);
 			context.rememberId(section(), dto.id(), entity.id);
 		});
+	}
+
+	/**
+	 * A draft's payload is opaque JSON, not entity columns, so unlike {@code EventService.importData}
+	 * it is never touched by the entity-level {@code context.remap} calls the rest of the import does.
+	 * Every id embedded in it (category, tags, line-item nodes, files, subscription) is remapped here
+	 * so a re-imported draft points at the freshly-imported entities instead of their pre-import ids.
+	 * An id with no remap entry (not part of this import) is kept as-is, the same tolerant fallback
+	 * already used for {@code originalEntityId} above.
+	 */
+	private String remapPayloadJson(EntityType entityType, String rawPayloadJson, ImportContext context) {
+		if (entityType != EntityType.FINANCE_EVENT) {
+			return rawPayloadJson;
+		}
+		try {
+			FinanceEventDto dto = objectMapper.readValue(rawPayloadJson, FinanceEventDto.class);
+			FinanceEventDto remapped = new FinanceEventDto(
+					dto.id(),
+					dto.name(),
+					dto.description(),
+					dto.type(),
+					dto.amount(),
+					dto.transactionId(),
+					dto.transactionDate(),
+					remapLineItems(dto.lineItems(), context),
+					remapCategory(dto.category(), context),
+					remapTags(dto.tags(), context),
+					dto.relatedEvents(),
+					remapId(DataSection.SUBSCRIPTIONS, dto.subscriptionId(), context),
+					dto.draftId(),
+					remapFiles(dto.files(), context),
+					dto.paymentPlanId());
+			return objectMapper.writeValueAsString(remapped);
+		} catch (JsonProcessingException e) {
+			Log.warnf(e, "Failed to remap ids in imported draft payload; storing it as-is");
+			return rawPayloadJson;
+		}
+	}
+
+	private static Long remapId(DataSection section, Long oldId, ImportContext context) {
+		if (oldId == null) {
+			return null;
+		}
+		Long remappedId = context.remap(section, oldId);
+		return remappedId != null ? remappedId : oldId;
+	}
+
+	private static CategoryDto remapCategory(CategoryDto category, ImportContext context) {
+		if (category == null) {
+			return null;
+		}
+		return new CategoryDto(
+				remapId(DataSection.CATEGORIES, category.id(), context),
+				category.name(), category.description(), category.icon(), category.color(), category.archived());
+	}
+
+	private static List<TagDto> remapTags(List<TagDto> tags, ImportContext context) {
+		if (tags == null) {
+			return null;
+		}
+		return tags.stream()
+				.map(tag -> new TagDto(
+						remapId(DataSection.TAGS, tag.id(), context),
+						tag.name(), tag.description(), tag.color(), tag.archived()))
+				.toList();
+	}
+
+	private static List<FinanceLineItemDto> remapLineItems(List<FinanceLineItemDto> lineItems, ImportContext context) {
+		if (lineItems == null) {
+			return null;
+		}
+		return lineItems.stream()
+				.map(li -> new FinanceLineItemDto(
+						remapId(DataSection.FINANCE_NODES, li.financeNodeId(), context),
+						li.financeNodeName(), li.financeNodeIcon(), li.amount()))
+				.toList();
+	}
+
+	private static List<FileDto> remapFiles(List<FileDto> files, ImportContext context) {
+		if (files == null) {
+			return null;
+		}
+		return files.stream()
+				.map(file -> new FileDto(
+						remapId(DataSection.FILES, file.id(), context),
+						file.fileName(), file.mimeType(), file.typeLabel(), file.size(), file.isOrphan()))
+				.toList();
 	}
 }

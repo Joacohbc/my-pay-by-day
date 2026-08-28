@@ -11,6 +11,7 @@ interface DraftInput {
   categoryId?: number | null;
   tagIds?: number[] | null;
   date?: string | null;
+  fileIds?: number[] | null;
 }
 
 /** Maps the LLM's flat {nodeId, amount} shape to the backend's {financeNodeId, amount} draft line item shape. */
@@ -54,6 +55,7 @@ export function toDraftPayload(input: DraftInput, timezone: string): FinanceEven
     categoryId: input.categoryId ?? undefined,
     tagIds: input.tagIds ?? undefined,
     lineItems: toDraftLineItems(input.lineItems),
+    fileIds: input.fileIds ?? undefined,
   };
 }
 
@@ -71,6 +73,7 @@ export function toDraftPatchPayload(patch: Omit<BotDraftPatch, 'draftId'>, timez
     categoryId: patch.categoryId ?? undefined,
     tagIds: patch.tagIds ?? undefined,
     lineItems: toDraftLineItems(patch.lineItems),
+    fileIds: patch.fileIds ?? undefined,
   };
 }
 
@@ -117,6 +120,7 @@ export function toEventPatch(patch: BotEventPatch, current: FinanceEventDto, tim
   if (patch.type != null) body.type = patch.type;
   if (patch.categoryId != null) body.category = { id: patch.categoryId };
   if (patch.tagIds != null) body.tags = patch.tagIds.map((id) => ({ id }));
+  if (patch.fileIds != null) body.fileIds = patch.fileIds;
 
   const wantsTransaction = patch.date != null || patch.lineItems != null;
   if (wantsTransaction) {

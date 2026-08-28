@@ -141,7 +141,8 @@ function walkDir(dir, extensions) {
  * For each source file, extract:
  *   - static keys:    t('foo.bar')  t("foo.bar")
  *   - indirect keys:  labelKey: 'foo.bar'  (or Key: / key:)
- *   - dynamic groups: t(`foo.${x}`) → "foo.*"
+ *   - dynamic groups: t(`foo.${x}`) → "foo.*"  |  asEnum('foo') → "foo.*"
+ *   - pluralized keys: asCount('foo.bar') → "foo.bar_one" / "foo.bar_other"
  */
 function scanFile(filePath) {
   const content = readFileSync(filePath, 'utf-8');
@@ -161,6 +162,12 @@ function scanFile(filePath) {
   // Returned key (helper functions that hand a key back to a caller's t()):
   //   return cond ? 'key.a' : 'key.b';   return 'key.a';
   const returnKeyRe = /\breturn\s+(?:[^;?]*\?\s*)?['"]([a-zA-Z_][\w]*(?:\.\w+)+)['"](?:\s*:\s*['"]([a-zA-Z_][\w]*(?:\.\w+)+)['"])?\s*;/g;
+  // Enum namespace handed to a lookup that composes `${namespace}.${value}` at runtime:
+  //   asEnum('eventType')  →  dynamic prefix "eventType"
+  const enumNamespaceRe = /\basEnum\(\s*['"]([a-zA-Z_][\w]*(?:\.\w+)*)['"]\s*\)/g;
+  // Count key handed to i18next, which appends the plural suffix itself:
+  //   asCount('chat.approval.fileCount')  →  "chat.approval.fileCount_one" / "_other"
+  const countKeyRe = /\basCount\(\s*['"]([a-zA-Z_][\w]*(?:\.\w+)+)['"]\s*\)/g;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -197,6 +204,19 @@ function scanFile(filePath) {
     // Ternary inside t():  t(cond ? 'key.a' : 'key.b')
     for (const m of line.matchAll(ternaryRe)) {
       for (const key of [m[1], m[2]]) {
+        if (!staticKeys.has(key)) staticKeys.set(key, []);
+        staticKeys.get(key).push(lineNo);
+      }
+    }
+
+    // asEnum('namespace') → dynamic prefix "namespace"
+    for (const m of line.matchAll(enumNamespaceRe)) {
+      dynamicPrefixes.add(m[1]);
+    }
+
+    // asCount('key') → static keys "key_one" / "key_other"
+    for (const m of line.matchAll(countKeyRe)) {
+      for (const key of [`${m[1]}_one`, `${m[1]}_other`]) {
         if (!staticKeys.has(key)) staticKeys.set(key, []);
         staticKeys.get(key).push(lineNo);
       }

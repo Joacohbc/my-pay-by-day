@@ -1,5 +1,5 @@
 import { z } from 'zod/v4';
-import type { CreateEventDto, PatchEventDto, FinanceEvent, CreateTransactionDto, EventType, FinanceEventDraftInputDto } from '@/models';
+import type { CreateEventDto, PatchEventDto, FinanceEvent, CreateTransactionDto, EventType, FinanceEventDraftInputDto, FileDto } from '@/models';
 import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
 import { nameField, descriptionField } from '@/lib/validation';
 
@@ -37,6 +37,7 @@ export function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormVa
     tagIds,
     lineItems,
     draftId: defaultValues?.draftId,
+    files: defaultValues?.files ?? [],
   };
 }
 
@@ -61,6 +62,7 @@ export function buildSchema(t: (key: string, options?: Record<string, unknown>) 
       ? z.array(lineItemSchema).min(minItems, t('eventForm.minLineItems', { count: minItems })).max(maxItems)
       : z.array(lineItemSchema).min(minItems, t('eventForm.minLineItems', { count: minItems })),
     draftId: z.number().nullable().optional(),
+    files: z.array(z.custom<FileDto>()).optional(),
   });
 }
 
@@ -90,6 +92,7 @@ export function toCreateDto(values: FormValues): CreateEventDto {
     category: values.categoryId ? { id: Number(values.categoryId) } : undefined,
     tags: values.tagIds?.map((id: string) => ({ id: Number(id) })),
     draftId: values.draftId ?? undefined,
+    fileIds: values.files?.length ? values.files.map((f) => f.id) : undefined,
   };
 }
 
@@ -134,6 +137,12 @@ export function toPatchDtoFromDiff(base: Partial<FinanceEvent>, values: FormValu
 
   if (hasTransactionChanged(base, values)) {
     patch.transaction = toTransactionDto(values);
+  }
+
+  const baseFileIds = (base.files ?? []).map((f) => String(f.id)).sort();
+  const nextFileIds = (values.files ?? []).map((f) => String(f.id)).sort();
+  if (!sameStringArray(baseFileIds, nextFileIds)) {
+    patch.fileIds = nextFileIds.length ? nextFileIds.map(Number) : null;
   }
 
   return patch;
@@ -188,6 +197,7 @@ export function toDraftDto(values: FormValues, t: (key: string) => string): Fina
     categoryId: values.categoryId ? Number(values.categoryId) : undefined,
     tagIds: values.tagIds?.map((id: string) => Number(id)),
     lineItems,
+    fileIds: values.files?.map((f) => f.id),
   };
 }
 

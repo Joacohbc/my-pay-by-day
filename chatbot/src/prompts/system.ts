@@ -58,6 +58,13 @@ function styleBlock(lang: string, currency: string): string {
   return STYLE.replace('{{LANGUAGE}}', languageName(lang)) + '\n' + formattingGuidance(lang, currency);
 }
 
+const WORKSPACE_GUIDANCE = `
+\nSTART OF TURN (important): before asking the user a question, assuming no files are attached, or picking a
+default on their behalf, call getWorkspaceInfo. It reports the draft/event open in a form right now (if any) and
+every file already attached anywhere in this conversation — a file's numeric id never otherwise reaches you as
+readable text, only as bookkeeping you cannot see, so this is the only way to find one from earlier in the chat.
+Check this and your memories (below) before proceeding with the request.`;
+
 const ASK_USER_GUIDANCE = `
 \nASKING THE USER (important):
 - Whenever your reply would end with a question expecting a specific answer — a yes/no confirmation, a choice
@@ -125,6 +132,8 @@ export function chatSystemPrompt(
   return [
     `You are the My Pay By Day finance assistant. The current date/time is ${now} (${timezone}).`,
     DOMAIN,
+    WORKSPACE_GUIDANCE,
+    memoriesBlock(memories, true),
     `\nYou can read and write data through tools. Before creating a draft event, gather the lineItems (each node and`,
     `its signed amount, summing to zero), category, date and tags — call read tools (listNodes, listCategories,`,
     `listTags) to resolve names to IDs, and ask the user only for what you cannot infer. Create drafts with`,
@@ -145,7 +154,8 @@ export function chatSystemPrompt(
     `PAYMENT PLANS & EVENT GROUPS: Creating a draft or event does NOT automatically assign it to a payment plan or group`,
     `(e.g. an event group like a trip or party, an installment plan/cuotas, or a recurring commitment). When creating`,
     `an expense or event for a payment plan or group, you MUST explicitly assign it using addToPaymentPlan with the`,
-    `planId and eventId/draftId (or pass eventIds/draftIds when creating an event group with createEventGroup).`,
+    `planId and eventIds/draftIds. Assign every event of a batch in ONE addToPaymentPlan call — one call per event`,
+    `races against itself and silently loses assignments (or pass eventIds/draftIds to createEventGroup at creation).`,
     `Never invent IDs. Always use the calculate tool for ANY calculations (sums, splits, etc.) instead of computing them in text.`,
     `Use showEntity whenever you reference a specific event, draft, tag or category the user might want to open — not`,
     `only right after creating or editing it, also after finding it via a search or a read.`,
@@ -155,7 +165,6 @@ export function chatSystemPrompt(
     DELEGATION_GUIDANCE,
     ASK_USER_GUIDANCE,
     scopeBlock(scope, scopeCurrentValues),
-    memoriesBlock(memories, true),
     styleBlock(lang, currency),
   ].join('\n');
 }
@@ -178,11 +187,12 @@ export function agentSystemPrompt(
     `Execution mode: ${input.mode}. ${MODE_NOTE[input.mode]}`,
     stateNote,
     DOMAIN,
+    WORKSPACE_GUIDANCE,
+    memoriesBlock(input.memories, input.mode === 'AUTONOMOUS'),
     `\nPlan briefly, then act using tools. Use reportProgress to record meaningful milestones as you work. When you`,
     `need a human decision (in DRAFT_CONFIRMATION or before a risky write), use requestUserAction and stop until resolved.`,
     `Resolve names to IDs with read tools before writing. Always use the calculate tool for ANY calculations (sums, splits, etc.) instead of computing them in text. Finish with a short summary of what you did.`,
     `* IMPORTANT: You must write all step descriptions, progress messages, and action requests (the 'message' parameter of reportProgress and requestUserAction) in the user's language ({{LANGUAGE}}).`,
-    memoriesBlock(input.memories, input.mode === 'AUTONOMOUS'),
     styleBlock(input.lang, input.currency),
   ].join('\n');
 }
@@ -217,12 +227,13 @@ export function subagentSystemPrompt(input: PromptInput & { mode: ExecutionMode 
     `The current date/time is ${input.now} (${input.timezone}).`,
     `Execution mode: ${input.mode}. ${MODE_NOTE[input.mode]}`,
     DOMAIN,
+    WORKSPACE_GUIDANCE,
+    memoriesBlock(input.memories, input.mode === 'AUTONOMOUS'),
     `\nWork the task using tools: resolve names to IDs with read tools first, never invent IDs, and always use the`,
     `calculate tool for ANY calculations instead of computing them in text. Do not ask the user questions — if`,
     `information is missing, state what is missing in your final summary and proceed as far as you can.`,
     `\nIMPORTANT: finish with a single clear summary of what you did and found, including all IDs, amounts and names`,
     `the main assistant needs. That summary is the ONLY thing returned to the main assistant.`,
-    memoriesBlock(input.memories, input.mode === 'AUTONOMOUS'),
     styleBlock(input.lang, input.currency),
   ].join('\n');
 }

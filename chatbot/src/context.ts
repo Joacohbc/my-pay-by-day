@@ -16,6 +16,9 @@ export interface RequestContext {
   chatId?: string;
   /** When the chat is opened from a form's mini-chat widget, the draft/event currently being edited. */
   scope?: ChatScope;
+  /** Backend ids of the files this turn arrived with, attached to whatever draft it produces so the
+   * receipt the user uploaded ends up on the event rather than orphaned in the file store. */
+  attachedFileIds?: number[];
 }
 
 const DEFAULT_TIMEZONE = 'UTC';

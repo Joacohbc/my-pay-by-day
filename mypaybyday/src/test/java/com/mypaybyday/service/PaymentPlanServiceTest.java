@@ -2,19 +2,32 @@ package com.mypaybyday.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.HashSet;
 import java.util.List;
 
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
+import com.mypaybyday.dto.AttachToPaymentPlanDto;
 import com.mypaybyday.dto.CreatePaymentPlanDto;
 import com.mypaybyday.dto.CreatePaymentPlanItemDto;
 import com.mypaybyday.dto.PaymentPlanDto;
+import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.dto.FinanceNodeDto;
 import com.mypaybyday.dto.PaymentPlanItemDto;
+import com.mypaybyday.entity.FinanceEventEntity;
+import com.mypaybyday.entity.FinanceLineItemEntity;
+import com.mypaybyday.entity.FinanceNodeEntity;
+import com.mypaybyday.entity.FinanceTransactionEntity;
+import com.mypaybyday.enums.EventType;
+import com.mypaybyday.enums.FinanceNodeType;
 import com.mypaybyday.enums.PaymentPlanStatus;
 import com.mypaybyday.enums.PaymentPlanType;
 import com.mypaybyday.enums.RecurrenceFrequency;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.service.event.EventService;
 
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -33,6 +46,12 @@ class PaymentPlanServiceTest {
 
 	@Inject
 	PaymentPlanService paymentPlanService;
+
+	@Inject
+	EventService eventService;
+
+	@Inject
+	FinanceNodeService financeNodeService;
 
 	private CreatePaymentPlanDto planDto(
 			String name,
@@ -184,5 +203,85 @@ class PaymentPlanServiceTest {
 
 		PaymentPlanItemDto member = paymentPlanService.createItem(group.id(), itemDto(START.minusMonths(2)));
 		assertEquals(START.minusMonths(2), member.expectedDate());
+	}
+
+	@Test
+	void attachingSeveralEventsAtOnceGivesEachOneItsOwnEntry() throws BusinessException {
+		PaymentPlanDto plan = paymentPlanService.create(planDto(
+			"Book saga", PaymentPlanType.CUSTOM, null, null,
+			null, START, START.plusMonths(11), false, null));
+
+		List<Long> eventIds = List.of(
+			createEvent("Book 1", START).id(),
+			createEvent("Book 2", START.plusMonths(2)).id(),
+			createEvent("Book 3", START.plusMonths(5)).id());
+
+		PaymentPlanDto attached = paymentPlanService.attachMembers(plan.id(), new AttachToPaymentPlanDto(eventIds, null, null));
+
+		assertEquals(3, attached.items().size());
+		assertEquals(new HashSet<>(eventIds), new HashSet<>(attached.items().stream().map(PaymentPlanItemDto::eventId).toList()));
+	}
+
+	@Test
+	void attachingSeveralEventsFillsThePreGeneratedCuotasInsteadOfOpeningNewOnes() throws BusinessException {
+		PaymentPlanDto plan = paymentPlanService.create(planDto(
+			"Guitar", PaymentPlanType.INSTALLMENT, 3, new BigDecimal("100.00"),
+			RecurrenceFrequency.MONTHLY, START, null, false, null));
+
+		List<Long> eventIds = List.of(
+			createEvent("Cuota 1", START).id(),
+			createEvent("Cuota 2", START.plusMonths(1)).id(),
+			createEvent("Cuota 3", START.plusMonths(2)).id());
+
+		PaymentPlanDto attached = paymentPlanService.attachMembers(plan.id(), new AttachToPaymentPlanDto(eventIds, null, null));
+
+		assertEquals(3, attached.items().size());
+		assertEquals(new HashSet<>(eventIds), new HashSet<>(attached.items().stream().map(PaymentPlanItemDto::eventId).toList()));
+	}
+
+	@Test
+	void namingASpecificEntryIsRejectedWhenSeveralMembersAreAttached() throws BusinessException {
+		PaymentPlanDto plan = paymentPlanService.create(planDto(
+			"Ambiguous", PaymentPlanType.CUSTOM, null, null,
+			null, START, START.plusMonths(6), false, null));
+
+		List<Long> eventIds = List.of(createEvent("First", START).id(), createEvent("Second", START).id());
+		Long firstItemId = paymentPlanService.createItem(plan.id(), itemDto(START)).id();
+
+		assertThrows(BusinessException.class,
+			() -> paymentPlanService.attachMembers(plan.id(), new AttachToPaymentPlanDto(eventIds, null, firstItemId)));
+		assertThrows(BusinessException.class,
+			() -> paymentPlanService.attachMembers(plan.id(), new AttachToPaymentPlanDto(null, null, null)));
+	}
+
+	private FinanceEventDto createEvent(String name, LocalDate when) throws BusinessException {
+		FinanceNodeEntity wallet = createNode(name + " Wallet", FinanceNodeType.OWN);
+		FinanceNodeEntity store = createNode(name + " Store", FinanceNodeType.EXTERNAL);
+
+		FinanceTransactionEntity transaction = new FinanceTransactionEntity();
+		transaction.transactionDate = LocalDateTime.of(when, LocalTime.NOON);
+		transaction.lineItems.add(lineItem(store, new BigDecimal("10.00")));
+		transaction.lineItems.add(lineItem(wallet, new BigDecimal("-10.00")));
+
+		FinanceEventEntity event = new FinanceEventEntity();
+		event.name = name;
+		event.type = EventType.OUTBOUND;
+		event.transaction = transaction;
+
+		return eventService.create(event);
+	}
+
+	private FinanceNodeEntity createNode(String name, FinanceNodeType type) throws BusinessException {
+		FinanceNodeDto created = financeNodeService.create(new FinanceNodeDto(null, name, type, null, null, null, false));
+		FinanceNodeEntity node = new FinanceNodeEntity();
+		node.id = created.id();
+		return node;
+	}
+
+	private FinanceLineItemEntity lineItem(FinanceNodeEntity node, BigDecimal amount) {
+		FinanceLineItemEntity lineItem = new FinanceLineItemEntity();
+		lineItem.financeNode = node;
+		lineItem.amount = amount;
+		return lineItem;
 	}
 }
