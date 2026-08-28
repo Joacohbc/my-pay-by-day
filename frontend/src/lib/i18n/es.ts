@@ -795,6 +795,8 @@ const es = {
       unknownRecipient: 'Destinatario desconocido',
       unknownDate: 'Fecha desconocida',
       emptyBody: 'Este correo no tiene contenido.',
+      viewFormatted: 'Formateado',
+      viewPlain: 'Texto plano',
     },
   },
 

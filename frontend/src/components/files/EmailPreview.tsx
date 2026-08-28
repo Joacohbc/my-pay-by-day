@@ -21,12 +21,16 @@ function EmailHeaderRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** Renders an email file as an email: its headers, then the body Markdown converted from the
- * original HTML (falling back to the plain-text part the sender provided). */
+type EmailBodyView = 'formatted' | 'plain';
+
+/** Renders an email file as an email: its headers, then the body. The body can be shown as
+ * Markdown converted from the original HTML, or as the plain-text part the sender provided —
+ * the reader picks which when the email has both. */
 export function EmailPreview({ fileId }: EmailPreviewProps) {
   const { t } = useTranslation();
   const [email, setEmail] = useState<EmailFileDto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [bodyView, setBodyView] = useState<EmailBodyView>('formatted');
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +39,9 @@ export function EmailPreview({ fileId }: EmailPreviewProps) {
       setLoading(true);
       try {
         const loaded = await filesService.getEmail(fileId);
-        if (!cancelled) setEmail(loaded);
+        if (cancelled) return;
+        setEmail(loaded);
+        setBodyView(loaded.markdownBody?.trim() ? 'formatted' : 'plain');
       } catch (error) {
         logger.child('emailPreview').warn('Failed to load email file', { error, fileId });
         if (!cancelled) setEmail(null);
@@ -67,9 +73,12 @@ export function EmailPreview({ fileId }: EmailPreviewProps) {
     );
   }
 
-  const body = email.markdownBody?.trim() || email.textBody?.trim() || '';
+  const markdownBody = email.markdownBody?.trim() || '';
+  const plainBody = email.textBody?.trim() || '';
+  const canToggleBodyView = markdownBody !== '' && plainBody !== '';
+  const showPlainBody = bodyView === 'plain' || markdownBody === '';
+  const body = showPlainBody ? plainBody : markdownBody;
   const recipients = email.to?.length ? email.to.join(', ') : t('files.email.unknownRecipient');
-  const isPlainTextBody = !email.markdownBody?.trim();
 
   return (
     <div className="w-full h-full overflow-auto p-4 md:p-8">
@@ -92,9 +101,36 @@ export function EmailPreview({ fileId }: EmailPreviewProps) {
         </div>
 
         <div className="p-6 md:p-8">
+          {canToggleBodyView && (
+            <div className="flex justify-end gap-1 mb-4">
+              <button
+                type="button"
+                onClick={() => setBodyView('formatted')}
+                className={`px-3 py-1 rounded-full text-xs transition-colors ${
+                  showPlainBody
+                    ? 'text-dn-text-muted hover:text-dn-text-main'
+                    : 'bg-dn-primary/20 text-dn-primary'
+                }`}
+              >
+                {t('files.email.viewFormatted')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setBodyView('plain')}
+                className={`px-3 py-1 rounded-full text-xs transition-colors ${
+                  showPlainBody
+                    ? 'bg-dn-primary/20 text-dn-primary'
+                    : 'text-dn-text-muted hover:text-dn-text-main'
+                }`}
+              >
+                {t('files.email.viewPlain')}
+              </button>
+            </div>
+          )}
+
           {body === '' ? (
             <p className="text-sm text-dn-text-muted italic">{t('files.email.emptyBody')}</p>
-          ) : isPlainTextBody ? (
+          ) : showPlainBody ? (
             <pre className="whitespace-pre-wrap break-words font-sans text-sm text-dn-text-main/90">{body}</pre>
           ) : (
             <div className="prose prose-sm prose-invert max-w-none prose-p:leading-normal prose-headings:mt-4 prose-headings:mb-2 first:prose-headings:mt-0 prose-p:my-2 prose-hr:my-4 prose-hr:border-white/10">

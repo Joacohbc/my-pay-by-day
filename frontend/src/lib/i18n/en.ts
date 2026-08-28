@@ -796,6 +796,8 @@ const en = {
       unknownRecipient: 'Unknown recipient',
       unknownDate: 'Unknown date',
       emptyBody: 'This email has no content.',
+      viewFormatted: 'Formatted',
+      viewPlain: 'Plain text',
     },
   },
 
