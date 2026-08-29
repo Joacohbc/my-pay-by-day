@@ -81,6 +81,7 @@ const es = {
     messageCount: '{{count}}/{{max}} mensajes',
     placeholderAgent: 'Describe una transacción o sube un recibo...',
     newChat: 'Nuevo Chat',
+    startNewChat: 'Iniciar nuevo chat',
     emptyState: '¡Pregúntame cualquier cosa sobre tus categorías o períodos!',
     imageHint: 'También puedes subir imágenes de recibos o facturas para crear eventos automáticamente.',
     imageUploaded: 'Imagen subida',

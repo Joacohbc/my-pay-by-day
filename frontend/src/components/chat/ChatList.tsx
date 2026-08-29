@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
 import { chatService, type ChatSummary } from '@/services/chat.service';
 import { useChatStore } from '@/store/chatStore';
 import { useAlert } from '@/contexts/AlertContext';
@@ -11,10 +12,14 @@ const PREVIEW_MAX_LENGTH = 80;
 
 const chatListLog = logger.child('chat-list');
 
-export function ChatList() {
+interface ChatListProps {
+  onNewChat: () => void;
+}
+
+export function ChatList({ onNewChat }: ChatListProps) {
   const { t } = useTranslation();
   const alert = useAlert();
-  const { selectChat, chatId: activeChatId, newChat, openChatList } = useChatStore();
+  const { selectChat, chatId: activeChatId, openChatList } = useChatStore();
   const [chats, setChats] = useState<ChatSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
@@ -41,7 +46,7 @@ export function ChatList() {
       await chatService.clearMemory(chatId);
       setChats((prev) => prev.filter((chat) => chat.chatId !== chatId));
       if (chatId === activeChatId) {
-        newChat();
+        onNewChat();
         openChatList();
       }
     } catch (error) {
@@ -51,6 +56,13 @@ export function ChatList() {
       setDeletingChatId(null);
     }
   };
+
+  const newChatButton = (
+    <Button onClick={onNewChat} fullWidth>
+      <Icon name="add" className="text-[18px]" />
+      {t('chat.startNewChat')}
+    </Button>
+  );
 
   if (isLoading) {
     return (
@@ -62,15 +74,17 @@ export function ChatList() {
 
   if (chats.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-dn-text-main/50 space-y-4 py-20">
+      <div className="flex-1 flex flex-col items-center justify-center text-dn-text-main/50 space-y-4 py-20 px-8">
         <Icon name="forum" className="text-4xl text-dn-primary/50" />
-        <p className="text-sm text-center px-8">{t('chat.noConversations')}</p>
+        <p className="text-sm text-center">{t('chat.noConversations')}</p>
+        <div className="w-full max-w-xs">{newChatButton}</div>
       </div>
     );
   }
 
   return (
     <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
+      <div className="pt-2 pb-1">{newChatButton}</div>
       {chats.map((chat) => {
         const isActive = chat.chatId === activeChatId;
         const isDeleting = chat.chatId === deletingChatId;

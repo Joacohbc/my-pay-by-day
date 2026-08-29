@@ -7,10 +7,17 @@ import { ChatMessage } from '@/components/chat/ChatMessage';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
 import { ChatList } from '@/components/chat/ChatList';
+import { ChatHeaderActions, type ChatView } from '@/components/chat/ChatHeaderActions';
 import { ChatErrorCard } from '@/components/chat/ChatErrorCard';
 import { BulkApprovalBar } from '@/components/chat/BulkApprovalBar';
 import { TasksPanel } from '@/components/agent-tasks/TasksPanel';
 import { useChatStore } from '@/store/chatStore';
+
+const HEADER_TITLE_KEYS: Record<ChatView, string> = {
+  chat: 'chat.title',
+  list: 'chat.conversations',
+  tasks: 'agentTasks.title',
+};
 
 export function ChatPage() {
   const { showChatList, openChatList } = useChatStore();
@@ -52,7 +59,12 @@ export function ChatPage() {
     t,
   } = useChatUI();
 
-  const isChatListVisible = showChatList && !showTasksPanel;
+  const view: ChatView = showTasksPanel ? 'tasks' : showChatList ? 'list' : 'chat';
+
+  const backToConversations = () => {
+    openChatList();
+    setSearchParams({});
+  };
 
   const lastMessage = messages.at(-1);
   const hasPendingApproval = lastMessage?.toolCalls?.some((tc) => tc.state === 'approval-requested') ?? false;
@@ -63,66 +75,29 @@ export function ChatPage() {
   return (
     <div className="flex flex-col h-[calc(100dvh-80px)] bg-dn-bg overflow-hidden">
       <PageHeader
-        title={t('chat.title')}
-        subtitle={
-          !isChatListVisible && !showTasksPanel && messageCount > 0
-            ? t('chat.messageCount', { count: messageCount, max: maxMessages })
-            : undefined
-        }
+        title={t(HEADER_TITLE_KEYS[view])}
+        subtitle={view === 'chat' && messageCount > 0
+          ? t('chat.messageCount', { count: messageCount, max: maxMessages })
+          : undefined}
+        back={view === 'list' ? undefined : backToConversations}
+        backLabel={t('chat.conversations')}
         action={
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSearchParams(showTasksPanel ? {} : { panel: 'tasks' })}
-              className={`shrink-0 w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
-                showTasksPanel
-                  ? 'bg-dn-primary/20 text-dn-primary'
-                  : 'bg-dn-surface-low text-dn-text-main hover:bg-dn-surface'
-              }`}
-              aria-label={t('agentTasks.title')}
-              title={t('agentTasks.title')}
-            >
-              <Icon name="pending_actions" className="text-[18px]" />
-            </button>
-            {!isChatListVisible && !showTasksPanel && (
-              <button
-                onClick={openChatList}
-                className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-dn-surface-low text-dn-text-main hover:bg-dn-surface transition-colors"
-                aria-label={t('chat.conversations')}
-                title={t('chat.conversations')}
-              >
-                <Icon name="forum" className="text-[18px]" />
-              </button>
-            )}
-            <button
-              onClick={handleNewChat}
-              className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-dn-surface-low text-dn-text-main hover:bg-dn-surface transition-colors"
-              aria-label={t('chat.newChat')}
-              title={t('chat.newChat')}
-            >
-              <Icon name="add" className="text-[18px]" />
-            </button>
-            {!isChatListVisible && !showTasksPanel && (
-              <button
-                onClick={handleClearMemory}
-                disabled={isClearing || messages.length === 0}
-                className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-dn-surface-low text-dn-text-main hover:bg-dn-error hover:text-white transition-colors disabled:opacity-30"
-                aria-label={t('chat.clearMemory')}
-                title={t('chat.clearMemory')}
-              >
-                <Icon name="delete_sweep" className="text-[18px]" />
-              </button>
-            )}
-
-          </div>
+          <ChatHeaderActions
+            view={view}
+            onOpenTasks={() => setSearchParams({ panel: 'tasks' })}
+            onNewChat={handleNewChat}
+            onClearMemory={handleClearMemory}
+            isClearMemoryDisabled={isClearing || messages.length === 0}
+          />
         }
       />
 
       <div className="flex flex-1 overflow-hidden relative w-full">
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-          {isChatListVisible ? (
-            <ChatList />
-          ) : showTasksPanel ? (
+          {view === 'list' ? (
+            <ChatList onNewChat={handleNewChat} />
+          ) : view === 'tasks' ? (
             <TasksPanel />
           ) : (
             <>

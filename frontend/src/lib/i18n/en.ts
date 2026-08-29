@@ -82,6 +82,7 @@ const en = {
     messageCount: '{{count}}/{{max}} messages',
     placeholderAgent: 'Describe a transaction or upload a receipt...',
     newChat: 'New Chat',
+    startNewChat: 'Start new chat',
     emptyState: 'Ask me anything about your categories or periods!',
     imageHint: 'You can also upload receipt or invoice images to create events automatically.',
     imageUploaded: 'Image uploaded',
