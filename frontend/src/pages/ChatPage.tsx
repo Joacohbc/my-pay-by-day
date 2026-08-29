@@ -13,12 +13,6 @@ import { BulkApprovalBar } from '@/components/chat/BulkApprovalBar';
 import { TasksPanel } from '@/components/agent-tasks/TasksPanel';
 import { useChatStore } from '@/store/chatStore';
 
-const HEADER_TITLE_KEYS: Record<ChatView, string> = {
-  chat: 'chat.title',
-  list: 'chat.conversations',
-  tasks: 'agentTasks.title',
-};
-
 export function ChatPage() {
   const { showChatList, openChatList } = useChatStore();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -61,6 +55,9 @@ export function ChatPage() {
 
   const view: ChatView = showTasksPanel ? 'tasks' : showChatList ? 'list' : 'chat';
 
+  const headerTitle =
+    view === 'list' ? t('chat.conversations') : view === 'tasks' ? t('agentTasks.title') : t('chat.title');
+
   const backToConversations = () => {
     openChatList();
     setSearchParams({});
@@ -75,7 +72,7 @@ export function ChatPage() {
   return (
     <div className="flex flex-col h-[calc(100dvh-80px)] bg-dn-bg overflow-hidden">
       <PageHeader
-        title={t(HEADER_TITLE_KEYS[view])}
+        title={headerTitle}
         subtitle={view === 'chat' && messageCount > 0
           ? t('chat.messageCount', { count: messageCount, max: maxMessages })
           : undefined}
