@@ -112,6 +112,9 @@ const en = {
     audioTimeline: '{{current}} / {{total}}',
     conversations: 'Conversations',
     noConversations: 'No previous conversations',
+    deleteChat: 'Delete conversation',
+    confirmDeleteChat: 'Do you want to delete this conversation? Its history will be lost.',
+    deleteChatFailed: 'Failed to delete the conversation. Please try again.',
     messagesCount: '{{count}} messages',
     subtask: 'Subtask',
     quickCreate: {

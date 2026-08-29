@@ -3,15 +3,21 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/Icon';
 import { chatService, type ChatSummary } from '@/services/chat.service';
 import { useChatStore } from '@/store/chatStore';
+import { useAlert } from '@/contexts/AlertContext';
 import { formatDate, truncate } from '@/lib/format';
+import { logger } from '@/lib/logger';
 
 const PREVIEW_MAX_LENGTH = 80;
 
+const chatListLog = logger.child('chat-list');
+
 export function ChatList() {
   const { t } = useTranslation();
-  const { selectChat, chatId: activeChatId } = useChatStore();
+  const alert = useAlert();
+  const { selectChat, chatId: activeChatId, newChat, openChatList } = useChatStore();
   const [chats, setChats] = useState<ChatSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -27,6 +33,24 @@ export function ChatList() {
     fetchChats();
     return () => { active = false; };
   }, []);
+
+  const handleDeleteChat = async (chatId: string) => {
+    if (!window.confirm(t('chat.confirmDeleteChat'))) return;
+    setDeletingChatId(chatId);
+    try {
+      await chatService.clearMemory(chatId);
+      setChats((prev) => prev.filter((chat) => chat.chatId !== chatId));
+      if (chatId === activeChatId) {
+        newChat();
+        openChatList();
+      }
+    } catch (error) {
+      chatListLog.error('chat delete failed', { chatId, error });
+      alert.error(t('chat.deleteChatFailed'));
+    } finally {
+      setDeletingChatId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -49,17 +73,20 @@ export function ChatList() {
     <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
       {chats.map((chat) => {
         const isActive = chat.chatId === activeChatId;
+        const isDeleting = chat.chatId === deletingChatId;
         return (
-          <button
+          <div
             key={chat.chatId}
-            onClick={() => selectChat(chat.chatId)}
-            className={`w-full text-left rounded-2xl p-4 transition-all duration-200 border ${
+            className={`w-full flex items-start gap-2 rounded-2xl p-4 transition-all duration-200 border ${
               isActive
                 ? 'bg-dn-primary/10 border-dn-primary/30'
                 : 'bg-dn-surface-low border-transparent hover:bg-dn-surface hover:border-white/5'
             }`}
           >
-            <div className="flex items-start gap-3">
+            <button
+              onClick={() => selectChat(chat.chatId)}
+              className="flex-1 min-w-0 text-left flex items-start gap-3"
+            >
               <div className={`mt-0.5 w-8 h-8 flex items-center justify-center rounded-xl shrink-0 ${
                 isActive ? 'bg-dn-primary/20 text-dn-primary' : 'bg-dn-surface text-dn-text-muted'
               }`}>
@@ -86,9 +113,17 @@ export function ChatList() {
                   </span>
                 </div>
               </div>
-              <Icon name="chevron_right" className="text-[18px] text-dn-text-muted/40 mt-1" />
-            </div>
-          </button>
+            </button>
+            <button
+              onClick={() => handleDeleteChat(chat.chatId)}
+              disabled={isDeleting}
+              className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl text-dn-text-muted/60 hover:bg-dn-error hover:text-white transition-colors disabled:opacity-30"
+              aria-label={t('chat.deleteChat')}
+              title={t('chat.deleteChat')}
+            >
+              <Icon name="delete" className="text-[16px]" />
+            </button>
+          </div>
         );
       })}
     </div>

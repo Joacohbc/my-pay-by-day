@@ -111,6 +111,9 @@ const es = {
     audioTimeline: '{{current}} / {{total}}',
     conversations: 'Conversaciones',
     noConversations: 'Sin conversaciones previas',
+    deleteChat: 'Borrar conversación',
+    confirmDeleteChat: '¿Deseas borrar esta conversación? Su historial se perderá.',
+    deleteChatFailed: 'No se pudo borrar la conversación. Intenta de nuevo.',
     messagesCount: '{{count}} mensajes',
     subtask: 'Subtarea',
     quickCreate: {
