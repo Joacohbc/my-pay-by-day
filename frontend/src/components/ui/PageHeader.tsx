@@ -6,10 +6,11 @@ interface PageHeaderProps {
   title: string;
   subtitle?: string;
   back?: boolean | string | (() => void);
+  backLabel?: string;
   action?: ReactNode;
 }
 
-export function PageHeader({ title, subtitle, back, action }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, back, backLabel, action }: PageHeaderProps) {
   const navigate = useNavigate();
 
   const handleBack = () => {
@@ -28,6 +29,8 @@ export function PageHeader({ title, subtitle, back, action }: PageHeaderProps) {
         {back && (
           <button
             onClick={handleBack}
+            aria-label={backLabel}
+            title={backLabel}
             className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-dn-surface-low text-dn-text-main hover:bg-dn-surface transition-colors"
           >
             <Icon name="arrow_back" className="text-[18px]" />
