@@ -17,20 +17,20 @@
   },
   "dependencies": {
     "@ai-sdk/google-vertex": "4.0.170",
-    "@hono/node-server": "^2.1.0",
+    "@hono/node-server": "^2.1.1",
     "@openrouter/ai-sdk-provider": "^2.10.0",
-    "ai": "^6.0.246",
+    "ai": "^6.0.280",
     "date-fns": "^4.4.0",
     "date-fns-tz": "^3.2.0",
-    "hono": "^4.13.1",
+    "hono": "^4.13.7",
     "openapi-fetch": "^0.17.0",
-    "zod": "^4.4.3"
+    "zod": "^4.6.2"
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
+    "@types/node": "^24.13.4",
     "openapi-typescript": "^7.13.0",
-    "tsc-alias": "^1.9.1",
-    "tsx": "^4.23.11",
+    "tsc-alias": "^1.9.4",
+    "tsx": "^4.23.13",
     "typescript": "~5.9.3"
   }
 }
