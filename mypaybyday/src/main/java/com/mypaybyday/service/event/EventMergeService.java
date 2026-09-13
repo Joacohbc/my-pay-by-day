@@ -152,6 +152,10 @@ public class EventMergeService {
 			baseEvent.tags = tagService.resolveTags(tagDtos, TagResolveConfig.forNewEntity());
 		}
 
+		for (FinanceEventEntity sourceEvent : sourceEvents) {
+			baseEvent.files.addAll(sourceEvent.files);
+		}
+
 		Set<FinanceEventEntity> sourceEventSet = new HashSet<>(sourceEvents);
 		sourceEvents.stream()
 				.flatMap(sourceEvent -> sourceEvent.relatedEvents.stream())
