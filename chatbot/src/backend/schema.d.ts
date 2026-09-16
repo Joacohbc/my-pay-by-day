@@ -321,7 +321,7 @@ export interface paths {
         };
         /**
          * Get server configuration
-         * @description Returns server-side configuration the frontend needs to align date/time handling, such as the server timezone
+         * @description Returns server-side configuration the frontend needs to align date/time handling and money entry, such as the server timezone and the default currency
          */
         get: {
             parameters: {
@@ -2304,7 +2304,7 @@ export interface paths {
         };
         /**
          * Calculate current balance of a node
-         * @description Sums all LineItem amounts associated with this node. Positive values represent inflows, negative values outflows.
+         * @description Sums all LineItem amounts associated with this node, one total per currency the node has held. Positive values represent inflows, negative values outflows. Amounts are never converted between currencies.
          */
         get: {
             parameters: {
@@ -2318,13 +2318,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Calculated balance */
+                /** @description Calculated balance, one entry per currency */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": number;
+                        "application/json": components["schemas"]["MoneyDto"][];
                     };
                 };
                 /** @description Node not found */
@@ -4613,6 +4613,7 @@ export interface components {
         };
         ConfigDto: {
             timezone?: string;
+            defaultCurrency?: string;
         };
         ConfirmDraftsRequestDto: {
             draftIds: number[];
@@ -4659,6 +4660,8 @@ export interface components {
             eventIds?: number[];
             /** @description GROUP plans only: existing drafts to link as pending members of the group. */
             draftIds?: number[];
+            /** @description ISO 4217 code denominating totalAmount and installmentAmount. Defaults to the template's origin account currency, then the server default. */
+            currency?: string;
         };
         /** @description DTO for creating or updating an individual payment plan item / cuota */
         CreatePaymentPlanItemDto: {
@@ -4675,6 +4678,18 @@ export interface components {
             eventId?: number;
             /** Format: int64 */
             draftId?: number;
+        };
+        CurrencyBalanceDto: {
+            currency?: string;
+            income?: number;
+            outbound?: number;
+            categoryBudgets?: components["schemas"]["CategoryBudgetSummaryDto"][];
+        };
+        CurrencyTotalsDto: {
+            currency?: string;
+            income?: number;
+            outbound?: number;
+            transfers?: number;
         };
         /** @description What an export would contain, without serialising any of it */
         DataExportSummaryDto: {
@@ -4765,8 +4780,7 @@ export interface components {
         DynamicTimePeriodBalanceDto: {
             startDate?: components["schemas"]["LocalDateTime"];
             endDate?: components["schemas"]["LocalDateTime"];
-            income?: number;
-            outbound?: number;
+            balances?: components["schemas"]["CurrencyBalanceDto"][];
             events?: components["schemas"]["FinanceEventDto"][];
         };
         /** @description Email stored as a file: the JSON document that makes up the file's content */
@@ -4806,9 +4820,7 @@ export interface components {
             error?: string;
         };
         EventTotalsDto: {
-            income?: number;
-            outbound?: number;
-            transfers?: number;
+            totals?: components["schemas"]["CurrencyTotalsDto"][];
             /** Format: int64 */
             totalElements?: number;
         };
@@ -4858,6 +4870,7 @@ export interface components {
             description?: string;
             type?: components["schemas"]["EventType"];
             amount?: number;
+            currency?: string;
             /** Format: int64 */
             transactionId?: number;
             transactionDate?: components["schemas"]["LocalDateTime"];
@@ -4895,6 +4908,8 @@ export interface components {
             financeNodeName?: string | null;
             financeNodeIcon?: string | null;
             amount?: number;
+            /** @description ISO 4217 code denominating amount. Every line item of one event shares it. */
+            currency?: string;
         };
         FinanceLineItemEntity: {
             /** Format: int64 */
@@ -4903,6 +4918,7 @@ export interface components {
             updatedAt?: components["schemas"]["Instant"];
             financeNode: components["schemas"]["FinanceNodeEntity"];
             amount: number;
+            currency: string;
         };
         FinanceNodeDto: {
             /** Format: int64 */
@@ -4913,6 +4929,8 @@ export interface components {
             icon?: string;
             color?: string;
             archived?: boolean;
+            /** @description ISO 4217 code this node is denominated in; null when it holds no particular currency */
+            currency?: string | null;
         };
         FinanceNodeEntity: {
             /** Format: int64 */
@@ -4925,6 +4943,7 @@ export interface components {
             icon?: string;
             color?: string;
             archived?: boolean;
+            currency?: string;
         };
         FinanceNodeRef: {
             /** Format: int64 */
@@ -5023,6 +5042,10 @@ export interface components {
         };
         /** @enum {string} */
         ModifierType: "FIXED" | "PERCENTAGE";
+        MoneyDto: {
+            amount?: number;
+            currency?: string;
+        };
         PagedResponse: {
             content?: unknown[];
             /** Format: int32 */
@@ -5050,6 +5073,7 @@ export interface components {
             budgets?: components["schemas"]["JsonNullableListTimePeriodBudgetDto"];
             savingsPercentageGoal?: components["schemas"]["JsonNullableBigDecimal"];
             budgetLimit?: components["schemas"]["JsonNullableBigDecimal"];
+            currency?: components["schemas"]["JsonNullableString"];
         };
         PatchTransactionDto: {
             transactionDate?: components["schemas"]["LocalDateTime"];
@@ -5084,6 +5108,8 @@ export interface components {
             completedInstallments?: number;
             paidAmount?: number;
             remainingAmount?: number;
+            /** @description ISO 4217 code denominating every amount on this plan. */
+            currency?: string;
         };
         /** @description Archive shape of a payment plan, with references as remappable ids */
         PaymentPlanExportDto: {
@@ -5109,6 +5135,7 @@ export interface components {
             categoryId?: number;
             tagIds?: number[];
             items?: components["schemas"]["PaymentPlanItemExportDto"][];
+            currency?: string;
         };
         /** @description Data transfer object for a individual payment plan item / cuota */
         PaymentPlanItemDto: {
@@ -5202,6 +5229,7 @@ export interface components {
             recurrence?: components["schemas"]["RecurrenceFrequency"];
             nextExecutionDate?: components["schemas"]["LocalDateTime"];
             status?: components["schemas"]["SubscriptionStatus"];
+            currency?: string;
         };
         SubscriptionEntity: {
             /** Format: int64 */
@@ -5216,6 +5244,7 @@ export interface components {
             tags?: components["schemas"]["TagEntity"][];
             eventType?: components["schemas"]["EventType"];
             modifierValue?: number;
+            currency?: string;
             recurrence: components["schemas"]["RecurrenceFrequency"];
             nextExecutionDate: components["schemas"]["LocalDateTime"];
             status: components["schemas"]["SubscriptionStatus"];
@@ -5266,12 +5295,11 @@ export interface components {
             eventType?: components["schemas"]["EventType"];
             modifierType?: components["schemas"]["ModifierType"];
             modifierValue?: number;
+            currency?: string;
         };
         TimePeriodBalanceDto: {
             timePeriod?: components["schemas"]["TimePeriodDto"];
-            income?: number;
-            outbound?: number;
-            categoryBudgets?: components["schemas"]["CategoryBudgetSummaryDto"][];
+            balances?: components["schemas"]["CurrencyBalanceDto"][];
             events?: components["schemas"]["FinanceEventDto"][];
         };
         TimePeriodBudgetDto: {
@@ -5279,6 +5307,7 @@ export interface components {
             id?: number;
             category?: components["schemas"]["CategoryDto"];
             budgetedAmount?: number;
+            currency?: string;
         };
         TimePeriodDto: {
             /** Format: int64 */
@@ -5289,6 +5318,7 @@ export interface components {
             budgets?: components["schemas"]["TimePeriodBudgetDto"][];
             savingsPercentageGoal?: number;
             budgetLimit?: number;
+            currency?: string;
         };
         /** @description Statistics about entity usage and selection frequency */
         UsageStatsDto: {

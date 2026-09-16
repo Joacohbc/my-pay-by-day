@@ -20,11 +20,12 @@ async function patchDraftById(
   draftId: number,
   patch: Omit<z.infer<typeof botDraftPatchSchema>, 'draftId'>,
   timezone: string,
+  userCurrency: string,
 ) {
   const updated = await unwrap(
     client.PATCH('/drafts/finance-events/{id}', {
       params: { path: { id: draftId } },
-      body: toDraftPatchPayload(patch, timezone),
+      body: toDraftPatchPayload(patch, timezone, userCurrency),
     }),
   );
   return { ok: true, draftId: updated.id, originalEventId: updated.originalEntityId ?? undefined };
@@ -39,11 +40,12 @@ async function upsertDraftForEvent(
   eventId: number,
   input: Omit<z.infer<typeof botDraftPatchSchema>, 'draftId' | 'targetEventId'>,
   timezone: string,
+  userCurrency: string,
 ) {
   const updated = await unwrap(
     client.PUT('/drafts/finance-events/by-entity/{entityId}', {
       params: { path: { entityId: eventId } },
-      body: toDraftPatchPayload({ ...input, targetEventId: eventId }, timezone),
+      body: toDraftPatchPayload({ ...input, targetEventId: eventId }, timezone, userCurrency),
     }),
   );
   return { ok: true, draftId: updated.id, originalEventId: updated.originalEntityId ?? undefined };
@@ -274,16 +276,16 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
             const input = withTurnAttachments(rawInput, ctx.attachedFileIds);
             // A draft is already open in the form: never spawn a second one, always fold the request into it.
             if (scope?.type === 'draft') {
-              return patchDraftById(client, scope.id, { targetEventId, ...input }, ctx.timezone);
+              return patchDraftById(client, scope.id, { targetEventId, ...input }, ctx.timezone, ctx.currency);
             }
             const resolvedTargetEventId = scope?.type === 'event' ? scope.id : (targetEventId ?? undefined);
             // Targeting an existing event: upsert its single draft instead of a blind create, so the
             // model can never end up with two drafts pointing at the same event.
             if (resolvedTargetEventId) {
-              return upsertDraftForEvent(client, resolvedTargetEventId, input, ctx.timezone);
+              return upsertDraftForEvent(client, resolvedTargetEventId, input, ctx.timezone, ctx.currency);
             }
             const created = await unwrap(
-              client.POST('/drafts/finance-events', { body: toDraftPayload(input, ctx.timezone) }),
+              client.POST('/drafts/finance-events', { body: toDraftPayload(input, ctx.timezone, ctx.currency) }),
             );
             return { ok: true, draftId: created.id, originalEventId: created.originalEntityId ?? undefined };
           }),
@@ -304,7 +306,7 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
         execute: ({ draftId, ...patch }) =>
           // The scoped draft id always wins over whatever draftId the model picked, so an open form can
           // never be silently patched onto the wrong draft.
-          safe(() => patchDraftById(client, scope?.type === 'draft' ? scope.id : draftId, patch, ctx.timezone)),
+          safe(() => patchDraftById(client, scope?.type === 'draft' ? scope.id : draftId, patch, ctx.timezone, ctx.currency)),
       }),
     },
 
@@ -383,11 +385,11 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
             // The scoped event id always wins over whatever eventId the model picked, so an open form can
             // never be silently patched onto the wrong event.
             const resolvedEventId = scope?.type === 'event' ? scope.id : eventId;
-            const wantsTransaction = patch.date != null || patch.lineItems != null;
+            const wantsTransaction = patch.date != null || patch.lineItems != null || patch.currency != null;
             const current = wantsTransaction
               ? await unwrap(client.GET('/events/{id}', { params: { path: { id: resolvedEventId } } }))
               : ({} as FinanceEventDto);
-            const body = toEventPatch({ eventId: resolvedEventId, ...patch }, current, ctx.timezone);
+            const body = toEventPatch({ eventId: resolvedEventId, ...patch }, current, ctx.timezone, ctx.currency);
             return toBotEvent(await unwrap(patchEvent(client, resolvedEventId, body)));
           }),
       }),

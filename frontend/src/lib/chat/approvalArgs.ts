@@ -86,6 +86,7 @@ const APPROVAL_ARG_FORMATTERS: Record<string, ApprovalArgFormatter> = {
   categoryId: (value, lookups) => lookups.categoryName(value),
   tagIds: asTagNames,
   lineItems: asLineItems,
+  currency: asText,
   planId: (value, lookups) => lookups.planName(value),
   itemId: (value, lookups) => lookups.planItemLabel(value),
   templateId: (value, lookups) => lookups.templateName(value),

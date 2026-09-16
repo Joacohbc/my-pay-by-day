@@ -16,6 +16,12 @@ My Pay By Day is a personal finance app built on double-entry accounting hidden 
 - Finance node: any account/wallet/card (OWN), external entity (EXTERNAL) or contact (CONTACT) that holds or moves money.
 - A Transaction is a list of line items, each {nodeId, amount}, that must sum to zero: negative = money OUT of that
   node, positive = money IN. A simple purchase is 2 items; a bill split three ways or a multi-party settlement is 3+.
+- Currency: every Event is recorded in ONE currency (ISO 4217), shared by all of its line items — the amounts have to
+  be comparable for them to sum to zero. The app stores NO exchange rates and never converts, so balances, budgets
+  and totals come back split per currency, and an event mixing two currencies is rejected. A node may declare the
+  currency it is denominated in; an amount in any other currency is refused against it. Choose an event's currency
+  from the account the money moves through, or from what the source document states; when it is genuinely unclear,
+  ask rather than guess — an amount labelled with the wrong currency cannot be repaired by conversion later.
 - Category: a budgeting bucket. Tags: transversal labels. Both live on the Event, never on line items.
 - Draft: an incomplete/pending event the user must review before it becomes real.`;
 
@@ -34,7 +40,12 @@ WRITING STYLE (important):
 
 /**
  * Renders concrete Intl examples (not format descriptions) because the model copies examples far more
- * reliably. Uses the same locale mapping and currency the frontend uses, so chat text matches the UI.
+ * reliably. Uses the same locale mapping the frontend uses, so chat text matches the UI.
+ *
+ * The currency is the one the user enters amounts in, not the one every amount is displayed in: the
+ * ledger stores a currency per event and holds no exchange rates, so an amount read back must be
+ * shown in its own currency. Formatting a UYU expense with a dollar sign because the user's default
+ * is USD would misreport it, and converting it would invent a number.
  */
 export function formattingGuidance(lang: string, currency: string): string {
   const locale = localeFor(lang);
@@ -50,7 +61,13 @@ export function formattingGuidance(lang: string, currency: string): string {
   }).format(new Date());
   return (
     `- When writing monetary amounts in your replies, mirror the app's display format exactly, e.g. ${moneyExample}` +
-    ` (the user's currency is ${currency}). When writing dates, follow this style: ${dateExample}.`
+    ` for ${currency}, which is the currency the user enters new amounts in. Always write an amount in the currency` +
+    ` it is actually recorded in — every event, balance and budget carries its own ISO 4217 code, so use that one` +
+    ` rather than the user's default, and name the currency when several appear in the same reply.` +
+    `\n- Never add up or compare amounts in different currencies, and never convert between them: there are no` +
+    ` exchange rates in this system, so any converted figure would be invented. Report each currency separately` +
+    ` (e.g. "gastaste 12.400 UYU y 85 USD"), which is exactly how balances and totals come back from the app.` +
+    `\n- When writing dates, follow this style: ${dateExample}.`
   );
 }
 
@@ -209,6 +226,9 @@ export function extractionAgentSystemPrompt(input: PromptInput & { templateConte
     `\nCRITICAL RULES, no exceptions:`,
     `- You MUST call createDraft exactly once before finishing, with no targetEventId — this is always a brand-new`,
     `  standalone draft, never an edit of an existing event.`,
+    `- Read the currency off the document itself: a receipt prints its symbol or code ($, US$, U$S, EUR, ARS...).`,
+    `  Pass it as the draft's currency instead of leaving it to the user's default, which is what makes a receipt in`,
+    `  another currency land correctly. Only fall back to the default when the document shows no currency at all.`,
     `- You have no way to ask the user anything, and must never try to. If a node, category, tag or date is unknown`,
     `  or ambiguous, leave that field null/empty and move on: an incomplete draft the user can fix by hand beats no`,
     `  draft at all. Never stall waiting for information you cannot get.`,

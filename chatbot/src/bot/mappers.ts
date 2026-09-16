@@ -8,16 +8,35 @@ interface DraftInput {
   description?: string | null;
   type: BotEventType;
   lineItems: BotLineItem[];
+  currency?: string | null;
   categoryId?: number | null;
   tagIds?: number[] | null;
   date?: string | null;
   fileIds?: number[] | null;
 }
 
-/** Maps the LLM's flat {nodeId, amount} shape to the backend's {financeNodeId, amount} draft line item shape. */
-function toDraftLineItems(lineItems: BotLineItem[] | null | undefined): { financeNodeId: number | null; amount: number }[] | undefined {
+/**
+ * Maps the LLM's flat {nodeId, amount} shape to the backend's line-item shape, stamping the
+ * event's single currency onto each line.
+ *
+ * The model states one currency for the event because that is how a purchase is described; the
+ * backend stores it per line because that is where the amount lives. Fanning it out here is what
+ * bridges the two without letting the model produce lines that disagree.
+ */
+function toDraftLineItems(
+  lineItems: BotLineItem[] | null | undefined,
+  currency: string,
+): { financeNodeId: number | null; amount: number; currency: string }[] | undefined {
   if (!lineItems || lineItems.length === 0) return undefined;
-  return lineItems.map((li) => ({ financeNodeId: li.nodeId, amount: li.amount }));
+  return lineItems.map((li) => ({ financeNodeId: li.nodeId, amount: li.amount, currency }));
+}
+
+/**
+ * The currency to record an event in: the one the model stated, else the one the user enters
+ * amounts in, which is the same default their form would have offered.
+ */
+function resolveCurrency(stated: string | null | undefined, userCurrency: string): string {
+  return stated ? stated.toUpperCase() : userCurrency;
 }
 
 /**
@@ -46,7 +65,7 @@ export function toServerDateBoundary(
   return toServerDateTime(`${day}${time}`, timezone);
 }
 
-export function toDraftPayload(input: DraftInput, timezone: string): FinanceEventDraftInputDto {
+export function toDraftPayload(input: DraftInput, timezone: string, userCurrency: string): FinanceEventDraftInputDto {
   return {
     name: input.name,
     description: input.description ?? undefined,
@@ -54,7 +73,7 @@ export function toDraftPayload(input: DraftInput, timezone: string): FinanceEven
     transactionDate: normalizeDate(input.date, timezone),
     categoryId: input.categoryId ?? undefined,
     tagIds: input.tagIds ?? undefined,
-    lineItems: toDraftLineItems(input.lineItems),
+    lineItems: toDraftLineItems(input.lineItems, resolveCurrency(input.currency, userCurrency)),
     fileIds: input.fileIds ?? undefined,
   };
 }
@@ -63,7 +82,11 @@ export function toDraftPayload(input: DraftInput, timezone: string): FinanceEven
  * Maps a partial bot edit into the FinanceEventDraftInputDto shape expected by PATCH /drafts.
  * Only mapped fields are included; the backend will apply the patch to the existing draft.
  */
-export function toDraftPatchPayload(patch: Omit<BotDraftPatch, 'draftId'>, timezone: string): FinanceEventDraftInputDto {
+export function toDraftPatchPayload(
+  patch: Omit<BotDraftPatch, 'draftId'>,
+  timezone: string,
+  userCurrency: string,
+): FinanceEventDraftInputDto {
   return {
     id: patch.targetEventId ?? undefined,
     name: patch.name ?? undefined,
@@ -72,7 +95,7 @@ export function toDraftPatchPayload(patch: Omit<BotDraftPatch, 'draftId'>, timez
     transactionDate: normalizeDate(patch.date, timezone),
     categoryId: patch.categoryId ?? undefined,
     tagIds: patch.tagIds ?? undefined,
-    lineItems: toDraftLineItems(patch.lineItems),
+    lineItems: toDraftLineItems(patch.lineItems, resolveCurrency(patch.currency, userCurrency)),
     fileIds: patch.fileIds ?? undefined,
   };
 }
@@ -86,6 +109,7 @@ export function toBotEvent(dto: FinanceEventDto): BotEvent {
     description: dto.description ?? undefined,
     type: dto.type ?? 'OUTBOUND',
     lineItems: items.map((li) => ({ nodeId: li.financeNodeId ?? null, amount: li.amount ?? 0 })),
+    currency: dto.currency ?? items[0]?.currency ?? undefined,
     categoryId: dto.category?.id ?? undefined,
     tagIds: (dto.tags ?? []).map((t) => t.id).filter((id): id is number => id != null),
     date: dto.transactionDate ?? undefined,
@@ -100,6 +124,7 @@ export function toBotDraft(dto: FinanceEventDto): BotDraft {
     description: base.description,
     type: base.type,
     lineItems: base.lineItems,
+    currency: base.currency,
     categoryId: base.categoryId,
     tagIds: base.tagIds,
     date: base.date,
@@ -113,7 +138,12 @@ export function toBotDraft(dto: FinanceEventDto): BotDraft {
  * full current transaction (unchanged) when only the date moved, so a date-only edit never wipes the
  * line items — the backend contract is atomic: any transaction field change resends the whole thing.
  */
-export function toEventPatch(patch: BotEventPatch, current: FinanceEventDto, timezone: string): EventPatchBody {
+export function toEventPatch(
+  patch: BotEventPatch,
+  current: FinanceEventDto,
+  timezone: string,
+  userCurrency: string,
+): EventPatchBody {
   const body: EventPatchBody = {};
   if (patch.name != null) body.name = patch.name;
   if (patch.description != null) body.description = patch.description;
@@ -122,14 +152,22 @@ export function toEventPatch(patch: BotEventPatch, current: FinanceEventDto, tim
   if (patch.tagIds != null) body.tags = patch.tagIds.map((id) => ({ id }));
   if (patch.fileIds != null) body.fileIds = patch.fileIds;
 
-  const wantsTransaction = patch.date != null || patch.lineItems != null;
+  const wantsTransaction = patch.date != null || patch.lineItems != null || patch.currency != null;
   if (wantsTransaction) {
     const lineItems = patch.lineItems ?? (current.lineItems ?? []).map((li) => ({ nodeId: li.financeNodeId ?? null, amount: li.amount ?? 0 }));
+    const currency = resolveCurrency(
+      patch.currency,
+      current.currency ?? current.lineItems?.[0]?.currency ?? userCurrency,
+    );
     body.transaction = {
       transactionDate:
         normalizeDate(patch.date, timezone) ??
         (current.transactionDate ? asServerDateTime(current.transactionDate) : null),
-      lineItems: lineItems.map((li) => ({ financeNode: li.nodeId != null ? { id: li.nodeId } : null, amount: li.amount })),
+      lineItems: lineItems.map((li) => ({
+        financeNode: li.nodeId != null ? { id: li.nodeId } : null,
+        amount: li.amount,
+        currency,
+      })),
     };
   }
   return body;
