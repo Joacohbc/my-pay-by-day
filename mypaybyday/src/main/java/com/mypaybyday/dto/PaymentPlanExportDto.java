@@ -36,7 +36,8 @@ public record PaymentPlanExportDto(
 		Long templateId,
 		Long categoryId,
 		List<Long> tagIds,
-		List<PaymentPlanItemExportDto> items
+		List<PaymentPlanItemExportDto> items,
+		String currency
 ) {
 	public static PaymentPlanExportDto from(PaymentPlanEntity entity) {
 		return new PaymentPlanExportDto(
@@ -57,7 +58,8 @@ public record PaymentPlanExportDto(
 				entity.template != null ? entity.template.id : null,
 				entity.category != null ? entity.category.id : null,
 				entity.tags != null ? entity.tags.stream().map(tag -> tag.id).toList() : List.of(),
-				exportItems(entity));
+				exportItems(entity),
+				entity.currency);
 	}
 
 	private static List<PaymentPlanItemExportDto> exportItems(PaymentPlanEntity entity) {

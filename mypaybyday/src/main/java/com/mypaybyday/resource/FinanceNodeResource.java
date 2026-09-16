@@ -19,6 +19,8 @@ import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import com.mypaybyday.dto.MoneyDto;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 
 @Path("/finance-nodes")
 @Produces(MediaType.APPLICATION_JSON)
@@ -143,17 +145,17 @@ public class FinanceNodeResource {
     @GET
     @Path("/{id}/balance")
     @Operation(summary = "Calculate current balance of a node",
-	description = "Sums all LineItem amounts associated with this node. Positive values represent inflows, negative values outflows.")
+	description = "Sums all LineItem amounts associated with this node, one total per currency the node has held. "
+		+ "Positive values represent inflows, negative values outflows. Amounts are never converted between currencies.")
     @APIResponses({
-	@APIResponse(responseCode = "200", description = "Calculated balance",
-		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = BigDecimal.class))),
+	@APIResponse(responseCode = "200", description = "Calculated balance, one entry per currency",
+		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(type = SchemaType.ARRAY, implementation = MoneyDto.class))),
 	@APIResponse(responseCode = "404", description = "Node not found",
 			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
-    public RestResponse<BigDecimal> getBalance(
+    public RestResponse<List<MoneyDto>> getBalance(
 	@Parameter(description = "ID of the finance node", required = true) @PathParam("id") Long id)
 	throws BusinessException {
-	BigDecimal balance = financeNodeService.calculateBalance(id);
-	return RestResponse.ok(balance);
+	return RestResponse.ok(financeNodeService.calculateBalance(id));
     }
 }

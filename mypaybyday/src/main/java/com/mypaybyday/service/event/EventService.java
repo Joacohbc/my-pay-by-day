@@ -229,12 +229,14 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 					}
 					FinanceLineItemEntity li = new FinanceLineItemEntity();
 					li.amount = liDto.amount();
+					li.currency = liDto.currency();
 					li.financeNode = node;
 					li.transaction = tx;
 					tx.lineItems.add(li);
 				}
 			}
 
+			transactionValidator.validateSingleCurrency(tx);
 			transactionValidator.validateZeroSum(tx);
 			transactionRepository.persist(tx);
 

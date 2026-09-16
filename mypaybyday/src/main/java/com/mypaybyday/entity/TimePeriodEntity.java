@@ -6,11 +6,14 @@ import java.util.HashSet;
 import java.util.Set;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
+import com.mypaybyday.validation.CurrencyValidator;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -42,5 +45,9 @@ public class TimePeriodEntity extends BaseEntity {
 	public BigDecimal savingsPercentageGoal;
 
 	public BigDecimal budgetLimit;
+
+	/** The ISO 4217 code denominating {@link #budgetLimit}; {@code null} when no limit is set. */
+	@Column(length = CurrencyValidator.CODE_LENGTH)
+	public String currency;
 
 }

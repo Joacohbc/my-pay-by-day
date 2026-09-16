@@ -28,5 +28,6 @@ public record CreatePaymentPlanDto(
 	Long categoryId,
 	List<Long> tagIds,
 	@Schema(description = "GROUP plans only: existing finance events to link as already-settled members of the group.") List<Long> eventIds,
-	@Schema(description = "GROUP plans only: existing drafts to link as pending members of the group.") List<Long> draftIds
+	@Schema(description = "GROUP plans only: existing drafts to link as pending members of the group.") List<Long> draftIds,
+	@Schema(description = "ISO 4217 code denominating totalAmount and installmentAmount. Defaults to the template's origin account currency, then the server default.") String currency
 ) {}

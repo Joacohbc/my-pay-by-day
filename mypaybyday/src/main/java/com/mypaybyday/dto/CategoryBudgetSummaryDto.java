@@ -7,4 +7,5 @@ public record CategoryBudgetSummaryDto(
 	BigDecimal budgetedAmount,
 	BigDecimal spentAmount
 ) {
+	// Both amounts are denominated by the enclosing CurrencyBalanceDto's currency.
 }

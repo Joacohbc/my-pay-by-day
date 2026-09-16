@@ -33,7 +33,8 @@ public record PaymentPlanDto(
 	List<PaymentPlanItemDto> items,
 	int completedInstallments,
 	BigDecimal paidAmount,
-	BigDecimal remainingAmount
+	BigDecimal remainingAmount,
+	@Schema(description = "ISO 4217 code denominating every amount on this plan.") String currency
 ) {
 	public static PaymentPlanDto from(PaymentPlanEntity entity) {
 		if (entity == null) return null;
@@ -80,7 +81,8 @@ public record PaymentPlanDto(
 			itemDtos,
 			completed,
 			paid,
-			remaining
+			remaining,
+			entity.currency
 		);
 	}
 }

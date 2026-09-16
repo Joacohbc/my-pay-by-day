@@ -20,12 +20,16 @@ public class ConfigResource {
 	@ConfigProperty(name = "mypaybyday.timezone")
 	String timezone;
 
+	@ConfigProperty(name = "mypaybyday.default-currency")
+	String defaultCurrency;
+
 	@GET
-	@Operation(summary = "Get server configuration", description = "Returns server-side configuration the frontend needs to align date/time handling, such as the server timezone")
+	@Operation(summary = "Get server configuration", description = "Returns server-side configuration the frontend needs to align date/time handling and money entry, such as the server timezone and the default currency")
 	@APIResponse(responseCode = "200", description = "Configuration retrieved successfully")
 	public RestResponse<ConfigDto> getConfig() {
 		return RestResponse.ok(ConfigDto.builder()
 				.timezone(timezone)
+				.defaultCurrency(defaultCurrency)
 				.build());
 	}
 }

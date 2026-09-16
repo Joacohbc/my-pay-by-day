@@ -10,7 +10,9 @@ import jakarta.validation.constraints.NotNull;
 
 import com.mypaybyday.crypto.StringEncryptionConverter;
 import com.mypaybyday.enums.FinanceNodeType;
+import com.mypaybyday.validation.CurrencyValidator;
 import com.mypaybyday.validation.RegexValidator;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -50,5 +52,18 @@ public class FinanceNodeEntity extends BaseEntity {
 
 	@Builder.Default
 	public boolean archived = false;
+
+	/**
+	* The ISO 4217 code this node is denominated in, or {@code null} when it holds no particular
+	* currency.
+	*
+	* <p>
+	* Own accounts are denominated ("Itau caja de ahorro" is UYU); external entities and contacts
+	* usually are not, since a supermarket can charge in whichever currency it likes. When set,
+	* every line item touching this node must match it, which is what catches a USD charge
+	* recorded against a UYU account.
+	*/
+	@Column(length = CurrencyValidator.CODE_LENGTH)
+	public String currency;
 
 }

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -16,6 +17,8 @@ import jakarta.validation.constraints.NotBlank;
 
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.enums.ModifierType;
+import com.mypaybyday.validation.CurrencyValidator;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -56,5 +59,9 @@ public class TemplateEntity extends BaseEntity {
 	public ModifierType modifierType;
 
 	public BigDecimal modifierValue;
+
+	/** The ISO 4217 code denominating {@link #modifierValue} when it is a fixed amount. */
+	@Column(length = CurrencyValidator.CODE_LENGTH)
+	public String currency;
 
 }

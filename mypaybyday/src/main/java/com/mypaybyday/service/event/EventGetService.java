@@ -7,13 +7,18 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.CategoryBalanceDto;
+import com.mypaybyday.dto.CurrencyTotalsDto;
 import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.EventQuery.DateField;
 import com.mypaybyday.dto.EventTotalsDto;
@@ -28,6 +33,7 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.i18n.TimezoneContext;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.service.CategoryService;
+import com.mypaybyday.service.CurrencyBalanceAggregator;
 import com.mypaybyday.service.PaymentPlanService;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.logging.Log;
@@ -40,13 +46,16 @@ public class EventGetService {
 	private final CategoryService categoryService;
 	private final PaymentPlanService paymentPlanService;
 	private final Messages messages;
+	private final CurrencyBalanceAggregator currencyBalanceAggregator;
 
 	public EventGetService(EventRepository eventRepository, CategoryService categoryService,
-			PaymentPlanService paymentPlanService, Messages messages) {
+			PaymentPlanService paymentPlanService, Messages messages,
+			CurrencyBalanceAggregator currencyBalanceAggregator) {
 		this.eventRepository = eventRepository;
 		this.categoryService = categoryService;
 		this.paymentPlanService = paymentPlanService;
 		this.messages = messages;
+		this.currencyBalanceAggregator = currencyBalanceAggregator;
 	}
 
 	@Transactional
@@ -84,29 +93,56 @@ public class EventGetService {
 	public EventTotalsDto summary(EventQuery queryRequest) {
 		List<FinanceEventEntity> matchingEvents = applyInMemoryFilters(buildTotalsQuery(queryRequest).list(), queryRequest);
 
-		BigDecimal income = BigDecimal.ZERO;
-		BigDecimal outbound = BigDecimal.ZERO;
-		BigDecimal transfers = BigDecimal.ZERO;
+		Map<String, BigDecimal> incomeByCurrency = new LinkedHashMap<>();
+		Map<String, BigDecimal> outboundByCurrency = new LinkedHashMap<>();
+		Map<String, BigDecimal> transfersByCurrency = new LinkedHashMap<>();
+		Set<String> currencies = new LinkedHashSet<>();
 
 		for (FinanceEventEntity event : matchingEvents) {
 			if (event.transaction == null || event.transaction.lineItems == null) {
 				continue;
 			}
 
+			String currency = eventCurrency(event);
+			if (currency == null) {
+				continue;
+			}
+			currencies.add(currency);
+
 			if (event.type == EventType.OTHER) {
-				transfers = transfers.add(eventTransferAmount(event));
+				transfersByCurrency.merge(currency, eventTransferAmount(event), BigDecimal::add);
 				continue;
 			}
 
 			BigDecimal eventAmount = eventTotalAmount(event);
 			if (event.type == EventType.INBOUND) {
-				income = income.add(eventAmount);
+				incomeByCurrency.merge(currency, eventAmount, BigDecimal::add);
 			} else if (event.type == EventType.OUTBOUND) {
-				outbound = outbound.add(eventAmount);
+				outboundByCurrency.merge(currency, eventAmount, BigDecimal::add);
 			}
 		}
 
-		return new EventTotalsDto(income, outbound, transfers, matchingEvents.size());
+		List<CurrencyTotalsDto> totals = currencies.stream()
+				.map(currency -> new CurrencyTotalsDto(
+						currency,
+						incomeByCurrency.getOrDefault(currency, BigDecimal.ZERO),
+						outboundByCurrency.getOrDefault(currency, BigDecimal.ZERO),
+						transfersByCurrency.getOrDefault(currency, BigDecimal.ZERO)))
+				.toList();
+
+		return new EventTotalsDto(totals, matchingEvents.size());
+	}
+
+	/**
+	 * The currency an event is denominated in, read off its line items, which the transaction
+	 * validator guarantees all agree.
+	 */
+	private String eventCurrency(FinanceEventEntity event) {
+		return event.transaction.lineItems.stream()
+				.map(lineItem -> lineItem.currency)
+				.filter(Objects::nonNull)
+				.findFirst()
+				.orElse(null);
 	}
 
 	private List<FinanceEventDto> toDtosWithPlanIds(List<FinanceEventEntity> events) {
@@ -292,29 +328,14 @@ public class EventGetService {
 	@Transactional
 	public CategoryBalanceDto getCategoryBalance(Long categoryId, LocalDateTime from, LocalDateTime to) throws BusinessException {
 		CategoryEntity category = categoryService.findEntityById(categoryId);
-		List<FinanceEventEntity> eventsInCategory = findEventEntitiesByDateRangeAndCategory(categoryId, from, to);
+		List<FinanceEventDto> eventsInCategory = findEventEntitiesByDateRangeAndCategory(categoryId, from, to).stream()
+				.map(FinanceEventDto::from)
+				.toList();
 
-		BigDecimal totalIncome = BigDecimal.ZERO;
-		BigDecimal totalOutbound = BigDecimal.ZERO;
-
-		for (FinanceEventEntity event : eventsInCategory) {
-			if (event.transaction == null || event.transaction.lineItems == null) {
-				continue;
-			}
-
-			BigDecimal eventAmount = event.transaction.lineItems.stream()
-					.map(lineItem -> lineItem.amount)
-					.filter(amount -> amount.compareTo(BigDecimal.ZERO) > 0)
-					.reduce(BigDecimal.ZERO, BigDecimal::add);
-
-			if (event.type == EventType.INBOUND) {
-				totalIncome = totalIncome.add(eventAmount);
-			} else if (event.type == EventType.OUTBOUND) {
-				totalOutbound = totalOutbound.add(eventAmount);
-			}
-		}
-
-		return new CategoryBalanceDto(category.id, category.name, totalIncome, totalOutbound);
+		return new CategoryBalanceDto(
+				category.id,
+				category.name,
+				currencyBalanceAggregator.balances(eventsInCategory, Set.of()));
 	}
 
 	private List<FinanceEventEntity> findEventEntitiesByDateRange(LocalDateTime from, LocalDateTime to) throws BusinessException {

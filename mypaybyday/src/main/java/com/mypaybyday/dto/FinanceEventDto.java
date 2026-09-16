@@ -15,6 +15,7 @@ import com.mypaybyday.enums.EventType;
  * @param description     optional free-text description
  * @param type            directional nature: INBOUND, OUTBOUND, or OTHER
  * @param amount          absolute value of the event transaction (sum of positive line items)
+ * @param currency        ISO 4217 code denominating {@code amount} and every line item
  * @param transactionId   identifier of the underlying transaction
  * @param transactionDate date when the transaction occurred
  * @param lineItems       list of line items involved in the transaction
@@ -31,6 +32,7 @@ public record FinanceEventDto(
 	String description,
 	EventType type,
 	BigDecimal amount,
+	String currency,
 	Long transactionId,
 	LocalDateTime transactionDate,
 	List<FinanceLineItemDto> lineItems,
@@ -50,6 +52,7 @@ public record FinanceEventDto(
 			this.description,
 			this.type,
 			this.amount,
+			this.currency,
 			this.transactionId,
 			this.transactionDate,
 			this.lineItems,
@@ -70,6 +73,7 @@ public record FinanceEventDto(
 			this.description,
 			this.type,
 			this.amount,
+			this.currency,
 			this.transactionId,
 			this.transactionDate,
 			this.lineItems,
@@ -90,6 +94,7 @@ public record FinanceEventDto(
 		LocalDateTime txDate = null;
 		List<FinanceLineItemDto> items = null;
 		BigDecimal calculatedAmount = BigDecimal.ZERO;
+		String currency = null;
 
 		if (event.transaction != null) {
 			txId = event.transaction.id;
@@ -104,6 +109,8 @@ public record FinanceEventDto(
 						.map(FinanceLineItemDto::amount)
 						.filter(a -> a != null && a.compareTo(BigDecimal.ZERO) > 0)
 						.reduce(BigDecimal.ZERO, BigDecimal::add);
+
+				currency = FinanceLineItemDto.currencyOf(items);
 			} else {
 				items = List.of();
 			}
@@ -115,6 +122,7 @@ public record FinanceEventDto(
 			event.description,
 			event.type,
 			calculatedAmount,
+			currency,
 			txId,
 			txDate,
 			items,

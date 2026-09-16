@@ -2,13 +2,18 @@ package com.mypaybyday.service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.FinanceNodeDto;
+import com.mypaybyday.dto.MoneyDto;
 import com.mypaybyday.dto.SectionImportResult;
+import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.enums.FinanceNodeType;
@@ -103,6 +108,7 @@ public class FinanceNodeService implements DataSectionTransfer<FinanceNodeDto> {
 		node.description = dto.description();
 		node.icon = dto.icon();
 		node.color = dto.color();
+		node.currency = dto.currency();
 
 		financeNodeValidator.validate(node);
 
@@ -122,6 +128,7 @@ public class FinanceNodeService implements DataSectionTransfer<FinanceNodeDto> {
 		node.description = dto.description();
 		node.icon = dto.icon();
 		node.color = dto.color();
+		node.currency = dto.currency();
 
 		financeNodeValidator.validate(node);
 
@@ -183,24 +190,35 @@ public class FinanceNodeService implements DataSectionTransfer<FinanceNodeDto> {
 		Log.infof("Deleted finance-node id=%d", id);
 	}
 
+	/**
+	 * Sums every line item touching this node, one total per currency it has held.
+	 *
+	 * <p>Positive amounts add to the balance and negative ones subtract, following how the
+	 * movement was registered. A node that only ever held one currency returns a single entry;
+	 * nothing is ever converted, so a node holding both UYU and USD reports both rather than a
+	 * combined figure that would correspond to no real amount of money.
+	 *
+	 * @return balances ordered by descending absolute value, so the node's main currency leads
+	 */
 	@Transactional
-	public BigDecimal calculateBalance(Long id) throws BusinessException {
+	public List<MoneyDto> calculateBalance(Long id) throws BusinessException {
 		FinanceNodeEntity node = financeNodeRepository.findById(id);
 		if (node == null) {
 			throw messages.reject(MsgKey.NODE_NOT_FOUND);
 		}
 
-		// Calculate balance on-the-fly summing all amounts for this node
-		// In this logic, positive amounts add to balance, negative decrease.
-		// It depends on how transactions are registered (e.g. income is +, expense is -
-		// for OWN accounts).
-		BigDecimal total = lineItemRepository.find("financeNode", node)
-				.stream()
-				.map(lineItem -> lineItem.amount)
-				.reduce(BigDecimal.ZERO, BigDecimal::add);
+		Map<String, BigDecimal> totalByCurrency = new LinkedHashMap<>();
+		for (FinanceLineItemEntity lineItem : lineItemRepository.find("financeNode", node).stream().toList()) {
+			if (lineItem.currency == null) continue;
+			totalByCurrency.merge(lineItem.currency, lineItem.amount, BigDecimal::add);
+		}
 
-		Log.debugf("Calculated balance for finance-node id=%d", id);
-		return total;
+		int currencyCount = totalByCurrency.size();
+		Log.debugf("Calculated balance for finance-node id=%d across %d currencies", id.longValue(), currencyCount);
+		return totalByCurrency.entrySet().stream()
+				.map(entry -> new MoneyDto(entry.getValue(), entry.getKey()))
+				.sorted(Comparator.comparing((MoneyDto money) -> money.amount().abs()).reversed())
+				.toList();
 	}
 
 	// -------------------------------------------------------------------------

@@ -2,7 +2,10 @@ package com.mypaybyday.validation;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -27,14 +30,17 @@ public class TransactionValidator {
 	private final FinanceNodeRepository financeNodeRepository;
 	private final Messages messages;
 	private final DateValidator dateValidator;
+	private final CurrencyValidator currencyValidator;
 
 	public TransactionValidator(
 			FinanceNodeRepository financeNodeRepository,
 			Messages messages,
-			DateValidator dateValidator) {
+			DateValidator dateValidator,
+			CurrencyValidator currencyValidator) {
 		this.financeNodeRepository = financeNodeRepository;
 		this.messages = messages;
 		this.dateValidator = dateValidator;
+		this.currencyValidator = currencyValidator;
 	}
 
 	/**
@@ -57,6 +63,32 @@ public class TransactionValidator {
 
 		if (sum.compareTo(BigDecimal.ZERO) != 0) {
 			throw messages.reject(MsgKey.TRANSACTION_ZERO_SUM_VIOLATED, sum);
+		}
+	}
+
+	/**
+	* Validates that every {@link FinanceLineItemEntity} in the transaction is denominated in the
+	* same ISO 4217 currency.
+	*
+	* <p>The system stores no exchange rates: amounts in different currencies are incommensurable,
+	* so summing them — which is exactly what the Zero-Sum Rule does — would be meaningless. One
+	* currency per transaction is what keeps that rule arithmetically sound.
+	*
+	* @throws BusinessException if a currency is missing, unknown, or the transaction mixes several
+	*/
+	public void validateSingleCurrency(FinanceTransactionEntity transaction) throws BusinessException {
+		if (transaction.lineItems == null || transaction.lineItems.isEmpty()) {
+			throw messages.reject(MsgKey.TRANSACTION_NO_LINE_ITEMS);
+		}
+
+		Set<String> currencies = new LinkedHashSet<>();
+		for (FinanceLineItemEntity item : transaction.lineItems) {
+			item.currency = currencyValidator.validateRequired(item.currency);
+			currencies.add(item.currency);
+		}
+
+		if (currencies.size() > 1) {
+			throw messages.reject(MsgKey.TRANSACTION_MIXED_CURRENCIES, String.join(", ", currencies));
 		}
 	}
 
@@ -88,6 +120,35 @@ public class TransactionValidator {
 			.ifPresent(node -> {
 				throw messages.reject(MsgKey.NODE_ARCHIVED_IN_USE, node.id);
 			});
+
+		validateNodeDenominations(transaction, nodes);
+	}
+
+	/**
+	* Validates that a line item's currency matches the denomination of the node it moves value
+	* through, for every node that declares one.
+	*
+	* <p>An own account is denominated in exactly one currency, so a line item in any other
+	* currency is a recording mistake — a USD charge booked against a UYU account — that no later
+	* report could detect, since the two amounts would simply never be added together. Nodes with
+	* no declared currency (external entities, contacts) accept any.
+	*
+	* @throws BusinessException if a line item contradicts its node's denomination
+	*/
+	private void validateNodeDenominations(FinanceTransactionEntity transaction, List<FinanceNodeEntity> nodes)
+			throws BusinessException {
+		Map<Long, FinanceNodeEntity> nodesById = new LinkedHashMap<>();
+		for (FinanceNodeEntity node : nodes) {
+			nodesById.put(node.id, node);
+		}
+
+		for (FinanceLineItemEntity item : transaction.lineItems) {
+			FinanceNodeEntity node = nodesById.get(item.financeNode.id);
+			if (node == null || node.currency == null || item.currency == null) continue;
+			if (!node.currency.equalsIgnoreCase(item.currency)) {
+				throw messages.reject(MsgKey.CURRENCY_NODE_MISMATCH, node.name, node.currency, item.currency);
+			}
+		}
 	}
 
 	/**
@@ -106,6 +167,7 @@ public class TransactionValidator {
 	 * @throws BusinessException if any validation rule is violated
 	 */
 	public void validate(FinanceTransactionEntity transaction) throws BusinessException {
+		validateSingleCurrency(transaction);
 		validateZeroSum(transaction);
 		validateNodesExist(transaction);
 		validateDateNotInFuture(transaction);

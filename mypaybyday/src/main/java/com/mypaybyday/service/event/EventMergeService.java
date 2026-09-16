@@ -34,6 +34,14 @@ import io.quarkus.logging.Log;
 @ApplicationScoped
 public class EventMergeService {
 
+	/**
+	 * Groups line items that a merge should collapse into one. Two movements only cancel or
+	 * accumulate when they touch the same node <em>and</em> are denominated the same way, so the
+	 * currency is part of the identity rather than a detail carried along with it.
+	 */
+	private record NodeCurrency(FinanceNodeEntity node, String currency) {
+	}
+
 	private final EventRepository eventRepository;
 	private final CategoryService categoryService;
 	private final TagService tagService;
@@ -98,7 +106,7 @@ public class EventMergeService {
 			}
 		}
 
-		Map<FinanceNodeEntity, BigDecimal> aggregatedAmountsByNode = new LinkedHashMap<>();
+		Map<NodeCurrency, BigDecimal> aggregatedAmountsByNode = new LinkedHashMap<>();
 		List<FinanceLineItemEntity> nonGroupedLineItems = new ArrayList<>();
 
 		for (FinanceLineItemEntity lineItem : allLineItems) {
@@ -106,7 +114,8 @@ public class EventMergeService {
 				continue;
 			}
 			if (groupedNodeIds.contains(lineItem.financeNode.id)) {
-				aggregatedAmountsByNode.merge(lineItem.financeNode, lineItem.amount, BigDecimal::add);
+				aggregatedAmountsByNode.merge(
+						new NodeCurrency(lineItem.financeNode, lineItem.currency), lineItem.amount, BigDecimal::add);
 			} else {
 				nonGroupedLineItems.add(lineItem);
 			}
@@ -116,10 +125,11 @@ public class EventMergeService {
 		baseTransaction.lineItems.clear();
 		List<FinanceLineItemEntity> mergedLineItems = new ArrayList<>();
 
-		for (Map.Entry<FinanceNodeEntity, BigDecimal> aggregatedEntry : aggregatedAmountsByNode.entrySet()) {
+		for (Map.Entry<NodeCurrency, BigDecimal> aggregatedEntry : aggregatedAmountsByNode.entrySet()) {
 			FinanceLineItemEntity mergedItem = new FinanceLineItemEntity();
 			mergedItem.transaction = baseTransaction;
-			mergedItem.financeNode = aggregatedEntry.getKey();
+			mergedItem.financeNode = aggregatedEntry.getKey().node();
+			mergedItem.currency = aggregatedEntry.getKey().currency();
 			mergedItem.amount = aggregatedEntry.getValue();
 			mergedLineItems.add(mergedItem);
 		}
@@ -129,6 +139,7 @@ public class EventMergeService {
 			mergedItem.transaction = baseTransaction;
 			mergedItem.financeNode = lineItem.financeNode;
 			mergedItem.amount = lineItem.amount;
+			mergedItem.currency = lineItem.currency;
 			mergedLineItems.add(mergedItem);
 		}
 

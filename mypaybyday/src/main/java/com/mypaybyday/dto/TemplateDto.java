@@ -19,7 +19,8 @@ public record TemplateDto(
 	List<TagDto> tags,
 	EventType eventType,
 	ModifierType modifierType,
-	BigDecimal modifierValue) {
+	BigDecimal modifierValue,
+	String currency) {
 
     public static TemplateDto from(TemplateEntity t) {
 	return new TemplateDto(
@@ -34,6 +35,7 @@ public record TemplateDto(
 		t.tags != null ? t.tags.stream().map(TagDto::from).toList() : List.of(),
 		t.eventType,
 		t.modifierType,
-		t.modifierValue);
+		t.modifierValue,
+		t.currency);
     }
 }

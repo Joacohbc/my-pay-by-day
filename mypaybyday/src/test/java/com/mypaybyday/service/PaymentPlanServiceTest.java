@@ -81,6 +81,7 @@ class PaymentPlanServiceTest {
 			null,
 			null,
 			null,
+			null,
 			null
 		);
 	}
@@ -199,7 +200,7 @@ class PaymentPlanServiceTest {
 	void testGroupMembersAreNotBoundToTheGroupDate() throws BusinessException {
 		PaymentPlanDto group = paymentPlanService.create(new CreatePaymentPlanDto(
 			"Bariloche trip", null, PaymentPlanType.GROUP, null, null, null, null,
-			START, null, false, false, null, false, null, null, List.of(), null, null));
+			START, null, false, false, null, false, null, null, List.of(), null, null, null));
 
 		PaymentPlanItemDto member = paymentPlanService.createItem(group.id(), itemDto(START.minusMonths(2)));
 		assertEquals(START.minusMonths(2), member.expectedDate());
@@ -272,7 +273,7 @@ class PaymentPlanServiceTest {
 	}
 
 	private FinanceNodeEntity createNode(String name, FinanceNodeType type) throws BusinessException {
-		FinanceNodeDto created = financeNodeService.create(new FinanceNodeDto(null, name, type, null, null, null, false));
+		FinanceNodeDto created = financeNodeService.create(new FinanceNodeDto(null, name, type, null, null, null, false, null));
 		FinanceNodeEntity node = new FinanceNodeEntity();
 		node.id = created.id();
 		return node;
@@ -282,6 +283,7 @@ class PaymentPlanServiceTest {
 		FinanceLineItemEntity lineItem = new FinanceLineItemEntity();
 		lineItem.financeNode = node;
 		lineItem.amount = amount;
+		lineItem.currency = "USD";
 		return lineItem;
 	}
 }

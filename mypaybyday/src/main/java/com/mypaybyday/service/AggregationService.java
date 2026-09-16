@@ -13,6 +13,7 @@ import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.FinanceLineItemDto;
+import com.mypaybyday.dto.MoneyDto;
 import com.mypaybyday.entity.TimePeriodEntity;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
@@ -43,7 +44,7 @@ public class AggregationService {
     }
 
     @Transactional
-    public Map<Long, BigDecimal> monthlyByCategory(int year, int month) {
+    public Map<Long, List<MoneyDto>> monthlyByCategory(int year, int month) {
         YearMonth yearMonth = YearMonth.of(year, month);
         LocalDateTime from = yearMonth.atDay(1).atStartOfDay();
         LocalDateTime to = yearMonth.atEndOfMonth().atTime(LocalTime.MAX);
@@ -52,7 +53,7 @@ public class AggregationService {
     }
 
     @Transactional
-    public Map<Long, BigDecimal> byTagInPeriod(Long periodId) throws BusinessException {
+    public Map<Long, List<MoneyDto>> byTagInPeriod(Long periodId) throws BusinessException {
         TimePeriodEntity period = findPeriodEntity(periodId);
         		LocalDateTime from = period.startDate;
         		LocalDateTime to = period.endDate;        List<FinanceEventDto> events = eventService.findByDateRange(from, to);
@@ -60,58 +61,74 @@ public class AggregationService {
     }
 
     @Transactional
-    public BigDecimal nodeBalance(Long nodeId) {
+    public List<MoneyDto> nodeBalance(Long nodeId) {
         Log.debugf("Computing full-history node balance for node id=%d", nodeId);
         var node = financeNodeRepository.findById(nodeId);
         if (node == null) {
-            return BigDecimal.ZERO;
+            return List.of();
         }
         List<FinanceEventDto> allEvents = eventService.findByDateRange(
                 LocalDateTime.of(2000, 1, 1, 0, 0),
                 LocalDateTime.now());
-        BigDecimal balance = BigDecimal.ZERO;
+        Map<String, BigDecimal> balanceByCurrency = new LinkedHashMap<>();
         for (FinanceEventDto event : allEvents) {
             if (event.lineItems() == null) continue;
             for (FinanceLineItemDto li : event.lineItems()) {
-                if (nodeId.equals(li.financeNodeId())) {
-                    balance = balance.add(li.amount());
+                if (nodeId.equals(li.financeNodeId()) && li.currency() != null) {
+                    balanceByCurrency.merge(li.currency(), li.amount(), BigDecimal::add);
                 }
             }
         }
-        return balance;
+        return toMoneyList(balanceByCurrency);
     }
 
     @Transactional
-    public BigDecimal categorySpendingInPeriod(Long categoryId, Long periodId) throws BusinessException {
+    public List<MoneyDto> categorySpendingInPeriod(Long categoryId, Long periodId) throws BusinessException {
         TimePeriodEntity period = findPeriodEntity(periodId);
         		LocalDateTime from = period.startDate;
         		LocalDateTime to = period.endDate;        List<FinanceEventDto> events = eventService.findByDateRange(from, to);
-        return events.stream()
+        Map<String, BigDecimal> spentByCurrency = new LinkedHashMap<>();
+        events.stream()
                 .filter(e -> e.category() != null && categoryId.equals(e.category().id()))
                 .filter(e -> e.type() == EventType.OUTBOUND)
-                .map(e -> e.amount() != null ? e.amount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .filter(e -> e.currency() != null)
+                .forEach(e -> spentByCurrency.merge(
+                        e.currency(), e.amount() != null ? e.amount() : BigDecimal.ZERO, BigDecimal::add));
+        return toMoneyList(spentByCurrency);
     }
 
-    private Map<Long, BigDecimal> aggregateByCategory(List<FinanceEventDto> events) {
-        Map<Long, BigDecimal> result = new LinkedHashMap<>();
+    private Map<Long, List<MoneyDto>> aggregateByCategory(List<FinanceEventDto> events) {
+        Map<Long, Map<String, BigDecimal>> byCategory = new LinkedHashMap<>();
         for (FinanceEventDto event : events) {
-            if (event.category() == null || event.amount() == null) continue;
-            Long catId = event.category().id();
-            result.merge(catId, event.amount(), BigDecimal::add);
+            if (event.category() == null || event.amount() == null || event.currency() == null) continue;
+            byCategory.computeIfAbsent(event.category().id(), key -> new LinkedHashMap<>())
+                    .merge(event.currency(), event.amount(), BigDecimal::add);
         }
-        return result;
+        return toMoneyLists(byCategory);
     }
 
-    private Map<Long, BigDecimal> aggregateByTag(List<FinanceEventDto> events) {
-        Map<Long, BigDecimal> result = new LinkedHashMap<>();
+    private Map<Long, List<MoneyDto>> aggregateByTag(List<FinanceEventDto> events) {
+        Map<Long, Map<String, BigDecimal>> byTag = new LinkedHashMap<>();
         for (FinanceEventDto event : events) {
-            if (event.tags() == null || event.amount() == null) continue;
+            if (event.tags() == null || event.amount() == null || event.currency() == null) continue;
             for (var tag : event.tags()) {
-                result.merge(tag.id(), event.amount(), BigDecimal::add);
+                byTag.computeIfAbsent(tag.id(), key -> new LinkedHashMap<>())
+                        .merge(event.currency(), event.amount(), BigDecimal::add);
             }
         }
+        return toMoneyLists(byTag);
+    }
+
+    private Map<Long, List<MoneyDto>> toMoneyLists(Map<Long, Map<String, BigDecimal>> totalsByKey) {
+        Map<Long, List<MoneyDto>> result = new LinkedHashMap<>();
+        totalsByKey.forEach((key, totals) -> result.put(key, toMoneyList(totals)));
         return result;
+    }
+
+    private List<MoneyDto> toMoneyList(Map<String, BigDecimal> totalsByCurrency) {
+        return totalsByCurrency.entrySet().stream()
+                .map(entry -> new MoneyDto(entry.getValue(), entry.getKey()))
+                .toList();
     }
 
     private TimePeriodEntity findPeriodEntity(Long periodId) throws BusinessException {

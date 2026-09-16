@@ -23,7 +23,8 @@ public record SubscriptionDto(
 	BigDecimal modifierValue,
 	RecurrenceFrequency recurrence,
 	LocalDateTime nextExecutionDate,
-	SubscriptionStatus status) {
+	SubscriptionStatus status,
+	String currency) {
 
     public static SubscriptionDto from(SubscriptionEntity s) {
 	return new SubscriptionDto(
@@ -40,6 +41,7 @@ public record SubscriptionDto(
 		s.modifierValue,
 		s.recurrence,
 		s.nextExecutionDate,
-		s.status);
+		s.status,
+		s.currency);
     }
 }

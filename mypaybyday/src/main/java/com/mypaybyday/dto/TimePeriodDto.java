@@ -14,7 +14,8 @@ public record TimePeriodDto(
 	LocalDateTime endDate,
 	List<TimePeriodBudgetDto> budgets,
 	BigDecimal savingsPercentageGoal,
-	BigDecimal budgetLimit
+	BigDecimal budgetLimit,
+	String currency
 ) {
 
     public static TimePeriodDto from(TimePeriodEntity tp) {
@@ -25,7 +26,8 @@ public record TimePeriodDto(
 		tp.endDate,
 		tp.budgets != null ? tp.budgets.stream().map(TimePeriodBudgetDto::from).collect(Collectors.toList()) : null,
 		tp.savingsPercentageGoal,
-		tp.budgetLimit
+		tp.budgetLimit,
+		tp.currency
 	);
     }
 
@@ -42,6 +44,7 @@ public record TimePeriodDto(
 	tp.endDate = this.endDate;
 	tp.savingsPercentageGoal = this.savingsPercentageGoal;
 	tp.budgetLimit = this.budgetLimit;
+	tp.currency = this.currency;
 	return tp;
     }
 }
