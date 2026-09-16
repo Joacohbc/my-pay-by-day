@@ -1,12 +1,14 @@
 import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
-import { formatCurrency } from '@/lib/format';
+import { formatMoney } from '@/lib/format';
 import type { Category } from '@/models';
 
 interface BudgetsItemListProps {
   name: string;
   spentAmount: number;
   budgetedAmount: number;
+  /** ISO 4217 code denominating both amounts; a budget is only comparable within its currency. */
+  currency: string;
   category?: Category;
 }
 
@@ -34,7 +36,7 @@ function calculateBudgetStatus(spent: number, budgeted: number): BudgetStatus {
   };
 }
 
-export function BudgetsItemList({ name, spentAmount, budgetedAmount, category }: BudgetsItemListProps) {
+export function BudgetsItemList({ name, spentAmount, budgetedAmount, currency, category }: BudgetsItemListProps) {
   const { usedPct, statusIcon, statusColor, barColor } = calculateBudgetStatus(
     spentAmount,
     budgetedAmount
@@ -52,7 +54,7 @@ export function BudgetsItemList({ name, spentAmount, budgetedAmount, category }:
           <p className="text-base font-medium text-dn-text-main">{name}</p>
         </div>
         <p className="text-sm text-dn-text-muted">
-          {formatCurrency(spentAmount)} / {formatCurrency(budgetedAmount)}
+          {formatMoney(spentAmount, currency)} / {formatMoney(budgetedAmount, currency)}
         </p>
       </div>
       <div className="h-2 rounded-full bg-dn-surface-low overflow-hidden ml-8">

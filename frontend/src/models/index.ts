@@ -62,6 +62,12 @@ export interface FinanceNode extends Identifiable {
   icon?: string;
   color?: string;
   archived: boolean;
+  /**
+   * ISO 4217 code this node is denominated in. Undefined means it holds no particular currency —
+   * the usual case for shops and contacts, which can charge in whichever currency they like.
+   * When set, the backend rejects line items in any other currency.
+   */
+  currency?: string;
 }
 
 export type CreateFinanceNodeDto = Omit<FinanceNode, 'id' | 'archived'>;
@@ -74,11 +80,25 @@ export interface FinanceLineItem {
   financeNodeName: string;
   financeNodeIcon?: string;
   amount: number;
+  /** ISO 4217 code denominating `amount`. Every line item of one event shares it. */
+  currency: string;
 }
 
 export interface CreateLineItemDto {
   financeNode: { id: number };
   amount: number;
+  currency: string;
+}
+
+/**
+ * A single monetary value together with the currency that denominates it.
+ *
+ * The system holds no exchange rates, so an amount is never meaningful on its own and two
+ * `Money` values of different currencies can be listed side by side but never added.
+ */
+export interface Money {
+  amount: number;
+  currency: string;
 }
 
 // ─── FinanceTransaction ───────────────────────────────────────────────────────
@@ -148,6 +168,7 @@ export interface RelatedEvent extends Identifiable {
   name: string;
   date: string;
   amount: number;
+  currency?: string;
   type: EventType;
   category?: Category;
 }
@@ -160,6 +181,8 @@ export interface FinanceEvent extends Identifiable {
   type: EventType;
   transactionDate: string; // ISO-8601 date-time
   lineItems: FinanceLineItem[];
+  /** ISO 4217 code denominating every line item. Absent only on an event with no line items. */
+  currency?: string;
   category?: Category;
   tags: Tag[];
   relatedEvents?: RelatedEvent[];
@@ -207,7 +230,7 @@ export interface FinanceEventDraftInputDto {
   transactionDate?: string;
   categoryId?: number;
   tagIds?: number[];
-  lineItems?: { financeNodeId: number; amount: number }[];
+  lineItems?: { financeNodeId: number; amount: number; currency: string }[];
   /** Replaces the draft's attachments; omit to keep the ones it already has. */
   fileIds?: number[];
 }
@@ -238,6 +261,8 @@ export interface Template extends Identifiable {
   eventType?: EventType;
   modifierType?: ModifierType;
   modifierValue?: number;
+  /** ISO 4217 code denominating `modifierValue` when it is a fixed amount. */
+  currency?: string;
 }
 
 export interface CreateTemplateDto {
@@ -250,6 +275,7 @@ export interface CreateTemplateDto {
   eventType?: EventType;
   modifierType?: ModifierType;
   modifierValue?: number;
+  currency?: string;
 }
 
 // ─── Subscription ─────────────────────────────────────────────────────────────
@@ -270,6 +296,8 @@ export interface Subscription extends Identifiable {
   recurrence: RecurrenceFrequency;
   nextExecutionDate: string; // ISO-8601 date
   status: SubscriptionStatus;
+  /** ISO 4217 code denominating `modifierValue`. */
+  currency?: string;
 }
 
 export interface CreateSubscriptionDto {
@@ -284,6 +312,7 @@ export interface CreateSubscriptionDto {
   recurrence: RecurrenceFrequency;
   nextExecutionDate: string;
   status?: SubscriptionStatus;
+  currency?: string;
 }
 
 // ─── TimePeriod ───────────────────────────────────────────────────────────────
@@ -291,12 +320,28 @@ export interface CreateSubscriptionDto {
 export interface TimePeriodBudgetDto extends Identifiable {
   category?: Category;
   budgetedAmount: number;
+  /** ISO 4217 code denominating `budgetedAmount`, independent of the period's own currency. */
+  currency?: string;
 }
 
+/** Both amounts are denominated by the enclosing `CurrencyBalance`'s currency. */
 export interface CategoryBudgetSummaryDto {
   category: Category;
   budgetedAmount: number;
   spentAmount: number;
+}
+
+/**
+ * Everything a balance reports about one currency.
+ *
+ * A balance spanning several currencies is a list of these rather than a set of summed scalars:
+ * with no exchange rates, income in UYU and income in USD are two separate facts.
+ */
+export interface CurrencyBalance {
+  currency: string;
+  income: number;
+  outbound: number;
+  categoryBudgets: CategoryBudgetSummaryDto[];
 }
 
 export interface TimePeriod extends Identifiable {
@@ -306,23 +351,23 @@ export interface TimePeriod extends Identifiable {
   budgets?: TimePeriodBudgetDto[];
   savingsPercentageGoal?: number;
   budgetLimit?: number;
+  /** ISO 4217 code denominating `budgetLimit`. */
+  currency?: string;
 }
 
 export type CreateTimePeriodDto = Omit<TimePeriod, 'id'>;
 
 export interface TimePeriodBalance {
   timePeriod: TimePeriod;
-  income: number;
-  outbound: number;
-  categoryBudgets: CategoryBudgetSummaryDto[];
+  /** One entry per currency present in the period, busiest first. Never converted between them. */
+  balances: CurrencyBalance[];
   events: FinanceEvent[];
 }
 
 export interface DynamicTimePeriodBalance {
   startDate: string;
   endDate: string;
-  income: number;
-  outbound: number;
+  balances: CurrencyBalance[];
   events: FinanceEvent[];
 }
 

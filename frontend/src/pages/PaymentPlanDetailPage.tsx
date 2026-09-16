@@ -24,7 +24,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import { eventNetAmount, formatCurrency, formatCurrencyShort, formatDateFromParts, formatDateShort } from '@/lib/format';
+import { eventCurrency, eventNetAmount, formatMoney, formatMoneyShort, getCurrency, formatDateFromParts, formatDateShort } from '@/lib/format';
 import { useEvent } from '@/hooks/useEvents';
 import type { FinanceEvent, PaymentPlan, PaymentPlanItem, PaymentPlanStatus } from '@/models';
 
@@ -264,9 +264,9 @@ export function PaymentPlanDetailPage() {
 
         <p className="text-4xl font-mono font-bold tracking-tight mt-3 text-dn-primary break-all">
           {totalsFromLinkedEvents
-            ? formatCurrency(plan.paidAmount)
+            ? formatMoney(plan.paidAmount, plan.currency ?? getCurrency())
             : plan.installmentAmount
-              ? formatCurrency(plan.installmentAmount)
+              ? formatMoney(plan.installmentAmount, plan.currency ?? getCurrency())
               : '—'}
         </p>
         <p className="text-xs text-dn-text-muted mt-1">
@@ -314,7 +314,7 @@ export function PaymentPlanDetailPage() {
             <DetailRow label={t('paymentPlans.nextDueDateLabel')} value={formatDateFromParts(plan.nextDueDate)} isMono />
           )}
           {plan.totalAmount != null && (
-            <DetailRow label={t('paymentPlans.totalAmountLabel')} value={formatCurrency(plan.totalAmount)} isMono />
+            <DetailRow label={t('paymentPlans.totalAmountLabel')} value={formatMoney(plan.totalAmount, plan.currency ?? getCurrency())} isMono />
           )}
           {plan.category && (
             <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
@@ -407,7 +407,7 @@ function InstallmentProgress({ plan }: { readonly plan: PaymentPlan }) {
         </div>
         <p className="text-xs text-dn-text-muted">
           {t('paymentPlans.remainingLabel')}:{' '}
-          <span className="font-mono text-dn-primary">{formatCurrency(plan.remainingAmount)}</span>
+          <span className="font-mono text-dn-primary">{formatMoney(plan.remainingAmount, plan.currency ?? getCurrency())}</span>
         </p>
       </Card>
     </div>
@@ -421,6 +421,7 @@ function PaymentPlanItemRow({ item, draft }: { readonly item: PaymentPlanItem; r
   const linkedRecord = linkedEvent ?? draft;
 
   const eventAmount = linkedRecord ? Math.abs(eventNetAmount(linkedRecord)) : undefined;
+  const eventAmountCurrency = linkedRecord ? eventCurrency(linkedRecord) : getCurrency();
   const expectedDateLabel = formatDateFromParts(item.expectedDate);
 
   function buildLinkedTarget() {
@@ -484,7 +485,7 @@ function PaymentPlanItemRow({ item, draft }: { readonly item: PaymentPlanItem; r
             >
               <Icon name="receipt_long" className="text-[13px] shrink-0" />
               {formatDateShort(linkedRecord.transactionDate)} -{' '}
-              {eventAmount != null ? formatCurrencyShort(eventAmount) : t('common.none')}
+              {eventAmount != null ? formatMoneyShort(eventAmount, eventAmountCurrency) : t('common.none')}
             </span>
           )}
         </div>

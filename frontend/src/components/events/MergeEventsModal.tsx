@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
 import { EventMultiSelectModal } from '@/components/events/EventMultiSelectModal';
-import { formatCurrency, eventNetAmount } from '@/lib/format';
+import { formatMoney, eventCurrency, eventNetAmount } from '@/lib/format';
 import { Routes } from '@/lib/routes';
 import { aiService } from '@/services/ai.service';
 import { useAlert } from '@/contexts/AlertContext';
@@ -527,6 +527,9 @@ function MergeConfirmStep({
   onConfirm: () => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
+  const baseCurrency = eventCurrency(baseEvent);
+  const hasMixedCurrencies = sourceEvents.some((event) => eventCurrency(event) !== baseCurrency);
+
   return (
     <>
       <div className="rounded-2xl border border-dn-primary/30 bg-dn-surface divide-y divide-white/5">
@@ -542,7 +545,7 @@ function MergeConfirmStep({
             <Icon name="merge" className="text-dn-text-muted text-base shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm text-dn-text-main truncate">{e.name}</p>
-              <p className="text-xs text-dn-text-muted">{formatCurrency(Math.abs(eventNetAmount(e)))}</p>
+              <p className="text-xs text-dn-text-muted">{formatMoney(Math.abs(eventNetAmount(e)), eventCurrency(e))}</p>
             </div>
           </div>
         ))}
@@ -551,9 +554,13 @@ function MergeConfirmStep({
       <div className="rounded-2xl bg-dn-surface-low p-3 flex items-center justify-between">
         <span className="text-sm text-dn-text-muted">{t('events.mergeTotalAmount')}</span>
         <span className="text-sm font-mono font-semibold text-dn-text-main">
-          {formatCurrency(Math.abs(mergedTotal))}
+          {formatMoney(Math.abs(mergedTotal), eventCurrency(baseEvent))}
         </span>
       </div>
+
+      {hasMixedCurrencies && (
+        <p className="text-xs text-dn-danger px-1">{t('events.mergeMixedCurrencies')}</p>
+      )}
 
       <p className="text-xs text-dn-text-muted px-1">
         {t('events.mergeWarning', { count: sourceEvents.length })}

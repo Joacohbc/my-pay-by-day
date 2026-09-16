@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { FinanceEvent, PaymentPlan } from '@/models';
 import { Icon, AttachmentIcon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
-import { formatCurrency, formatDate, eventNetAmount } from '@/lib/format';
+import { formatMoney, formatDate, eventCurrency, eventNetAmount } from '@/lib/format';
 import { NodeIcon } from '@/components/ui/NodeIcon';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useNodes } from '@/hooks/useNodes';
@@ -190,7 +190,7 @@ export function EventCard({ event, disableLink, iconSource = 'category', groupPl
       <span className={`font-mono text-sm shrink-0 whitespace-nowrap ${event.isDraft ? 'text-dn-text-muted' : cfg.amountClass}`}>
         {!event.isDraft && event.type === 'INBOUND' ? '+' : ''}
         {!event.isDraft && event.type === 'OUTBOUND' ? '-' : ''}
-        {formatCurrency(Math.abs(net || 0))}
+        {formatMoney(Math.abs(net || 0), eventCurrency(event))}
       </span>
     </>
   );

@@ -20,11 +20,23 @@ export interface EventFilters {
   maxAmount?: number;
 }
 
-/** Aggregate income/outbound/transfer totals for every event matching a filter set, independent of pagination. */
-export interface EventTotals {
+/** Income, outbound and transfer totals for one currency in the match set. */
+export interface CurrencyTotals {
+  currency: string;
   income: number;
   outbound: number;
   transfers: number;
+}
+
+/**
+ * Aggregate totals for every event matching a filter set, independent of pagination.
+ *
+ * Reported one entry per currency: amounts of different currencies are never summed, so a filter
+ * spanning two currencies yields two sets of figures rather than one meaningless total.
+ */
+export interface EventTotals {
+  totals: CurrencyTotals[];
+  /** Count of matching events across all currencies. */
   totalElements: number;
 }
 

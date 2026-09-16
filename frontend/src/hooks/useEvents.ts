@@ -45,16 +45,17 @@ function resolveTags(
 }
 
 function resolveLineItems(
-  lineItemDtos: { financeNode: { id: number }; amount: number }[],
+  lineItemDtos: { financeNode: { id: number }; amount: number; currency: string }[],
   queryClient: QueryClient
 ): FinanceLineItem[] {
-  return lineItemDtos.map(({ financeNode, amount }) => {
+  return lineItemDtos.map(({ financeNode, amount, currency }) => {
     const cachedNode = queryClient.getQueryData<FinanceNode>(nodeKeys.detail(financeNode.id))
       ?? findInPagedListCaches<FinanceNode>(queryClient, nodeKeys.all, financeNode.id);
     return {
       financeNodeId: financeNode.id,
       financeNodeName: cachedNode?.name ?? '',
       amount,
+      currency,
     };
   });
 }

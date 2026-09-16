@@ -25,8 +25,8 @@ export function DynamicTimePeriodDashboard({
   if (isLoading) return <FullPageSpinner />;
   if (error || !balance) return <ErrorState message={error ? String(error) : t('errors.couldNotLoadPeriod')} />;
 
-  const { income, outbound, events } = balance;
-  const netBalance = (income ?? 0) - (outbound ?? 0);
+  const { events } = balance;
+  const currencyBalances = balance.balances ?? [];
 
   const recentEvents: FinanceEvent[] = [...(events ?? [])]
     .sort((a, b) => (b.transactionDate ?? '').localeCompare(a.transactionDate ?? ''))
@@ -44,12 +44,16 @@ export function DynamicTimePeriodDashboard({
         <p className="text-xs text-dn-text-muted mt-0.5">{dateLabel}</p>
       </div>
 
-      <PeriodBalanceSummary
-        netBalance={netBalance}
-        income={income ?? 0}
-        outbound={outbound ?? 0}
-        eventCount={events.length}
-      />
+      {currencyBalances.map(({ currency, income, outbound }) => (
+        <PeriodBalanceSummary
+          key={currency}
+          netBalance={income - outbound}
+          income={income}
+          outbound={outbound}
+          currency={currency}
+          eventCount={events.length}
+        />
+      ))}
 
       <PeriodRecentActivity
         recentEvents={recentEvents}

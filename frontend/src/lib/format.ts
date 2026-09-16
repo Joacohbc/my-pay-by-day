@@ -1,5 +1,5 @@
 import i18n from '@/lib/i18n';
-import type { FinanceEvent } from '@/models';
+import type { FinanceEvent, Money } from '@/models';
 import { getServerTimezone, getUserTimezone, fromServerDate } from '@/lib/utils/dateUtils';
 import { formatIsoDate, getMaskPlaceholder } from '@/lib/utils/dateFormat';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -12,13 +12,49 @@ const LOCALE_MAP: Record<string, string> = {
 const CURRENCY_KEY = 'app-currency';
 const DEFAULT_CURRENCY = 'USD';
 
+/**
+ * Currencies with no minor unit. `Intl` knows this, but only when it is allowed to decide: forcing
+ * `minimumFractionDigits: 2` would render ¥1.200 as "¥1.200,00", which is not how the amount is
+ * ever written.
+ */
+function fractionDigitsFor(currency: string): number | undefined {
+  try {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency })
+      .resolvedOptions().minimumFractionDigits;
+  } catch {
+    return undefined;
+  }
+}
+
 const currencyListeners: Array<() => void> = [];
 
+/**
+ * The currency new amounts are preselected with. It is a display default only: it never decides
+ * how a stored amount is read, since every amount arrives from the backend with its own code.
+ */
 export function getCurrency(): string {
   try {
     return localStorage.getItem(CURRENCY_KEY) ?? DEFAULT_CURRENCY;
   } catch {
     return DEFAULT_CURRENCY;
+  }
+}
+
+/**
+ * Seeds the entry currency from the server's configured default, once, before the user has ever
+ * chosen one. Without this a ledger kept in UYU would offer USD on every new amount, and the
+ * server's own `APP_DEFAULT_CURRENCY` — which is what its migration backfilled with — would
+ * disagree with what the UI proposes.
+ */
+export function initCurrency(serverDefault: string | undefined): void {
+  if (!serverDefault) return;
+  try {
+    if (localStorage.getItem(CURRENCY_KEY) == null) {
+      localStorage.setItem(CURRENCY_KEY, serverDefault);
+      currencyListeners.forEach((fn) => fn());
+    }
+  } catch {
+    // A browser that refuses storage falls back to DEFAULT_CURRENCY, as getCurrency already does.
   }
 }
 
@@ -43,11 +79,18 @@ function locale(): string {
   return LOCALE_MAP[i18n.language] ?? i18n.language;
 }
 
-export function formatCurrency(amount: number): string {
+/**
+ * Renders an amount in the currency that denominates it.
+ *
+ * The currency is a required argument rather than a global lookup: amounts of different
+ * currencies coexist on the same screen, so reading it from the user's preference would label a
+ * UYU expense with a dollar sign. Pass the `currency` that travelled with the amount.
+ */
+export function formatMoney(amount: number, currency: string): string {
   return new Intl.NumberFormat(locale(), {
     style: 'currency',
-    currency: getCurrency(),
-    minimumFractionDigits: 2,
+    currency,
+    minimumFractionDigits: fractionDigitsFor(currency),
   }).format(amount);
 }
 
@@ -56,8 +99,6 @@ export function formatCurrency(amount: number): string {
  */
 export function formatCompactWitNotCurrency(amount: number): string {
   return new Intl.NumberFormat(locale(), {
-    style: undefined,
-    currency: getCurrency(),
     notation: 'compact',
     compactDisplay: 'short',
     maximumFractionDigits: 1,
@@ -67,23 +108,37 @@ export function formatCompactWitNotCurrency(amount: number): string {
 /**
  * Rounds and formats large numbers for small screens (e.g., 1.2k, 1.5M).
  */
-export function formatCompactCurrency(amount: number): string {
+export function formatCompactMoney(amount: number, currency: string): string {
   return new Intl.NumberFormat(locale(), {
     style: 'currency',
-    currency: getCurrency(),
+    currency,
     notation: 'compact',
     compactDisplay: 'short',
     maximumFractionDigits: 1,
   }).format(amount);
 }
 
-export function formatCurrencyShort(amount: number): string {
+export function formatMoneyShort(amount: number, currency: string): string {
   return new Intl.NumberFormat(locale(), {
     style: 'currency',
-    currency: getCurrency(),
+    currency,
     compactDisplay: 'short',
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+/**
+ * Totals a set of amounts, one total per currency.
+ *
+ * The system stores no exchange rates, so a plain `reduce` over mixed currencies would produce a
+ * number denominated in nothing. Grouping first is what keeps a total meaningful.
+ */
+export function sumByCurrency(entries: Array<{ amount: number; currency: string }>): Money[] {
+  const totals = new Map<string, number>();
+  for (const { amount, currency } of entries) {
+    totals.set(currency, (totals.get(currency) ?? 0) + amount);
+  }
+  return [...totals].map(([currency, amount]) => ({ amount, currency }));
 }
 
 export function formatDate(input: string | Date | undefined | null): string {
@@ -195,8 +250,12 @@ export function eventNetAmount(event: FinanceEvent): number {
 }
 
 /** One-line label for pickers/selects that need to identify an event or draft at a glance. */
+export function eventCurrency(event: FinanceEvent): string {
+  return event.currency ?? event.lineItems?.[0]?.currency ?? getCurrency();
+}
+
 export function describeFinanceEvent(event: FinanceEvent): string {
-  const amount = formatCurrency(Math.abs(eventNetAmount(event)));
+  const amount = formatMoney(Math.abs(eventNetAmount(event)), eventCurrency(event));
   const date = formatDate(event.transactionDate);
   return date ? `${event.name} · ${date} · ${amount}` : `${event.name} · ${amount}`;
 }

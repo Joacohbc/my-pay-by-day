@@ -7,9 +7,9 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { NewEventFab } from '@/components/time-periods/NewEventFab';
 import { PeriodBalanceSummary } from '@/components/time-periods/PeriodBalanceSummary';
 import { PeriodRecentActivity } from '@/components/time-periods/PeriodRecentActivity';
-import { formatCurrency, formatServerDate, getLocalizedNow } from '@/lib/format';
+import { formatMoney, formatServerDate, getCurrency, getLocalizedNow } from '@/lib/format';
 import { Icon } from '@/components/ui/Icon';
-import type { FinanceEvent, TimePeriod } from '@/models';
+import type { CurrencyBalance, FinanceEvent, TimePeriod } from '@/models';
 
 interface TimePeriodDashboardProps {
   timePeriodId: number;
@@ -33,8 +33,8 @@ export function TimePeriodDashboard({
   if (isLoading) return <FullPageSpinner />;
   if (error || !balance) return <ErrorState message={error ? String(error) : t('errors.couldNotLoadPeriod')} />;
 
-  const { timePeriod, income, outbound, events } = balance;
-  const netBalance = (income ?? 0) - (outbound ?? 0);
+  const { timePeriod, events } = balance;
+  const currencyBalances = balance.balances?.length ? balance.balances : [emptyBalance(timePeriod)];
 
   const recentEvents: FinanceEvent[] = [...(events ?? [])]
     .sort((a, b) => (b.transactionDate ?? '').localeCompare(a.transactionDate ?? ''))
@@ -66,62 +66,15 @@ export function TimePeriodDashboard({
         <p className="text-xs text-dn-text-muted mt-0.5">{dateLabel}</p>
       </div>
 
-      <PeriodBalanceSummary
-        netBalance={netBalance}
-        income={income ?? 0}
-        outbound={outbound ?? 0}
-        eventCount={events.length}
-      />
-
-      {/* Savings goal */}
-      {timePeriod.savingsPercentageGoal != null && income > 0 && (
-        <Card>
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 flex items-center justify-center rounded-xl bg-dn-primary/10 text-dn-primary shrink-0 mt-0.5">
-              <Icon name="savings" className="text-[18px]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-dn-text-muted uppercase tracking-wider">{t('periods.savingsGoalLabel')}</p>
-              <p className="text-sm font-medium text-dn-text-main mt-0.5 break-all">
-                {timePeriod.savingsPercentageGoal}% ={' '}
-                <span className="text-dn-primary">
-                  {formatCurrency((income * timePeriod.savingsPercentageGoal) / 100)}
-                </span>
-              </p>
-              <p className="text-[11px] text-dn-text-muted mt-1 break-all">
-                {t('periods.actualSavings')}: {formatCurrency(netBalance)} (
-                {income > 0 ? Math.round((netBalance / income) * 100) : 0}%)
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      { (timePeriod.budgetLimit != null || (balance.categoryBudgets && balance.categoryBudgets.length > 0)) &&
-      <Card className="space-y-4">
-        <p className="text-sm text-dn-text-muted uppercase tracking-wider mb-3">
-          {t('periods.budgetLabel')}
-        </p>
-
-        {timePeriod.budgetLimit != null && (
-          <BudgetsItemList
-            name={t('periods.budgetTotalLabel')}
-            spentAmount={outbound}
-            budgetedAmount={timePeriod.budgetLimit}
-          />
-        )}
-        
-        {balance.categoryBudgets && balance.categoryBudgets.map((b) => (
-          <div key={b.category.id} className="space-y-4 mt-7">
-            <BudgetsItemList
-              name={b.category.name}
-              spentAmount={b.spentAmount}
-              budgetedAmount={b.budgetedAmount}
-              category={b.category}
-            />
-          </div>
-        ))}
-      </Card>}
+      {currencyBalances.map((currencyBalance) => (
+        <CurrencySection
+          key={currencyBalance.currency}
+          balance={currencyBalance}
+          timePeriod={timePeriod}
+          eventCount={events.length}
+          showCurrencyHeading={currencyBalances.length > 1}
+        />
+      ))}
 
       <PeriodRecentActivity recentEvents={recentEvents} startDate={timePeriod.startDate} endDate={timePeriod.endDate} />
 
@@ -134,6 +87,108 @@ export function TimePeriodDashboard({
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Everything the dashboard reports about one currency.
+ *
+ * With no exchange rates there is no combined view to render, so the summary, the savings goal and
+ * the budget bars are repeated per currency instead of being collapsed into totals that would mix
+ * incomparable amounts. A single-currency period renders exactly one of these, as before.
+ */
+function CurrencySection({
+  balance,
+  timePeriod,
+  eventCount,
+  showCurrencyHeading,
+}: {
+  balance: CurrencyBalance;
+  timePeriod: TimePeriod;
+  eventCount: number;
+  showCurrencyHeading: boolean;
+}) {
+  const { t } = useTranslation();
+  const { currency, income, outbound, categoryBudgets } = balance;
+  const netBalance = (income ?? 0) - (outbound ?? 0);
+  const appliesPeriodLimit = timePeriod.budgetLimit != null && timePeriod.currency === currency;
+
+  return (
+    <div className="space-y-6">
+      {showCurrencyHeading && (
+        <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">{currency}</p>
+      )}
+
+      <PeriodBalanceSummary
+        netBalance={netBalance}
+        income={income ?? 0}
+        outbound={outbound ?? 0}
+        currency={currency}
+        eventCount={eventCount}
+      />
+
+      {timePeriod.savingsPercentageGoal != null && income > 0 && (
+        <Card>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 flex items-center justify-center rounded-xl bg-dn-primary/10 text-dn-primary shrink-0 mt-0.5">
+              <Icon name="savings" className="text-[18px]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-dn-text-muted uppercase tracking-wider">{t('periods.savingsGoalLabel')}</p>
+              <p className="text-sm font-medium text-dn-text-main mt-0.5 break-all">
+                {timePeriod.savingsPercentageGoal}% ={' '}
+                <span className="text-dn-primary">
+                  {formatMoney((income * timePeriod.savingsPercentageGoal) / 100, currency)}
+                </span>
+              </p>
+              <p className="text-[11px] text-dn-text-muted mt-1 break-all">
+                {t('periods.actualSavings')}: {formatMoney(netBalance, currency)} (
+                {income > 0 ? Math.round((netBalance / income) * 100) : 0}%)
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {(appliesPeriodLimit || categoryBudgets.length > 0) && (
+        <Card className="space-y-4">
+          <p className="text-sm text-dn-text-muted uppercase tracking-wider mb-3">
+            {t('periods.budgetLabel')}
+          </p>
+
+          {appliesPeriodLimit && (
+            <BudgetsItemList
+              name={t('periods.budgetTotalLabel')}
+              spentAmount={outbound}
+              budgetedAmount={timePeriod.budgetLimit!}
+              currency={currency}
+            />
+          )}
+
+          {categoryBudgets.map((b) => (
+            <div key={b.category.id} className="space-y-4 mt-7">
+              <BudgetsItemList
+                name={b.category.name}
+                spentAmount={b.spentAmount}
+                budgetedAmount={b.budgetedAmount}
+                currency={currency}
+                category={b.category}
+              />
+            </div>
+          ))}
+        </Card>
+      )}
+    </div>
+  );
+}
+
+/** A period with no activity and no budgets still has a currency to show zeroes in. */
+function emptyBalance(timePeriod: TimePeriod): CurrencyBalance {
+  return {
+    currency: timePeriod.currency ?? getCurrency(),
+    income: 0,
+    outbound: 0,
+    categoryBudgets: [],
+  };
+}
 
 function formatPeriodLabel(tp: TimePeriod): string {
   return `${formatServerDate(tp.startDate)} - ${formatServerDate(tp.endDate)}`;

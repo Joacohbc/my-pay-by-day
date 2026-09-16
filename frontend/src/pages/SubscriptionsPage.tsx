@@ -6,7 +6,7 @@ import {
   useUpdateSubscription,
   useDeleteSubscription,
 } from '@/hooks/useSubscriptions';
-import { formatCurrency, formatDateFromParts } from '@/lib/format';
+import { formatMoney, getCurrency, formatDateFromParts } from '@/lib/format';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -119,7 +119,7 @@ function SubscriptionCard({
 
             {sub.modifierValue != null && (
               <div className="text-xl font-bold text-[#e1a5e3] tracking-tight break-all">
-                {formatCurrency(sub.modifierValue)}
+                {formatMoney(sub.modifierValue, sub.currency ?? getCurrency())}
               </div>
             )}
 

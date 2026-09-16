@@ -1,4 +1,4 @@
-import type { FinanceNode, CreateFinanceNodeDto, FinanceNodeType } from '@/models';
+import type { FinanceNode, CreateFinanceNodeDto, FinanceNodeType, Money } from '@/models';
 import { api } from '@/services/api';
 
 export const nodesService = {
@@ -10,7 +10,7 @@ export const nodesService = {
     return api.get<FinanceNode[]>(url);
   },
   getById: (id: number) => api.get<FinanceNode>(`/finance-nodes/${id}`),
-  getBalance: (id: number) => api.get<number>(`/finance-nodes/${id}/balance`),
+  getBalance: (id: number) => api.get<Money[]>(`/finance-nodes/${id}/balance`),
   create: (dto: CreateFinanceNodeDto) => api.post<FinanceNode>('/finance-nodes', dto),
   update: (id: number, dto: Partial<CreateFinanceNodeDto>) =>
     api.put<FinanceNode>(`/finance-nodes/${id}`, dto),

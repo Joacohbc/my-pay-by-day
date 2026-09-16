@@ -1,4 +1,4 @@
-import { formatCurrency, formatDate } from '@/lib/format';
+import { formatMoney, getCurrency, formatDate } from '@/lib/format';
 
 /** Resolves the ids an argument carries into the names the user recognises. Supplied by the caller
  * so this module stays free of data access and can be exercised without a query client. */
@@ -21,14 +21,20 @@ type ApprovalArgFormatter = (value: unknown, lookups: ApprovalArgLookups) => App
 interface LineItemArg {
   nodeId?: number | null;
   amount?: number | null;
+  currency?: string | null;
 }
 
 const toArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : [value]);
 
 const asText: ApprovalArgFormatter = (value) => String(value);
 const asDate: ApprovalArgFormatter = (value) => (typeof value === 'string' ? formatDate(value) : String(value));
+/**
+ * A proposed amount arrives on its own, with no stored record to read a currency from, so it is
+ * shown in the currency the user enters amounts in. Once approved it is the line items — which do
+ * carry their currency — that decide how it is stored.
+ */
 const asAmount: ApprovalArgFormatter = (value) =>
-  typeof value === 'number' ? formatCurrency(value) : String(value);
+  typeof value === 'number' ? formatMoney(value, getCurrency()) : String(value);
 const asYesNo: ApprovalArgFormatter = (value, lookups) => lookups.translate(value ? 'common.yes' : 'common.no');
 
 const asEnum =
@@ -49,7 +55,8 @@ const asTagNames: ApprovalArgFormatter = (value, lookups) =>
 const asLineItems: ApprovalArgFormatter = (value, lookups) =>
   toArray(value).map((item) => {
     const lineItem = item as LineItemArg;
-    return `${lookups.nodeName(lineItem.nodeId)} · ${formatCurrency(Number(lineItem.amount ?? 0))}`;
+    const currency = lineItem.currency ?? getCurrency();
+    return `${lookups.nodeName(lineItem.nodeId)} · ${formatMoney(Number(lineItem.amount ?? 0), currency)}`;
   });
 
 /**

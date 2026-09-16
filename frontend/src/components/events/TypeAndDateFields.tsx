@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Controller, useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
+import { CurrencySelect } from '@/components/ui/CurrencySelect';
 import type { FormValues } from '@/components/events/EventFormMapper';
 
 export function TypeAndDateFields() {
@@ -70,6 +71,20 @@ export function TypeAndDateFields() {
             value={field.value ?? ''}
             onChange={field.onChange}
             onBlur={field.onBlur}
+          />
+        )}
+      />
+
+      {/* One selector for the whole event: its amounts have to be comparable to balance. */}
+      <Controller
+        name="currency"
+        control={control}
+        render={({ field }) => (
+          <CurrencySelect
+            label={t('eventForm.currency')}
+            value={field.value}
+            onChange={field.onChange}
+            error={errors.currency?.message}
           />
         )}
       />

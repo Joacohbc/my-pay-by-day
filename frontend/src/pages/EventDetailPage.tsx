@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
-import { formatCurrency, formatDateTime, eventNetAmount } from '@/lib/format';
+import { formatMoney, formatDateTime, eventCurrency, eventNetAmount } from '@/lib/format';
 import { RelatedEventsSection } from '@/components/events/RelatedEventsSection';
 import { EventDuplicatesSection } from '@/components/events/EventDuplicatesSection';
 import { EventPaymentPlansSection } from '@/components/paymentPlans/EventPaymentPlansSection';
@@ -224,7 +224,7 @@ export function EventDetailPage() {
 
         <p className={`text-4xl font-mono font-bold tracking-tight mt-3 ${cfg.amountClass}`}>
           {event.type === 'INBOUND' ? '+' : event.type === 'OUTBOUND' ? '-' : ''}
-          {formatCurrency(Math.abs(net))}
+          {formatMoney(Math.abs(net), eventCurrency(event))}
         </p>
 
         <div className="flex flex-wrap justify-center gap-2 mt-3">
@@ -276,7 +276,7 @@ export function EventDetailPage() {
                 </div>
                 <span className={`text-sm font-mono ${Number(li.amount) >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
                   {Number(li.amount) >= 0 ? '+' : ''}
-                  {formatCurrency(Number(li.amount))}
+                  {formatMoney(Number(li.amount), li.currency)}
                 </span>
               </div>
             ))}

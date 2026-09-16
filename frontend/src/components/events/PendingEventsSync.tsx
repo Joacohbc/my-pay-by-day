@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
-import { formatCurrency, formatDate } from '@/lib/format';
+import { formatMoney, getCurrency, formatDate } from '@/lib/format';
 import type { CreateEventDto } from '@/models';
 import { logger } from '@/lib/logger';
 
@@ -31,6 +31,15 @@ function pendingNetAmount(dto: CreateEventDto): number {
     return Math.abs(items.filter((i) => i.amount < 0).reduce((s, i) => s + i.amount, 0));
   }
   return items.reduce((s, i) => s + Math.abs(i.amount), 0) / 2;
+}
+
+/**
+ * A queued event is denominated by its own line items, not by the preference the device happens to
+ * hold now: an event recorded in UYU must still read as UYU when it finally syncs, even if the
+ * user has since switched the currency they enter amounts in.
+ */
+function pendingCurrency(dto: CreateEventDto): string {
+  return dto.transaction.lineItems[0]?.currency ?? getCurrency();
 }
 
 const typeIconConfig = {
@@ -117,6 +126,7 @@ export function PendingEventsSync() {
         {pending.map((p, idx) => {
           const cfg = typeIconConfig[p.dto.type ?? 'OTHER'];
           const amount = pendingNetAmount(p.dto);
+          const currency = pendingCurrency(p.dto);
           const isBusy = sending.has(p.localId) || sendingAll;
 
           return (
@@ -149,7 +159,7 @@ export function PendingEventsSync() {
 
               <div className="flex items-center gap-2 ml-2 shrink-0">
                 <span className={`font-mono text-sm ${cfg.amountClass}`}>
-                  {cfg.sign}{formatCurrency(amount)}
+                  {cfg.sign}{formatMoney(amount, currency)}
                 </span>
                 <button
                   onClick={() => removePending(p.localId)}

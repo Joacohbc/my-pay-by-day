@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { IconPicker } from '@/components/ui/IconPicker';
 import { ColorPicker } from '@/components/ui/ColorPicker';
+import { CurrencySelect } from '@/components/ui/CurrencySelect';
 import { useCreateNode, useUpdateNode } from '@/hooks/useNodes';
 import { useAiFieldController } from '@/hooks/useAiFieldController';
 import { FormPatchAiChatWidget } from '@/components/ui/FormPatchAiChatWidget';
@@ -19,6 +20,7 @@ interface NodeFormValues {
   description: string;
   icon: string;
   color: string;
+  currency: string;
 }
 
 interface NodeFormProps {
@@ -39,6 +41,7 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
       description: editTarget?.description ?? '',
       icon: editTarget?.icon ?? '',
       color: editTarget?.color ?? '',
+      currency: editTarget?.currency ?? '',
     },
   });
 
@@ -64,12 +67,13 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
 
   const onSubmit = async (values: NodeFormValues, e?: React.BaseSyntheticEvent) => {
     e?.stopPropagation();
+    const dto = { ...values, currency: values.currency || undefined };
     try {
       if (editTarget) {
-        const updated = await updateNode.mutateAsync({ id: editTarget.id, dto: values });
+        const updated = await updateNode.mutateAsync({ id: editTarget.id, dto });
         onSuccess?.(updated as unknown as FinanceNode);
       } else {
-        const created = await createNode.mutateAsync(values);
+        const created = await createNode.mutateAsync(dto);
         onSuccess?.(created as unknown as FinanceNode);
       }
     } catch {
@@ -84,6 +88,7 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
     if (typeof patch.description === 'string') setValue('description', patch.description, { shouldDirty: true });
     if (typeof patch.icon === 'string') setValue('icon', patch.icon, { shouldDirty: true });
     if (typeof patch.color === 'string') setValue('color', patch.color, { shouldDirty: true });
+    if (typeof patch.currency === 'string') setValue('currency', patch.currency.toUpperCase(), { shouldDirty: true });
     if (typeof patch.type === 'string' && NODE_TYPES.includes(patch.type as FinanceNodeType)) {
       setValue('type', patch.type as FinanceNodeType, { shouldDirty: true });
     }
@@ -144,6 +149,19 @@ export function NodeForm({ editTarget, onSuccess, onCancel }: NodeFormProps) {
           />
         )}
       />
+      <Controller
+        name="currency"
+        control={control}
+        render={({ field }) => (
+          <CurrencySelect
+            label={t('nodes.currencyLabel')}
+            value={field.value}
+            onChange={field.onChange}
+            allowNone
+          />
+        )}
+      />
+      <p className="text-xs text-dn-text-muted -mt-2 px-1">{t('nodes.currencyHint')}</p>
       <div className="bg-dn-surface-low rounded-input p-3 space-y-1 text-xs text-dn-text-muted">
         <p><span className="text-dn-text-main font-medium">{t('nodeType.OWN')}:</span> {t('nodes.ownDesc')}</p>
         <p><span className="text-dn-text-main font-medium">{t('nodeType.EXTERNAL')}:</span> {t('nodes.externalDesc')}</p>

@@ -32,7 +32,7 @@ import {
   EventsListView,
   type AdvancedFiltersState,
 } from '@/components/events/EventsListView';
-import { formatCurrencyShort, formatDate } from '@/lib/format';
+import { formatMoneyShort, formatDate } from '@/lib/format';
 import type { DateField } from '@/services/events.service';
 import { useAccumulatedData } from '@/hooks/useAccumulatedData';
 
@@ -354,9 +354,7 @@ export function EventsPage() {
   const totalElements = paged?.totalElements ?? 0;
   const totalPages = countTotalPages(totalElements);
 
-  const totalIncome = summary?.income ?? 0;
-  const totalExpenses = summary?.outbound ?? 0;
-  const totalTransfers = summary?.transfers ?? 0;
+  const currencyTotals = summary?.totals ?? [];
 
   const cardsGridRef = useRef<HTMLDivElement>(null);
   const areCardsVisible = useIsElementInView(cardsGridRef, events.length > 0);
@@ -386,11 +384,13 @@ export function EventsPage() {
           }`}
         >
           <div className="min-h-0 bg-dn-bg/95 backdrop-blur-sm border-b border-dn-border px-4 sm:px-5 py-1.5 flex flex-col items-center gap-0.5">
-            <div className="flex items-center gap-3 text-xs sm:text-sm font-mono font-semibold">
-              <span className="text-dn-success">{formatCurrencyShort(totalIncome)}</span>
-              <span className="text-dn-text-main">{formatCurrencyShort(totalExpenses)}</span>
-              <span className="text-dn-text-main">{formatCurrencyShort(totalTransfers)}</span>
-            </div>
+            {currencyTotals.map(({ currency, income, outbound, transfers }) => (
+              <div key={currency} className="flex items-center gap-3 text-xs sm:text-sm font-mono font-semibold">
+                <span className="text-dn-success">{formatMoneyShort(income, currency)}</span>
+                <span className="text-dn-text-main">{formatMoneyShort(outbound, currency)}</span>
+                <span className="text-dn-text-main">{formatMoneyShort(transfers, currency)}</span>
+              </div>
+            ))}
             <p className="text-[10px] text-dn-text-muted">
               {formatDate(loadedDateRange.from)} – {formatDate(loadedDateRange.to)}
               {events.length < totalElements && (
@@ -417,25 +417,34 @@ export function EventsPage() {
         }
       />
 
-      <div ref={cardsGridRef} className="grid grid-cols-3 gap-2 px-4 sm:gap-3 sm:px-5">
-        <Card padding={false} className="p-3 sm:p-4 text-center min-w-0 flex flex-col justify-center">
-          <p className="text-[10px] sm:text-xs text-dn-text-muted mb-1 truncate" title={t('events.income')}>{t('events.income')}</p>
-          <p className="text-sm sm:text-lg font-mono font-semibold text-dn-success break-all">
-            {formatCurrencyShort(totalIncome)}
-          </p>
-        </Card>
-        <Card padding={false} className="p-3 sm:p-4 text-center min-w-0 flex flex-col justify-center">
-          <p className="text-[10px] sm:text-xs text-dn-text-muted mb-1 truncate" title={t('events.expenses')}>{t('events.expenses')}</p>
-          <p className="text-sm sm:text-lg font-mono font-semibold text-dn-text-main break-all">
-            {formatCurrencyShort(totalExpenses)}
-          </p>
-        </Card>
-        <Card padding={false} className="p-3 sm:p-4 text-center min-w-0 flex flex-col justify-center">
-          <p className="text-[10px] sm:text-xs text-dn-text-muted mb-1 truncate" title={t('events.transfers')}>{t('events.transfers')}</p>
-          <p className="text-sm sm:text-lg font-mono font-semibold text-dn-text-main break-all">
-            {formatCurrencyShort(totalTransfers)}
-          </p>
-        </Card>
+      <div ref={cardsGridRef} className="flex flex-col gap-2 sm:gap-3">
+        {currencyTotals.map(({ currency, income, outbound, transfers }) => (
+          <div key={currency} className="px-4 sm:px-5">
+            {currencyTotals.length > 1 && (
+              <p className="text-[10px] font-medium text-dn-text-muted uppercase tracking-wider mb-1">{currency}</p>
+            )}
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <Card padding={false} className="p-3 sm:p-4 text-center min-w-0 flex flex-col justify-center">
+                <p className="text-[10px] sm:text-xs text-dn-text-muted mb-1 truncate" title={t('events.income')}>{t('events.income')}</p>
+                <p className="text-sm sm:text-lg font-mono font-semibold text-dn-success break-all">
+                  {formatMoneyShort(income, currency)}
+                </p>
+              </Card>
+              <Card padding={false} className="p-3 sm:p-4 text-center min-w-0 flex flex-col justify-center">
+                <p className="text-[10px] sm:text-xs text-dn-text-muted mb-1 truncate" title={t('events.expenses')}>{t('events.expenses')}</p>
+                <p className="text-sm sm:text-lg font-mono font-semibold text-dn-text-main break-all">
+                  {formatMoneyShort(outbound, currency)}
+                </p>
+              </Card>
+              <Card padding={false} className="p-3 sm:p-4 text-center min-w-0 flex flex-col justify-center">
+                <p className="text-[10px] sm:text-xs text-dn-text-muted mb-1 truncate" title={t('events.transfers')}>{t('events.transfers')}</p>
+                <p className="text-sm sm:text-lg font-mono font-semibold text-dn-text-main break-all">
+                  {formatMoneyShort(transfers, currency)}
+                </p>
+              </Card>
+            </div>
+          </div>
+        ))}
       </div>
 
       {loadedDateRange && (
