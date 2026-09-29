@@ -42,6 +42,7 @@ import com.mypaybyday.validation.TimePeriodValidator;
 import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
 import com.mypaybyday.validation.CurrencyValidator;
+import com.mypaybyday.service.currency.DisplayCurrencyService;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
@@ -56,6 +57,7 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 	private final ArchivedItemImporter archivedItemImporter;
 	private final CurrencyBalanceAggregator currencyBalanceAggregator;
 	private final CurrencyValidator currencyValidator;
+	private final DisplayCurrencyService displayCurrencyService;
 
 	@ConfigProperty(name = "mypaybyday.default-currency")
 	String defaultCurrency;
@@ -69,7 +71,8 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 			DateValidator dateValidator,
 			ArchivedItemImporter archivedItemImporter,
 			CurrencyBalanceAggregator currencyBalanceAggregator,
-			CurrencyValidator currencyValidator) {
+			CurrencyValidator currencyValidator,
+			DisplayCurrencyService displayCurrencyService) {
 		this.timePeriodRepository = timePeriodRepository;
 		this.eventService = eventService;
 		this.categoryService = categoryService;
@@ -79,6 +82,7 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 		this.archivedItemImporter = archivedItemImporter;
 		this.currencyBalanceAggregator = currencyBalanceAggregator;
 		this.currencyValidator = currencyValidator;
+		this.displayCurrencyService = displayCurrencyService;
 	}
 
 	/**
@@ -125,9 +129,11 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 	*
 	* <p>This method must run inside a transaction so that lazy-loaded line items remain
 	* accessible throughout the calculation.
+	*
+	* @param displayCurrency the currency to report in, or {@code null} for one balance per currency
 	*/
 	@Transactional
-	public TimePeriodBalanceDto getBalance(Long id) throws BusinessException {
+	public TimePeriodBalanceDto getBalance(Long id, String displayCurrency) throws BusinessException {
 		TimePeriodEntity timePeriod = findTimePeriodEntity(id);
 
 		LocalDateTime from = timePeriod.startDate;
@@ -137,12 +143,13 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 
 		return new TimePeriodBalanceDto(
 				timePeriod,
-				currencyBalanceAggregator.balances(events, timePeriod.budgets),
+				currencyBalanceAggregator.balances(events, timePeriod.budgets, displayCurrencyService.resolve(displayCurrency)),
 				events);
 	}
 
 	@Transactional
-	public DynamicTimePeriodBalanceDto getDynamicBalance(LocalDateTime startDate, LocalDateTime endDate) throws BusinessException {
+	public DynamicTimePeriodBalanceDto getDynamicBalance(LocalDateTime startDate, LocalDateTime endDate,
+			String displayCurrency) throws BusinessException {
 		if (startDate == null || endDate == null) {
 			throw messages.reject(MsgKey.TIME_PERIOD_START_DATE_REQUIRED); // or appropriate generic date message
 		}
@@ -156,7 +163,7 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 		return new DynamicTimePeriodBalanceDto(
 				startDate,
 				endDate,
-				currencyBalanceAggregator.balances(events, Set.of()),
+				currencyBalanceAggregator.balances(events, Set.of(), displayCurrencyService.resolve(displayCurrency)),
 				events);
 	}
 

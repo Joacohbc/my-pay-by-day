@@ -1,6 +1,7 @@
 package com.mypaybyday.service.event;
 
 import java.util.List;
+import java.util.Objects;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -22,16 +23,19 @@ public class TransactionService {
 	private final TransactionRepository transactionRepository;
 	private final FinanceNodeRepository financeNodeRepository;
 	private final TransactionValidator transactionValidator;
+	private final TransactionConversionService transactionConversionService;
 	private final Messages messages;
 
 	public TransactionService(
 			TransactionRepository transactionRepository,
 			FinanceNodeRepository financeNodeRepository,
 			TransactionValidator transactionValidator,
+			TransactionConversionService transactionConversionService,
 			Messages messages) {
 		this.transactionRepository = transactionRepository;
 		this.financeNodeRepository = financeNodeRepository;
 		this.transactionValidator = transactionValidator;
+		this.transactionConversionService = transactionConversionService;
 		this.messages = messages;
 	}
 
@@ -61,6 +65,7 @@ public class TransactionService {
 			}
 		}
 
+		transactionConversionService.freezeMissingRates(transaction, true);
 		transactionRepository.persist(transaction);
 		Log.debugf("Created transaction id=%d", transaction.id);
 		return transaction;
@@ -77,7 +82,7 @@ public class TransactionService {
 
 		transaction.transactionDate = transactionDetails.transactionDate;
 
-		// Clear and add new line items, resolving FinanceNodeEntity references
+		String previousCurrency = TransactionConversionService.currencyOf(transaction);
 		transaction.lineItems.clear();
 		if (transactionDetails.lineItems != null) {
 			for (FinanceLineItemEntity item : transactionDetails.lineItems) {
@@ -87,6 +92,8 @@ public class TransactionService {
 			}
 		}
 
+		boolean currencyChanged = !Objects.equals(previousCurrency, TransactionConversionService.currencyOf(transaction));
+		transactionConversionService.freezeMissingRates(transaction, currencyChanged);
 		Log.debugf("Updated transaction id=%d", transaction.id);
 		return transaction;
 	}

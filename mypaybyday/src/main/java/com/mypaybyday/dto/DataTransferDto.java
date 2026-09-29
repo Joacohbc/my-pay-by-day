@@ -32,7 +32,9 @@ public record DataTransferDto(
         List<TimePeriodDto> timePeriods,
         List<DraftDto> drafts,
         List<PaymentPlanExportDto> paymentPlans,
-        DuplicateDetectionSettingsDto duplicateDetectionSettings
+        DuplicateDetectionSettingsDto duplicateDetectionSettings,
+        List<CurrencyExportDto> currencies,
+        List<ExchangeRateDto> exchangeRates
 ) {
     public static final String CURRENT_VERSION = DataTransferService.CURRENT_VERSION;
 
@@ -49,6 +51,8 @@ public record DataTransferDto(
             case EVENTS -> nullToEmpty(events);
             case DRAFTS -> nullToEmpty(drafts);
             case PAYMENT_PLANS -> nullToEmpty(paymentPlans);
+            case CURRENCIES -> nullToEmpty(currencies);
+            case EXCHANGE_RATES -> nullToEmpty(exchangeRates);
             case DUPLICATE_DETECTION_SETTINGS ->
                     duplicateDetectionSettings == null ? List.of() : List.of(duplicateDetectionSettings);
         };
@@ -69,7 +73,9 @@ public record DataTransferDto(
                 sectionList(sections, DataSection.TIME_PERIODS),
                 sectionList(sections, DataSection.DRAFTS),
                 sectionList(sections, DataSection.PAYMENT_PLANS),
-                firstOrNull(sectionList(sections, DataSection.DUPLICATE_DETECTION_SETTINGS)));
+                firstOrNull(sectionList(sections, DataSection.DUPLICATE_DETECTION_SETTINGS)),
+                sectionList(sections, DataSection.CURRENCIES),
+                sectionList(sections, DataSection.EXCHANGE_RATES));
     }
 
     private static <T> List<T> nullToEmpty(List<T> items) {

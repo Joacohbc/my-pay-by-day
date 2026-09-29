@@ -11,6 +11,8 @@ package com.mypaybyday.enums;
  */
 public enum DataSection {
 	DUPLICATE_DETECTION_SETTINGS,
+	CURRENCIES,
+	EXCHANGE_RATES,
 	TAGS,
 	CATEGORIES,
 	FINANCE_NODES,

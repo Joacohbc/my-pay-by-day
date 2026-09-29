@@ -71,6 +71,10 @@ public enum MsgKey {
 	CURRENCY_REQUIRED("error.currency.required"),
 	CURRENCY_INVALID("error.currency.invalid"),
 	CURRENCY_NODE_MISMATCH("error.currency.node_mismatch"),
+	EXCHANGE_RATE_MISSING("error.exchange_rate.missing"),
+	EXCHANGE_RATE_INVALID("error.exchange_rate.invalid"),
+	EXCHANGE_RATE_BASE_NOT_QUOTABLE("error.exchange_rate.base_not_quotable"),
+	EXCHANGE_RATE_PROVIDER_NOT_CONFIGURED("error.exchange_rate.provider_not_configured"),
 
 	// ── Transaction ───────────────────────────────────────
 	TRANSACTION_NOT_FOUND("error.transaction.not_found"),

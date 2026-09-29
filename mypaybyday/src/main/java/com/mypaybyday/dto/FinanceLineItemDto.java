@@ -35,6 +35,16 @@ public record FinanceLineItemDto(
 		.orElse(null);
     }
 
+    public FinanceLineItemDto convertedTo(String targetCurrency, BigDecimal rate) {
+	return new FinanceLineItemDto(
+		financeNodeId,
+		financeNodeName,
+		financeNodeIcon,
+		TransactionConversionDto.convert(amount, rate, targetCurrency),
+		targetCurrency
+	);
+    }
+
     public static FinanceLineItemDto from(FinanceLineItemEntity item) {
 	return new FinanceLineItemDto(
 		item.financeNode != null ? item.financeNode.id : null,

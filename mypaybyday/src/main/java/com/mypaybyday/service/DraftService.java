@@ -250,7 +250,7 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 			currency = current.currency();
 		}
 
-		return new FinanceEventDto(origId, name, desc, type, amount, currency, current != null ? current.transactionId() : null, date, lineItems, category, tags, current != null ? current.relatedEvents() : null, current != null ? current.subscriptionId() : null, current != null ? current.draftId() : null, files, null);
+		return new FinanceEventDto(origId, name, desc, type, amount, currency, current != null ? current.transactionId() : null, date, lineItems, category, tags, current != null ? current.relatedEvents() : null, current != null ? current.subscriptionId() : null, current != null ? current.draftId() : null, files, null, List.of());
 	}
 
 	/**
@@ -453,7 +453,8 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 		List<PatchTransactionDto.LineItemDto> lineItems = dto.lineItems().stream()
 				.map(li -> new PatchTransactionDto.LineItemDto(
 						li.financeNodeId() != null ? new PatchTransactionDto.LineItemDto.FinanceNodeRef(li.financeNodeId()) : null,
-						li.amount()))
+						li.amount(),
+						li.currency()))
 				.toList();
 		patch.setTransaction(JsonNullable.of(new PatchTransactionDto(dto.transactionDate(), lineItems)));
 
@@ -581,7 +582,8 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 					remapId(DataSection.SUBSCRIPTIONS, dto.subscriptionId(), context),
 					dto.draftId(),
 					remapFiles(dto.files(), context),
-					dto.paymentPlanId());
+					dto.paymentPlanId(),
+					List.of());
 			return objectMapper.writeValueAsString(remapped);
 		} catch (JsonProcessingException e) {
 			Log.warnf(e, "Failed to remap ids in imported draft payload; storing it as-is");

@@ -145,17 +145,22 @@ public class FinanceNodeResource {
     @GET
     @Path("/{id}/balance")
     @Operation(summary = "Calculate current balance of a node",
-	description = "Sums all LineItem amounts associated with this node, one total per currency the node has held. "
-		+ "Positive values represent inflows, negative values outflows. Amounts are never converted between currencies.")
+	description = "Sums all LineItem amounts associated with this node. Positive values represent inflows, negative values outflows. "
+		+ "Without a currency: one total per currency the node has held. With a principal currency: every movement converted with "
+		+ "the rate frozen on it, first entry; movements not yet converted follow in their own currency. With any other currency: "
+		+ "only the movements recorded in it.")
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Calculated balance, one entry per currency",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(type = SchemaType.ARRAY, implementation = MoneyDto.class))),
+	@APIResponse(responseCode = "400", description = "Unknown currency code",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
 	@APIResponse(responseCode = "404", description = "Node not found",
 			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<List<MoneyDto>> getBalance(
-	@Parameter(description = "ID of the finance node", required = true) @PathParam("id") Long id)
+	@Parameter(description = "ID of the finance node", required = true) @PathParam("id") Long id,
+	@Parameter(description = "ISO 4217 code to report in; omit for one total per currency") @QueryParam("currency") String currency)
 	throws BusinessException {
-	return RestResponse.ok(financeNodeService.calculateBalance(id));
+	return RestResponse.ok(financeNodeService.calculateBalance(id, currency));
     }
 }

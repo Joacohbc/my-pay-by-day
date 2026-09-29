@@ -145,7 +145,7 @@ class EventMergeServiceTest {
 	}
 
 	private FinanceNodeEntity createNode(String name, FinanceNodeType type) throws BusinessException {
-		FinanceNodeDto created = financeNodeService.create(new FinanceNodeDto(null, name, type, null, null, null, false));
+		FinanceNodeDto created = financeNodeService.create(new FinanceNodeDto(null, name, type, null, null, null, false, null));
 		FinanceNodeEntity node = new FinanceNodeEntity();
 		node.id = created.id();
 		return node;
@@ -155,6 +155,7 @@ class EventMergeServiceTest {
 		FinanceLineItemEntity lineItem = new FinanceLineItemEntity();
 		lineItem.financeNode = node;
 		lineItem.amount = amount;
+		lineItem.currency = "USD";
 		return lineItem;
 	}
 }

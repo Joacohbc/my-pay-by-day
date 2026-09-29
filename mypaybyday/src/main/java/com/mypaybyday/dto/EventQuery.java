@@ -8,6 +8,9 @@ import java.util.List;
 /**
  * Query parameters for {@link com.mypaybyday.service.event.EventService#listAll}.
  * Use {@link #builder()} to construct instances with only the filters you need.
+ *
+ * <p>{@code currency} is the view's display currency: a non-principal one limits the match set to
+ * events recorded in it, and totals are reported in it.
  */
 public record EventQuery(
 	int page,
@@ -23,7 +26,8 @@ public record EventQuery(
 	List<Long> categoryIds,
 	Long nodeId,
 	BigDecimal minAmount,
-	BigDecimal maxAmount
+	BigDecimal maxAmount,
+	String currency
 ) {
 
 	public enum DateField { TRANSACTION, CREATED, UPDATED }
@@ -48,6 +52,7 @@ public record EventQuery(
 		private Long nodeId;
 		private BigDecimal minAmount;
 		private BigDecimal maxAmount;
+		private String currency;
 
 		public Builder page(int page)                        { this.page = page; return this; }
 		public Builder size(int size)                        { this.size = size; return this; }
@@ -63,9 +68,10 @@ public record EventQuery(
 		public Builder nodeId(Long nodeId)                   { this.nodeId = nodeId; return this; }
 		public Builder minAmount(BigDecimal v)     			 { this.minAmount = v; return this; }
 		public Builder maxAmount(BigDecimal v)               { this.maxAmount = v; return this; }
+		public Builder currency(String currency)             { this.currency = currency; return this; }
 
 		public EventQuery build() {
-			return new EventQuery(page, size, search, startDate, endDate, dateField, type, categoryId, tagId, tagIds, categoryIds, nodeId, minAmount, maxAmount);
+			return new EventQuery(page, size, search, startDate, endDate, dateField, type, categoryId, tagId, tagIds, categoryIds, nodeId, minAmount, maxAmount, currency);
 		}
 	}
 }
