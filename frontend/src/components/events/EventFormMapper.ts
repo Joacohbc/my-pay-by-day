@@ -1,6 +1,6 @@
 import { z } from 'zod/v4';
 import type { CreateEventDto, PatchEventDto, FinanceEvent, CreateTransactionDto, EventType, FinanceEventDraftInputDto, FileDto } from '@/models';
-import { toLocalDateTimeString, getLocalizedNow } from '@/lib/format';
+import { toLocalDateTimeString, getCurrency, getLocalizedNow } from '@/lib/format';
 import { nameField, descriptionField } from '@/lib/validation';
 
 export const MIN_LINE_ITEMS = 2;
@@ -33,6 +33,7 @@ export function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormVa
     description: defaultValues?.description ?? '',
     type: (defaultValues?.type as EventType) ?? 'OUTBOUND',
     transactionDate,
+    currency: defaultValues?.currency ?? defaultValues?.lineItems?.[0]?.currency ?? getCurrency(),
     categoryId,
     tagIds,
     lineItems,
@@ -56,6 +57,7 @@ export function buildSchema(t: (key: string, options?: Record<string, unknown>) 
     description: descriptionField(t),
     type: z.enum(['INBOUND', 'OUTBOUND', 'OTHER']),
     transactionDate: z.string().min(1, t('eventForm.dateRequired')),
+    currency: z.string().length(3, t('eventForm.currencyRequired')),
     categoryId: z.string().optional(),
     tagIds: z.array(z.string()).optional(),
     lineItems: maxItems
@@ -79,6 +81,7 @@ export function toTransactionDto(values: FormValues): CreateTransactionDto {
     lineItems: values.lineItems.map((li) => ({
       financeNode: { id: Number(li.nodeId) },
       amount: Number(li.amount),
+      currency: values.currency,
     })),
   };
 }
@@ -186,6 +189,7 @@ export function toDraftDto(values: FormValues, t: (key: string) => string): Fina
     .map((li) => ({
       financeNodeId: li.nodeId ? Number(li.nodeId) : 0,
       amount: li.amount ? Number(li.amount) : 0,
+      currency: values.currency,
     }))
     .filter((li) => li.financeNodeId || li.amount !== 0);
 

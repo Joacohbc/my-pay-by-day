@@ -42,9 +42,18 @@ import com.mypaybyday.service.transfer.ImportContext;
 import com.mypaybyday.validation.SubscriptionValidator;
 import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import com.mypaybyday.validation.CurrencyValidator;
+import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class SubscriptionService implements DataSectionTransfer<SubscriptionDto> {
+
+	@Inject
+	CurrencyValidator currencyValidator;
+
+	@ConfigProperty(name = "mypaybyday.default-currency")
+	String defaultCurrency;
 
 	private final SubscriptionRepository subscriptionRepository;
 	private final EventRepository eventRepository;
@@ -120,6 +129,7 @@ public class SubscriptionService implements DataSectionTransfer<SubscriptionDto>
 
 		subscription.eventType = dto.eventType();
 		subscription.modifierValue = dto.modifierValue();
+		subscription.currency = currencyValidator.validateOptional(dto.currency());
 		subscription.recurrence = dto.recurrence();
 		subscription.nextExecutionDate = dto.nextExecutionDate();
 		subscription.status = dto.status() != null ? dto.status() : SubscriptionStatus.ACTIVE;
@@ -180,6 +190,7 @@ public class SubscriptionService implements DataSectionTransfer<SubscriptionDto>
 		}
 		if (dto.modifierValue() != null) {
 			subscription.modifierValue = dto.modifierValue();
+			subscription.currency = currencyValidator.validateOptional(dto.currency());
 		}
 		if (dto.recurrence() != null) {
 			subscription.recurrence = dto.recurrence();
@@ -330,28 +341,41 @@ public class SubscriptionService implements DataSectionTransfer<SubscriptionDto>
 		};
 	}
 
+	/**
+	 * The currency a subscription's generated events are recorded in: its own when set, otherwise
+	 * the denomination of the account it draws from. Falling straight to the configured default
+	 * would silently record a UYU rent payment as USD.
+	 */
+	private String generatedEventCurrency(SubscriptionEntity sub) {
+		if (sub.currency != null) return sub.currency;
+		if (sub.originNode != null && sub.originNode.currency != null) return sub.originNode.currency;
+		return defaultCurrency;
+	}
+
 	private void createEventFromSubscription(SubscriptionEntity sub) {
 		if (sub.eventType == null || sub.modifierValue == null || sub.originNode == null) {
 			Log.warnf("Subscription %d is missing required fields (eventType, modifierValue, originNode) for event generation. Skipping.", sub.id);
 			return;
 		}
 
+		String currency = generatedEventCurrency(sub);
+
 		// Create Line Items
 		List<FinanceLineItemDto> lineItems = new ArrayList<>();
 
 		switch (sub.eventType) {
 			case INBOUND -> {
-				lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, null, sub.modifierValue.negate()));
-				lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, null, sub.modifierValue));
+				lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, null, sub.modifierValue.negate(), currency));
+				lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, null, sub.modifierValue, currency));
 			}
 			case OUTBOUND -> {
-				lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, null, sub.modifierValue.negate()));
-				lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, null, sub.modifierValue));
+				lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, null, sub.modifierValue.negate(), currency));
+				lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, null, sub.modifierValue, currency));
 			}
 			case OTHER -> {
 				if (sub.destinationNode != null) {
-					lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, null, sub.modifierValue.negate()));
-					lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, null, sub.modifierValue));
+					lineItems.add(new FinanceLineItemDto(sub.originNode.id, sub.originNode.name, null, sub.modifierValue.negate(), currency));
+					lineItems.add(new FinanceLineItemDto(sub.destinationNode.id, sub.destinationNode.name, null, sub.modifierValue, currency));
 				} else {
 					Log.warnf("Subscription %d is type OTHER but missing destinationNode. Skipping.", sub.id);
 					return;
@@ -369,6 +393,7 @@ public class SubscriptionService implements DataSectionTransfer<SubscriptionDto>
 			node.id = dto.financeNodeId();
 			item.financeNode = node;
 			item.amount = dto.amount();
+			item.currency = dto.currency();
 			item.transaction = transaction;
 			transaction.lineItems.add(item);
 		}
@@ -439,6 +464,7 @@ public class SubscriptionService implements DataSectionTransfer<SubscriptionDto>
 			entity.description = dto.description();
 			entity.eventType = dto.eventType();
 			entity.modifierValue = dto.modifierValue();
+			entity.currency = dto.currency();
 			entity.recurrence = dto.recurrence();
 			entity.nextExecutionDate = dto.nextExecutionDate();
 			entity.status = dto.status();

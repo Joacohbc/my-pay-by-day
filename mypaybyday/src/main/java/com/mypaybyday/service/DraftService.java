@@ -245,7 +245,12 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 		
 		Long origId = input.id() != null ? input.id() : (current != null ? current.id() : null);
 
-		return new FinanceEventDto(origId, name, desc, type, amount, current != null ? current.transactionId() : null, date, lineItems, category, tags, current != null ? current.relatedEvents() : null, current != null ? current.subscriptionId() : null, current != null ? current.draftId() : null, files, null);
+		String currency = FinanceLineItemDto.currencyOf(lineItems);
+		if (currency == null && current != null) {
+			currency = current.currency();
+		}
+
+		return new FinanceEventDto(origId, name, desc, type, amount, currency, current != null ? current.transactionId() : null, date, lineItems, category, tags, current != null ? current.relatedEvents() : null, current != null ? current.subscriptionId() : null, current != null ? current.draftId() : null, files, null, List.of());
 	}
 
 	/**
@@ -370,6 +375,11 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 			} catch (BusinessException e) {
 				errors.add(new ValidationErrorDto("lineItems.nodes", e.getMessage()));
 			}
+			try {
+				transactionValidator.validateSingleCurrency(transaction);
+			} catch (BusinessException e) {
+				errors.add(new ValidationErrorDto("lineItems.currency", e.getMessage()));
+			}
 		}
 
 		return new DraftValidationResultDto(errors.isEmpty(), errors);
@@ -409,6 +419,7 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 		for (var li : dto.lineItems()) {
 			FinanceLineItemEntity item = new FinanceLineItemEntity();
 			item.setAmount(li.amount());
+			item.currency = li.currency();
 			if (li.financeNodeId() != null) {
 				FinanceNodeEntity node = new FinanceNodeEntity();
 				node.id = li.financeNodeId();
@@ -442,7 +453,8 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 		List<PatchTransactionDto.LineItemDto> lineItems = dto.lineItems().stream()
 				.map(li -> new PatchTransactionDto.LineItemDto(
 						li.financeNodeId() != null ? new PatchTransactionDto.LineItemDto.FinanceNodeRef(li.financeNodeId()) : null,
-						li.amount()))
+						li.amount(),
+						li.currency()))
 				.toList();
 		patch.setTransaction(JsonNullable.of(new PatchTransactionDto(dto.transactionDate(), lineItems)));
 
@@ -560,6 +572,7 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 					dto.description(),
 					dto.type(),
 					dto.amount(),
+					dto.currency(),
 					dto.transactionId(),
 					dto.transactionDate(),
 					remapLineItems(dto.lineItems(), context),
@@ -569,7 +582,8 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 					remapId(DataSection.SUBSCRIPTIONS, dto.subscriptionId(), context),
 					dto.draftId(),
 					remapFiles(dto.files(), context),
-					dto.paymentPlanId());
+					dto.paymentPlanId(),
+					List.of());
 			return objectMapper.writeValueAsString(remapped);
 		} catch (JsonProcessingException e) {
 			Log.warnf(e, "Failed to remap ids in imported draft payload; storing it as-is");
@@ -612,7 +626,7 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 		return lineItems.stream()
 				.map(li -> new FinanceLineItemDto(
 						remapId(DataSection.FINANCE_NODES, li.financeNodeId(), context),
-						li.financeNodeName(), li.financeNodeIcon(), li.amount()))
+						li.financeNodeName(), li.financeNodeIcon(), li.amount(), li.currency()))
 				.toList();
 	}
 

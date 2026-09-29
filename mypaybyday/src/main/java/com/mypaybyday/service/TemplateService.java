@@ -24,9 +24,14 @@ import com.mypaybyday.service.transfer.ImportContext;
 import com.mypaybyday.validation.TemplateValidator;
 import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
+import com.mypaybyday.validation.CurrencyValidator;
+import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class TemplateService implements DataSectionTransfer<TemplateDto> {
+
+	@Inject
+	CurrencyValidator currencyValidator;
 
 	private final TemplateRepository templateRepository;
 	private final CategoryService categoryService;
@@ -140,6 +145,7 @@ public class TemplateService implements DataSectionTransfer<TemplateDto> {
 		template.eventType = dto.eventType();
 		template.modifierType = dto.modifierType();
 		template.modifierValue = dto.modifierValue();
+		template.currency = currencyValidator.validateOptional(dto.currency());
 
 		template.originNode = dto.originNodeId() != null
 				? financeNodeService.findNodeEntity(dto.originNodeId())
@@ -193,6 +199,7 @@ public class TemplateService implements DataSectionTransfer<TemplateDto> {
 			entity.eventType = dto.eventType();
 			entity.modifierType = dto.modifierType();
 			entity.modifierValue = dto.modifierValue();
+			entity.currency = dto.currency();
 
 			if (dto.originNodeId() != null) {
 				Long newNodeId = context.remap(DataSection.FINANCE_NODES, dto.originNodeId());

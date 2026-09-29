@@ -60,6 +60,14 @@ const nodePatchSchema = z.object({
     .describe('OWN (own account/wallet/card), EXTERNAL (store/employer/utility) or CONTACT (a person). Null to leave unchanged.'),
   description: z.string().nullable().describe('New description, or null to leave unchanged.'),
   icon: z.string().nullable().describe('New Material Symbols icon name, or null to leave unchanged.'),
+  currency: z
+    .string()
+    .length(3)
+    .nullable()
+    .describe(
+      'ISO 4217 code this node is denominated in, e.g. "UYU". Set it for an account the user owns, which holds ' +
+        'exactly one currency; leave it null for stores and people, which can charge in any currency.',
+    ),
 });
 
 const templatePatchSchema = z.object({
@@ -70,6 +78,11 @@ const templatePatchSchema = z.object({
   tagIds: z.array(z.number()).nullable().describe('IDs of matching tags from the provided list, or null to leave unchanged.'),
   modifierType: z.enum(['FIXED', 'PERCENTAGE']).nullable().describe('Null to leave unchanged.'),
   modifierValue: z.number().nullable().describe('Null to leave unchanged.'),
+  currency: z
+    .string()
+    .length(3)
+    .nullable()
+    .describe('ISO 4217 code denominating modifierValue when it is a FIXED amount. Null to leave unchanged.'),
 });
 
 const PATCH_SCHEMA_BY_ENTITY = {

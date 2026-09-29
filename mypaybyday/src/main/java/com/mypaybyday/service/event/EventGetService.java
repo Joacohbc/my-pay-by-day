@@ -7,27 +7,36 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.CategoryBalanceDto;
+import com.mypaybyday.dto.CurrencyTotalsDto;
 import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.EventQuery.DateField;
 import com.mypaybyday.dto.EventTotalsDto;
 import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.dto.FinanceLineItemDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.FinanceEventEntity;
-import com.mypaybyday.enums.EventType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.i18n.TimezoneContext;
 import com.mypaybyday.repository.EventRepository;
 import com.mypaybyday.service.CategoryService;
+import com.mypaybyday.service.CurrencyBalanceAggregator;
+import com.mypaybyday.service.currency.DisplayCurrency;
+import com.mypaybyday.service.currency.DisplayCurrency.ExpressedEvents;
+import com.mypaybyday.service.currency.DisplayCurrencyService;
 import com.mypaybyday.service.PaymentPlanService;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.logging.Log;
@@ -40,18 +49,25 @@ public class EventGetService {
 	private final CategoryService categoryService;
 	private final PaymentPlanService paymentPlanService;
 	private final Messages messages;
+	private final CurrencyBalanceAggregator currencyBalanceAggregator;
+	private final DisplayCurrencyService displayCurrencyService;
 
 	public EventGetService(EventRepository eventRepository, CategoryService categoryService,
-			PaymentPlanService paymentPlanService, Messages messages) {
+			PaymentPlanService paymentPlanService, Messages messages,
+			CurrencyBalanceAggregator currencyBalanceAggregator,
+			DisplayCurrencyService displayCurrencyService) {
 		this.eventRepository = eventRepository;
 		this.categoryService = categoryService;
 		this.paymentPlanService = paymentPlanService;
 		this.messages = messages;
+		this.currencyBalanceAggregator = currencyBalanceAggregator;
+		this.displayCurrencyService = displayCurrencyService;
 	}
 
 	@Transactional
-	public PagedResponse<FinanceEventDto> listAll(EventQuery queryRequest) {
-		PanacheQuery<FinanceEventEntity> panacheQuery = buildFilteredQuery(queryRequest);
+	public PagedResponse<FinanceEventDto> listAll(EventQuery queryRequest) throws BusinessException {
+		DisplayCurrency display = displayCurrencyService.resolve(queryRequest.currency());
+		PanacheQuery<FinanceEventEntity> panacheQuery = buildFilteredQuery(queryRequest, display);
 
 		if (requiresInMemoryFiltering(queryRequest)) {
 			List<FinanceEventEntity> matchingEvents = applyInMemoryFilters(panacheQuery.list(), queryRequest);
@@ -81,32 +97,56 @@ public class EventGetService {
 	* amount or by text happens in memory.
 	*/
 	@Transactional
-	public EventTotalsDto summary(EventQuery queryRequest) {
-		List<FinanceEventEntity> matchingEvents = applyInMemoryFilters(buildTotalsQuery(queryRequest).list(), queryRequest);
+	public EventTotalsDto summary(EventQuery queryRequest) throws BusinessException {
+		DisplayCurrency display = displayCurrencyService.resolve(queryRequest.currency());
+		List<FinanceEventEntity> matchingEvents = applyInMemoryFilters(
+				buildTotalsQuery(queryRequest, display).list(), queryRequest);
+		ExpressedEvents expressed = display.express(matchingEvents.stream().map(FinanceEventDto::from).toList());
 
-		BigDecimal income = BigDecimal.ZERO;
-		BigDecimal outbound = BigDecimal.ZERO;
-		BigDecimal transfers = BigDecimal.ZERO;
+		Map<String, BigDecimal> incomeByCurrency = new LinkedHashMap<>();
+		Map<String, BigDecimal> outboundByCurrency = new LinkedHashMap<>();
+		Map<String, BigDecimal> transfersByCurrency = new LinkedHashMap<>();
+		Set<String> currencies = new LinkedHashSet<>();
+		if (!display.isPerCurrency()) {
+			currencies.add(display.code());
+		}
 
-		for (FinanceEventEntity event : matchingEvents) {
-			if (event.transaction == null || event.transaction.lineItems == null) {
-				continue;
-			}
+		for (FinanceEventDto event : expressed.events()) {
+			String currency = event.currency();
+			if (currency == null) continue;
+			currencies.add(currency);
 
-			if (event.type == EventType.OTHER) {
-				transfers = transfers.add(eventTransferAmount(event));
-				continue;
-			}
-
-			BigDecimal eventAmount = eventTotalAmount(event);
-			if (event.type == EventType.INBOUND) {
-				income = income.add(eventAmount);
-			} else if (event.type == EventType.OUTBOUND) {
-				outbound = outbound.add(eventAmount);
+			switch (event.type()) {
+				case INBOUND -> incomeByCurrency.merge(currency, event.amount(), BigDecimal::add);
+				case OUTBOUND -> outboundByCurrency.merge(currency, event.amount(), BigDecimal::add);
+				case OTHER -> transfersByCurrency.merge(currency, transferAmount(event), BigDecimal::add);
 			}
 		}
 
-		return new EventTotalsDto(income, outbound, transfers, matchingEvents.size());
+		List<CurrencyTotalsDto> totals = currencies.stream()
+				.map(currency -> new CurrencyTotalsDto(
+						currency,
+						incomeByCurrency.getOrDefault(currency, BigDecimal.ZERO),
+						outboundByCurrency.getOrDefault(currency, BigDecimal.ZERO),
+						transfersByCurrency.getOrDefault(currency, BigDecimal.ZERO),
+						expressed.unconvertedCount()))
+				.toList();
+
+		return new EventTotalsDto(totals, matchingEvents.size());
+	}
+
+	/**
+	 * The amount an {@code OTHER} event actually moved: half the sum of its absolute line-item
+	 * amounts, since per the Zero-Sum Rule every unit leaves one node and reaches another.
+	 */
+	private BigDecimal transferAmount(FinanceEventDto event) {
+		if (event.lineItems() == null) return BigDecimal.ZERO;
+		return event.lineItems().stream()
+				.map(FinanceLineItemDto::amount)
+				.filter(Objects::nonNull)
+				.map(BigDecimal::abs)
+				.reduce(BigDecimal.ZERO, BigDecimal::add)
+				.divide(BigDecimal.valueOf(2));
 	}
 
 	private List<FinanceEventDto> toDtosWithPlanIds(List<FinanceEventEntity> events) {
@@ -119,8 +159,8 @@ public class EventGetService {
 				.toList();
 	}
 
-	private PanacheQuery<FinanceEventEntity> buildFilteredQuery(EventQuery queryRequest) {
-		EventFilterFragment fragment = buildFilterFragment(queryRequest);
+	private PanacheQuery<FinanceEventEntity> buildFilteredQuery(EventQuery queryRequest, DisplayCurrency display) {
+		EventFilterFragment fragment = buildFilterFragment(queryRequest, display);
 		return eventRepository.find("select e from FinanceEvent e" + fragment.clause(), fragment.params());
 	}
 
@@ -130,8 +170,8 @@ public class EventGetService {
 	* the shared query — a fetch join over a collection makes Hibernate paginate in memory, and the
 	* list endpoint paginates.
 	*/
-	private PanacheQuery<FinanceEventEntity> buildTotalsQuery(EventQuery queryRequest) {
-		EventFilterFragment fragment = buildFilterFragment(queryRequest);
+	private PanacheQuery<FinanceEventEntity> buildTotalsQuery(EventQuery queryRequest, DisplayCurrency display) {
+		EventFilterFragment fragment = buildFilterFragment(queryRequest, display);
 		return eventRepository.find(
 				"select e from FinanceEvent e left join fetch e.transaction t left join fetch t.lineItems"
 						+ fragment.clause(),
@@ -141,7 +181,7 @@ public class EventGetService {
 	private record EventFilterFragment(String clause, Map<String, Object> params) {
 	}
 
-	private EventFilterFragment buildFilterFragment(EventQuery queryRequest) {
+	private EventFilterFragment buildFilterFragment(EventQuery queryRequest, DisplayCurrency display) {
 		StringBuilder query = new StringBuilder(" where 1=1");
 		Map<String, Object> params = new HashMap<>();
 
@@ -203,6 +243,11 @@ public class EventGetService {
 			params.put("nodeId", queryRequest.nodeId());
 		}
 
+		if (display.mode() == DisplayCurrency.Mode.FILTERED) {
+			query.append(" and exists (select li from FinanceLineItem li where li member of e.transaction.lineItems and li.currency = :currency)");
+			params.put("currency", display.code());
+		}
+
 		query.append(" ORDER BY ").append(dateFieldExpression).append(" DESC");
 		return new EventFilterFragment(query.toString(), params);
 	}
@@ -258,15 +303,6 @@ public class EventGetService {
 		return aboveMinimum && belowMaximum;
 	}
 
-	private BigDecimal eventTransferAmount(FinanceEventEntity event) {
-		return event.transaction.lineItems.stream()
-				.map(li -> li.amount)
-				.filter(a -> a != null)
-				.map(BigDecimal::abs)
-				.reduce(BigDecimal.ZERO, BigDecimal::add)
-				.divide(BigDecimal.valueOf(2));
-	}
-
 	private BigDecimal eventTotalAmount(FinanceEventEntity event) {
 		if (event.transaction == null || event.transaction.lineItems == null) return BigDecimal.ZERO;
 		return event.transaction.lineItems.stream()
@@ -292,29 +328,14 @@ public class EventGetService {
 	@Transactional
 	public CategoryBalanceDto getCategoryBalance(Long categoryId, LocalDateTime from, LocalDateTime to) throws BusinessException {
 		CategoryEntity category = categoryService.findEntityById(categoryId);
-		List<FinanceEventEntity> eventsInCategory = findEventEntitiesByDateRangeAndCategory(categoryId, from, to);
+		List<FinanceEventDto> eventsInCategory = findEventEntitiesByDateRangeAndCategory(categoryId, from, to).stream()
+				.map(FinanceEventDto::from)
+				.toList();
 
-		BigDecimal totalIncome = BigDecimal.ZERO;
-		BigDecimal totalOutbound = BigDecimal.ZERO;
-
-		for (FinanceEventEntity event : eventsInCategory) {
-			if (event.transaction == null || event.transaction.lineItems == null) {
-				continue;
-			}
-
-			BigDecimal eventAmount = event.transaction.lineItems.stream()
-					.map(lineItem -> lineItem.amount)
-					.filter(amount -> amount.compareTo(BigDecimal.ZERO) > 0)
-					.reduce(BigDecimal.ZERO, BigDecimal::add);
-
-			if (event.type == EventType.INBOUND) {
-				totalIncome = totalIncome.add(eventAmount);
-			} else if (event.type == EventType.OUTBOUND) {
-				totalOutbound = totalOutbound.add(eventAmount);
-			}
-		}
-
-		return new CategoryBalanceDto(category.id, category.name, totalIncome, totalOutbound);
+		return new CategoryBalanceDto(
+				category.id,
+				category.name,
+				currencyBalanceAggregator.balances(eventsInCategory, Set.of(), DisplayCurrency.perCurrency()));
 	}
 
 	private List<FinanceEventEntity> findEventEntitiesByDateRange(LocalDateTime from, LocalDateTime to) throws BusinessException {

@@ -11,6 +11,8 @@ import jakarta.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mypaybyday.crypto.BigDecimalEncryptionConverter;
+import com.mypaybyday.validation.CurrencyValidator;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -98,5 +100,22 @@ public class FinanceLineItemEntity extends BaseEntity {
 	@Convert(converter = BigDecimalEncryptionConverter.class)
 	@Column(columnDefinition = "TEXT")
 	public BigDecimal amount;
+
+	/**
+	* The ISO 4217 code denominating {@link #amount}.
+	*
+	* <p>
+	* Stored in plain text, unlike the amount beside it, so balances can be grouped by currency
+	* in SQL. Amounts are never converted between currencies: a value and its code are one
+	* indivisible fact, and every aggregate the system reports is per currency.
+	*
+	* <p>
+	* All line items within a single {@link FinanceTransactionEntity} share this code — the
+	* Zero-Sum Rule compares raw numbers, which is only meaningful within one currency.
+	*/
+	@NotNull
+	@Column(length = CurrencyValidator.CODE_LENGTH)
+	public String currency;
+
 
 }

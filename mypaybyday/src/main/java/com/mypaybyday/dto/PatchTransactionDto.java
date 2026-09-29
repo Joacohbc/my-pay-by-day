@@ -16,13 +16,15 @@ public record PatchTransactionDto(
 
 	public record LineItemDto(
 			FinanceNodeRef financeNode,
-			BigDecimal amount
+			BigDecimal amount,
+			String currency
 	) {
 		public record FinanceNodeRef(Long id) {}
 
 		public FinanceLineItemEntity toEntity() {
 			FinanceLineItemEntity item = new FinanceLineItemEntity();
 			item.amount = this.amount;
+			item.currency = this.currency;
 			if (this.financeNode != null) {
 				FinanceNodeEntity node = new FinanceNodeEntity();
 				node.id = this.financeNode.id();

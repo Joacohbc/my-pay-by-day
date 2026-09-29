@@ -64,6 +64,7 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 	private final SubscriptionRepository subscriptionRepository;
 	private final TransactionRepository transactionRepository;
 	private final TransactionValidator transactionValidator;
+	private final TransactionConversionService transactionConversionService;
 	private final RegexValidator regexValidator;
 	private final Messages messages;
 	private final DraftService entityDraftService;
@@ -83,6 +84,7 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 			SubscriptionRepository subscriptionRepository,
 			TransactionRepository transactionRepository,
 			TransactionValidator transactionValidator,
+			TransactionConversionService transactionConversionService,
 			RegexValidator regexValidator,
 			Messages messages,
 			DraftService entityDraftService,
@@ -100,6 +102,7 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 		this.subscriptionRepository = subscriptionRepository;
 		this.transactionRepository = transactionRepository;
 		this.transactionValidator = transactionValidator;
+		this.transactionConversionService = transactionConversionService;
 		this.regexValidator = regexValidator;
 		this.messages = messages;
 		this.entityDraftService = entityDraftService;
@@ -109,12 +112,12 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 	}
 
 	@Transactional
-	public PagedResponse<FinanceEventDto> listAll(EventQuery query) {
+	public PagedResponse<FinanceEventDto> listAll(EventQuery query) throws BusinessException {
 		return eventGetService.listAll(query);
 	}
 
 	@Transactional
-	public EventTotalsDto summary(EventQuery query) {
+	public EventTotalsDto summary(EventQuery query) throws BusinessException {
 		return eventGetService.summary(query);
 	}
 
@@ -229,13 +232,16 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 					}
 					FinanceLineItemEntity li = new FinanceLineItemEntity();
 					li.amount = liDto.amount();
+					li.currency = liDto.currency();
 					li.financeNode = node;
 					li.transaction = tx;
 					tx.lineItems.add(li);
 				}
 			}
 
+			transactionValidator.validateSingleCurrency(tx);
 			transactionValidator.validateZeroSum(tx);
+			transactionConversionService.restoreConversions(tx, dto);
 			transactionRepository.persist(tx);
 
 			FinanceEventEntity event = new FinanceEventEntity();

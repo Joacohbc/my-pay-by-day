@@ -9,16 +9,19 @@ import { useCreateStandaloneFinanceEventDraft, useUpdateFinanceEventDraftByDraft
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import type { CreateEventDto, PatchEventDto, Template, FinanceEvent, FinanceLineItem, FinanceEventDraftInputDto } from '@/models';
 import { useDebounceCallback } from '@/hooks/useDebounce';
+import { getCurrency } from '@/lib/format';
 import { Icon } from '@/components/ui/Icon';
 
 function mapTemplateToEventValues(template: Template): Partial<FinanceEvent> {
+  const currency = template.currency ?? getCurrency();
+
   const originLineItem: FinanceLineItem = template.originNodeId
-    ? { financeNodeId: template.originNodeId, financeNodeName: template.originNodeName ?? '', amount: 0 }
-    : { financeNodeId: 0, financeNodeName: '', amount: 0 };
+    ? { financeNodeId: template.originNodeId, financeNodeName: template.originNodeName ?? '', amount: 0, currency }
+    : { financeNodeId: 0, financeNodeName: '', amount: 0, currency };
 
   const destinationLineItem: FinanceLineItem = template.destinationNodeId
-    ? { financeNodeId: template.destinationNodeId, financeNodeName: template.destinationNodeName ?? '', amount: 0 }
-    : { financeNodeId: 0, financeNodeName: '', amount: 0 };
+    ? { financeNodeId: template.destinationNodeId, financeNodeName: template.destinationNodeName ?? '', amount: 0, currency }
+    : { financeNodeId: 0, financeNodeName: '', amount: 0, currency };
 
   return {
     type: template.eventType,

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { normalizeText } from '@/lib/utils/textUtils';
 import { useTranslation } from 'react-i18next';
 import { useNodes, useArchiveNode, useUnarchiveNode, useDeleteNode, useNodeBalance } from '@/hooks/useNodes';
-import { formatCurrency, formatCompactCurrency, formatCompactWitNotCurrency, getCurrency } from '@/lib/format';
+import { MoneyBalances } from '@/components/ui/MoneyBalances';
 import { NodeCard } from '@/components/nodes/NodeCard';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -15,6 +15,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import type { FinanceNode, FinanceNodeType } from '@/models';
 import { NodeForm } from '@/components/nodes/NodeForm';
 import { Routes } from '@/lib/routes';
+import { DisplayCurrencyPicker } from '@/components/currency/DisplayCurrencyPicker';
 
 
 type NodeVisibilityFilter = 'active' | 'archived' | 'all';
@@ -35,17 +36,15 @@ const confirmActionConfig: Record<NodeConfirmActionType, { labelKey: string; mes
 };
 
 function NodeBalanceBadge({ nodeId }: { nodeId: number }) {
-  const { data: balance } = useNodeBalance(nodeId);
-  if (balance === undefined) return null;
+  const { data: balances } = useNodeBalance(nodeId);
+  if (balances === undefined) return null;
   return (
-    <span className={`text-xs font-mono whitespace-nowrap ${balance >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
-      <span className="flex flex-col items-center leading-none xs:hidden">
-        <span>{formatCompactWitNotCurrency(balance)}</span>
-        <span className="mt-1">{getCurrency()}</span>
-      </span>
-      <span className="hidden xs:inline sm:hidden">{formatCompactCurrency(balance)}</span>
-      <span className="hidden sm:inline">{balance >= 0 ? '+' : ''}{formatCurrency(balance)}</span>
-    </span>
+    <MoneyBalances
+      balances={balances}
+      responsive
+      showSign
+      className="text-xs whitespace-nowrap"
+    />
   );
 }
 
@@ -209,6 +208,10 @@ export function NodesPage() {
           </Button>
         }
       />
+
+      <div className="px-5 -mt-2 flex justify-end">
+        <DisplayCurrencyPicker />
+      </div>
 
       {/* Filter */}
       <div className="px-5 flex gap-2">

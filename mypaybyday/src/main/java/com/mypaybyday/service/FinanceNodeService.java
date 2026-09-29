@@ -2,13 +2,21 @@ package com.mypaybyday.service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.FinanceNodeDto;
+import com.mypaybyday.dto.MoneyDto;
 import com.mypaybyday.dto.SectionImportResult;
+import com.mypaybyday.dto.TransactionConversionDto;
+import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.enums.FinanceNodeType;
@@ -17,6 +25,8 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.LineItemRepository;
+import com.mypaybyday.service.currency.DisplayCurrency;
+import com.mypaybyday.service.currency.DisplayCurrencyService;
 import com.mypaybyday.service.event.TransactionService;
 import com.mypaybyday.service.transfer.ArchivedItemImporter;
 import com.mypaybyday.service.transfer.DataSectionTransfer;
@@ -32,18 +42,21 @@ public class FinanceNodeService implements DataSectionTransfer<FinanceNodeDto> {
 	private final Messages messages;
 	private final FinanceNodeValidator financeNodeValidator;
 	private final ArchivedItemImporter archivedItemImporter;
+	private final DisplayCurrencyService displayCurrencyService;
 
 	public FinanceNodeService(
 			FinanceNodeRepository financeNodeRepository,
 			LineItemRepository lineItemRepository,
 			Messages messages,
 			FinanceNodeValidator financeNodeValidator,
-			ArchivedItemImporter archivedItemImporter) {
+			ArchivedItemImporter archivedItemImporter,
+			DisplayCurrencyService displayCurrencyService) {
 		this.financeNodeRepository = financeNodeRepository;
 		this.lineItemRepository = lineItemRepository;
 		this.messages = messages;
 		this.financeNodeValidator = financeNodeValidator;
 		this.archivedItemImporter = archivedItemImporter;
+		this.displayCurrencyService = displayCurrencyService;
 	}
 
 	@Transactional
@@ -103,6 +116,7 @@ public class FinanceNodeService implements DataSectionTransfer<FinanceNodeDto> {
 		node.description = dto.description();
 		node.icon = dto.icon();
 		node.color = dto.color();
+		node.currency = dto.currency();
 
 		financeNodeValidator.validate(node);
 
@@ -122,6 +136,7 @@ public class FinanceNodeService implements DataSectionTransfer<FinanceNodeDto> {
 		node.description = dto.description();
 		node.icon = dto.icon();
 		node.color = dto.color();
+		node.currency = dto.currency();
 
 		financeNodeValidator.validate(node);
 
@@ -183,24 +198,62 @@ public class FinanceNodeService implements DataSectionTransfer<FinanceNodeDto> {
 		Log.infof("Deleted finance-node id=%d", id);
 	}
 
+	/**
+	 * Sums every line item touching this node.
+	 *
+	 * <p>Positive amounts add to the balance and negative ones subtract, following how the
+	 * movement was registered. With no display currency the result has one entry per currency the
+	 * node has held. With a principal display currency every movement is converted with the rate
+	 * frozen on its transaction; movements that hold no such rate yet stay in their own currency as
+	 * separate entries, rather than being dropped from the balance. With any other display currency
+	 * only movements recorded in it count.
+	 *
+	 * @param displayCurrency the currency to report in, or {@code null} for one entry per currency
+	 * @return balances with the display currency first, then by descending absolute value
+	 */
 	@Transactional
-	public BigDecimal calculateBalance(Long id) throws BusinessException {
+	public List<MoneyDto> calculateBalance(Long id, String displayCurrency) throws BusinessException {
 		FinanceNodeEntity node = financeNodeRepository.findById(id);
 		if (node == null) {
 			throw messages.reject(MsgKey.NODE_NOT_FOUND);
 		}
 
-		// Calculate balance on-the-fly summing all amounts for this node
-		// In this logic, positive amounts add to balance, negative decrease.
-		// It depends on how transactions are registered (e.g. income is +, expense is -
-		// for OWN accounts).
-		BigDecimal total = lineItemRepository.find("financeNode", node)
-				.stream()
-				.map(lineItem -> lineItem.amount)
-				.reduce(BigDecimal.ZERO, BigDecimal::add);
+		DisplayCurrency display = displayCurrencyService.resolve(displayCurrency);
+		Map<String, BigDecimal> totalByCurrency = new LinkedHashMap<>();
+		for (FinanceLineItemEntity lineItem : lineItemRepository.find("financeNode", node).stream().toList()) {
+			if (lineItem.currency == null) continue;
+			accumulateLineItem(totalByCurrency, lineItem, display);
+		}
 
-		Log.debugf("Calculated balance for finance-node id=%d", id);
-		return total;
+		Log.debugf("Calculated balance for finance-node id=%d across %d currencies", id.longValue(), totalByCurrency.size());
+		Comparator<MoneyDto> displayCurrencyFirst = Comparator.comparing(
+				(MoneyDto money) -> !money.currency().equals(display.code()));
+		return totalByCurrency.entrySet().stream()
+				.map(entry -> new MoneyDto(entry.getValue(), entry.getKey()))
+				.sorted(displayCurrencyFirst.thenComparing(
+						Comparator.comparing((MoneyDto money) -> money.amount().abs()).reversed()))
+				.toList();
+	}
+
+	private void accumulateLineItem(Map<String, BigDecimal> totalByCurrency, FinanceLineItemEntity lineItem,
+			DisplayCurrency display) {
+		Map<String, BigDecimal> frozenRates = new HashMap<>();
+		lineItem.transaction.conversions.forEach(conversion -> frozenRates.put(conversion.currency, conversion.rate));
+
+		Optional<BigDecimal> rate = display.rateFor(lineItem.currency, frozenRates);
+		if (rate.isEmpty()) {
+			boolean keepsUnconvertedRemainder = display.mode() == DisplayCurrency.Mode.CONVERTED;
+			if (keepsUnconvertedRemainder) {
+				totalByCurrency.merge(lineItem.currency, lineItem.amount, BigDecimal::add);
+			}
+			return;
+		}
+
+		String bucket = display.bucketFor(lineItem.currency);
+		BigDecimal amount = bucket.equals(lineItem.currency)
+				? lineItem.amount
+				: TransactionConversionDto.convert(lineItem.amount, rate.get(), bucket);
+		totalByCurrency.merge(bucket, amount, BigDecimal::add);
 	}
 
 	// -------------------------------------------------------------------------
@@ -235,6 +288,7 @@ public class FinanceNodeService implements DataSectionTransfer<FinanceNodeDto> {
 			node.icon = dto.icon();
 			node.color = dto.color();
 			node.archived = dto.archived();
+			node.currency = dto.currency();
 			financeNodeValidator.validate(node);
 			financeNodeRepository.persist(node);
 			context.rememberId(section(), dto.id(), node.id);

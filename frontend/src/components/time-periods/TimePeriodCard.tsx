@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useTimePeriodBalance } from '@/hooks/useTimePeriods';
 import { useDefaultTimePeriod } from '@/hooks/useDefaultTimePeriod';
-import { formatServerDate, formatCurrencyShort } from '@/lib/format';
+import { formatServerDate, formatMoneyShort, getCurrency } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
@@ -26,17 +26,13 @@ function BalanceSkeleton() {
 
 const formatCardDate = (d: string) => formatServerDate(d);
 
-const fmt = (n: number) => formatCurrencyShort(n);
-
 export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardProps) {
   const { t } = useTranslation();
   const { defaultId, setDefaultId } = useDefaultTimePeriod();
   const { data: balance, isLoading: balanceLoading } = useTimePeriodBalance(tp.id);
 
   const isDefault = defaultId === tp.id;
-  const income = balance?.income ?? 0;
-  const outbound = balance?.outbound ?? 0;
-  const net = income - outbound;
+  const currencyBalances = balance?.balances ?? [];
 
   return (
     <Card className={isDefault ? 'ring-2 ring-dn-primary/30' : ''}>
@@ -81,18 +77,26 @@ export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardP
           {balanceLoading ? (
             <BalanceSkeleton />
           ) : (
-            <div className="flex items-center gap-4 mt-2 flex-wrap">
-              <span className="inline-flex items-center gap-1 text-sm text-dn-success">
-                <Icon name="arrow_downward" className="text-sm" />
-                {fmt(income)}
-              </span>
-              <span className="inline-flex items-center gap-1 text-sm text-dn-error">
-                <Icon name="arrow_upward" className="text-sm" />
-                {fmt(outbound)}
-              </span>
-              <span className={`text-sm font-semibold font-mono ${net >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
-                {net >= 0 ? '+' : ''}{fmt(net)}
-              </span>
+            <div className="flex flex-col gap-1 mt-2">
+              {currencyBalances.map(({ currency, income, outbound }) => {
+                const net = income - outbound;
+                const fmt = (amount: number) => formatMoneyShort(amount, currency);
+                return (
+                  <div key={currency} className="flex items-center gap-4 flex-wrap">
+                    <span className="inline-flex items-center gap-1 text-sm text-dn-success">
+                      <Icon name="arrow_downward" className="text-sm" />
+                      {fmt(income)}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-sm text-dn-error">
+                      <Icon name="arrow_upward" className="text-sm" />
+                      {fmt(outbound)}
+                    </span>
+                    <span className={`text-sm font-semibold font-mono ${net >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
+                      {net >= 0 ? '+' : ''}{fmt(net)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -106,7 +110,7 @@ export function TimePeriodCard({ period: tp, onEdit, onDelete }: TimePeriodCardP
               )}
               {tp.budgetLimit != null && (
                 <p className="text-xs text-dn-text-muted">
-                  {t('periods.budgetLabel')}: <span className="text-dn-text-main">{formatCurrencyShort(tp.budgetLimit)}</span>
+                  {t('periods.budgetLabel')}: <span className="text-dn-text-main">{formatMoneyShort(tp.budgetLimit, tp.currency ?? getCurrency())}</span>
                 </p>
               )}
               {tp.savingsPercentageGoal != null && (

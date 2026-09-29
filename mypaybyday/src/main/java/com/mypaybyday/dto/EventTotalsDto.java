@@ -1,6 +1,6 @@
 package com.mypaybyday.dto;
 
-import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Aggregate totals for every {@link com.mypaybyday.entity.FinanceEventEntity} matching an
@@ -11,18 +11,12 @@ import java.math.BigDecimal;
  * instead of a fixed date range, so a filtered event list and its own totals never disagree.
  *
  * <ul>
- * <li>{@code income} — sum of positive line-item amounts across all {@code INBOUND} events in
- * the match set.</li>
- * <li>{@code outbound} — sum of positive line-item amounts across all {@code OUTBOUND} events in
- * the match set.</li>
- * <li>{@code transfers} — sum, across all {@code OTHER} events, of half the sum of absolute
- * line-item amounts (the amount actually moved, per the Zero-Sum Rule).</li>
- * <li>{@code totalElements} — count of events in the match set.</li>
+ * <li>{@code totals} — one {@link CurrencyTotalsDto} per currency in the match set. Amounts of
+ * different currencies are reported separately and never summed together.</li>
+ * <li>{@code totalElements} — count of events in the match set, across all currencies.</li>
  * </ul>
  */
 public record EventTotalsDto(
-		BigDecimal income,
-		BigDecimal outbound,
-		BigDecimal transfers,
+		List<CurrencyTotalsDto> totals,
 		long totalElements) {
 }

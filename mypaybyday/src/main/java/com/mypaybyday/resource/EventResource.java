@@ -42,8 +42,12 @@ public class EventResource {
 
     @GET
     @Operation(summary = "List events (paginated)", description = "Returns a paginated page of FinanceEvents with optional filtering.")
-    @APIResponse(responseCode = "200", description = "Paginated list of events",
-	content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class)))
+    @APIResponses({
+	@APIResponse(responseCode = "200", description = "Paginated list of events",
+		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = PagedResponse.class))),
+	@APIResponse(responseCode = "400", description = "Unknown currency code",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
+    })
     public RestResponse<PagedResponse<FinanceEventDto>> getAll(
 	@Parameter(description = "Zero-based page index") @QueryParam("page") @DefaultValue("0") int page,
 	@Parameter(description = "Page size") @QueryParam("size") @DefaultValue("20") int size,
@@ -58,7 +62,9 @@ public class EventResource {
 	@Parameter(description = "Filter by multiple tag IDs (OR)") @QueryParam("tagIds") List<Long> tagIds,
 	@Parameter(description = "Filter by finance node ID") @QueryParam("nodeId") Long nodeId,
 	@Parameter(description = "Filter by minimum total amount (inclusive)") @QueryParam("minAmount") BigDecimal minAmount,
-	@Parameter(description = "Filter by maximum total amount (inclusive)") @QueryParam("maxAmount") BigDecimal maxAmount) {
+	@Parameter(description = "Filter by maximum total amount (inclusive)") @QueryParam("maxAmount") BigDecimal maxAmount,
+	@Parameter(description = "Display currency (ISO 4217). A principal currency keeps every event; any other keeps only events recorded in it.") @QueryParam("currency") String currency)
+	throws BusinessException {
 
 	return RestResponse.ok(eventService.listAll(EventQuery.builder()
 		.page(page).size(size)
@@ -66,6 +72,7 @@ public class EventResource {
 		.type(type).categoryId(categoryId).tagId(tagId)
 		.categoryIds(categoryIds).tagIds(tagIds).nodeId(nodeId)
 		.minAmount(minAmount).maxAmount(maxAmount)
+		.currency(currency)
 		.build()));
     }
 
@@ -74,8 +81,12 @@ public class EventResource {
     @Operation(summary = "Get income/outbound/transfer totals for the filtered events",
 	description = "Returns aggregate totals across every FinanceEvent matching the given filters, independent of "
 		+ "pagination, so a filtered event list and its own totals never disagree.")
-    @APIResponse(responseCode = "200", description = "Aggregate totals",
-	content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = EventTotalsDto.class)))
+    @APIResponses({
+	@APIResponse(responseCode = "200", description = "Aggregate totals",
+		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = EventTotalsDto.class))),
+	@APIResponse(responseCode = "400", description = "Unknown currency code",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
+    })
     public RestResponse<EventTotalsDto> summary(
 	@Parameter(description = "Filter by text in name or description") @QueryParam("search") String search,
 	@Parameter(description = "Filter by start date (YYYY-MM-DD)") @QueryParam("startDate") String startDate,
@@ -88,13 +99,16 @@ public class EventResource {
 	@Parameter(description = "Filter by multiple tag IDs (OR)") @QueryParam("tagIds") List<Long> tagIds,
 	@Parameter(description = "Filter by finance node ID") @QueryParam("nodeId") Long nodeId,
 	@Parameter(description = "Filter by minimum total amount (inclusive)") @QueryParam("minAmount") BigDecimal minAmount,
-	@Parameter(description = "Filter by maximum total amount (inclusive)") @QueryParam("maxAmount") BigDecimal maxAmount) {
+	@Parameter(description = "Filter by maximum total amount (inclusive)") @QueryParam("maxAmount") BigDecimal maxAmount,
+	@Parameter(description = "Currency to total in (ISO 4217). A principal currency converts every event with the rate frozen on it; any other totals only events recorded in it. Omit for one total per currency.") @QueryParam("currency") String currency)
+	throws BusinessException {
 
 	return RestResponse.ok(eventService.summary(EventQuery.builder()
 		.search(search).startDate(startDate).endDate(endDate).dateField(dateField)
 		.type(type).categoryId(categoryId).tagId(tagId)
 		.categoryIds(categoryIds).tagIds(tagIds).nodeId(nodeId)
 		.minAmount(minAmount).maxAmount(maxAmount)
+		.currency(currency)
 		.build()));
     }
 

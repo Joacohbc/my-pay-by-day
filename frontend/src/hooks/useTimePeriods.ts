@@ -6,6 +6,7 @@ import type { CreateTimePeriodDto } from '@/models';
 import { timePeriodKeys } from '@/lib/queryKeys';
 import { cachePolicy } from '@/lib/cachePolicies';
 import { invalidateDomains } from '@/lib/cacheInvalidation';
+import { useDisplayCurrency } from '@/store/displayCurrencyStore';
 
 export function useTimePeriods(page = 0, size = 20) {
   return useQuery({
@@ -16,18 +17,20 @@ export function useTimePeriods(page = 0, size = 20) {
 }
 
 export function useTimePeriodBalance(id: number | null) {
+  const displayCurrency = useDisplayCurrency();
   return useQuery({
-    queryKey: timePeriodKeys.balance(id),
-    queryFn: () => timePeriodsService.getBalance(id!),
+    queryKey: timePeriodKeys.balance(id, displayCurrency),
+    queryFn: () => timePeriodsService.getBalance(id!, displayCurrency),
     enabled: id !== null,
     ...cachePolicy.derived,
   });
 }
 
 export function useDynamicTimePeriodBalance(startDate: string | null, endDate: string | null) {
+  const displayCurrency = useDisplayCurrency();
   return useQuery({
-    queryKey: timePeriodKeys.dynamicBalance(startDate, endDate),
-    queryFn: () => timePeriodsService.getDynamicBalance(startDate!, endDate!),
+    queryKey: timePeriodKeys.dynamicBalance(startDate, endDate, displayCurrency),
+    queryFn: () => timePeriodsService.getDynamicBalance(startDate!, endDate!, displayCurrency),
     enabled: startDate !== null && endDate !== null,
     ...cachePolicy.derived,
   });

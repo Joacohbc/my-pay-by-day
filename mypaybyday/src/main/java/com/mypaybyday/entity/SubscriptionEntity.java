@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -19,6 +20,8 @@ import jakarta.validation.constraints.NotNull;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.enums.RecurrenceFrequency;
 import com.mypaybyday.enums.SubscriptionStatus;
+import com.mypaybyday.validation.CurrencyValidator;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -56,6 +59,10 @@ public class SubscriptionEntity extends BaseEntity {
 	public EventType eventType;
 
 	public BigDecimal modifierValue;
+
+	/** The ISO 4217 code denominating {@link #modifierValue} when it is a fixed amount. */
+	@Column(length = CurrencyValidator.CODE_LENGTH)
+	public String currency;
 
 	@NotNull
 	@Enumerated(EnumType.STRING)

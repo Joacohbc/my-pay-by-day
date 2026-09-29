@@ -20,7 +20,9 @@ import jakarta.persistence.OneToMany;
 import com.mypaybyday.enums.PaymentPlanStatus;
 import com.mypaybyday.enums.PaymentPlanType;
 import com.mypaybyday.enums.RecurrenceFrequency;
+import com.mypaybyday.validation.CurrencyValidator;
 import com.mypaybyday.validation.RegexValidator;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -57,6 +59,10 @@ public class PaymentPlanEntity extends BaseEntity {
 
 	@Column(name = "installment_amount")
 	public BigDecimal installmentAmount;
+
+	/** The ISO 4217 code denominating {@link #totalAmount} and {@link #installmentAmount}. */
+	@Column(length = CurrencyValidator.CODE_LENGTH)
+	public String currency;
 
 	@Enumerated(EnumType.STRING)
 	public RecurrenceFrequency frequency;

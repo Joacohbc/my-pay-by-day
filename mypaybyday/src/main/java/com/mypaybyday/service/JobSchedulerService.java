@@ -2,13 +2,16 @@ package com.mypaybyday.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.transaction.Transactional;
 
+import com.mypaybyday.dto.ConversionBackfillBatchDto;
 import com.mypaybyday.entity.SystemJobEntity;
 import com.mypaybyday.enums.JobCategory;
 import com.mypaybyday.enums.JobStatus;
@@ -16,6 +19,8 @@ import com.mypaybyday.filter.CorrelationIdFilter;
 import com.mypaybyday.repository.SystemJobRepository;
 import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.service.duplicate.DuplicateDetectionService;
+import com.mypaybyday.service.event.TransactionConversionService;
+import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.scheduler.Scheduled;
 import org.jboss.logging.Logger;
 import org.jboss.logging.MDC;
@@ -27,6 +32,10 @@ public class JobSchedulerService {
 
 	private static final String JOB_SUBSCRIPTION_PROCESSOR = "subscription-processor";
 	private static final String JOB_DUPLICATE_DETECTION = "duplicate-detection";
+	private static final String JOB_CURRENCY_CONVERSION_BACKFILL = "currency-conversion-backfill";
+
+	/** The job message column is a VARCHAR(255). */
+	private static final int JOB_MESSAGE_MAX_LENGTH = 255;
 
 	/** The run reached the end of its queue; individual item failures are counted separately. */
 	private static final String JOB_STATUS_COMPLETED = "completed";
@@ -67,12 +76,14 @@ public class JobSchedulerService {
 	private final SubscriptionService subscriptionService;
 	private final PaymentPlanService paymentPlanService;
 	private final DuplicateDetectionService duplicateDetectionService;
+	private final TransactionConversionService transactionConversionService;
 
-	public JobSchedulerService(SystemJobRepository systemJobRepository, SubscriptionService subscriptionService, PaymentPlanService paymentPlanService, DuplicateDetectionService duplicateDetectionService) {
+	public JobSchedulerService(SystemJobRepository systemJobRepository, SubscriptionService subscriptionService, PaymentPlanService paymentPlanService, DuplicateDetectionService duplicateDetectionService, TransactionConversionService transactionConversionService) {
 		this.systemJobRepository = systemJobRepository;
 		this.subscriptionService = subscriptionService;
 		this.paymentPlanService = paymentPlanService;
 		this.duplicateDetectionService = duplicateDetectionService;
+		this.transactionConversionService = transactionConversionService;
 	}
 
 	@Scheduled(every = "1h", delayed = "45s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
@@ -195,6 +206,89 @@ public class JobSchedulerService {
 		}
 
 		logJobSummary(JOB_DUPLICATE_DETECTION, JOB_STATUS_COMPLETED, processedCount, failedCount, startedAtMillis);
+	}
+
+	/**
+	 * Converts past transactions into a currency that became principal. Deliberately not
+	 * {@code @Transactional}: each batch commits on its own so a long history is converted
+	 * progressively, and SQLite's single pooled connection is never held by one long transaction.
+	 */
+	@Scheduled(every = "30s", delayed = "20s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+	public void processCurrencyConversionBackfillJob() {
+		withJobCorrelation("scheduler:currency-backfill", this::runCurrencyConversionBackfillJob);
+	}
+
+	private record BackfillOutcome(int convertedCount, int skippedCount, Set<String> unquotedCurrencies) {
+	}
+
+	private void runCurrencyConversionBackfillJob() {
+		List<SystemJobEntity> pendingJobs;
+		try {
+			pendingJobs = QuarkusTransaction.requiringNew().call(() ->
+					systemJobRepository.findPendingJobsByCategory(JobCategory.CURRENCY_CONVERSION_BACKFILL));
+		} catch (RuntimeException exception) {
+			LOG.warn("Skipping currency conversion backfill due to temporary database unavailability.", exception);
+			return;
+		}
+		if (pendingJobs.isEmpty()) return;
+
+		long startedAtMillis = System.currentTimeMillis();
+		int convertedCount = 0;
+		int skippedCount = 0;
+		for (SystemJobEntity job : pendingJobs) {
+			BackfillOutcome outcome = runBackfillJob(job);
+			convertedCount += outcome.convertedCount();
+			skippedCount += outcome.skippedCount();
+		}
+		logJobSummary(JOB_CURRENCY_CONVERSION_BACKFILL, JOB_STATUS_COMPLETED, convertedCount, skippedCount, startedAtMillis);
+	}
+
+	/**
+	 * Transactions skipped for lack of a quote are not failures of the job: they stay unconverted
+	 * and are picked up again once the missing quote is recorded, which re-queues this job.
+	 */
+	private BackfillOutcome runBackfillJob(SystemJobEntity job) {
+		String currency = job.entityId;
+		try {
+			BackfillOutcome outcome = backfillCurrency(currency);
+			String message = "Converted " + outcome.convertedCount() + " transactions into " + currency
+					+ (outcome.skippedCount() > 0
+							? "; " + outcome.skippedCount() + " left without a quote for " + String.join(", ", outcome.unquotedCurrencies())
+							: "");
+			finishJob(job.id, JobStatus.COMPLETED, message);
+			LOG.infof("Currency conversion backfill into %s: converted=%d skipped=%d",
+					currency, outcome.convertedCount(), outcome.skippedCount());
+			return outcome;
+		} catch (RuntimeException exception) {
+			LOG.errorf(exception, "Currency conversion backfill into %s failed.", currency);
+			finishJob(job.id, JobStatus.FAILED, "Failed: " + exception.getMessage());
+			return new BackfillOutcome(0, 0, Set.of());
+		}
+	}
+
+	private BackfillOutcome backfillCurrency(String currency) {
+		int convertedCount = 0;
+		int skippedCount = 0;
+		Set<String> unquotedCurrencies = new LinkedHashSet<>();
+		ConversionBackfillBatchDto batch;
+		long resumeAfterId = 0;
+		do {
+			batch = transactionConversionService.backfillBatch(currency, resumeAfterId);
+			convertedCount += batch.convertedCount();
+			skippedCount += batch.skippedCount();
+			unquotedCurrencies.addAll(batch.unquotedCurrencies());
+			resumeAfterId = batch.lastTransactionId();
+		} while (batch.hasMore());
+		return new BackfillOutcome(convertedCount, skippedCount, unquotedCurrencies);
+	}
+
+	private void finishJob(Long jobId, JobStatus status, String message) {
+		QuarkusTransaction.requiringNew().run(() -> {
+			SystemJobEntity job = systemJobRepository.findById(jobId);
+			if (job == null) return;
+			job.status = status;
+			job.message = message.length() > JOB_MESSAGE_MAX_LENGTH ? message.substring(0, JOB_MESSAGE_MAX_LENGTH) : message;
+		});
 	}
 
 	@Transactional

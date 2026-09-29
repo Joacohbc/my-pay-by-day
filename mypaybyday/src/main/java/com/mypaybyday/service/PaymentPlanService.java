@@ -51,9 +51,18 @@ import com.mypaybyday.service.transfer.ImportContext;
 import com.mypaybyday.validation.PaymentPlanItemValidator;
 import com.mypaybyday.validation.PaymentPlanValidator;
 import io.quarkus.logging.Log;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import com.mypaybyday.validation.CurrencyValidator;
+import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class PaymentPlanService implements DataSectionTransfer<PaymentPlanExportDto> {
+
+	@Inject
+	CurrencyValidator currencyValidator;
+
+	@ConfigProperty(name = "mypaybyday.default-currency")
+	String defaultCurrency;
 
 	private final PaymentPlanRepository paymentPlanRepository;
 	private final PaymentPlanItemRepository paymentPlanItemRepository;
@@ -158,6 +167,7 @@ public class PaymentPlanService implements DataSectionTransfer<PaymentPlanExport
 		entity.totalInstallments = dto.totalInstallments();
 		entity.totalAmount = dto.totalAmount();
 		entity.installmentAmount = dto.installmentAmount();
+		entity.currency = planCurrency(dto);
 		entity.frequency = dto.frequency();
 		entity.startDate = dto.startDate() != null ? dto.startDate() : LocalDate.now();
 		entity.endDate = dto.endDate();
@@ -573,13 +583,25 @@ public class PaymentPlanService implements DataSectionTransfer<PaymentPlanExport
 	 * object that models "who pays whom"; the plan contributes the amount, the schedule and the
 	 * classification the user chose for it.
 	 */
+	private String planCurrency(CreatePaymentPlanDto dto) throws BusinessException {
+		String stated = currencyValidator.validateOptional(dto.currency());
+		return stated != null ? stated : defaultCurrency;
+	}
+
+	private String cycleCurrency(PaymentPlanEntity plan, TemplateEntity template) {
+		if (plan.currency != null) return plan.currency;
+		if (template.originNode != null && template.originNode.currency != null) return template.originNode.currency;
+		return defaultCurrency;
+	}
+
 	private FinanceEventDraftInputDto buildCycleDraft(PaymentPlanItemEntity item) {
 		PaymentPlanEntity plan = item.paymentPlan;
 		TemplateEntity template = plan.template;
 
+		String currency = cycleCurrency(plan, template);
 		List<FinanceLineItemDto> lineItems = List.of(
-			new FinanceLineItemDto(template.originNode.id, null, null, plan.installmentAmount.negate()),
-			new FinanceLineItemDto(template.destinationNode.id, null, null, plan.installmentAmount)
+			new FinanceLineItemDto(template.originNode.id, null, null, plan.installmentAmount.negate(), currency),
+			new FinanceLineItemDto(template.destinationNode.id, null, null, plan.installmentAmount, currency)
 		);
 
 		String totalLabel = plan.totalInstallments != null ? String.valueOf(plan.totalInstallments) : "∞";
@@ -639,6 +661,7 @@ public class PaymentPlanService implements DataSectionTransfer<PaymentPlanExport
 			plan.totalInstallments = dto.totalInstallments();
 			plan.totalAmount = dto.totalAmount();
 			plan.installmentAmount = dto.installmentAmount();
+			plan.currency = dto.currency();
 			plan.frequency = dto.frequency();
 			plan.startDate = dto.startDate();
 			plan.endDate = dto.endDate();

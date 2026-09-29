@@ -41,6 +41,9 @@ import com.mypaybyday.validation.DateValidator;
 import com.mypaybyday.validation.TimePeriodValidator;
 import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
+import com.mypaybyday.validation.CurrencyValidator;
+import com.mypaybyday.service.currency.DisplayCurrencyService;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
@@ -52,6 +55,12 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 	private final TimePeriodValidator timePeriodValidator;
 	private final DateValidator dateValidator;
 	private final ArchivedItemImporter archivedItemImporter;
+	private final CurrencyBalanceAggregator currencyBalanceAggregator;
+	private final CurrencyValidator currencyValidator;
+	private final DisplayCurrencyService displayCurrencyService;
+
+	@ConfigProperty(name = "mypaybyday.default-currency")
+	String defaultCurrency;
 
 	public TimePeriodService(
 			TimePeriodRepository timePeriodRepository,
@@ -60,7 +69,10 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 			Messages messages,
 			TimePeriodValidator timePeriodValidator,
 			DateValidator dateValidator,
-			ArchivedItemImporter archivedItemImporter) {
+			ArchivedItemImporter archivedItemImporter,
+			CurrencyBalanceAggregator currencyBalanceAggregator,
+			CurrencyValidator currencyValidator,
+			DisplayCurrencyService displayCurrencyService) {
 		this.timePeriodRepository = timePeriodRepository;
 		this.eventService = eventService;
 		this.categoryService = categoryService;
@@ -68,6 +80,21 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 		this.timePeriodValidator = timePeriodValidator;
 		this.dateValidator = dateValidator;
 		this.archivedItemImporter = archivedItemImporter;
+		this.currencyBalanceAggregator = currencyBalanceAggregator;
+		this.currencyValidator = currencyValidator;
+		this.displayCurrencyService = displayCurrencyService;
+	}
+
+	/**
+	 * The currency a category budget is denominated in: its own when the client states one,
+	 * otherwise the period's, and only then the configured default. Each step is a narrower
+	 * statement of intent than the next, so the first one present wins.
+	 */
+	private String budgetCurrency(TimePeriodBudgetDto budgetDto, TimePeriodEntity timePeriod) throws BusinessException {
+		String stated = currencyValidator.validateOptional(budgetDto.currency());
+		if (stated != null) return stated;
+		if (timePeriod.currency != null) return timePeriod.currency;
+		return defaultCurrency;
 	}
 
 	// -------------------------------------------------------------------------
@@ -102,9 +129,11 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 	*
 	* <p>This method must run inside a transaction so that lazy-loaded line items remain
 	* accessible throughout the calculation.
+	*
+	* @param displayCurrency the currency to report in, or {@code null} for one balance per currency
 	*/
 	@Transactional
-	public TimePeriodBalanceDto getBalance(Long id) throws BusinessException {
+	public TimePeriodBalanceDto getBalance(Long id, String displayCurrency) throws BusinessException {
 		TimePeriodEntity timePeriod = findTimePeriodEntity(id);
 
 		LocalDateTime from = timePeriod.startDate;
@@ -112,65 +141,15 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 
 		List<FinanceEventDto> events = eventService.findByDateRange(from, to);
 
-		BigDecimal income   = BigDecimal.ZERO;
-		BigDecimal outbound = BigDecimal.ZERO;
-
-		for (FinanceEventDto event : events) {
-			if (event.transactionId() == null || event.lineItems() == null) {
-				continue;
-			}
-
-			// The "amount" of an event = sum of its positive line items.
-			// By the Zero-Sum Rule, this equals the sum of its absolute negative line items.
-			BigDecimal eventAmount = event.lineItems().stream()
-					.map(li -> li.amount())
-					.filter(a -> a.compareTo(BigDecimal.ZERO) > 0)
-					.reduce(BigDecimal.ZERO, BigDecimal::add);
-
-			if (event.type() == EventType.INBOUND) {
-				income = income.add(eventAmount);
-			} else if (event.type() == EventType.OUTBOUND) {
-				outbound = outbound.add(eventAmount);
-			}
-		}
-
-		List<CategoryBudgetSummaryDto> categoryBudgets = calculateCategoryBudgets(timePeriod.budgets, events);
-
-		return new TimePeriodBalanceDto(timePeriod, income, outbound, categoryBudgets, events);
-	}
-
-	private List<CategoryBudgetSummaryDto> calculateCategoryBudgets(Set<TimePeriodBudgetEntity> budgets, List<FinanceEventDto> events) {
-		if (budgets == null || budgets.isEmpty()) {
-			return List.of();
-		}
-
-		Map<Long, BigDecimal> spentPerCategory = new HashMap<>();
-
-		for (FinanceEventDto event : events) {
-			if (event.type() == EventType.OUTBOUND && event.category() != null) {
-				BigDecimal eventAmount = BigDecimal.ZERO;
-				if (event.lineItems() != null) {
-					eventAmount = event.lineItems().stream()
-							.map(li -> li.amount())
-							.filter(a -> a.compareTo(BigDecimal.ZERO) > 0)
-							.reduce(BigDecimal.ZERO, BigDecimal::add);
-				}
-				spentPerCategory.merge(event.category().id(), eventAmount, BigDecimal::add);
-			}
-		}
-
-		return budgets.stream().map(budget -> {
-			BigDecimal spent = spentPerCategory.getOrDefault(budget.category.id, BigDecimal.ZERO);
-			return new CategoryBudgetSummaryDto(
-					CategoryDto.from(budget.category),
-					budget.budgetedAmount,
-					spent
-			);
-		}).collect(Collectors.toList());
+		return new TimePeriodBalanceDto(
+				timePeriod,
+				currencyBalanceAggregator.balances(events, timePeriod.budgets, displayCurrencyService.resolve(displayCurrency)),
+				events);
 	}
 
 	@Transactional
-	public DynamicTimePeriodBalanceDto getDynamicBalance(LocalDateTime startDate, LocalDateTime endDate) throws BusinessException {
+	public DynamicTimePeriodBalanceDto getDynamicBalance(LocalDateTime startDate, LocalDateTime endDate,
+			String displayCurrency) throws BusinessException {
 		if (startDate == null || endDate == null) {
 			throw messages.reject(MsgKey.TIME_PERIOD_START_DATE_REQUIRED); // or appropriate generic date message
 		}
@@ -181,27 +160,11 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 
 		List<FinanceEventDto> events = eventService.findByDateRange(from, to);
 
-		BigDecimal income = BigDecimal.ZERO;
-		BigDecimal outbound = BigDecimal.ZERO;
-
-		for (FinanceEventDto event : events) {
-			if (event.transactionId() == null || event.lineItems() == null) {
-				continue;
-			}
-
-			BigDecimal eventAmount = event.lineItems().stream()
-					.map(li -> li.amount())
-					.filter(a -> a.compareTo(BigDecimal.ZERO) > 0)
-					.reduce(BigDecimal.ZERO, BigDecimal::add);
-
-			if (event.type() == EventType.INBOUND) {
-				income = income.add(eventAmount);
-			} else if (event.type() == EventType.OUTBOUND) {
-				outbound = outbound.add(eventAmount);
-			}
-		}
-
-		return new DynamicTimePeriodBalanceDto(startDate, endDate, income, outbound, events);
+		return new DynamicTimePeriodBalanceDto(
+				startDate,
+				endDate,
+				currencyBalanceAggregator.balances(events, Set.of(), displayCurrencyService.resolve(displayCurrency)),
+				events);
 	}
 
 	// -------------------------------------------------------------------------
@@ -219,6 +182,7 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 					budget.timePeriod = timePeriod;
 					budget.category = category;
 					budget.budgetedAmount = budgetDto.budgetedAmount() != null ? budgetDto.budgetedAmount() : BigDecimal.ZERO;
+					budget.currency = budgetCurrency(budgetDto, timePeriod);
 					timePeriod.budgets.add(budget);
 				}
 			}
@@ -257,6 +221,7 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 						budget.timePeriod = timePeriod;
 						budget.category = category;
 						budget.budgetedAmount = budgetDto.budgetedAmount() != null ? budgetDto.budgetedAmount() : BigDecimal.ZERO;
+						budget.currency = budgetCurrency(budgetDto, timePeriod);
 						timePeriod.budgets.add(budget);
 					}
 				}
@@ -267,6 +232,9 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 		}
 		if (dto.getBudgetLimit().isPresent()) {
 			timePeriod.budgetLimit = dto.getBudgetLimit().get();
+		}
+		if (dto.getCurrency().isPresent()) {
+			timePeriod.currency = currencyValidator.validateOptional(dto.getCurrency().get());
 		}
 
 		validatePeriod(timePeriod);
@@ -350,6 +318,7 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 			entity.endDate = dto.endDate();
 			entity.savingsPercentageGoal = dto.savingsPercentageGoal();
 			entity.budgetLimit = dto.budgetLimit();
+			entity.currency = dto.currency();
 
 			if (dto.budgets() != null) {
 				for (TimePeriodBudgetDto budgetDto : dto.budgets()) {
@@ -363,6 +332,7 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 							budget.timePeriod = entity;
 							budget.category = cat;
 							budget.budgetedAmount = budgetDto.budgetedAmount();
+							budget.currency = budgetCurrency(budgetDto, entity);
 							entity.budgets.add(budget);
 						}
 					}

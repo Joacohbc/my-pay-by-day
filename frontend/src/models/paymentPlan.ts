@@ -39,6 +39,8 @@ export interface PaymentPlan {
   completedInstallments: number;
   paidAmount: number;
   remainingAmount: number;
+  /** ISO 4217 code denominating every amount on this plan. */
+  currency?: string;
 }
 
 export interface CreatePaymentPlanDto {

@@ -17,4 +17,5 @@ public class PatchTimePeriodDto {
     private JsonNullable<List<TimePeriodBudgetDto>> budgets = JsonNullable.undefined();
     private JsonNullable<BigDecimal> savingsPercentageGoal = JsonNullable.undefined();
     private JsonNullable<BigDecimal> budgetLimit = JsonNullable.undefined();
+    private JsonNullable<String> currency = JsonNullable.undefined();
 }

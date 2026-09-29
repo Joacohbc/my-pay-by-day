@@ -7,6 +7,8 @@ import { NewEventFab } from '@/components/time-periods/NewEventFab';
 import { PeriodBalanceSummary } from '@/components/time-periods/PeriodBalanceSummary';
 import { PeriodRecentActivity } from '@/components/time-periods/PeriodRecentActivity';
 import type { FinanceEvent } from '@/models';
+import { DisplayCurrencyPicker } from '@/components/currency/DisplayCurrencyPicker';
+import { UnconvertedEventsNotice } from '@/components/currency/UnconvertedEventsNotice';
 
 interface DynamicTimePeriodDashboardProps {
   startDate: string;
@@ -25,8 +27,8 @@ export function DynamicTimePeriodDashboard({
   if (isLoading) return <FullPageSpinner />;
   if (error || !balance) return <ErrorState message={error ? String(error) : t('errors.couldNotLoadPeriod')} />;
 
-  const { income, outbound, events } = balance;
-  const netBalance = (income ?? 0) - (outbound ?? 0);
+  const { events } = balance;
+  const currencyBalances = balance.balances ?? [];
 
   const recentEvents: FinanceEvent[] = [...(events ?? [])]
     .sort((a, b) => (b.transactionDate ?? '').localeCompare(a.transactionDate ?? ''))
@@ -41,15 +43,24 @@ export function DynamicTimePeriodDashboard({
         <div className="flex items-start justify-between gap-2">
           <h1 className="text-2xl font-semibold text-dn-text-main tracking-tight">{t('periods.dynamic.title')}</h1>
         </div>
-        <p className="text-xs text-dn-text-muted mt-0.5">{dateLabel}</p>
+        <div className="flex items-center justify-between gap-2 mt-0.5">
+          <p className="text-xs text-dn-text-muted">{dateLabel}</p>
+          <DisplayCurrencyPicker />
+        </div>
       </div>
 
-      <PeriodBalanceSummary
-        netBalance={netBalance}
-        income={income ?? 0}
-        outbound={outbound ?? 0}
-        eventCount={events.length}
-      />
+      {currencyBalances.map(({ currency, income, outbound, unconvertedEvents }) => (
+        <div key={currency} className="space-y-3">
+          <UnconvertedEventsNotice count={unconvertedEvents} currency={currency} />
+          <PeriodBalanceSummary
+            netBalance={income - outbound}
+            income={income}
+            outbound={outbound}
+            currency={currency}
+            eventCount={events.length}
+          />
+        </div>
+      ))}
 
       <PeriodRecentActivity
         recentEvents={recentEvents}

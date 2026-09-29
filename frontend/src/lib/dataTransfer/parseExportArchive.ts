@@ -3,6 +3,8 @@ import type { DataSection, DataExportSummaryDto, SectionCountDto } from '@/model
 
 const ALL_SECTIONS: DataSection[] = [
   'DUPLICATE_DETECTION_SETTINGS',
+  'CURRENCIES',
+  'EXCHANGE_RATES',
   'TAGS',
   'CATEGORIES',
   'FINANCE_NODES',
@@ -28,6 +30,8 @@ export async function parseExportArchive(file: File | Blob): Promise<DataExportS
 
   const sectionCounts: Record<DataSection, number> = {
     DUPLICATE_DETECTION_SETTINGS: json.duplicateDetectionSettings ? 1 : 0,
+    CURRENCIES: Array.isArray(json.currencies) ? json.currencies.length : 0,
+    EXCHANGE_RATES: Array.isArray(json.exchangeRates) ? json.exchangeRates.length : 0,
     TAGS: Array.isArray(json.tags) ? json.tags.length : 0,
     CATEGORIES: Array.isArray(json.categories) ? json.categories.length : 0,
     FINANCE_NODES: Array.isArray(json.financeNodes) ? json.financeNodes.length : 0,

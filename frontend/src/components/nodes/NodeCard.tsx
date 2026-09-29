@@ -1,13 +1,14 @@
 import { useTranslation } from 'react-i18next';
-import type { FinanceNode } from '@/models';
-import { formatCurrency, formatCompactCurrency } from '@/lib/format';
+import type { FinanceNode, Money } from '@/models';
+import { MoneyBalances } from '@/components/ui/MoneyBalances';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
 import { NodeIcon } from '@/components/ui/NodeIcon';
 
 interface NodeCardProps {
   node: FinanceNode;
-  balance?: number;
+  /** One entry per currency the node holds; amounts are never combined across currencies. */
+  balance?: Money[];
   onClick?: () => void;
   actions?: React.ReactNode;
   hideTypeBadge?: boolean;
@@ -62,10 +63,7 @@ export function NodeCard({ node, balance, onClick, actions, hideTypeBadge }: Nod
             </div>
           </div>
           {balance !== undefined && (
-            <p className={`text-sm mt-0.5 font-mono ${balance >= 0 ? 'text-dn-success' : 'text-dn-error'}`}>
-              <span className="inline sm:hidden">{formatCompactCurrency(balance)}</span>
-              <span className="hidden sm:inline">{balance >= 0 ? '+' : ''}{formatCurrency(balance)}</span>
-            </p>
+            <MoneyBalances balances={balance} responsive showSign className="text-sm mt-0.5" />
           )}
         </div>
 

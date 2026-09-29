@@ -13,7 +13,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { Icon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
-import { formatCurrency, formatCurrencyShort } from '@/lib/format';
+import { formatMoney, formatMoneyShort, getCurrency, sumByCurrency } from '@/lib/format';
 import { isUserComposedPlan, planTypeIcons } from '@/components/paymentPlans/planPresentation';
 import { useBanner, BANNER_IDS } from '@/store/dismissedBannersStore';
 
@@ -47,9 +47,11 @@ export function PaymentPlansPage() {
     .filter((plan) => filter === 'ALL' || plan.planType === filter)
     .filter((plan) => statusFilter === 'ALL' || plan.status === statusFilter);
 
-  const remainingInstallmentDebt = plans
-    .filter((plan) => plan.status === 'ACTIVE' && plan.planType === 'INSTALLMENT')
-    .reduce((total, plan) => total + (plan.remainingAmount || 0), 0);
+  const remainingInstallmentDebt = sumByCurrency(
+    plans
+      .filter((plan) => plan.status === 'ACTIVE' && plan.planType === 'INSTALLMENT')
+      .map((plan) => ({ amount: plan.remainingAmount || 0, currency: plan.currency ?? getCurrency() }))
+  );
 
   const filterTabs: { key: PlanFilter; label: string }[] = [
     { key: 'ALL', label: t('paymentPlans.filterAll') },
@@ -106,9 +108,11 @@ export function PaymentPlansPage() {
       <div className="px-5 space-y-3">
         <Card>
           <p className="text-xs text-dn-text-muted uppercase tracking-wider">{t('paymentPlans.remainingCuotasDebt')}</p>
-          <p className="text-4xl font-mono font-bold tracking-tight text-dn-primary break-all mt-1">
-            {formatCurrencyShort(remainingInstallmentDebt)}
-          </p>
+          {remainingInstallmentDebt.map(({ amount, currency }) => (
+            <p key={currency} className="text-4xl font-mono font-bold tracking-tight text-dn-primary break-all mt-1">
+              {formatMoneyShort(amount, currency)}
+            </p>
+          ))}
         </Card>
       </div>
 
@@ -213,9 +217,9 @@ function PaymentPlanCard({ plan }: { readonly plan: PaymentPlan }) {
         <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/5">
           <span className="text-sm font-mono text-dn-primary whitespace-nowrap">
             {totalsFromLinkedEvents
-              ? formatCurrency(plan.paidAmount)
+              ? formatMoney(plan.paidAmount, plan.currency ?? getCurrency())
               : plan.installmentAmount
-                ? formatCurrency(plan.installmentAmount)
+                ? formatMoney(plan.installmentAmount, plan.currency ?? getCurrency())
                 : '—'}
           </span>
 

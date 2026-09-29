@@ -2,12 +2,14 @@ import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
-import { formatCurrency, formatCurrencyShort } from '@/lib/format';
+import { formatMoney, formatMoneyShort } from '@/lib/format';
 
 interface PeriodBalanceSummaryProps {
   netBalance: number;
   income: number;
   outbound: number;
+  /** ISO 4217 code denominating all three figures; they come from one currency's bucket. */
+  currency: string;
   eventCount: number;
 }
 
@@ -15,13 +17,14 @@ export function PeriodBalanceSummary({
   netBalance,
   income,
   outbound,
+  currency,
   eventCount,
 }: PeriodBalanceSummaryProps) {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const displayCurrency = (amount: number) => 
-    isExpanded ? formatCurrency(amount) : formatCurrencyShort(amount);
+  const displayCurrency = (amount: number) =>
+    isExpanded ? formatMoney(amount, currency) : formatMoneyShort(amount, currency);
 
   return (
     <>

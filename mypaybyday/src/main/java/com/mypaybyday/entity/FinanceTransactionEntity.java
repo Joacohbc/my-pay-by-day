@@ -10,6 +10,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.NotNull;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -65,5 +67,17 @@ public class FinanceTransactionEntity extends BaseEntity {
 	@OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	@Builder.Default
 	public Set<FinanceLineItemEntity> lineItems = new LinkedHashSet<>();
+
+	/**
+	* The exchange rates frozen on this transaction, one per principal currency other than its own.
+	*
+	* <p>
+	* Managed exclusively by the backend when the transaction is recorded or backfilled; never
+	* accepted from a request body, which is why it is hidden from JSON deserialisation.
+	*/
+	@JsonIgnore
+	@OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	@Builder.Default
+	public Set<TransactionConversionEntity> conversions = new LinkedHashSet<>();
 
 }

@@ -59,21 +59,46 @@ const botLineItemsField = z
       'split three ways or a multi-party settlement can have 3 or more.',
   );
 
+/**
+ * The currency an event is recorded in, as one field for the whole event rather than one per line.
+ *
+ * The backend stores no exchange rates, so the amounts inside a single transaction must all be
+ * denominated the same way for them to sum to zero. Asking the model for one code per event both
+ * matches that rule and matches how a person describes a purchase.
+ */
+const botCurrencyField = z
+  .string()
+  .length(3)
+  .describe(
+    'ISO 4217 code for every amount in this event, e.g. "USD" or "UYU". All line items share it; ' +
+      'amounts in different currencies cannot be mixed in one event. Prefer the currency of the ' +
+      "account the money moves through; ask the user when it is genuinely unclear rather than guessing.",
+  );
+
 /** Flat, LLM-friendly finance-event fields shared by real events and drafts. */
 export interface BotEventCore {
   name: string;
   description?: string;
   type: BotEventType;
   lineItems: BotLineItem[];
+  currency?: string;
   categoryId?: number;
   tagIds: number[];
   /** Wall-clock transaction date in the user's timezone. */
   date?: string;
 }
 
+/** The event's value in another currency, computed with the rate frozen on it when it was recorded. */
+export interface BotConversion {
+  currency: string;
+  amount: number;
+  rate: number;
+}
+
 /** A persisted finance event (always has a real id). */
 export interface BotEvent extends BotEventCore {
   id: number;
+  conversions?: BotConversion[];
 }
 
 /** A pending draft. `originalEventId` is set when the draft edits an existing event. */
@@ -88,6 +113,7 @@ export interface BotEventInput {
   description?: string;
   type: BotEventType;
   lineItems: BotLineItem[];
+  currency?: string;
   categoryId?: number;
   tagIds?: number[];
   date?: string;
@@ -99,6 +125,7 @@ export const botEventInputSchema = z.object({
   description: z.string().nullish(),
   type: z.enum(EVENT_TYPES).default('OUTBOUND'),
   lineItems: botLineItemsField,
+  currency: botCurrencyField.nullish(),
   categoryId: NumericId.nullish(),
   tagIds: NumericIdArray.nullish(),
   date: z.string().nullish().describe('YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss in the user timezone.'),
@@ -115,6 +142,7 @@ export const botEventPatchSchema = z.object({
   description: z.string().nullish(),
   type: z.enum(EVENT_TYPES).nullish(),
   lineItems: botLineItemsField.nullish(),
+  currency: botCurrencyField.nullish(),
   categoryId: NumericId.nullish(),
   tagIds: NumericIdArray.nullish(),
   date: z.string().nullish(),
@@ -129,6 +157,7 @@ export const botDraftPatchSchema = z.object({
   description: z.string().nullish(),
   type: z.enum(EVENT_TYPES).nullish(),
   lineItems: botLineItemsField.nullish(),
+  currency: botCurrencyField.nullish(),
   categoryId: NumericId.nullish(),
   tagIds: NumericIdArray.nullish(),
   date: z.string().nullish(),

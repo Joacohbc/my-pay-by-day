@@ -67,12 +67,22 @@ public enum MsgKey {
 	TIME_PERIOD_END_DATE_REQUIRED("error.time_period.end_date_required"),
 	TIME_PERIOD_BUDGET_LIMIT_MINIMUM("error.time_period.budget_limit_minimum"),
 
+	// ── Currency ──────────────────────────────────────────
+	CURRENCY_REQUIRED("error.currency.required"),
+	CURRENCY_INVALID("error.currency.invalid"),
+	CURRENCY_NODE_MISMATCH("error.currency.node_mismatch"),
+	EXCHANGE_RATE_MISSING("error.exchange_rate.missing"),
+	EXCHANGE_RATE_INVALID("error.exchange_rate.invalid"),
+	EXCHANGE_RATE_BASE_NOT_QUOTABLE("error.exchange_rate.base_not_quotable"),
+	EXCHANGE_RATE_PROVIDER_NOT_CONFIGURED("error.exchange_rate.provider_not_configured"),
+
 	// ── Transaction ───────────────────────────────────────
 	TRANSACTION_NOT_FOUND("error.transaction.not_found"),
 	TRANSACTION_NO_LINE_ITEMS("error.transaction.no_line_items"),
 	TRANSACTION_LINE_ITEM_AMOUNT_NULL("error.transaction.line_item_amount_null"),
 	TRANSACTION_ZERO_SUM_VIOLATED("error.transaction.zero_sum_violated"),
 	TRANSACTION_LINE_ITEM_NODES_NOT_FOUND("error.transaction.line_item_nodes_not_found"),
+	TRANSACTION_MIXED_CURRENCIES("error.transaction.mixed_currencies"),
 
 	// ── SubscriptionEntity ─────────────────────────────────────
 	SUBSCRIPTION_NOT_FOUND("error.subscription.not_found"),
@@ -190,7 +200,7 @@ public enum MsgKey {
 		if (name.contains("IN_USE")) {
 			return ErrorKind.CONFLICT;
 		}
-		if (name.contains("ZERO_SUM") || name.contains("HAS_TRANSACTIONS")) {
+		if (name.contains("ZERO_SUM") || name.contains("MIXED_CURRENCIES") || name.contains("HAS_TRANSACTIONS")) {
 			return ErrorKind.INTEGRITY;
 		}
 		if (name.contains("EXCEEDED") || name.contains("SIZE")) {

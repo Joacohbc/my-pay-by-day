@@ -321,7 +321,7 @@ export interface paths {
         };
         /**
          * Get server configuration
-         * @description Returns server-side configuration the frontend needs to align date/time handling, such as the server timezone
+         * @description Returns server-side configuration the frontend needs to align date/time handling and money entry, such as the server timezone and the default currency
          */
         get: {
             parameters: {
@@ -344,6 +344,100 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/currencies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List currencies
+         * @description Every configured currency plus the base currency, with its current quote and whether past entries are still being converted into it.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Currencies ordered by code */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CurrencyDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/currencies/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Create or update a currency
+         * @description Sets whether the currency is principal. Making it principal requires a quote and queues the conversion of every past entry into it, at the current rate, in the background.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ISO 4217 code */
+                    code: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateCurrencyDto"];
+                };
+            };
+            responses: {
+                /** @description Currency saved */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CurrencyDto"];
+                    };
+                };
+                /** @description Unknown code, or made principal without a quote */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -1043,6 +1137,8 @@ export interface paths {
                     categoryId?: number;
                     /** @description Filter by multiple category IDs (OR) */
                     categoryIds?: number[];
+                    /** @description Display currency (ISO 4217). A principal currency keeps every event; any other keeps only events recorded in it. */
+                    currency?: string;
                     /** @description Date field to filter on: TRANSACTION, CREATED, UPDATED */
                     dateField?: components["schemas"]["DateField"] & unknown;
                     /** @description Filter by end date (YYYY-MM-DD) */
@@ -1081,6 +1177,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["PagedResponse"];
+                    };
+                };
+                /** @description Unknown currency code */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -1219,6 +1324,8 @@ export interface paths {
                     categoryId?: number;
                     /** @description Filter by multiple category IDs (OR) */
                     categoryIds?: number[];
+                    /** @description Currency to total in (ISO 4217). A principal currency converts every event with the rate frozen on it; any other totals only events recorded in it. Omit for one total per currency. */
+                    currency?: string;
                     /** @description Date field to filter on: TRANSACTION, CREATED, UPDATED */
                     dateField?: components["schemas"]["DateField"] & unknown;
                     /** @description Filter by end date (YYYY-MM-DD) */
@@ -1253,6 +1360,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["EventTotalsDto"];
+                    };
+                };
+                /** @description Unknown currency code */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -1557,6 +1673,141 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/exchange-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List recorded quotes
+         * @description The history of quotes, newest first.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Only quotes of this ISO 4217 currency */
+                    currency?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Quotes, newest first */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExchangeRateDto"][];
+                    };
+                };
+                /** @description Unknown currency code */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Record a quote manually
+         * @description Appends a quote that becomes the currency's current rate. Entries already recorded keep the rate frozen on them.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RecordExchangeRateDto"];
+                };
+            };
+            responses: {
+                /** @description Quote recorded */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExchangeRateDto"];
+                    };
+                };
+                /** @description Unknown code, the base currency, or a rate that is not positive */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/exchange-rates/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fetch quotes from the configured provider
+         * @description Asks the external quote source for every configured currency and records what it returns. Never runs on its own.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Quotes recorded */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExchangeRateDto"][];
+                    };
+                };
+                /** @description No provider is configured, or it failed */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2304,11 +2555,14 @@ export interface paths {
         };
         /**
          * Calculate current balance of a node
-         * @description Sums all LineItem amounts associated with this node. Positive values represent inflows, negative values outflows.
+         * @description Sums all LineItem amounts associated with this node. Positive values represent inflows, negative values outflows. Without a currency: one total per currency the node has held. With a principal currency: every movement converted with the rate frozen on it, first entry; movements not yet converted follow in their own currency. With any other currency: only the movements recorded in it.
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description ISO 4217 code to report in; omit for one total per currency */
+                    currency?: string;
+                };
                 header?: never;
                 path: {
                     /** @description ID of the finance node */
@@ -2318,13 +2572,22 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Calculated balance */
+                /** @description Calculated balance, one entry per currency */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": number;
+                        "application/json": components["schemas"]["MoneyDto"][];
+                    };
+                };
+                /** @description Unknown currency code */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Node not found */
@@ -4250,6 +4513,8 @@ export interface paths {
         get: {
             parameters: {
                 query: {
+                    /** @description ISO 4217 code to report in. A principal currency converts every event with the rate frozen on it; any other shows only events recorded in it. Omit for one balance per currency. */
+                    currency?: string;
                     /** @description End date (YYYY-MM-DDTHH:mm:ss) */
                     endDate: components["schemas"]["LocalDateTime"];
                     /** @description Start date (YYYY-MM-DDTHH:mm:ss) */
@@ -4428,7 +4693,10 @@ export interface paths {
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description ISO 4217 code to report in. A principal currency converts every event with the rate frozen on it; any other shows only events recorded in it. Omit for one balance per currency. */
+                    currency?: string;
+                };
                 header?: never;
                 path: {
                     /** @description ID of the time period */
@@ -4445,6 +4713,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["TimePeriodBalanceDto"];
+                    };
+                };
+                /** @description Unknown currency code */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Time period not found */
@@ -4613,6 +4890,7 @@ export interface components {
         };
         ConfigDto: {
             timezone?: string;
+            defaultCurrency?: string;
         };
         ConfirmDraftsRequestDto: {
             draftIds: number[];
@@ -4622,6 +4900,8 @@ export interface components {
             confirmedEvents: components["schemas"]["FinanceEventDto"][];
             failedDraftIds: number[];
         };
+        /** @enum {string} */
+        ConversionOrigin: "AT_ENTRY" | "RETROACTIVE";
         /** @description DTO for creating or updating a Payment Plan */
         CreatePaymentPlanDto: {
             name: string;
@@ -4659,6 +4939,8 @@ export interface components {
             eventIds?: number[];
             /** @description GROUP plans only: existing drafts to link as pending members of the group. */
             draftIds?: number[];
+            /** @description ISO 4217 code denominating totalAmount and installmentAmount. Defaults to the template's origin account currency, then the server default. */
+            currency?: string;
         };
         /** @description DTO for creating or updating an individual payment plan item / cuota */
         CreatePaymentPlanItemDto: {
@@ -4676,6 +4958,29 @@ export interface components {
             /** Format: int64 */
             draftId?: number;
         };
+        CurrencyBalanceDto: {
+            currency?: string;
+            income?: number;
+            outbound?: number;
+            categoryBudgets?: components["schemas"]["CategoryBudgetSummaryDto"][];
+            /** Format: int32 */
+            unconvertedEvents?: number;
+        };
+        CurrencyDto: {
+            code?: string;
+            principal?: boolean;
+            base?: boolean;
+            currentRate?: components["schemas"]["ExchangeRateDto"] | null;
+            conversionPending?: boolean;
+        };
+        CurrencyTotalsDto: {
+            currency?: string;
+            income?: number;
+            outbound?: number;
+            transfers?: number;
+            /** Format: int32 */
+            unconvertedEvents?: number;
+        };
         /** @description What an export would contain, without serialising any of it */
         DataExportSummaryDto: {
             version: string;
@@ -4688,7 +4993,7 @@ export interface components {
             binaryFileCount: number;
         };
         /** @enum {string} */
-        DataSection: "DUPLICATE_DETECTION_SETTINGS" | "TAGS" | "CATEGORIES" | "FINANCE_NODES" | "FILES" | "TAG_GROUPS" | "SUBSCRIPTIONS" | "TEMPLATES" | "TIME_PERIODS" | "EVENTS" | "DRAFTS" | "PAYMENT_PLANS";
+        DataSection: "DUPLICATE_DETECTION_SETTINGS" | "CURRENCIES" | "EXCHANGE_RATES" | "TAGS" | "CATEGORIES" | "FINANCE_NODES" | "FILES" | "TAG_GROUPS" | "SUBSCRIPTIONS" | "TEMPLATES" | "TIME_PERIODS" | "EVENTS" | "DRAFTS" | "PAYMENT_PLANS";
         /** @description Per-section outcome of an import run */
         DataTransferResult: {
             sections: components["schemas"]["SectionImportResult"][];
@@ -4765,8 +5070,7 @@ export interface components {
         DynamicTimePeriodBalanceDto: {
             startDate?: components["schemas"]["LocalDateTime"];
             endDate?: components["schemas"]["LocalDateTime"];
-            income?: number;
-            outbound?: number;
+            balances?: components["schemas"]["CurrencyBalanceDto"][];
             events?: components["schemas"]["FinanceEventDto"][];
         };
         /** @description Email stored as a file: the JSON document that makes up the file's content */
@@ -4806,14 +5110,23 @@ export interface components {
             error?: string;
         };
         EventTotalsDto: {
-            income?: number;
-            outbound?: number;
-            transfers?: number;
+            totals?: components["schemas"]["CurrencyTotalsDto"][];
             /** Format: int64 */
             totalElements?: number;
         };
         /** @enum {string} */
         EventType: "INBOUND" | "OUTBOUND" | "OTHER";
+        ExchangeRateDto: {
+            /** Format: int64 */
+            id?: number;
+            currency?: string;
+            baseCurrency?: string;
+            unitsPerBase?: number;
+            source?: components["schemas"]["ExchangeRateSource"];
+            recordedAt?: components["schemas"]["Instant"];
+        };
+        /** @enum {string} */
+        ExchangeRateSource: "MANUAL" | "API";
         FileDto: {
             /** Format: int64 */
             id?: number;
@@ -4858,6 +5171,7 @@ export interface components {
             description?: string;
             type?: components["schemas"]["EventType"];
             amount?: number;
+            currency?: string;
             /** Format: int64 */
             transactionId?: number;
             transactionDate?: components["schemas"]["LocalDateTime"];
@@ -4872,6 +5186,7 @@ export interface components {
             files?: components["schemas"]["FileDto"][];
             /** Format: int64 */
             paymentPlanId?: number;
+            conversions?: components["schemas"]["TransactionConversionDto"][];
         };
         FinanceEventEntity: {
             /** Format: int64 */
@@ -4895,6 +5210,8 @@ export interface components {
             financeNodeName?: string | null;
             financeNodeIcon?: string | null;
             amount?: number;
+            /** @description ISO 4217 code denominating amount. Every line item of one event shares it. */
+            currency?: string;
         };
         FinanceLineItemEntity: {
             /** Format: int64 */
@@ -4903,6 +5220,7 @@ export interface components {
             updatedAt?: components["schemas"]["Instant"];
             financeNode: components["schemas"]["FinanceNodeEntity"];
             amount: number;
+            currency: string;
         };
         FinanceNodeDto: {
             /** Format: int64 */
@@ -4913,6 +5231,8 @@ export interface components {
             icon?: string;
             color?: string;
             archived?: boolean;
+            /** @description ISO 4217 code this node is denominated in; null when it holds no particular currency */
+            currency?: string | null;
         };
         FinanceNodeEntity: {
             /** Format: int64 */
@@ -4925,6 +5245,7 @@ export interface components {
             icon?: string;
             color?: string;
             archived?: boolean;
+            currency?: string;
         };
         FinanceNodeRef: {
             /** Format: int64 */
@@ -5001,6 +5322,7 @@ export interface components {
         LineItemDto: {
             financeNode?: components["schemas"]["FinanceNodeRef"];
             amount?: number;
+            currency?: string;
         };
         /**
          * Format: date
@@ -5023,6 +5345,10 @@ export interface components {
         };
         /** @enum {string} */
         ModifierType: "FIXED" | "PERCENTAGE";
+        MoneyDto: {
+            amount?: number;
+            currency?: string;
+        };
         PagedResponse: {
             content?: unknown[];
             /** Format: int32 */
@@ -5050,6 +5376,7 @@ export interface components {
             budgets?: components["schemas"]["JsonNullableListTimePeriodBudgetDto"];
             savingsPercentageGoal?: components["schemas"]["JsonNullableBigDecimal"];
             budgetLimit?: components["schemas"]["JsonNullableBigDecimal"];
+            currency?: components["schemas"]["JsonNullableString"];
         };
         PatchTransactionDto: {
             transactionDate?: components["schemas"]["LocalDateTime"];
@@ -5084,6 +5411,8 @@ export interface components {
             completedInstallments?: number;
             paidAmount?: number;
             remainingAmount?: number;
+            /** @description ISO 4217 code denominating every amount on this plan. */
+            currency?: string;
         };
         /** @description Archive shape of a payment plan, with references as remappable ids */
         PaymentPlanExportDto: {
@@ -5109,6 +5438,7 @@ export interface components {
             categoryId?: number;
             tagIds?: number[];
             items?: components["schemas"]["PaymentPlanItemExportDto"][];
+            currency?: string;
         };
         /** @description Data transfer object for a individual payment plan item / cuota */
         PaymentPlanItemDto: {
@@ -5144,6 +5474,10 @@ export interface components {
         PaymentPlanStatus: "ACTIVE" | "PAUSED" | "COMPLETED" | "CANCELLED";
         /** @enum {string} */
         PaymentPlanType: "RECURRING" | "INSTALLMENT" | "CUSTOM" | "GROUP";
+        RecordExchangeRateDto: {
+            currency?: string;
+            unitsPerBase?: number;
+        };
         /** @description Payload to record a UI selection event */
         RecordSelectionDto: {
             /** @description Type of the entity being selected */
@@ -5202,6 +5536,7 @@ export interface components {
             recurrence?: components["schemas"]["RecurrenceFrequency"];
             nextExecutionDate?: components["schemas"]["LocalDateTime"];
             status?: components["schemas"]["SubscriptionStatus"];
+            currency?: string;
         };
         SubscriptionEntity: {
             /** Format: int64 */
@@ -5216,6 +5551,7 @@ export interface components {
             tags?: components["schemas"]["TagEntity"][];
             eventType?: components["schemas"]["EventType"];
             modifierValue?: number;
+            currency?: string;
             recurrence: components["schemas"]["RecurrenceFrequency"];
             nextExecutionDate: components["schemas"]["LocalDateTime"];
             status: components["schemas"]["SubscriptionStatus"];
@@ -5266,12 +5602,11 @@ export interface components {
             eventType?: components["schemas"]["EventType"];
             modifierType?: components["schemas"]["ModifierType"];
             modifierValue?: number;
+            currency?: string;
         };
         TimePeriodBalanceDto: {
             timePeriod?: components["schemas"]["TimePeriodDto"];
-            income?: number;
-            outbound?: number;
-            categoryBudgets?: components["schemas"]["CategoryBudgetSummaryDto"][];
+            balances?: components["schemas"]["CurrencyBalanceDto"][];
             events?: components["schemas"]["FinanceEventDto"][];
         };
         TimePeriodBudgetDto: {
@@ -5279,6 +5614,7 @@ export interface components {
             id?: number;
             category?: components["schemas"]["CategoryDto"];
             budgetedAmount?: number;
+            currency?: string;
         };
         TimePeriodDto: {
             /** Format: int64 */
@@ -5289,6 +5625,17 @@ export interface components {
             budgets?: components["schemas"]["TimePeriodBudgetDto"][];
             savingsPercentageGoal?: number;
             budgetLimit?: number;
+            currency?: string;
+        };
+        TransactionConversionDto: {
+            currency?: string;
+            rate?: number;
+            amount?: number;
+            origin?: components["schemas"]["ConversionOrigin"];
+            frozenAt?: components["schemas"]["Instant"];
+        };
+        UpdateCurrencyDto: {
+            principal?: boolean;
         };
         /** @description Statistics about entity usage and selection frequency */
         UsageStatsDto: {

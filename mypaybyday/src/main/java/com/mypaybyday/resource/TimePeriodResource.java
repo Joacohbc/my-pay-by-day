@@ -65,13 +65,16 @@ public class TimePeriodResource {
     @APIResponses({
 	@APIResponse(responseCode = "200", description = "Balance summary",
 		content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = TimePeriodBalanceDto.class))),
+	@APIResponse(responseCode = "400", description = "Unknown currency code",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class))),
 	@APIResponse(responseCode = "404", description = "Time period not found",
 			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
     })
     public RestResponse<TimePeriodBalanceDto> getBalance(
-	@Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id)
+	@Parameter(description = "ID of the time period", required = true) @PathParam("id") Long id,
+	@Parameter(description = "ISO 4217 code to report in. A principal currency converts every event with the rate frozen on it; any other shows only events recorded in it. Omit for one balance per currency.") @QueryParam("currency") String currency)
 	throws BusinessException {
-	return RestResponse.ok(timePeriodService.getBalance(id));
+	return RestResponse.ok(timePeriodService.getBalance(id, currency));
     }
 
     @GET
@@ -86,9 +89,10 @@ public class TimePeriodResource {
     })
     public RestResponse<DynamicTimePeriodBalanceDto> getDynamicBalance(
 	@Parameter(description = "Start date (YYYY-MM-DDTHH:mm:ss)", required = true) @QueryParam("startDate") java.time.LocalDateTime startDate,
-	@Parameter(description = "End date (YYYY-MM-DDTHH:mm:ss)", required = true) @QueryParam("endDate") java.time.LocalDateTime endDate)
+	@Parameter(description = "End date (YYYY-MM-DDTHH:mm:ss)", required = true) @QueryParam("endDate") java.time.LocalDateTime endDate,
+	@Parameter(description = "ISO 4217 code to report in. A principal currency converts every event with the rate frozen on it; any other shows only events recorded in it. Omit for one balance per currency.") @QueryParam("currency") String currency)
 	throws BusinessException {
-	return RestResponse.ok(timePeriodService.getDynamicBalance(startDate, endDate));
+	return RestResponse.ok(timePeriodService.getDynamicBalance(startDate, endDate, currency));
     }
 
     @POST
