@@ -14,6 +14,18 @@ export const DATA_SECTIONS_METADATA: Record<DataSection, SectionMetadata> = {
     labelKey: 'dataTransfer.sections.DUPLICATE_DETECTION_SETTINGS',
     descKey: 'dataTransfer.sectionDescs.DUPLICATE_DETECTION_SETTINGS',
   },
+  CURRENCIES: {
+    section: 'CURRENCIES',
+    iconName: 'currency_exchange',
+    labelKey: 'dataTransfer.sections.CURRENCIES',
+    descKey: 'dataTransfer.sectionDescs.CURRENCIES',
+  },
+  EXCHANGE_RATES: {
+    section: 'EXCHANGE_RATES',
+    iconName: 'trending_up',
+    labelKey: 'dataTransfer.sections.EXCHANGE_RATES',
+    descKey: 'dataTransfer.sectionDescs.EXCHANGE_RATES',
+  },
   TAGS: {
     section: 'TAGS',
     iconName: 'tag',

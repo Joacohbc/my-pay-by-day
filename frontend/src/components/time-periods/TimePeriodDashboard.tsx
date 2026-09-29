@@ -10,6 +10,8 @@ import { PeriodRecentActivity } from '@/components/time-periods/PeriodRecentActi
 import { formatMoney, formatServerDate, getCurrency, getLocalizedNow } from '@/lib/format';
 import { Icon } from '@/components/ui/Icon';
 import type { CurrencyBalance, FinanceEvent, TimePeriod } from '@/models';
+import { DisplayCurrencyPicker } from '@/components/currency/DisplayCurrencyPicker';
+import { UnconvertedEventsNotice } from '@/components/currency/UnconvertedEventsNotice';
 
 interface TimePeriodDashboardProps {
   timePeriodId: number;
@@ -63,7 +65,10 @@ export function TimePeriodDashboard({
             </button>
           )}
         </div>
-        <p className="text-xs text-dn-text-muted mt-0.5">{dateLabel}</p>
+        <div className="flex items-center justify-between gap-2 mt-0.5">
+          <p className="text-xs text-dn-text-muted">{dateLabel}</p>
+          <DisplayCurrencyPicker />
+        </div>
       </div>
 
       {currencyBalances.map((currencyBalance) => (
@@ -116,6 +121,8 @@ function CurrencySection({
       {showCurrencyHeading && (
         <p className="text-xs font-medium text-dn-text-muted uppercase tracking-wider">{currency}</p>
       )}
+
+      <UnconvertedEventsNotice count={balance.unconvertedEvents} currency={currency} />
 
       <PeriodBalanceSummary
         netBalance={netBalance}

@@ -6,6 +6,7 @@ import type { CreateFinanceNodeDto, FinanceNodeType } from '@/models';
 import { nodeKeys } from '@/lib/queryKeys';
 import { cachePolicy } from '@/lib/cachePolicies';
 import { invalidateDomains } from '@/lib/cacheInvalidation';
+import { useDisplayCurrency } from '@/store/displayCurrencyStore';
 
 export function useNodes(archived?: boolean, type?: FinanceNodeType) {
   return useQuery({
@@ -25,9 +26,10 @@ export function useNode(id: number) {
 }
 
 export function useNodeBalance(id: number) {
+  const displayCurrency = useDisplayCurrency();
   return useQuery({
-    queryKey: nodeKeys.balance(id),
-    queryFn: () => nodesService.getBalance(id),
+    queryKey: nodeKeys.balance(id, displayCurrency),
+    queryFn: () => nodesService.getBalance(id, displayCurrency),
     enabled: !!id,
     ...cachePolicy.derived,
   });

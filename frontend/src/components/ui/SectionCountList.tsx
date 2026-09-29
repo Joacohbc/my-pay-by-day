@@ -31,7 +31,7 @@ const SECTION_GROUPS: SectionGroup[] = [
   {
     id: 'system',
     labelKey: 'dataTransfer.groups.system',
-    sections: ['FILES', 'TIME_PERIODS', 'DUPLICATE_DETECTION_SETTINGS'],
+    sections: ['FILES', 'TIME_PERIODS', 'CURRENCIES', 'EXCHANGE_RATES', 'DUPLICATE_DETECTION_SETTINGS'],
   },
 ];
 

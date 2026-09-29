@@ -91,14 +91,54 @@ export interface CreateLineItemDto {
 }
 
 /**
- * A single monetary value together with the currency that denominates it.
- *
- * The system holds no exchange rates, so an amount is never meaningful on its own and two
- * `Money` values of different currencies can be listed side by side but never added.
+ * A single monetary value together with the currency that denominates it. Two `Money` values of
+ * different currencies are never added: a total across currencies only exists through the rate
+ * frozen on each event (`FinanceEvent.conversions`).
  */
 export interface Money {
   amount: number;
   currency: string;
+}
+
+// ─── Currencies & exchange rates ──────────────────────────────────────────────
+
+export type ExchangeRateSource = 'MANUAL' | 'API';
+export type ConversionOrigin = 'AT_ENTRY' | 'RETROACTIVE';
+
+/** A quote: how many units of `currency` one unit of `baseCurrency` buys. */
+export interface ExchangeRate extends Identifiable {
+  currency: string;
+  baseCurrency: string;
+  unitsPerBase: number;
+  source: ExchangeRateSource;
+  recordedAt: string;
+}
+
+export interface RecordExchangeRateDto {
+  currency: string;
+  unitsPerBase: number;
+}
+
+/**
+ * A currency the system knows. Every event is converted into each principal currency with the
+ * quote current when it was recorded; `conversionPending` means past events are still being
+ * converted in the background.
+ */
+export interface CurrencySetting {
+  code: string;
+  principal: boolean;
+  base: boolean;
+  currentRate?: ExchangeRate | null;
+  conversionPending: boolean;
+}
+
+/** An event's amount expressed in a principal currency, with the rate frozen on it. */
+export interface TransactionConversion {
+  currency: string;
+  rate: number;
+  amount: number;
+  origin: ConversionOrigin;
+  frozenAt: string;
 }
 
 // ─── FinanceTransaction ───────────────────────────────────────────────────────
@@ -190,6 +230,8 @@ export interface FinanceEvent extends Identifiable {
   draftId?: number;
   files?: FileDto[];
   paymentPlanId?: number | null;
+  /** One entry per principal currency the event has been converted into. */
+  conversions?: TransactionConversion[];
 }
 
 export interface CreateEventDto {
@@ -334,14 +376,16 @@ export interface CategoryBudgetSummaryDto {
 /**
  * Everything a balance reports about one currency.
  *
- * A balance spanning several currencies is a list of these rather than a set of summed scalars:
- * with no exchange rates, income in UYU and income in USD are two separate facts.
+ * Without a display currency a balance is one of these per currency present. In a principal
+ * display currency it is exactly one, and `unconvertedEvents` counts the events left out because
+ * they carry no rate into it yet.
  */
 export interface CurrencyBalance {
   currency: string;
   income: number;
   outbound: number;
   categoryBudgets: CategoryBudgetSummaryDto[];
+  unconvertedEvents?: number;
 }
 
 export interface TimePeriod extends Identifiable {
@@ -359,7 +403,7 @@ export type CreateTimePeriodDto = Omit<TimePeriod, 'id'>;
 
 export interface TimePeriodBalance {
   timePeriod: TimePeriod;
-  /** One entry per currency present in the period, busiest first. Never converted between them. */
+  /** One entry per currency present in the period, busiest first; a single one in a display currency. */
   balances: CurrencyBalance[];
   events: FinanceEvent[];
 }
@@ -398,6 +442,8 @@ import type { DuplicateDetectionSettings } from '@/models/duplicates';
 
 export type DataSection =
   | 'DUPLICATE_DETECTION_SETTINGS'
+  | 'CURRENCIES'
+  | 'EXCHANGE_RATES'
   | 'TAGS'
   | 'CATEGORIES'
   | 'FINANCE_NODES'
@@ -443,6 +489,8 @@ export interface DataTransferDto {
   duplicateDetectionSettings?: DuplicateDetectionSettings;
   drafts?: unknown[];
   paymentPlans?: unknown[];
+  currencies?: Pick<CurrencySetting, 'code' | 'principal'>[];
+  exchangeRates?: ExchangeRate[];
 }
 
 export interface DataTransferResult {

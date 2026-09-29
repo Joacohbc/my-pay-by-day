@@ -52,15 +52,23 @@ export const nodeKeys = {
   all: ['financeNodes'] as const,
   list: (archived?: boolean, type?: FinanceNodeType) => [...nodeKeys.all, archived, type] as const,
   detail: (id: number) => [...nodeKeys.all, id] as const,
-  balance: (id: number) => [...nodeKeys.all, id, 'balance'] as const,
+  balance: (id: number, displayCurrency: string | null) =>
+    [...nodeKeys.all, id, 'balance', displayCurrency] as const,
 };
 
 export const timePeriodKeys = {
   all: ['time-periods'] as const,
   list: (page: number, size: number) => [...timePeriodKeys.all, page, size] as const,
-  balance: (id: number | null) => [...timePeriodKeys.all, id, 'balance'] as const,
-  dynamicBalance: (startDate: string | null, endDate: string | null) =>
-    [...timePeriodKeys.all, 'dynamic', startDate, endDate] as const,
+  balance: (id: number | null, displayCurrency: string | null) =>
+    [...timePeriodKeys.all, id, 'balance', displayCurrency] as const,
+  dynamicBalance: (startDate: string | null, endDate: string | null, displayCurrency: string | null) =>
+    [...timePeriodKeys.all, 'dynamic', startDate, endDate, displayCurrency] as const,
+};
+
+export const currencyKeys = {
+  all: ['currencies'] as const,
+  list: () => [...currencyKeys.all, 'list'] as const,
+  rateHistory: (currency?: string) => [...currencyKeys.all, 'rates', currency ?? null] as const,
 };
 
 export const subscriptionKeys = {

@@ -28,6 +28,7 @@ import { BANNER_IDS } from '@/store/dismissedBannersStore';
 import type { TimePeriod, CreateTimePeriodDto } from '@/models';
 import { getBudgetLimitMode, type BudgetLimitMode } from '@/lib/timePeriods';
 import { useAccumulatedData } from '@/hooks/useAccumulatedData';
+import { DisplayCurrencyPicker } from '@/components/currency/DisplayCurrencyPicker';
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -306,6 +307,10 @@ export function TimePeriodsPage() {
           </Button>
         }
       />
+
+      <div className="px-5 -mt-2 flex justify-end">
+        <DisplayCurrencyPicker />
+      </div>
 
       <div className="px-5">
         <DismissibleBanner bannerId={BANNER_IDS.PERIODS_INFO}>

@@ -16,6 +16,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { formatMoney, formatDateTime, eventCurrency, eventNetAmount } from '@/lib/format';
 import { RelatedEventsSection } from '@/components/events/RelatedEventsSection';
+import { EventConversionsSection } from '@/components/events/EventConversionsSection';
 import { EventDuplicatesSection } from '@/components/events/EventDuplicatesSection';
 import { EventPaymentPlansSection } from '@/components/paymentPlans/EventPaymentPlansSection';
 import { CloneEventModal } from '@/components/events/CloneEventModal';
@@ -285,6 +286,8 @@ export function EventDetailPage() {
           <EmptyState title={t('events.noLineItems')} />
         )}
       </div>
+
+      <EventConversionsSection event={event} />
 
       {/* Files */}
       <div className="px-5">

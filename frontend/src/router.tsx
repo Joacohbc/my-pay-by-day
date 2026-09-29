@@ -24,6 +24,7 @@ import { ChatPage } from '@/pages/ChatPage';
 import { FilesPage } from '@/pages/FilesPage';
 import { AiSettingsPage } from '@/pages/AiSettingsPage';
 import { DuplicateSettingsPage } from '@/pages/DuplicateSettingsPage';
+import { CurrenciesPage } from '@/pages/CurrenciesPage';
 import { EventDuplicatesPage } from '@/pages/EventDuplicatesPage';
 import { AgentTaskDetailPage } from '@/pages/AgentTaskDetailPage';
 import { Routes } from '@/lib/routes';
@@ -74,6 +75,7 @@ export const router = createBrowserRouter([
       { path: 'settings/files', element: <FilesPage /> },
       { path: 'settings/ai', element: <AiSettingsPage /> },
       { path: 'settings/duplicates', element: <DuplicateSettingsPage /> },
+      { path: 'settings/currencies', element: <CurrenciesPage /> },
 
       // Agent Tasks
       { path: 'agent-tasks/:id', element: <AgentTaskDetailPage /> },

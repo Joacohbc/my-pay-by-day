@@ -15,6 +15,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import type { FinanceNode, FinanceNodeType } from '@/models';
 import { NodeForm } from '@/components/nodes/NodeForm';
 import { Routes } from '@/lib/routes';
+import { DisplayCurrencyPicker } from '@/components/currency/DisplayCurrencyPicker';
 
 
 type NodeVisibilityFilter = 'active' | 'archived' | 'all';
@@ -207,6 +208,10 @@ export function NodesPage() {
           </Button>
         }
       />
+
+      <div className="px-5 -mt-2 flex justify-end">
+        <DisplayCurrencyPicker />
+      </div>
 
       {/* Filter */}
       <div className="px-5 flex gap-2">

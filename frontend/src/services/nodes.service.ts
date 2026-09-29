@@ -10,7 +10,8 @@ export const nodesService = {
     return api.get<FinanceNode[]>(url);
   },
   getById: (id: number) => api.get<FinanceNode>(`/finance-nodes/${id}`),
-  getBalance: (id: number) => api.get<Money[]>(`/finance-nodes/${id}/balance`),
+  getBalance: (id: number, displayCurrency: string | null) =>
+    api.get<Money[]>(`/finance-nodes/${id}/balance${displayCurrency ? `?currency=${displayCurrency}` : ''}`),
   create: (dto: CreateFinanceNodeDto) => api.post<FinanceNode>('/finance-nodes', dto),
   update: (id: number, dto: Partial<CreateFinanceNodeDto>) =>
     api.put<FinanceNode>(`/finance-nodes/${id}`, dto),

@@ -1,5 +1,5 @@
 import i18n from '@/lib/i18n';
-import type { FinanceEvent, Money } from '@/models';
+import type { FinanceEvent, Money, TransactionConversion } from '@/models';
 import { getServerTimezone, getUserTimezone, fromServerDate } from '@/lib/utils/dateUtils';
 import { formatIsoDate, getMaskPlaceholder } from '@/lib/utils/dateFormat';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -92,6 +92,22 @@ export function formatMoney(amount: number, currency: string): string {
     currency,
     minimumFractionDigits: fractionDigitsFor(currency),
   }).format(amount);
+}
+
+const EXCHANGE_RATE_FRACTION_DIGITS = 6;
+
+/** An exchange rate as a plain number, precise enough to tell 0.000025 from 0.00003. */
+export function formatExchangeRate(rate: number): string {
+  return new Intl.NumberFormat(locale(), { maximumFractionDigits: EXCHANGE_RATE_FRACTION_DIGITS }).format(rate);
+}
+
+/**
+ * The event's amount in `currency` with the rate frozen on it, or `undefined` when the event was
+ * recorded in that currency or has no conversion into it.
+ */
+export function eventConversionTo(event: FinanceEvent, currency: string | null): TransactionConversion | undefined {
+  if (!currency || currency === eventCurrency(event)) return undefined;
+  return event.conversions?.find((conversion) => conversion.currency === currency);
 }
 
 /**

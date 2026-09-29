@@ -264,6 +264,12 @@ export function SettingsPage() {
             subtitle={t('ai.memory.subtitle')}
           />
           <SettingRow
+            to={Routes.SETTINGS_CURRENCIES}
+            icon="currency_exchange"
+            title={t('currencies.title')}
+            subtitle={t('currencies.settingsDesc')}
+          />
+          <SettingRow
             to={Routes.SETTINGS_DUPLICATES}
             icon="find_replace"
             title={t('duplicates.settings.title')}

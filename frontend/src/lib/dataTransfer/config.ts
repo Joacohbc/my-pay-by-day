@@ -23,6 +23,8 @@ export const ALL_DATA_SECTIONS: DataSection[] = [
   'DRAFTS',
   'PAYMENT_PLANS',
   'DUPLICATE_DETECTION_SETTINGS',
+  'CURRENCIES',
+  'EXCHANGE_RATES',
 ];
 
 /**

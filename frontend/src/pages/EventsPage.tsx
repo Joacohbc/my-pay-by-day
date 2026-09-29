@@ -35,6 +35,9 @@ import {
 import { formatMoneyShort, formatDate } from '@/lib/format';
 import type { DateField } from '@/services/events.service';
 import { useAccumulatedData } from '@/hooks/useAccumulatedData';
+import { useDisplayCurrency } from '@/store/displayCurrencyStore';
+import { DisplayCurrencyPicker } from '@/components/currency/DisplayCurrencyPicker';
+import { UnconvertedEventsNotice } from '@/components/currency/UnconvertedEventsNotice';
 
 type FilterType = 'ALL' | EventType;
 
@@ -262,6 +265,7 @@ export function EventsPage() {
   const [restoredPage] = useState(page);
   const eventsPageQuery = resolveEventsPageQuery(page, restoredPage);
 
+  const displayCurrency = useDisplayCurrency();
   const eventFilters = useMemo(
     () => ({
       search: debouncedSearch,
@@ -274,8 +278,9 @@ export function EventsPage() {
       nodeId: nodeIdNum,
       minAmount: minAmountNum,
       maxAmount: maxAmountNum,
+      currency: displayCurrency,
     }),
-    [debouncedSearch, startDate, endDate, dateField, filter, categoryIdsArr, tagIdsArr, nodeIdNum, minAmountNum, maxAmountNum]
+    [debouncedSearch, startDate, endDate, dateField, filter, categoryIdsArr, tagIdsArr, nodeIdNum, minAmountNum, maxAmountNum, displayCurrency]
   );
 
   const { data: paged, isLoading, error } = useEvents({
@@ -290,7 +295,7 @@ export function EventsPage() {
     paged?.content,
     eventsPageQuery.accumulationPage,
     setPage,
-    [debouncedSearch, filter, startDate, endDate, dateField, categoryIdsStr, tagIdsStr, nodeIdStr, minAmountStr, maxAmountStr]
+    [debouncedSearch, filter, startDate, endDate, dateField, categoryIdsStr, tagIdsStr, nodeIdStr, minAmountStr, maxAmountStr, displayCurrency]
   );
 
   useRestoredScrollPosition(events.length > 0);
@@ -417,6 +422,10 @@ export function EventsPage() {
         }
       />
 
+      <div className="px-4 sm:px-5 -mt-2 flex justify-end">
+        <DisplayCurrencyPicker />
+      </div>
+
       <div ref={cardsGridRef} className="flex flex-col gap-2 sm:gap-3">
         {currencyTotals.map(({ currency, income, outbound, transfers }) => (
           <div key={currency} className="px-4 sm:px-5">
@@ -445,6 +454,13 @@ export function EventsPage() {
             </div>
           </div>
         ))}
+        {displayCurrency && (
+          <UnconvertedEventsNotice
+            className="mx-4 sm:mx-5"
+            count={currencyTotals[0]?.unconvertedEvents}
+            currency={displayCurrency}
+          />
+        )}
       </div>
 
       {loadedDateRange && (

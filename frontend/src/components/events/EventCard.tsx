@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import type { FinanceEvent, PaymentPlan } from '@/models';
 import { Icon, AttachmentIcon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
-import { formatMoney, formatDate, eventCurrency, eventNetAmount } from '@/lib/format';
+import { formatMoney, formatDate, eventCurrency, eventNetAmount, eventConversionTo } from '@/lib/format';
+import { useDisplayCurrency } from '@/store/displayCurrencyStore';
 import { NodeIcon } from '@/components/ui/NodeIcon';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useNodes } from '@/hooks/useNodes';
@@ -46,6 +47,9 @@ export function EventCard({ event, disableLink, iconSource = 'category', groupPl
   const { linkStateFromHere } = useAppNavigation();
   const cfg = typeConfig[event.type as keyof typeof typeConfig] || typeConfig.OTHER;
   const net = eventNetAmount(event);
+  const conversion = eventConversionTo(event, useDisplayCurrency());
+  const shownAmount = conversion ? conversion.amount : net;
+  const shownCurrency = conversion ? conversion.currency : eventCurrency(event);
   const date = event.transactionDate;
   const lineItems = event.lineItems ?? [];
 
@@ -187,10 +191,17 @@ export function EventCard({ event, disableLink, iconSource = 'category', groupPl
       </div>
 
       {/* Amount */}
-      <span className={`font-mono text-sm shrink-0 whitespace-nowrap ${event.isDraft ? 'text-dn-text-muted' : cfg.amountClass}`}>
-        {!event.isDraft && event.type === 'INBOUND' ? '+' : ''}
-        {!event.isDraft && event.type === 'OUTBOUND' ? '-' : ''}
-        {formatMoney(Math.abs(net || 0), eventCurrency(event))}
+      <span className="flex flex-col items-end shrink-0">
+        <span className={`font-mono text-sm whitespace-nowrap ${event.isDraft ? 'text-dn-text-muted' : cfg.amountClass}`}>
+          {!event.isDraft && event.type === 'INBOUND' ? '+' : ''}
+          {!event.isDraft && event.type === 'OUTBOUND' ? '-' : ''}
+          {formatMoney(Math.abs(shownAmount || 0), shownCurrency)}
+        </span>
+        {conversion && (
+          <span className="font-mono text-[10px] text-dn-text-muted whitespace-nowrap">
+            {formatMoney(Math.abs(net || 0), eventCurrency(event))}
+          </span>
+        )}
       </span>
     </>
   );

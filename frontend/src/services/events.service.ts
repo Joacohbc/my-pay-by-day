@@ -18,6 +18,8 @@ export interface EventFilters {
   nodeId?: number;
   minAmount?: number;
   maxAmount?: number;
+  /** Display currency: a principal one converts every event, any other keeps only its own events. */
+  currency?: string | null;
 }
 
 /** Income, outbound and transfer totals for one currency in the match set. */
@@ -26,13 +28,15 @@ export interface CurrencyTotals {
   income: number;
   outbound: number;
   transfers: number;
+  /** Events left out of a converted view because they carry no rate into its currency yet. */
+  unconvertedEvents?: number;
 }
 
 /**
  * Aggregate totals for every event matching a filter set, independent of pagination.
  *
- * Reported one entry per currency: amounts of different currencies are never summed, so a filter
- * spanning two currencies yields two sets of figures rather than one meaningless total.
+ * Without a display currency it is one entry per currency, since amounts of different currencies
+ * are never summed; with one it is a single entry in that currency.
  */
 export interface EventTotals {
   totals: CurrencyTotals[];
@@ -55,6 +59,7 @@ function buildEventFilterParams(filters: EventFilters): URLSearchParams {
   if (filters.nodeId) params.append('nodeId', filters.nodeId.toString());
   if (filters.minAmount !== undefined) params.append('minAmount', filters.minAmount.toString());
   if (filters.maxAmount !== undefined) params.append('maxAmount', filters.maxAmount.toString());
+  if (filters.currency) params.append('currency', filters.currency);
 
   return params;
 }
