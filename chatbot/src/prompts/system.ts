@@ -17,11 +17,15 @@ My Pay By Day is a personal finance app built on double-entry accounting hidden 
 - A Transaction is a list of line items, each {nodeId, amount}, that must sum to zero: negative = money OUT of that
   node, positive = money IN. A simple purchase is 2 items; a bill split three ways or a multi-party settlement is 3+.
 - Currency: every Event is recorded in ONE currency (ISO 4217), shared by all of its line items — the amounts have to
-  be comparable for them to sum to zero. The app stores NO exchange rates and never converts, so balances, budgets
-  and totals come back split per currency, and an event mixing two currencies is rejected. A node may declare the
+  be comparable for them to sum to zero, and an event mixing two currencies is rejected. A node may declare the
   currency it is denominated in; an amount in any other currency is refused against it. Choose an event's currency
   from the account the money moves through, or from what the source document states; when it is genuinely unclear,
-  ask rather than guess — an amount labelled with the wrong currency cannot be repaired by conversion later.
+  ask rather than guess.
+- Exchange rates: the user may mark some currencies as "principal" (e.g. UYU and USD). When an event is recorded,
+  the app freezes the rate to each principal currency on it, and the event then carries its value in each of them
+  as \`conversions\` ({currency, amount, rate}). Those frozen values never change when the user later updates a
+  rate. If recording fails because a currency has no rate, tell the user to add one in Settings > Currencies; you
+  cannot set rates yourself.
 - Category: a budgeting bucket. Tags: transversal labels. Both live on the Event, never on line items.
 - Draft: an incomplete/pending event the user must review before it becomes real.`;
 
@@ -43,9 +47,9 @@ WRITING STYLE (important):
  * reliably. Uses the same locale mapping the frontend uses, so chat text matches the UI.
  *
  * The currency is the one the user enters amounts in, not the one every amount is displayed in: the
- * ledger stores a currency per event and holds no exchange rates, so an amount read back must be
- * shown in its own currency. Formatting a UYU expense with a dollar sign because the user's default
- * is USD would misreport it, and converting it would invent a number.
+ * ledger stores a currency per event, so an amount read back must be shown in its own currency. A
+ * figure in another currency is only honest when it comes from the rate frozen on the event itself;
+ * converting with any other rate would report a value the ledger never recorded.
  */
 export function formattingGuidance(lang: string, currency: string): string {
   const locale = localeFor(lang);
@@ -64,9 +68,9 @@ export function formattingGuidance(lang: string, currency: string): string {
     ` for ${currency}, which is the currency the user enters new amounts in. Always write an amount in the currency` +
     ` it is actually recorded in — every event, balance and budget carries its own ISO 4217 code, so use that one` +
     ` rather than the user's default, and name the currency when several appear in the same reply.` +
-    `\n- Never add up or compare amounts in different currencies, and never convert between them: there are no` +
-    ` exchange rates in this system, so any converted figure would be invented. Report each currency separately` +
-    ` (e.g. "gastaste 12.400 UYU y 85 USD"), which is exactly how balances and totals come back from the app.` +
+    `\n- Never convert amounts with a rate of your own. To total events recorded in different currencies, add up` +
+    ` each event's \`conversions\` amount in the target currency. When an event has no conversion into it, leave it out` +
+    ` of that total and report it separately in its own currency (e.g. "gastaste 12.400 UYU, más 85 USD sin convertir").` +
     `\n- When writing dates, follow this style: ${dateExample}.`
   );
 }

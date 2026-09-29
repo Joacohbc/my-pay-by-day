@@ -1,6 +1,6 @@
 import type { EventPatchBody, FinanceEventDraftInputDto, FinanceEventDto } from '@/backend/client.js';
 import { asServerDateTime, toServerDateTime, type ServerDateTime } from '@/dates.js';
-import type { BotDraft, BotEvent, BotEventType, BotEventPatch, BotDraftPatch, BotLineItem } from '@/bot/dto.js';
+import type { BotConversion, BotDraft, BotEvent, BotEventType, BotEventPatch, BotDraftPatch, BotLineItem } from '@/bot/dto.js';
 
 /** Draft input as it arrives from a zod tool schema (nullable) or a clean caller (undefined). */
 interface DraftInput {
@@ -113,7 +113,15 @@ export function toBotEvent(dto: FinanceEventDto): BotEvent {
     categoryId: dto.category?.id ?? undefined,
     tagIds: (dto.tags ?? []).map((t) => t.id).filter((id): id is number => id != null),
     date: dto.transactionDate ?? undefined,
+    conversions: toBotConversions(dto.conversions),
   };
+}
+
+function toBotConversions(conversions: FinanceEventDto['conversions']): BotConversion[] | undefined {
+  if (!conversions?.length) return undefined;
+  return conversions.flatMap(({ currency, amount, rate }) =>
+    currency != null && amount != null && rate != null ? [{ currency, amount, rate }] : [],
+  );
 }
 
 /** Flattens a draft `FinanceEventDto` (where `id` is the original event id, `draftId` the draft). */

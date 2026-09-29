@@ -88,9 +88,17 @@ export interface BotEventCore {
   date?: string;
 }
 
+/** The event's value in another currency, computed with the rate frozen on it when it was recorded. */
+export interface BotConversion {
+  currency: string;
+  amount: number;
+  rate: number;
+}
+
 /** A persisted finance event (always has a real id). */
 export interface BotEvent extends BotEventCore {
   id: number;
+  conversions?: BotConversion[];
 }
 
 /** A pending draft. `originalEventId` is set when the draft edits an existing event. */
