@@ -445,6 +445,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/currencies/{code}/base": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make a currency the base
+         * @description Every quote is expressed against the base currency. The current quotes are re-expressed against the new base, so no rate has to be entered again and every conversion stays the same.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ISO 4217 code */
+                    code: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The new base currency */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CurrencyDto"];
+                    };
+                };
+                /** @description Unknown code, or other currencies are quoted but this one is not */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/data/export": {
         parameters: {
             query?: never;
@@ -538,7 +589,10 @@ export interface paths {
          */
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description ISO 4217 currency of the amounts in an archive exported before amounts carried one. Defaults to the configured default currency. */
+                    legacyCurrency?: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -558,7 +612,7 @@ export interface paths {
                         "application/json": components["schemas"]["DataTransferResult"];
                     };
                 };
-                /** @description Validation error in tags, categories, or nodes */
+                /** @description Validation error in tags, categories, or nodes, or an unknown legacy currency */
                 400: {
                     headers: {
                         [name: string]: unknown;

@@ -5,9 +5,11 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { SectionCountList } from '@/components/ui/SectionCountList';
 import { Icon } from '@/components/ui/Icon';
+import { CurrencySelect } from '@/components/ui/CurrencySelect';
 import { api } from '@/services/api';
 import type { DataExportSummaryDto, DataTransferResult } from '@/models';
-import { parseExportArchive } from '@/lib/dataTransfer/parseExportArchive';
+import { parseExportArchive, type ArchivePreview } from '@/lib/dataTransfer/parseExportArchive';
+import { getCurrency } from '@/lib/format';
 import { logger } from '@/lib/logger';
 import { DATA_TRANSFER_VERSION, buildEmptyExportSummary } from '@/lib/dataTransfer/config';
 
@@ -29,7 +31,8 @@ export function DataTransferModal({ isOpen, onClose, initialMode = 'export' }: D
 
   // Import state
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [importPreview, setImportPreview] = useState<DataExportSummaryDto | null>(null);
+  const [importPreview, setImportPreview] = useState<ArchivePreview | null>(null);
+  const [legacyCurrency, setLegacyCurrency] = useState(getCurrency);
   const [isParsing, setIsParsing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState<DataTransferResult | null>(null);
@@ -128,7 +131,10 @@ export function DataTransferModal({ isOpen, onClose, initialMode = 'export' }: D
     setIsImporting(true);
     setImportError(null);
     try {
-      const result = await api.postBinary<DataTransferResult>('/data/import', importFile, 'application/zip');
+      const importPath = importPreview?.hasAmountsWithoutCurrency
+        ? `/data/import?legacyCurrency=${encodeURIComponent(legacyCurrency)}`
+        : '/data/import';
+      const result = await api.postBinary<DataTransferResult>(importPath, importFile, 'application/zip');
       setImportResult(result);
       await queryClient.invalidateQueries();
     } catch (err) {
@@ -286,6 +292,17 @@ export function DataTransferModal({ isOpen, onClose, initialMode = 'export' }: D
                     <SectionCountList counts={importPreview.sections} compact />
                   </div>
                 )}
+
+                {importPreview?.hasAmountsWithoutCurrency && (
+                  <div className="p-3.5 rounded-2xl bg-dn-surface-low/60 border border-white/5 space-y-3">
+                    <p className="text-xs text-dn-text-muted">{t('dataTransfer.legacyCurrencyHint')}</p>
+                    <CurrencySelect
+                      label={t('dataTransfer.legacyCurrency')}
+                      value={legacyCurrency}
+                      onChange={setLegacyCurrency}
+                    />
+                  </div>
+                )}
               </>
             ) : (
               /* Success Result View */
@@ -311,7 +328,7 @@ export function DataTransferModal({ isOpen, onClose, initialMode = 'export' }: D
               </Button>
 
               {importFile && !importResult && (
-                <Button variant="primary" onClick={handleImport} disabled={isImporting || isParsing}>
+                <Button variant="primary" onClick={handleImport} disabled={isImporting || isParsing || !legacyCurrency}>
                   {isImporting ? (
                     <span className="flex items-center gap-2">
                       <Icon name="sync" className="animate-spin text-base" />

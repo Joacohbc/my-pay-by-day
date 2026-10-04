@@ -18,7 +18,24 @@ const ALL_SECTIONS: DataSection[] = [
   'PAYMENT_PLANS',
 ];
 
-export async function parseExportArchive(file: File | Blob): Promise<DataExportSummaryDto> {
+export interface ArchivePreview extends DataExportSummaryDto {
+  /** Exported before amounts carried a currency, so the user has to say which one they were in. */
+  hasAmountsWithoutCurrency: boolean;
+}
+
+interface ArchivedEvent {
+  lineItems?: { currency?: string | null }[];
+}
+
+function hasAmountsWithoutCurrency(archive: { currencies?: unknown; events?: ArchivedEvent[] }): boolean {
+  const predatesCurrencies = archive.currencies === undefined;
+  const hasLineItemWithoutCurrency = (archive.events ?? []).some((event) =>
+    (event.lineItems ?? []).some((lineItem) => !lineItem.currency)
+  );
+  return predatesCurrencies || hasLineItemWithoutCurrency;
+}
+
+export async function parseExportArchive(file: File | Blob): Promise<ArchivePreview> {
   const zip = await JSZip.loadAsync(file);
   const dataJsonFile = zip.file('data.json');
   if (!dataJsonFile) {
@@ -60,5 +77,6 @@ export async function parseExportArchive(file: File | Blob): Promise<DataExportS
     generatedAt: json.exportedAt || new Date().toISOString(),
     sections,
     binaryFileCount,
+    hasAmountsWithoutCurrency: hasAmountsWithoutCurrency(json),
   };
 }

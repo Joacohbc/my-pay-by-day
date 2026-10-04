@@ -318,7 +318,7 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 			entity.endDate = dto.endDate();
 			entity.savingsPercentageGoal = dto.savingsPercentageGoal();
 			entity.budgetLimit = dto.budgetLimit();
-			entity.currency = dto.currency();
+			entity.currency = dto.budgetLimit() != null ? context.currencyOrLegacy(dto.currency()) : dto.currency();
 
 			if (dto.budgets() != null) {
 				for (TimePeriodBudgetDto budgetDto : dto.budgets()) {
@@ -332,7 +332,8 @@ public class TimePeriodService implements DataSectionTransfer<TimePeriodDto> {
 							budget.timePeriod = entity;
 							budget.category = cat;
 							budget.budgetedAmount = budgetDto.budgetedAmount();
-							budget.currency = budgetCurrency(budgetDto, entity);
+							String archivedCurrency = budgetDto.currency() != null ? budgetDto.currency() : entity.currency;
+							budget.currency = context.currencyOrLegacy(archivedCurrency);
 							entity.budgets.add(budget);
 						}
 					}

@@ -16,6 +16,8 @@ import io.quarkus.arc.All;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.core.StreamingOutput;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.mypaybyday.dto.DataExportSummaryDto;
@@ -30,6 +32,7 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.service.transfer.DataSectionTransfer;
 import com.mypaybyday.service.transfer.ImportContext;
+import com.mypaybyday.validation.CurrencyValidator;
 import io.quarkus.logging.Log;
 
 @ApplicationScoped
@@ -42,9 +45,17 @@ public class DataTransferService {
 
 	private final Map<DataSection, DataSectionTransfer<?>> transfersBySection;
 	private final Messages messages;
+	private final CurrencyValidator currencyValidator;
+	private final String defaultCurrency;
 
-	public DataTransferService(@All List<DataSectionTransfer<?>> transfers, Messages messages) {
+	public DataTransferService(
+			@All List<DataSectionTransfer<?>> transfers,
+			Messages messages,
+			CurrencyValidator currencyValidator,
+			@ConfigProperty(name = "mypaybyday.default-currency") String defaultCurrency) {
 		this.messages = messages;
+		this.currencyValidator = currencyValidator;
+		this.defaultCurrency = defaultCurrency;
 		this.transfersBySection = new EnumMap<>(DataSection.class);
 
 		for (DataSectionTransfer<?> transfer : transfers) {
@@ -111,11 +122,16 @@ public class DataTransferService {
 		return DataTransferDto.from(sections);
 	}
 
-	public DataTransferResult importFromZip(InputStream zipStream) throws BusinessException {
+	/**
+	 * @param legacyCurrency the currency of the amounts in an archive exported before amounts carried
+	 *                       one; {@code null} means the configured default currency
+	 * @throws BusinessException if the archive is unreadable or the legacy currency is unknown
+	 */
+	public DataTransferResult importFromZip(InputStream zipStream, String legacyCurrency) throws BusinessException {
+		ImportContext context = new ImportContext(resolveLegacyCurrency(legacyCurrency));
 		try (ZipInputStream zis = new ZipInputStream(zipStream)) {
 			ZipEntry entry;
 			DataTransferDto dto = null;
-			ImportContext context = new ImportContext();
 			DataTransferResult result = null;
 
 			while ((entry = zis.getNextEntry()) != null) {
@@ -151,7 +167,12 @@ public class DataTransferService {
 
 	@Transactional
 	public DataTransferResult importAll(DataTransferDto dto) throws BusinessException {
-		return importAllWithContext(dto, new ImportContext());
+		return importAllWithContext(dto, new ImportContext(defaultCurrency));
+	}
+
+	private String resolveLegacyCurrency(String legacyCurrency) throws BusinessException {
+		String chosen = currencyValidator.validateOptional(legacyCurrency);
+		return chosen != null ? chosen : currencyValidator.validateRequired(defaultCurrency);
 	}
 
 	@Transactional

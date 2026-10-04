@@ -14,7 +14,9 @@ import com.mypaybyday.dto.ExchangeRateDto;
 import com.mypaybyday.dto.SectionImportResult;
 import com.mypaybyday.dto.UpdateCurrencyDto;
 import com.mypaybyday.entity.CurrencyEntity;
+import com.mypaybyday.entity.ExchangeRateEntity;
 import com.mypaybyday.enums.DataSection;
+import com.mypaybyday.enums.ExchangeRateSource;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
@@ -65,9 +67,9 @@ public class CurrencyService implements DataSectionTransfer<CurrencyExportDto> {
 	public List<CurrencyDto> listCurrencies() {
 		String baseCurrency = exchangeRateLookup.baseCurrency();
 		Map<String, CurrencyDto> currenciesByCode = new TreeMap<>();
-		currenciesByCode.put(baseCurrency, toDto(baseCurrency, false));
+		currenciesByCode.put(baseCurrency, toDto(baseCurrency, false, baseCurrency));
 		for (CurrencyEntity currency : currencyRepository.listOrderedByCode()) {
-			currenciesByCode.put(currency.code, toDto(currency.code, currency.principal));
+			currenciesByCode.put(currency.code, toDto(currency.code, currency.principal, baseCurrency));
 		}
 		return List.copyOf(currenciesByCode.values());
 	}
@@ -94,7 +96,57 @@ public class CurrencyService implements DataSectionTransfer<CurrencyExportDto> {
 			conversionBackfillQueue.enqueue(normalizedCode);
 		}
 		Log.infof("Currency %s principal=%b", normalizedCode, currency.principal);
-		return toDto(normalizedCode, currency.principal);
+		return toDto(normalizedCode, currency.principal, exchangeRateLookup.baseCurrency());
+	}
+
+	/**
+	 * Makes the currency the one every quote is expressed against. The current quotes are re-expressed
+	 * against it, so no rate has to be entered again and every cross rate stays the same. Rates frozen
+	 * on past transactions are not touched.
+	 *
+	 * @throws BusinessException if the code is unknown, or other currencies are quoted but this one is
+	 *                           not, so their quotes could not be re-expressed against it
+	 */
+	@Transactional
+	public CurrencyDto makeBase(String code) throws BusinessException {
+		String newBase = currencyValidator.validateRequired(code);
+		ExchangeRateQuotes quotes = exchangeRateLookup.currentQuotes();
+		String previousBase = quotes.baseCurrency();
+		boolean cannotRebaseQuotes = !quotes.unitsPerBase().isEmpty() && !quotes.isQuoted(newBase);
+		if (cannotRebaseQuotes) {
+			throw messages.reject(MsgKey.EXCHANGE_RATE_BASE_UNQUOTED, newBase, previousBase);
+		}
+
+		CurrencyEntity currency = findOrCreate(newBase);
+		if (newBase.equals(previousBase)) {
+			currency.base = true;
+			return toDto(newBase, currency.principal, newBase);
+		}
+
+		rebaseQuotes(quotes, newBase);
+		findOrCreate(previousBase).base = false;
+		currency.base = true;
+		Log.infof("Base currency changed from %s to %s", previousBase, newBase);
+		return toDto(newBase, currency.principal, newBase);
+	}
+
+	private void rebaseQuotes(ExchangeRateQuotes quotes, String newBase) {
+		String previousBase = quotes.baseCurrency();
+		List<ExchangeRateEntity> latestQuotes = exchangeRateRepository.listLatestPerCurrency(previousBase);
+		for (ExchangeRateEntity quote : latestQuotes) {
+			boolean isNewBaseQuote = quote.currency.equals(newBase);
+			String rebasedCurrency = isNewBaseQuote ? previousBase : quote.currency;
+			persistRebasedQuote(quotes, newBase, rebasedCurrency, quote.source);
+		}
+	}
+
+	private void persistRebasedQuote(ExchangeRateQuotes quotes, String newBase, String currency, ExchangeRateSource source) {
+		ExchangeRateEntity rebased = new ExchangeRateEntity();
+		rebased.currency = currency;
+		rebased.baseCurrency = newBase;
+		rebased.unitsPerBase = quotes.rate(newBase, currency).orElseThrow();
+		rebased.source = source;
+		exchangeRateRepository.persist(rebased);
 	}
 
 	CurrencyEntity findOrCreate(String code) {
@@ -107,10 +159,10 @@ public class CurrencyService implements DataSectionTransfer<CurrencyExportDto> {
 		return created;
 	}
 
-	private CurrencyDto toDto(String code, boolean principal) {
-		boolean isBase = code.equals(exchangeRateLookup.baseCurrency());
+	private CurrencyDto toDto(String code, boolean principal, String baseCurrency) {
+		boolean isBase = code.equals(baseCurrency);
 		ExchangeRateDto currentRate = isBase ? null : exchangeRateRepository
-				.findLatest(exchangeRateLookup.baseCurrency(), code)
+				.findLatest(baseCurrency, code)
 				.map(ExchangeRateDto::from)
 				.orElse(null);
 		return new CurrencyDto(code, principal, isBase, currentRate, conversionBackfillQueue.isPending(code));
@@ -135,7 +187,7 @@ public class CurrencyService implements DataSectionTransfer<CurrencyExportDto> {
 	@Transactional
 	public List<CurrencyExportDto> exportData() {
 		return currencyRepository.listOrderedByCode().stream()
-				.map(currency -> new CurrencyExportDto(currency.code, currency.principal))
+				.map(currency -> new CurrencyExportDto(currency.code, currency.principal, currency.base))
 				.toList();
 	}
 
@@ -149,7 +201,21 @@ public class CurrencyService implements DataSectionTransfer<CurrencyExportDto> {
 		return archivedItemImporter.importEach(section(), items, CurrencyExportDto::code, item -> {
 			CurrencyEntity currency = findOrCreate(currencyValidator.validateRequired(item.code()));
 			currency.principal = currency.principal || item.principal();
+			if (item.base() && canAdoptArchivedBase(currency.code)) {
+				currency.base = true;
+			}
 		});
+	}
+
+	/**
+	 * An archived base is adopted only when it orphans no local quote: either nothing is quoted here
+	 * yet (a restore into a fresh install) or it is already the base in effect.
+	 */
+	private boolean canAdoptArchivedBase(String archivedBase) {
+		boolean hasChosenBase = currencyRepository.findBase().isPresent();
+		if (hasChosenBase) return false;
+		boolean isAlreadyInEffect = archivedBase.equals(exchangeRateLookup.baseCurrency());
+		return isAlreadyInEffect || exchangeRateRepository.count() == 0;
 	}
 
 	@Override

@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useCurrencies } from '@/hooks/useCurrencies';
 import { useDisplayCurrencyStore } from '@/store/displayCurrencyStore';
 import { getCurrency } from '@/lib/format';
-import { DisplayCurrencyIcon } from '@/components/ui/Icon';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 
 const PER_CURRENCY_OPTION = '';
 
@@ -26,26 +26,19 @@ export function DisplayCurrencyPicker({ className = '' }: DisplayCurrencyPickerP
   if (displayCurrency) otherCodes.add(displayCurrency);
   principalCodes.forEach((code) => otherCodes.delete(code));
 
+  const options = [
+    { value: PER_CURRENCY_OPTION, label: t('currencies.display.perCurrency') },
+    ...principalCodes.map((code) => ({ value: code, label: t('currencies.display.principalOption', { code }) })),
+    ...[...otherCodes].sort().map((code) => ({ value: code, label: t('currencies.display.filteredOption', { code }) })),
+  ];
+
   return (
-    <label
-      className={`inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-pill bg-dn-surface-low text-xs text-dn-text-muted ${className}`}
-      title={t('currencies.display.label')}
-    >
-      <DisplayCurrencyIcon className="text-sm" />
-      <span className="sr-only">{t('currencies.display.label')}</span>
-      <select
+    <div className={`min-w-[200px] ${className}`} title={t('currencies.display.label')}>
+      <SearchableSelect
+        options={options}
         value={displayCurrency ?? PER_CURRENCY_OPTION}
-        onChange={(changeEvent) => setDisplayCurrency(changeEvent.target.value || null)}
-        className="bg-transparent text-dn-text-main font-medium focus:outline-none cursor-pointer max-w-[14rem]"
-      >
-        <option value={PER_CURRENCY_OPTION}>{t('currencies.display.perCurrency')}</option>
-        {principalCodes.map((code) => (
-          <option key={code} value={code}>{t('currencies.display.principalOption', { code })}</option>
-        ))}
-        {[...otherCodes].sort().map((code) => (
-          <option key={code} value={code}>{t('currencies.display.filteredOption', { code })}</option>
-        ))}
-      </select>
-    </label>
+        onChange={(selected) => setDisplayCurrency(selected ? String(selected) : null)}
+      />
+    </div>
   );
 }

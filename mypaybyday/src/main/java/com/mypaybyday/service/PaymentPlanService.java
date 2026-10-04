@@ -661,7 +661,8 @@ public class PaymentPlanService implements DataSectionTransfer<PaymentPlanExport
 			plan.totalInstallments = dto.totalInstallments();
 			plan.totalAmount = dto.totalAmount();
 			plan.installmentAmount = dto.installmentAmount();
-			plan.currency = dto.currency();
+			boolean hasAmount = dto.totalAmount() != null || dto.installmentAmount() != null;
+			plan.currency = hasAmount ? context.currencyOrLegacy(dto.currency()) : dto.currency();
 			plan.frequency = dto.frequency();
 			plan.startDate = dto.startDate();
 			plan.endDate = dto.endDate();

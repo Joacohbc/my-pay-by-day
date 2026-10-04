@@ -464,7 +464,7 @@ public class SubscriptionService implements DataSectionTransfer<SubscriptionDto>
 			entity.description = dto.description();
 			entity.eventType = dto.eventType();
 			entity.modifierValue = dto.modifierValue();
-			entity.currency = dto.currency();
+			entity.currency = dto.modifierValue() != null ? context.currencyOrLegacy(dto.currency()) : dto.currency();
 			entity.recurrence = dto.recurrence();
 			entity.nextExecutionDate = dto.nextExecutionDate();
 			entity.status = dto.status();

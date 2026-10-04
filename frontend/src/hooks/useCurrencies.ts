@@ -67,6 +67,20 @@ export function useSetPrincipalCurrency() {
   });
 }
 
+export function useMakeBaseCurrency() {
+  const queryClient = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: (code: string) => currenciesService.makeBase(code),
+    onSuccess: (baseCurrency) => {
+      invalidateCurrenciesAndFinances(queryClient);
+      alert.success(t('currencies.baseChanged', { code: baseCurrency.code }));
+    },
+    onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
+  });
+}
+
 export function useRecordExchangeRate() {
   const queryClient = useQueryClient();
   const alert = useAlert();

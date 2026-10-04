@@ -9,6 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import com.mypaybyday.entity.ExchangeRateEntity;
+import com.mypaybyday.repository.CurrencyRepository;
 import com.mypaybyday.repository.ExchangeRateRepository;
 
 /**
@@ -20,20 +21,29 @@ import com.mypaybyday.repository.ExchangeRateRepository;
 public class ExchangeRateLookup {
 
 	private final ExchangeRateRepository exchangeRateRepository;
-	private final String baseCurrency;
+	private final CurrencyRepository currencyRepository;
+	private final String initialBaseCurrency;
 
 	public ExchangeRateLookup(
 			ExchangeRateRepository exchangeRateRepository,
-			@ConfigProperty(name = "mypaybyday.exchange-rate.base-currency") String baseCurrency) {
+			CurrencyRepository currencyRepository,
+			@ConfigProperty(name = "mypaybyday.exchange-rate.base-currency") String initialBaseCurrency) {
 		this.exchangeRateRepository = exchangeRateRepository;
-		this.baseCurrency = baseCurrency.trim().toUpperCase();
+		this.currencyRepository = currencyRepository;
+		this.initialBaseCurrency = initialBaseCurrency.trim().toUpperCase();
 	}
 
+	/**
+	 * The currency the user chose as base, or the configured one until they choose.
+	 */
 	public String baseCurrency() {
-		return baseCurrency;
+		return currencyRepository.findBase()
+				.map(currency -> currency.code)
+				.orElse(initialBaseCurrency);
 	}
 
 	public ExchangeRateQuotes currentQuotes() {
+		String baseCurrency = baseCurrency();
 		Map<String, BigDecimal> unitsPerBase = exchangeRateRepository.listLatestPerCurrency(baseCurrency).stream()
 				.collect(Collectors.toMap(
 						(ExchangeRateEntity rate) -> rate.currency,

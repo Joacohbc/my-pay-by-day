@@ -4,6 +4,7 @@ import java.util.List;
 
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -63,5 +64,21 @@ public class CurrencyResource {
 			@Parameter(description = "ISO 4217 code", required = true) @PathParam("code") String code,
 			UpdateCurrencyDto update) throws BusinessException {
 		return RestResponse.ok(currencyService.updateCurrency(code, update));
+	}
+
+	@POST
+	@Path("/{code}/base")
+	@Operation(summary = "Make a currency the base",
+			description = "Every quote is expressed against the base currency. The current quotes are re-expressed "
+					+ "against the new base, so no rate has to be entered again and every conversion stays the same.")
+	@APIResponses({
+			@APIResponse(responseCode = "200", description = "The new base currency",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = CurrencyDto.class))),
+			@APIResponse(responseCode = "400", description = "Unknown code, or other currencies are quoted but this one is not",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
+	})
+	public RestResponse<CurrencyDto> makeBase(
+			@Parameter(description = "ISO 4217 code", required = true) @PathParam("code") String code) throws BusinessException {
+		return RestResponse.ok(currencyService.makeBase(code));
 	}
 }

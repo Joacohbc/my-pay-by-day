@@ -232,7 +232,7 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 					}
 					FinanceLineItemEntity li = new FinanceLineItemEntity();
 					li.amount = liDto.amount();
-					li.currency = liDto.currency();
+					li.currency = context.currencyOrLegacy(liDto.currency());
 					li.financeNode = node;
 					li.transaction = tx;
 					tx.lineItems.add(li);

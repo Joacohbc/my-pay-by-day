@@ -13,6 +13,7 @@ import { formatDateTime, formatExchangeRate } from '@/lib/format';
 import {
   useCurrencies,
   useExchangeRateHistory,
+  useMakeBaseCurrency,
   useRecordExchangeRate,
   useRefreshExchangeRates,
   useSetPrincipalCurrency,
@@ -31,9 +32,8 @@ export function CurrenciesPage() {
     <div className="space-y-6 pb-8">
       <PageHeader title={t('currencies.title')} back={Routes.SETTINGS} />
 
-      <section className="px-5 space-y-2">
-        <p className="text-sm text-dn-text-muted">{t('currencies.intro')}</p>
-        <p className="text-xs text-dn-text-muted">{t('currencies.baseHint', { base: baseCurrency })}</p>
+      <section className="px-5">
+        <CurrencyRolesExplainer baseCurrency={baseCurrency} />
       </section>
 
       <section className="px-5">
@@ -55,6 +55,23 @@ export function CurrenciesPage() {
         <RateHistory />
       </section>
     </div>
+  );
+}
+
+function CurrencyRolesExplainer({ baseCurrency }: { baseCurrency: string }) {
+  const { t } = useTranslation();
+
+  return (
+    <Card className="space-y-3">
+      <div className="space-y-1">
+        <Badge variant="gray" size="sm">{t('currencies.base')}</Badge>
+        <p className="text-xs text-dn-text-muted">{t('currencies.baseExplanation', { base: baseCurrency })}</p>
+      </div>
+      <div className="space-y-1">
+        <Badge variant="indigo" size="sm">{t('currencies.principal')}</Badge>
+        <p className="text-xs text-dn-text-muted">{t('currencies.principalExplanation')}</p>
+      </div>
+    </Card>
   );
 }
 
@@ -81,6 +98,7 @@ function CurrencyList({ currencies }: { currencies: CurrencySetting[] }) {
 function CurrencyRow({ currency }: { currency: CurrencySetting }) {
   const { t } = useTranslation();
   const setPrincipal = useSetPrincipalCurrency();
+  const makeBase = useMakeBaseCurrency();
   const currentRate = currency.currentRate;
 
   return (
@@ -109,6 +127,17 @@ function CurrencyRow({ currency }: { currency: CurrencySetting }) {
           </p>
         )}
       </div>
+      {!currency.base && (
+        <Button
+          size="sm"
+          variant="ghost"
+          loading={makeBase.isPending}
+          onClick={() => makeBase.mutate(currency.code)}
+          title={t('currencies.makeBaseHint')}
+        >
+          {t('currencies.makeBase')}
+        </Button>
+      )}
       <Button
         size="sm"
         variant={currency.principal ? 'ghost' : 'secondary'}

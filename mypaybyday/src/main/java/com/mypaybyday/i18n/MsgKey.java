@@ -74,6 +74,7 @@ public enum MsgKey {
 	EXCHANGE_RATE_MISSING("error.exchange_rate.missing"),
 	EXCHANGE_RATE_INVALID("error.exchange_rate.invalid"),
 	EXCHANGE_RATE_BASE_NOT_QUOTABLE("error.exchange_rate.base_not_quotable"),
+	EXCHANGE_RATE_BASE_UNQUOTED("error.exchange_rate.base_unquoted"),
 	EXCHANGE_RATE_PROVIDER_NOT_CONFIGURED("error.exchange_rate.provider_not_configured"),
 
 	// ── Transaction ───────────────────────────────────────

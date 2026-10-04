@@ -19,6 +19,9 @@ import lombok.Setter;
  * recorded, the current rate to each principal currency is frozen on it as a
  * {@link TransactionConversionEntity}. Views shown in a principal currency therefore include every
  * transaction; views in any other currency include only the transactions recorded in it.
+ *
+ * <p>The <b>base</b> currency is the one every exchange rate is quoted against. At most one row is
+ * marked; while none is, the configured {@code mypaybyday.exchange-rate.base-currency} is the base.
  */
 @Entity(name = "Currency")
 @Getter
@@ -34,4 +37,7 @@ public class CurrencyEntity extends BaseEntity {
 
 	@Builder.Default
 	public boolean principal = false;
+
+	@Builder.Default
+	public boolean base = false;
 }

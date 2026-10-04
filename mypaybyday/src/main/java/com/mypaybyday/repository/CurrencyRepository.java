@@ -15,6 +15,10 @@ public class CurrencyRepository implements PanacheRepository<CurrencyEntity> {
 		return find("code", code).firstResultOptional();
 	}
 
+	public Optional<CurrencyEntity> findBase() {
+		return find("base", true).firstResultOptional();
+	}
+
 	public List<CurrencyEntity> listOrderedByCode() {
 		return list("ORDER BY code");
 	}

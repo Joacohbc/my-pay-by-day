@@ -14,6 +14,7 @@ import com.mypaybyday.dto.TemplateDto;
 import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.entity.TemplateEntity;
 import com.mypaybyday.enums.DataSection;
+import com.mypaybyday.enums.ModifierType;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
@@ -199,7 +200,8 @@ public class TemplateService implements DataSectionTransfer<TemplateDto> {
 			entity.eventType = dto.eventType();
 			entity.modifierType = dto.modifierType();
 			entity.modifierValue = dto.modifierValue();
-			entity.currency = dto.currency();
+			boolean hasFixedAmount = dto.modifierType() == ModifierType.FIXED && dto.modifierValue() != null;
+			entity.currency = hasFixedAmount ? context.currencyOrLegacy(dto.currency()) : dto.currency();
 
 			if (dto.originNodeId() != null) {
 				Long newNodeId = context.remap(DataSection.FINANCE_NODES, dto.originNodeId());
