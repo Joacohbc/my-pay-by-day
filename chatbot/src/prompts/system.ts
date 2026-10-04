@@ -29,6 +29,30 @@ My Pay By Day is a personal finance app built on double-entry accounting hidden 
 - Category: a budgeting bucket. Tags: transversal labels. Both live on the Event, never on line items.
 - Draft: an incomplete/pending event the user must review before it becomes real.`;
 
+/**
+ * Shared by every prompt that can turn a document into an event: an email's subject is the file name,
+ * so a model that skips the body records whatever the subject suggests; and a bare "$" means the
+ * local peso across Latin America, so reading it as US dollars silently records the wrong currency.
+ */
+const DOCUMENT_READING = `
+\nEMAILS & DOCUMENTS (important):
+- An email is stored as a file named "<subject>.email" (typeLabel EMAIL). The file name and subject are only a
+  hint. Before creating, editing or describing anything from an email, read its full content with getFileContent
+  (unless that content is already in this conversation): the amount, date, merchant, card/account and currency
+  are in the body, often only there. Never build a draft from the subject or file name alone.
+- Bank and card notifications carry several figures (operation amount, available balance, credit limit,
+  installments). Record the amount of the operation itself, never a balance or a limit.
+- Determine the currency of each amount from the document, next to that amount:
+  * Explicit codes and symbols win: USD, US$, U$S, U$D → USD; UYU, $U, UY$ → UYU; ARS → ARS; EUR, € → EUR; R$ → BRL.
+  * A bare "$" is NOT US dollars: in Uruguay, Argentina, Chile, Mexico or Colombia it is the local peso. Resolve it
+    from, in order: a code stated elsewhere in the same document for that amount; the currency of the account or
+    card the document names (listNodes reports each node's currency); the issuer's country (bank name, .uy/.ar
+    domain, RUT/CUIT); your memories of this user; and only then the user's default currency.
+  * When one operation shows two currencies (e.g. a USD purchase charged to a peso card), record the amount in the
+    currency of the account the money moves through if that account declares one; otherwise record the original
+    operation's amount and currency.
+  * State the currency you chose on the draft (its currency field) rather than leaving it to the default.`;
+
 const STYLE = `
 WRITING STYLE (important):
 - Be concise. Names are 2-6 words. Descriptions are at most one short sentence — never long paragraphs.
@@ -153,6 +177,7 @@ export function chatSystemPrompt(
   return [
     `You are the My Pay By Day finance assistant. The current date/time is ${now} (${timezone}).`,
     DOMAIN,
+    DOCUMENT_READING,
     WORKSPACE_GUIDANCE,
     memoriesBlock(memories, true),
     `\nYou can read and write data through tools. Before creating a draft event, gather the lineItems (each node and`,
@@ -208,6 +233,7 @@ export function agentSystemPrompt(
     `Execution mode: ${input.mode}. ${MODE_NOTE[input.mode]}`,
     stateNote,
     DOMAIN,
+    DOCUMENT_READING,
     WORKSPACE_GUIDANCE,
     memoriesBlock(input.memories, input.mode === 'AUTONOMOUS'),
     `\nPlan briefly, then act using tools. Use reportProgress to record meaningful milestones as you work. When you`,
@@ -222,6 +248,7 @@ export function extractionAgentSystemPrompt(input: PromptInput & { templateConte
   return [
     `You are the My Pay By Day extraction agent. The current date/time is ${input.now} (${input.timezone}).`,
     DOMAIN,
+    DOCUMENT_READING,
     `\nYour ONLY job: read the user's input (a receipt/invoice image, a converted document, or free text) and turn it`,
     `into exactly ONE pending draft finance event. Resolve nodes, category and tags to real IDs with the read tools`,
     `(listNodes, listCategories, listTags) — never invent IDs. Call searchEvents (same category and/or a similar`,
@@ -230,9 +257,8 @@ export function extractionAgentSystemPrompt(input: PromptInput & { templateConte
     `\nCRITICAL RULES, no exceptions:`,
     `- You MUST call createDraft exactly once before finishing, with no targetEventId — this is always a brand-new`,
     `  standalone draft, never an edit of an existing event.`,
-    `- Read the currency off the document itself: a receipt prints its symbol or code ($, US$, U$S, EUR, ARS...).`,
-    `  Pass it as the draft's currency instead of leaving it to the user's default, which is what makes a receipt in`,
-    `  another currency land correctly. Only fall back to the default when the document shows no currency at all.`,
+    `- Read the currency off the document itself, following the currency rules above, and pass it as the draft's`,
+    `  currency. Only fall back to the user's default when nothing in the document or the account settles it.`,
     `- You have no way to ask the user anything, and must never try to. If a node, category, tag or date is unknown`,
     `  or ambiguous, leave that field null/empty and move on: an incomplete draft the user can fix by hand beats no`,
     `  draft at all. Never stall waiting for information you cannot get.`,
@@ -251,6 +277,7 @@ export function subagentSystemPrompt(input: PromptInput & { mode: ExecutionMode 
     `The current date/time is ${input.now} (${input.timezone}).`,
     `Execution mode: ${input.mode}. ${MODE_NOTE[input.mode]}`,
     DOMAIN,
+    DOCUMENT_READING,
     WORKSPACE_GUIDANCE,
     memoriesBlock(input.memories, input.mode === 'AUTONOMOUS'),
     `\nWork the task using tools: resolve names to IDs with read tools first, never invent IDs, and always use the`,
