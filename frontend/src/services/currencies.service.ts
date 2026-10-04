@@ -1,4 +1,10 @@
-import type { CurrencySetting, ExchangeRate, RecordExchangeRateDto } from '@/models';
+import type {
+  ConversionRecalculation,
+  CurrencySetting,
+  ExchangeRate,
+  RecordExchangeRateDto,
+  RequestConversionRecalculationDto,
+} from '@/models';
 import { api } from '@/services/api';
 
 export const currenciesService = {
@@ -10,4 +16,7 @@ export const currenciesService = {
     api.get<ExchangeRate[]>(currency ? `/exchange-rates?currency=${currency}` : '/exchange-rates'),
   recordRate: (dto: RecordExchangeRateDto) => api.post<ExchangeRate>('/exchange-rates', dto),
   refreshRates: () => api.post<ExchangeRate[]>('/exchange-rates/refresh', {}),
+  getRecalculations: () => api.get<ConversionRecalculation[]>('/conversion-recalculations'),
+  requestRecalculation: (dto: RequestConversionRecalculationDto) =>
+    api.post<ConversionRecalculation>('/conversion-recalculations', dto),
 };

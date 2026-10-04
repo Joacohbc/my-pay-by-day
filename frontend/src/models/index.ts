@@ -103,7 +103,8 @@ export interface Money {
 // ─── Currencies & exchange rates ──────────────────────────────────────────────
 
 export type ExchangeRateSource = 'MANUAL' | 'API';
-export type ConversionOrigin = 'AT_ENTRY' | 'RETROACTIVE';
+export type ConversionOrigin = 'AT_ENTRY' | 'RETROACTIVE' | 'RECALCULATED';
+export type ConversionRecalculationStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
 
 /** A quote: how many units of `currency` one unit of `baseCurrency` buys. */
 export interface ExchangeRate extends Identifiable {
@@ -130,6 +131,26 @@ export interface CurrencySetting {
   base: boolean;
   currentRate?: ExchangeRate | null;
   conversionPending: boolean;
+}
+
+/**
+ * Every event recorded in `sourceCurrency` (and dated within the range, when given) gets `rate` as
+ * its conversion into `targetCurrency`, replacing the rate frozen on it. A background job applies it.
+ */
+export interface RequestConversionRecalculationDto {
+  sourceCurrency: string;
+  targetCurrency: string;
+  /** Units of `targetCurrency` per one unit of `sourceCurrency`. */
+  rate: number;
+  startDate?: string | null;
+  endDate?: string | null;
+}
+
+export interface ConversionRecalculation extends Identifiable, RequestConversionRecalculationDto {
+  status: ConversionRecalculationStatus;
+  recalculatedCount: number;
+  message?: string | null;
+  requestedAt: string;
 }
 
 /** An event's amount expressed in a principal currency, with the rate frozen on it. */

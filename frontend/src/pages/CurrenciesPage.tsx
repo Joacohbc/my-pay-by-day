@@ -5,11 +5,13 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Icon } from '@/components/ui/Icon';
+import { ConvertingIcon, Icon } from '@/components/ui/Icon';
 import { CurrencySelect } from '@/components/ui/CurrencySelect';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Routes } from '@/lib/routes';
 import { formatDateTime, formatExchangeRate } from '@/lib/format';
+import { parsePositiveNumber } from '@/lib/utils/numbers';
+import { ConversionRecalculationSection } from '@/components/currency/ConversionRecalculationSection';
 import {
   useCurrencies,
   useExchangeRateHistory,
@@ -54,6 +56,12 @@ export function CurrenciesPage() {
         <SectionTitle>{t('currencies.historySection')}</SectionTitle>
         <RateHistory />
       </section>
+
+      {!isLoading && (
+        <section className="px-5">
+          <ConversionRecalculationSection currencies={currencies ?? []} />
+        </section>
+      )}
     </div>
   );
 }
@@ -122,7 +130,7 @@ function CurrencyRow({ currency }: { currency: CurrencySetting }) {
         )}
         {currency.conversionPending && (
           <p className="text-xs text-dn-warning flex items-center gap-1">
-            <Icon name="sync" className="text-sm animate-spin" />
+            <ConvertingIcon />
             {t('currencies.converting')}
           </p>
         )}
@@ -149,11 +157,6 @@ function CurrencyRow({ currency }: { currency: CurrencySetting }) {
       </Button>
     </div>
   );
-}
-
-function parsePositiveNumber(rawValue: string): number | null {
-  const parsed = Number(rawValue.replace(',', '.'));
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 function RecordRateForm({ baseCurrency }: { baseCurrency: string }) {

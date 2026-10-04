@@ -6,7 +6,8 @@ import type { FinanceEvent } from '@/models';
 
 /**
  * The event's amount in each principal currency, with the rate frozen on it when it was recorded
- * or, for a retroactive conversion, when the currency became principal.
+ * or, for a retroactive conversion, when the currency became principal, or, for a recalculated one,
+ * when the user replaced it.
  */
 export function EventConversionsSection({ event }: { event: FinanceEvent }) {
   const { t } = useTranslation();
@@ -35,6 +36,9 @@ export function EventConversionsSection({ event }: { event: FinanceEvent }) {
                 {t('currencies.conversions.frozenAt', { date: formatDateTime(conversion.frozenAt) })}
                 {conversion.origin === 'RETROACTIVE' && (
                   <Badge variant="gray" size="sm">{t('currencies.conversions.retroactive')}</Badge>
+                )}
+                {conversion.origin === 'RECALCULATED' && (
+                  <Badge variant="indigo" size="sm">{t('currencies.conversions.recalculated')}</Badge>
                 )}
               </p>
             </div>

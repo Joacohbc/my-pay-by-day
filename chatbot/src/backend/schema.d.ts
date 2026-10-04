@@ -351,6 +351,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/conversion-recalculations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List recent recalculations
+         * @description The most recent recalculations, newest first, with their progress.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Recalculations, newest first */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversionRecalculationDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Recalculate past conversions
+         * @description Queues a background job that gives every entry recorded in the source currency, optionally within a date range, the chosen rate into the target principal currency, replacing the rate frozen on it. Quotes are not changed.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RequestConversionRecalculationDto"];
+                };
+            };
+            responses: {
+                /** @description Recalculation queued */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversionRecalculationDto"];
+                    };
+                };
+                /** @description Unknown or equal currencies, a target that is not principal, a rate that is not positive, or a date range that ends before it starts */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/currencies": {
         parameters: {
             query?: never;
@@ -4955,7 +5030,21 @@ export interface components {
             failedDraftIds: number[];
         };
         /** @enum {string} */
-        ConversionOrigin: "AT_ENTRY" | "RETROACTIVE";
+        ConversionOrigin: "AT_ENTRY" | "RETROACTIVE" | "RECALCULATED";
+        ConversionRecalculationDto: {
+            /** Format: int64 */
+            id?: number;
+            sourceCurrency?: string;
+            targetCurrency?: string;
+            rate?: number;
+            startDate?: ((string | components["schemas"]["LocalDateTime"] | null) | null) | components["schemas"]["LocalDateTime"] | null;
+            endDate?: ((string | components["schemas"]["LocalDateTime"] | null) | null) | components["schemas"]["LocalDateTime"] | null;
+            status?: components["schemas"]["JobStatus"];
+            /** Format: int32 */
+            recalculatedCount?: number;
+            message?: string | null;
+            requestedAt?: components["schemas"]["Instant"];
+        };
         /** @description DTO for creating or updating a Payment Plan */
         CreatePaymentPlanDto: {
             name: string;
@@ -5328,6 +5417,8 @@ export interface components {
          * @example 2022-03-10T16:15:50Z
          */
         Instant: string;
+        /** @enum {string} */
+        JobStatus: "PENDING" | "COMPLETED" | "FAILED";
         JsonNullableBigDecimal: {
             value?: number;
             isPresent?: boolean;
@@ -5552,6 +5643,13 @@ export interface components {
             amount?: number;
             type?: components["schemas"]["EventType"];
             category?: components["schemas"]["CategoryDto"];
+        };
+        RequestConversionRecalculationDto: {
+            sourceCurrency?: string;
+            targetCurrency?: string;
+            rate?: number;
+            startDate?: ((string | components["schemas"]["LocalDateTime"] | null) | null) | components["schemas"]["LocalDateTime"] | null;
+            endDate?: ((string | components["schemas"]["LocalDateTime"] | null) | null) | components["schemas"]["LocalDateTime"] | null;
         };
         ResolveDuplicateRequestDto: {
             action: components["schemas"]["DuplicateRecordStatus"];

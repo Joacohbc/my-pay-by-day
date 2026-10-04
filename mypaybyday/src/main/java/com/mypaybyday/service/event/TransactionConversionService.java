@@ -11,6 +11,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.ConversionBackfillBatchDto;
+import com.mypaybyday.dto.ConversionRecalculationBatchDto;
+import com.mypaybyday.dto.ConversionRecalculationDto;
 import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.TransactionConversionDto;
 import com.mypaybyday.entity.FinanceLineItemEntity;
@@ -30,8 +32,9 @@ import io.quarkus.logging.Log;
  * Freezes exchange rates on transactions.
  *
  * <p>A transaction carries one rate per principal currency other than its own. The rate is taken
- * from the current quotes at the moment it is frozen and never changes afterwards, so recording a
- * new quote only affects transactions recorded from then on.
+ * from the current quotes at the moment it is frozen and recording a new quote never changes it, so
+ * a new quote only affects transactions recorded from then on. The only way to re-price a past
+ * transaction is an explicit conversion recalculation requested by the user.
  */
 @ApplicationScoped
 public class TransactionConversionService {
@@ -137,6 +140,51 @@ public class TransactionConversionService {
 				convertedCount, batch.size(), targetCurrency, lastTransactionId);
 		return new ConversionBackfillBatchDto(convertedCount, batch.size() - convertedCount,
 				List.copyOf(unquotedCurrencies), lastTransactionId, hasMore);
+	}
+
+	/**
+	 * Gives one batch of the transactions a recalculation covers its rate, replacing the conversion
+	 * frozen on them or adding it where they had none yet. Like {@link #backfillBatch}, each batch
+	 * commits on its own.
+	 *
+	 * @param afterTransactionId resume point: only transactions with a greater id are considered
+	 * @return what the batch did, including where the next batch should resume
+	 */
+	@Transactional
+	public ConversionRecalculationBatchDto recalculateBatch(ConversionRecalculationDto recalculation,
+			long afterTransactionId) {
+		List<FinanceTransactionEntity> batch = transactionRepository.findRecordedIn(
+				recalculation.sourceCurrency(), recalculation.startDate(), recalculation.endDate(),
+				afterTransactionId, BACKFILL_BATCH_SIZE);
+		if (batch.isEmpty()) {
+			return ConversionRecalculationBatchDto.finished(afterTransactionId);
+		}
+
+		for (FinanceTransactionEntity transaction : batch) {
+			replaceConversion(transaction, recalculation.targetCurrency(), recalculation.rate());
+		}
+
+		long lastTransactionId = batch.get(batch.size() - 1).id;
+		boolean hasMore = batch.size() == BACKFILL_BATCH_SIZE;
+		Log.debugf("Recalculated %d transactions from %s into %s (last id=%d)",
+				batch.size(), recalculation.sourceCurrency(), recalculation.targetCurrency(), lastTransactionId);
+		return new ConversionRecalculationBatchDto(batch.size(), lastTransactionId, hasMore);
+	}
+
+	/**
+	 * Updates the held conversion in place rather than swapping it for a new row: the new row would
+	 * be inserted before the old one is deleted and collide with it on (transaction, currency).
+	 */
+	private void replaceConversion(FinanceTransactionEntity transaction, String targetCurrency, BigDecimal rate) {
+		Optional<TransactionConversionEntity> held = transaction.conversions.stream()
+				.filter(conversion -> conversion.currency.equals(targetCurrency))
+				.findFirst();
+		if (held.isEmpty()) {
+			addConversion(transaction, targetCurrency, rate, ConversionOrigin.RECALCULATED);
+			return;
+		}
+		held.get().rate = rate;
+		held.get().origin = ConversionOrigin.RECALCULATED;
 	}
 
 	private List<String> missingTargets(FinanceTransactionEntity transaction, String ownCurrency,

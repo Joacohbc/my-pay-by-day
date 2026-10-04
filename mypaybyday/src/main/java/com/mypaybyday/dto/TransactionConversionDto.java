@@ -18,8 +18,9 @@ import com.mypaybyday.enums.ConversionOrigin;
  * @param currency ISO 4217 code of the converted amount
  * @param rate     units of {@code currency} per one unit of the event's own currency
  * @param amount   the event's amount multiplied by {@code rate}, rounded to the currency's minor unit
- * @param origin   whether the rate was frozen when the event was recorded or later, retroactively
- * @param frozenAt when the rate was frozen
+ * @param origin   whether the rate was frozen when the event was recorded, later retroactively, or
+ *                 replaced by a recalculation
+ * @param frozenAt when the rate was frozen, or last replaced
  */
 public record TransactionConversionDto(
 		String currency,
@@ -40,8 +41,12 @@ public record TransactionConversionDto(
 						conversion.rate,
 						convert(eventAmount, conversion.rate, conversion.currency),
 						conversion.origin,
-						conversion.createdAt))
+						frozenAtOf(conversion)))
 				.toList();
+	}
+
+	private static Instant frozenAtOf(TransactionConversionEntity conversion) {
+		return conversion.updatedAt != null ? conversion.updatedAt : conversion.createdAt;
 	}
 
 	/**

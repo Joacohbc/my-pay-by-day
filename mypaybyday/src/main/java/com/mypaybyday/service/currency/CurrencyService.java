@@ -38,6 +38,7 @@ public class CurrencyService implements DataSectionTransfer<CurrencyExportDto> {
 	private final ExchangeRateRepository exchangeRateRepository;
 	private final ExchangeRateLookup exchangeRateLookup;
 	private final ConversionBackfillQueue conversionBackfillQueue;
+	private final ConversionRecalculationService conversionRecalculationService;
 	private final CurrencyValidator currencyValidator;
 	private final ArchivedItemImporter archivedItemImporter;
 	private final Messages messages;
@@ -47,6 +48,7 @@ public class CurrencyService implements DataSectionTransfer<CurrencyExportDto> {
 			ExchangeRateRepository exchangeRateRepository,
 			ExchangeRateLookup exchangeRateLookup,
 			ConversionBackfillQueue conversionBackfillQueue,
+			ConversionRecalculationService conversionRecalculationService,
 			CurrencyValidator currencyValidator,
 			ArchivedItemImporter archivedItemImporter,
 			Messages messages) {
@@ -54,6 +56,7 @@ public class CurrencyService implements DataSectionTransfer<CurrencyExportDto> {
 		this.exchangeRateRepository = exchangeRateRepository;
 		this.exchangeRateLookup = exchangeRateLookup;
 		this.conversionBackfillQueue = conversionBackfillQueue;
+		this.conversionRecalculationService = conversionRecalculationService;
 		this.currencyValidator = currencyValidator;
 		this.archivedItemImporter = archivedItemImporter;
 		this.messages = messages;
@@ -165,7 +168,9 @@ public class CurrencyService implements DataSectionTransfer<CurrencyExportDto> {
 				.findLatest(baseCurrency, code)
 				.map(ExchangeRateDto::from)
 				.orElse(null);
-		return new CurrencyDto(code, principal, isBase, currentRate, conversionBackfillQueue.isPending(code));
+		boolean isConversionPending = conversionBackfillQueue.isPending(code)
+				|| conversionRecalculationService.isPendingInto(code);
+		return new CurrencyDto(code, principal, isBase, currentRate, isConversionPending);
 	}
 
 	// -------------------------------------------------------------------------

@@ -10,7 +10,8 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
  * @param base              whether it is the currency every quote is expressed against
  * @param currentRate       its newest quote, or {@code null} when none was recorded (always
  *                          {@code null} for the base currency, whose rate is 1 by definition)
- * @param conversionPending whether past transactions are still being converted into it
+ * @param conversionPending whether past transactions are still being converted into it, either
+ *                          because it became principal or because a recalculation is running
  */
 public record CurrencyDto(
 		String code,
