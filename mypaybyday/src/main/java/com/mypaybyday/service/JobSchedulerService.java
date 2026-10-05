@@ -4,24 +4,30 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.ConversionBackfillBatchDto;
 import com.mypaybyday.dto.ConversionRecalculationBatchDto;
 import com.mypaybyday.dto.ConversionRecalculationDto;
+import com.mypaybyday.dto.ExchangeRateDto;
 import com.mypaybyday.entity.SystemJobEntity;
 import com.mypaybyday.enums.JobCategory;
 import com.mypaybyday.enums.JobStatus;
 import com.mypaybyday.filter.CorrelationIdFilter;
+import com.mypaybyday.i18n.LanguageContext;
 import com.mypaybyday.repository.SystemJobRepository;
 import com.mypaybyday.service.duplicate.DuplicateDetectionEvent;
 import com.mypaybyday.service.duplicate.DuplicateDetectionService;
 import com.mypaybyday.service.currency.ConversionRecalculationService;
+import com.mypaybyday.service.currency.ExchangeRateRefreshScheduleService;
+import com.mypaybyday.service.currency.ExchangeRateService;
 import com.mypaybyday.service.event.TransactionConversionService;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.scheduler.Scheduled;
@@ -37,6 +43,7 @@ public class JobSchedulerService {
 	private static final String JOB_DUPLICATE_DETECTION = "duplicate-detection";
 	private static final String JOB_CURRENCY_CONVERSION_BACKFILL = "currency-conversion-backfill";
 	private static final String JOB_CURRENCY_CONVERSION_RECALCULATION = "currency-conversion-recalculation";
+	private static final String JOB_EXCHANGE_RATE_REFRESH = "exchange-rate-refresh";
 
 	/** The job message column is a VARCHAR(255). */
 	private static final int JOB_MESSAGE_MAX_LENGTH = 255;
@@ -82,14 +89,20 @@ public class JobSchedulerService {
 	private final DuplicateDetectionService duplicateDetectionService;
 	private final TransactionConversionService transactionConversionService;
 	private final ConversionRecalculationService conversionRecalculationService;
+	private final ExchangeRateRefreshScheduleService exchangeRateRefreshScheduleService;
+	private final ExchangeRateService exchangeRateService;
+	private final LanguageContext languageContext;
 
-	public JobSchedulerService(SystemJobRepository systemJobRepository, SubscriptionService subscriptionService, PaymentPlanService paymentPlanService, DuplicateDetectionService duplicateDetectionService, TransactionConversionService transactionConversionService, ConversionRecalculationService conversionRecalculationService) {
+	public JobSchedulerService(SystemJobRepository systemJobRepository, SubscriptionService subscriptionService, PaymentPlanService paymentPlanService, DuplicateDetectionService duplicateDetectionService, TransactionConversionService transactionConversionService, ConversionRecalculationService conversionRecalculationService, ExchangeRateRefreshScheduleService exchangeRateRefreshScheduleService, ExchangeRateService exchangeRateService, LanguageContext languageContext) {
 		this.systemJobRepository = systemJobRepository;
 		this.subscriptionService = subscriptionService;
 		this.paymentPlanService = paymentPlanService;
 		this.duplicateDetectionService = duplicateDetectionService;
 		this.transactionConversionService = transactionConversionService;
 		this.conversionRecalculationService = conversionRecalculationService;
+		this.exchangeRateRefreshScheduleService = exchangeRateRefreshScheduleService;
+		this.exchangeRateService = exchangeRateService;
+		this.languageContext = languageContext;
 	}
 
 	@Scheduled(every = "1h", delayed = "45s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
@@ -353,6 +366,41 @@ public class JobSchedulerService {
 			LOG.errorf(exception, "Conversion recalculation %d failed.", recalculation.id());
 			conversionRecalculationService.fail(recalculation.id(), recalculatedCount, "Failed: " + exception.getMessage());
 			return false;
+		}
+	}
+
+	/**
+	 * Records the exchange rate provider's quotes once a day, at the time the user scheduled. It checks
+	 * every minute because that time is the user's own choice, not one fixed at build time. Runs with
+	 * a request context of its own: the quotes are recorded through the same services a request
+	 * uses, which read the language their messages are written in from it.
+	 */
+	@Scheduled(every = "1m", delayed = "50s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+	@ActivateRequestContext
+	public void processExchangeRateRefreshJob() {
+		withJobCorrelation("scheduler:exchange-rate-refresh", this::runExchangeRateRefreshJob);
+	}
+
+	private void runExchangeRateRefreshJob() {
+		Optional<String> claimedRunLanguage;
+		try {
+			claimedRunLanguage = exchangeRateRefreshScheduleService.claimDueRun();
+		} catch (RuntimeException exception) {
+			LOG.warn("Skipping exchange rate refresh due to temporary database unavailability.", exception);
+			return;
+		}
+		if (claimedRunLanguage.isEmpty()) return;
+
+		languageContext.setLang(claimedRunLanguage.get());
+		long startedAtMillis = System.currentTimeMillis();
+		try {
+			List<ExchangeRateDto> recorded = exchangeRateService.refreshFromProvider();
+			exchangeRateRefreshScheduleService.recordRunOutcome(null);
+			logJobSummary(JOB_EXCHANGE_RATE_REFRESH, JOB_STATUS_COMPLETED, recorded.size(), 0, startedAtMillis);
+		} catch (RuntimeException exception) {
+			LOG.warnf("Automatic exchange rate refresh failed: %s", exception.getMessage());
+			exchangeRateRefreshScheduleService.recordRunOutcome(exception.getMessage());
+			logJobSummary(JOB_EXCHANGE_RATE_REFRESH, JOB_STATUS_COMPLETED, 0, 1, startedAtMillis);
 		}
 	}
 

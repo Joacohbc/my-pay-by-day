@@ -90,7 +90,7 @@ public class ExchangeRateService implements DataSectionTransfer<ExchangeRateDto>
 
 	/**
 	 * Asks the configured provider for a quote of every configured currency and records whatever it
-	 * returns. Runs only when the user asks for it.
+	 * returns. Runs when the user asks for it, or from the daily refresh the user scheduled.
 	 *
 	 * @throws BusinessException if no provider is configured or it fails
 	 */

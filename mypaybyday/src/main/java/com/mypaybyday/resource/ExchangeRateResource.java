@@ -5,6 +5,7 @@ import java.util.List;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
@@ -22,9 +23,12 @@ import org.jboss.resteasy.reactive.RestResponse;
 
 import com.mypaybyday.dto.ErrorResponseDto;
 import com.mypaybyday.dto.ExchangeRateDto;
+import com.mypaybyday.dto.ExchangeRateRefreshScheduleDto;
 import com.mypaybyday.dto.ProviderQuoteDto;
 import com.mypaybyday.dto.RecordExchangeRateDto;
+import com.mypaybyday.dto.UpdateExchangeRateRefreshScheduleDto;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.service.currency.ExchangeRateRefreshScheduleService;
 import com.mypaybyday.service.currency.ExchangeRateService;
 
 @Path("/exchange-rates")
@@ -34,9 +38,12 @@ import com.mypaybyday.service.currency.ExchangeRateService;
 public class ExchangeRateResource {
 
 	private final ExchangeRateService exchangeRateService;
+	private final ExchangeRateRefreshScheduleService refreshScheduleService;
 
-	public ExchangeRateResource(ExchangeRateService exchangeRateService) {
+	public ExchangeRateResource(ExchangeRateService exchangeRateService,
+			ExchangeRateRefreshScheduleService refreshScheduleService) {
 		this.exchangeRateService = exchangeRateService;
+		this.refreshScheduleService = refreshScheduleService;
 	}
 
 	@GET
@@ -86,7 +93,7 @@ public class ExchangeRateResource {
 	@Path("/refresh")
 	@Operation(summary = "Fetch quotes from the configured provider",
 			description = "Asks the external quote source for every configured currency and records what it returns. "
-					+ "Never runs on its own.")
+					+ "Also runs once a day on its own when a refresh schedule is enabled.")
 	@APIResponses({
 			@APIResponse(responseCode = "200", description = "Quotes recorded",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(type = SchemaType.ARRAY, implementation = ExchangeRateDto.class))),
@@ -97,4 +104,28 @@ public class ExchangeRateResource {
 		return RestResponse.ok(exchangeRateService.refreshFromProvider());
 	}
 
+	@GET
+	@Path("/refresh-schedule")
+	@Operation(summary = "Get the automatic refresh schedule",
+			description = "Whether, and at what time of day, the provider's quotes are recorded without asking, and how the last run went.")
+	@APIResponse(responseCode = "200", description = "The schedule",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ExchangeRateRefreshScheduleDto.class)))
+	public RestResponse<ExchangeRateRefreshScheduleDto> refreshSchedule() {
+		return RestResponse.ok(refreshScheduleService.getSchedule());
+	}
+
+	@PUT
+	@Path("/refresh-schedule")
+	@Operation(summary = "Update the automatic refresh schedule",
+			description = "The refresh time is read in the time zone of the request (X-Timezone).")
+	@APIResponses({
+			@APIResponse(responseCode = "200", description = "The saved schedule",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ExchangeRateRefreshScheduleDto.class))),
+			@APIResponse(responseCode = "400", description = "No refresh time given",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
+	})
+	public RestResponse<ExchangeRateRefreshScheduleDto> updateRefreshSchedule(UpdateExchangeRateRefreshScheduleDto schedule)
+			throws BusinessException {
+		return RestResponse.ok(refreshScheduleService.updateSchedule(schedule));
+	}
 }
