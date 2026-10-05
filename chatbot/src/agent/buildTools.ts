@@ -8,6 +8,7 @@ import { buildDateTools } from '@/tools/dates.js';
 import { buildFileTools } from '@/tools/files.js';
 import { buildFinanceTools } from '@/tools/finance.js';
 import { buildMemoryTools } from '@/tools/memory.js';
+import { buildCurrencyTools } from '@/tools/currencies.js';
 import { buildPaymentPlanTools } from '@/tools/paymentPlans.js';
 import type { ExecutionMode } from '@/prompts/system.js';
 import { selectTools, type KindedToolSet, type ToolKind } from '@/tools/types.js';
@@ -128,6 +129,7 @@ export function buildAllTools(ctx: RequestContext, extra: KindedToolSet = {}): K
     ...buildFileTools(ctx),
     ...buildFinanceTools(ctx),
     ...buildPaymentPlanTools(ctx),
+    ...buildCurrencyTools(ctx),
     ...buildMemoryTools(),
     ...buildConversationTools(ctx),
     ...buildCalculatorTools(),

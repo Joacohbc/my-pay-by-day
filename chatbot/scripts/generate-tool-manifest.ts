@@ -5,6 +5,7 @@ import type { RequestContext } from '@/context.js';
 import { buildBackgroundTools } from '@/tools/background.js';
 import { buildCalculatorTools } from '@/tools/calculator.js';
 import { buildConversationTools } from '@/tools/conversations.js';
+import { buildCurrencyTools } from '@/tools/currencies.js';
 import { buildDateTools } from '@/tools/dates.js';
 import { buildDelegateTools } from '@/tools/delegate.js';
 import { buildFileTools } from '@/tools/files.js';
@@ -24,6 +25,7 @@ function collectAllTools(): KindedToolSet {
     ...buildFileTools(stubContext),
     ...buildFinanceTools(stubContext),
     ...buildPaymentPlanTools(stubContext),
+    ...buildCurrencyTools(stubContext),
     ...buildMemoryTools(),
     ...buildConversationTools(stubContext),
     ...buildCalculatorTools(),

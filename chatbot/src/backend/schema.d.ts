@@ -1894,6 +1894,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/exchange-rates/provider-quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview the configured provider's quotes
+         * @description Asks the external quote source for every configured currency and returns what it offers right now, without recording anything.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Quotes the provider offers, against the current base currency */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProviderQuoteDto"][];
+                    };
+                };
+                /** @description No provider is configured, it cannot quote against the base currency, or it failed */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/exchange-rates/refresh": {
         parameters: {
             query?: never;
@@ -1905,7 +1953,7 @@ export interface paths {
         put?: never;
         /**
          * Fetch quotes from the configured provider
-         * @description Asks the external quote source for every configured currency and records what it returns. Never runs on its own.
+         * @description Asks the external quote source for every configured currency and records what it returns. Also runs once a day on its own when a refresh schedule is enabled.
          */
         post: {
             parameters: {
@@ -1925,7 +1973,7 @@ export interface paths {
                         "application/json": components["schemas"]["ExchangeRateDto"][];
                     };
                 };
-                /** @description No provider is configured, or it failed */
+                /** @description No provider is configured, it cannot quote against the base currency, or it failed */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1936,6 +1984,81 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/exchange-rates/refresh-schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the automatic refresh schedule
+         * @description Whether, and at what time of day, the provider's quotes are recorded without asking, and how the last run went.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The schedule */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExchangeRateRefreshScheduleDto"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update the automatic refresh schedule
+         * @description The refresh time is read in the time zone of the request (X-Timezone).
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateExchangeRateRefreshScheduleDto"];
+                };
+            };
+            responses: {
+                /** @description The saved schedule */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExchangeRateRefreshScheduleDto"];
+                    };
+                };
+                /** @description No refresh time given */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5268,6 +5391,18 @@ export interface components {
             source?: components["schemas"]["ExchangeRateSource"];
             recordedAt?: components["schemas"]["Instant"];
         };
+        ExchangeRateRefreshScheduleDto: {
+            enabled?: boolean;
+            /**
+             * Format: time
+             * @example 18:00:00
+             */
+            refreshTime?: string;
+            businessDaysOnly?: boolean;
+            timeZone?: string;
+            lastAttemptOn?: ((string | components["schemas"]["LocalDate"] | null) | null) | components["schemas"]["LocalDate"] | null;
+            lastFailure?: string | null;
+        };
         /** @enum {string} */
         ExchangeRateSource: "MANUAL" | "API";
         FileDto: {
@@ -5479,6 +5614,8 @@ export interface components {
          * @example 2022-03-10T12:15:50
          */
         LocalDateTime: string;
+        /** Format: local-time */
+        LocalTime: string;
         MergeEventsRequestDto: {
             sourceIds: number[];
             groupByNodeIds?: number[];
@@ -5619,6 +5756,12 @@ export interface components {
         PaymentPlanStatus: "ACTIVE" | "PAUSED" | "COMPLETED" | "CANCELLED";
         /** @enum {string} */
         PaymentPlanType: "RECURRING" | "INSTALLMENT" | "CUSTOM" | "GROUP";
+        ProviderQuoteDto: {
+            source?: string;
+            currency?: string;
+            baseCurrency?: string;
+            unitsPerBase?: number;
+        };
         RecordExchangeRateDto: {
             currency?: string;
             unitsPerBase?: number;
@@ -5788,6 +5931,15 @@ export interface components {
         };
         UpdateCurrencyDto: {
             principal?: boolean;
+        };
+        UpdateExchangeRateRefreshScheduleDto: {
+            enabled?: boolean;
+            /**
+             * Format: time
+             * @example 18:00
+             */
+            refreshTime?: string;
+            businessDaysOnly?: boolean;
         };
         /** @description Statistics about entity usage and selection frequency */
         UsageStatsDto: {

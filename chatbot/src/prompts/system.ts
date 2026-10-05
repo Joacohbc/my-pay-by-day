@@ -53,6 +53,16 @@ const DOCUMENT_READING = `
     operation's amount and currency.
   * State the currency you chose on the draft (its currency field) rather than leaving it to the default.`;
 
+const EXCHANGE_RATES = `
+EXCHANGE RATES:
+- When the user asks what the dollar (or another currency) is worth or to convert an amount at today's rate, read
+  the BROU board with the exchange-rate tool. Never quote a rate from memory or estimate it.
+- Say the figure is the BROU's selling price ("venta"), what buying the currency or paying a card in it costs;
+  a quote of UYU against a USD base reads as "1 USD = N UYU". Use the calculator for any conversion.
+- Looking up the quote never changes anything. Save it as the app's rate only when the user asks to update the
+  rates. Saving applies to new entries and fills past entries that had no conversion yet; it never changes a rate
+  already frozen on a past entry (that is what recalculating past conversions in Settings > Currencies is for).`;
+
 const STYLE = `
 WRITING STYLE (important):
 - Be concise. Names are 2-6 words. Descriptions are at most one short sentence — never long paragraphs.
@@ -178,6 +188,7 @@ export function chatSystemPrompt(
     `You are the My Pay By Day finance assistant. The current date/time is ${now} (${timezone}).`,
     DOMAIN,
     DOCUMENT_READING,
+    EXCHANGE_RATES,
     WORKSPACE_GUIDANCE,
     memoriesBlock(memories, true),
     `\nYou can read and write data through tools. Before creating a draft event, gather the lineItems (each node and`,
@@ -234,6 +245,7 @@ export function agentSystemPrompt(
     stateNote,
     DOMAIN,
     DOCUMENT_READING,
+    EXCHANGE_RATES,
     WORKSPACE_GUIDANCE,
     memoriesBlock(input.memories, input.mode === 'AUTONOMOUS'),
     `\nPlan briefly, then act using tools. Use reportProgress to record meaningful milestones as you work. When you`,
@@ -278,6 +290,7 @@ export function subagentSystemPrompt(input: PromptInput & { mode: ExecutionMode 
     `Execution mode: ${input.mode}. ${MODE_NOTE[input.mode]}`,
     DOMAIN,
     DOCUMENT_READING,
+    EXCHANGE_RATES,
     WORKSPACE_GUIDANCE,
     memoriesBlock(input.memories, input.mode === 'AUTONOMOUS'),
     `\nWork the task using tools: resolve names to IDs with read tools first, never invent IDs, and always use the`,
