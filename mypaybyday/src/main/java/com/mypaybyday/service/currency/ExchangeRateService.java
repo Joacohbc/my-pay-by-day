@@ -10,6 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.ExchangeRateDto;
+import com.mypaybyday.dto.ProviderQuoteDto;
 import com.mypaybyday.dto.RecordExchangeRateDto;
 import com.mypaybyday.dto.SectionImportResult;
 import com.mypaybyday.entity.ExchangeRateEntity;
@@ -81,28 +82,22 @@ public class ExchangeRateService implements DataSectionTransfer<ExchangeRateDto>
 	 *                           a positive number
 	 */
 	@Transactional
-	public ExchangeRateDto recordManualRate(RecordExchangeRateDto quote) throws BusinessException {
-		ExchangeRateEntity recorded = record(quote.currency(), quote.unitsPerBase(), ExchangeRateSource.MANUAL);
+	public ExchangeRateDto recordRate(RecordExchangeRateDto quote) throws BusinessException {
+		ExchangeRateSource source = quote.source() == null ? ExchangeRateSource.MANUAL : quote.source();
+		ExchangeRateEntity recorded = record(quote.currency(), quote.unitsPerBase(), source);
 		conversionBackfillQueue.enqueueAllPrincipal();
 		return ExchangeRateDto.from(recorded);
 	}
 
 	/**
 	 * Asks the configured provider for a quote of every configured currency and records whatever it
-	 * returns. Runs only when the user asks for it.
+	 * returns. Runs when the user asks for it, or from the daily refresh the user scheduled.
 	 *
 	 * @throws BusinessException if no provider is configured or it fails
 	 */
 	@Transactional
 	public List<ExchangeRateDto> refreshFromProvider() throws BusinessException {
-		String baseCurrency = exchangeRateLookup.baseCurrency();
-		Set<String> quotedCurrencies = new LinkedHashSet<>();
-		currencyRepository.listOrderedByCode().stream()
-				.map(currency -> currency.code)
-				.filter(code -> !code.equals(baseCurrency))
-				.forEach(quotedCurrencies::add);
-
-		Map<String, BigDecimal> fetchedQuotes = exchangeRateProvider.fetchUnitsPerBase(baseCurrency, quotedCurrencies);
+		Map<String, BigDecimal> fetchedQuotes = fetchProviderQuotes(exchangeRateLookup.baseCurrency());
 		List<ExchangeRateDto> recorded = fetchedQuotes.entrySet().stream()
 				.map(quote -> record(quote.getKey(), quote.getValue(), ExchangeRateSource.API))
 				.map(ExchangeRateDto::from)
@@ -111,6 +106,40 @@ public class ExchangeRateService implements DataSectionTransfer<ExchangeRateDto>
 		conversionBackfillQueue.enqueueAllPrincipal();
 		Log.infof("Recorded %d quotes from the exchange rate provider", recorded.size());
 		return recorded;
+	}
+
+	/**
+	 * Asks the configured provider for its current quotes without recording anything, so the user can
+	 * see them before deciding to adopt them.
+	 *
+	 * @param onlyCurrency limits the preview to this currency, configured or not; {@code null} asks
+	 *                     for every configured currency
+	 * @return the quotes; a currency the provider does not quote is left out
+	 * @throws BusinessException if the code is unknown, or no provider is configured or it fails
+	 */
+	@Transactional
+	public List<ProviderQuoteDto> previewProviderQuotes(String onlyCurrency) throws BusinessException {
+		String normalizedCurrency = currencyValidator.validateOptional(onlyCurrency);
+		String baseCurrency = exchangeRateLookup.baseCurrency();
+		Map<String, BigDecimal> fetchedQuotes = normalizedCurrency == null
+				? fetchProviderQuotes(baseCurrency)
+				: exchangeRateProvider.fetchUnitsPerBase(baseCurrency, Set.of(normalizedCurrency));
+		return toProviderQuotes(fetchedQuotes, baseCurrency);
+	}
+
+	private List<ProviderQuoteDto> toProviderQuotes(Map<String, BigDecimal> fetchedQuotes, String baseCurrency) {
+		return fetchedQuotes.entrySet().stream()
+				.map(quote -> new ProviderQuoteDto(exchangeRateProvider.name(), quote.getKey(), baseCurrency, quote.getValue()))
+				.toList();
+	}
+
+	private Map<String, BigDecimal> fetchProviderQuotes(String baseCurrency) throws BusinessException {
+		Set<String> quotedCurrencies = new LinkedHashSet<>();
+		currencyRepository.listOrderedByCode().stream()
+				.map(currency -> currency.code)
+				.filter(code -> !code.equals(baseCurrency))
+				.forEach(quotedCurrencies::add);
+		return exchangeRateProvider.fetchUnitsPerBase(baseCurrency, quotedCurrencies);
 	}
 
 	private ExchangeRateEntity record(String currency, BigDecimal unitsPerBase, ExchangeRateSource source)

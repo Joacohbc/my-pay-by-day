@@ -103,7 +103,8 @@ export interface Money {
 // ─── Currencies & exchange rates ──────────────────────────────────────────────
 
 export type ExchangeRateSource = 'MANUAL' | 'API';
-export type ConversionOrigin = 'AT_ENTRY' | 'RETROACTIVE';
+export type ConversionOrigin = 'AT_ENTRY' | 'RETROACTIVE' | 'RECALCULATED';
+export type ConversionRecalculationStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
 
 /** A quote: how many units of `currency` one unit of `baseCurrency` buys. */
 export interface ExchangeRate extends Identifiable {
@@ -114,9 +115,38 @@ export interface ExchangeRate extends Identifiable {
   recordedAt: string;
 }
 
+/** A quote the configured provider offers right now; nothing is recorded until the user adopts it. */
+export interface ProviderQuote {
+  source: string;
+  currency: string;
+  baseCurrency: string;
+  unitsPerBase: number;
+}
+
+/**
+ * When the provider's quotes are recorded on their own: once a day from `refreshTime` ("HH:mm:ss"),
+ * read in `timeZone`, the zone of whoever last saved it.
+ */
+export interface ExchangeRateRefreshSchedule {
+  enabled: boolean;
+  refreshTime: string;
+  businessDaysOnly: boolean;
+  timeZone: string;
+  lastAttemptOn?: string | null;
+  lastFailure?: string | null;
+}
+
+export interface UpdateExchangeRateRefreshScheduleDto {
+  enabled: boolean;
+  refreshTime: string;
+  businessDaysOnly: boolean;
+}
+
+/** `source` is `API` only when the user saves a provider quote exactly as fetched; it defaults to `MANUAL`. */
 export interface RecordExchangeRateDto {
   currency: string;
   unitsPerBase: number;
+  source?: ExchangeRateSource;
 }
 
 /**
@@ -130,6 +160,26 @@ export interface CurrencySetting {
   base: boolean;
   currentRate?: ExchangeRate | null;
   conversionPending: boolean;
+}
+
+/**
+ * Every event recorded in `sourceCurrency` (and dated within the range, when given) gets `rate` as
+ * its conversion into `targetCurrency`, replacing the rate frozen on it. A background job applies it.
+ */
+export interface RequestConversionRecalculationDto {
+  sourceCurrency: string;
+  targetCurrency: string;
+  /** Units of `targetCurrency` per one unit of `sourceCurrency`. */
+  rate: number;
+  startDate?: string | null;
+  endDate?: string | null;
+}
+
+export interface ConversionRecalculation extends Identifiable, RequestConversionRecalculationDto {
+  status: ConversionRecalculationStatus;
+  recalculatedCount: number;
+  message?: string | null;
+  requestedAt: string;
 }
 
 /** An event's amount expressed in a principal currency, with the rate frozen on it. */

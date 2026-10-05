@@ -351,6 +351,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/conversion-recalculations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List recent recalculations
+         * @description The most recent recalculations, newest first, with their progress.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Recalculations, newest first */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversionRecalculationDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Recalculate past conversions
+         * @description Queues a background job that gives every entry recorded in the source currency, optionally within a date range, the chosen rate into the target principal currency, replacing the rate frozen on it. Quotes are not changed.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RequestConversionRecalculationDto"];
+                };
+            };
+            responses: {
+                /** @description Recalculation queued */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversionRecalculationDto"];
+                    };
+                };
+                /** @description Unknown or equal currencies, a target that is not principal, a rate that is not positive, or a date range that ends before it starts */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/currencies": {
         parameters: {
             query?: never;
@@ -1777,8 +1852,8 @@ export interface paths {
         };
         put?: never;
         /**
-         * Record a quote manually
-         * @description Appends a quote that becomes the currency's current rate. Entries already recorded keep the rate frozen on them.
+         * Record a quote
+         * @description Appends a quote that becomes the currency's current rate. Entries already recorded keep the rate frozen on them. The source defaults to MANUAL.
          */
         post: {
             parameters: {
@@ -1819,6 +1894,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/exchange-rates/provider-quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview the configured provider's quotes
+         * @description Asks the external quote source for every configured currency, or only for the given one, and returns what it offers right now, without recording anything.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Only the quote of this ISO 4217 currency, even when it is not configured yet */
+                    currency?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Quotes the provider offers, against the current base currency */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProviderQuoteDto"][];
+                    };
+                };
+                /** @description Unknown currency code, no provider is configured, it cannot quote against the base currency, or it failed */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/exchange-rates/refresh": {
         parameters: {
             query?: never;
@@ -1830,7 +1956,7 @@ export interface paths {
         put?: never;
         /**
          * Fetch quotes from the configured provider
-         * @description Asks the external quote source for every configured currency and records what it returns. Never runs on its own.
+         * @description Asks the external quote source for every configured currency and records what it returns. Also runs once a day on its own when a refresh schedule is enabled.
          */
         post: {
             parameters: {
@@ -1850,7 +1976,7 @@ export interface paths {
                         "application/json": components["schemas"]["ExchangeRateDto"][];
                     };
                 };
-                /** @description No provider is configured, or it failed */
+                /** @description No provider is configured, it cannot quote against the base currency, or it failed */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1861,6 +1987,81 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/exchange-rates/refresh-schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the automatic refresh schedule
+         * @description Whether, and at what time of day, the provider's quotes are recorded without asking, and how the last run went.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The schedule */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExchangeRateRefreshScheduleDto"];
+                    };
+                };
+            };
+        };
+        /**
+         * Update the automatic refresh schedule
+         * @description The refresh time is read in the time zone of the request (X-Timezone).
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateExchangeRateRefreshScheduleDto"];
+                };
+            };
+            responses: {
+                /** @description The saved schedule */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExchangeRateRefreshScheduleDto"];
+                    };
+                };
+                /** @description No refresh time given */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4955,7 +5156,21 @@ export interface components {
             failedDraftIds: number[];
         };
         /** @enum {string} */
-        ConversionOrigin: "AT_ENTRY" | "RETROACTIVE";
+        ConversionOrigin: "AT_ENTRY" | "RETROACTIVE" | "RECALCULATED";
+        ConversionRecalculationDto: {
+            /** Format: int64 */
+            id?: number;
+            sourceCurrency?: string;
+            targetCurrency?: string;
+            rate?: number;
+            startDate?: ((string | components["schemas"]["LocalDateTime"] | null) | null) | components["schemas"]["LocalDateTime"] | null;
+            endDate?: ((string | components["schemas"]["LocalDateTime"] | null) | null) | components["schemas"]["LocalDateTime"] | null;
+            status?: components["schemas"]["JobStatus"];
+            /** Format: int32 */
+            recalculatedCount?: number;
+            message?: string | null;
+            requestedAt?: components["schemas"]["Instant"];
+        };
         /** @description DTO for creating or updating a Payment Plan */
         CreatePaymentPlanDto: {
             name: string;
@@ -5179,6 +5394,18 @@ export interface components {
             source?: components["schemas"]["ExchangeRateSource"];
             recordedAt?: components["schemas"]["Instant"];
         };
+        ExchangeRateRefreshScheduleDto: {
+            enabled?: boolean;
+            /**
+             * Format: time
+             * @example 18:00:00
+             */
+            refreshTime?: string;
+            businessDaysOnly?: boolean;
+            timeZone?: string;
+            lastAttemptOn?: ((string | components["schemas"]["LocalDate"] | null) | null) | components["schemas"]["LocalDate"] | null;
+            lastFailure?: string | null;
+        };
         /** @enum {string} */
         ExchangeRateSource: "MANUAL" | "API";
         FileDto: {
@@ -5328,6 +5555,8 @@ export interface components {
          * @example 2022-03-10T16:15:50Z
          */
         Instant: string;
+        /** @enum {string} */
+        JobStatus: "PENDING" | "COMPLETED" | "FAILED";
         JsonNullableBigDecimal: {
             value?: number;
             isPresent?: boolean;
@@ -5388,6 +5617,8 @@ export interface components {
          * @example 2022-03-10T12:15:50
          */
         LocalDateTime: string;
+        /** Format: local-time */
+        LocalTime: string;
         MergeEventsRequestDto: {
             sourceIds: number[];
             groupByNodeIds?: number[];
@@ -5528,9 +5759,16 @@ export interface components {
         PaymentPlanStatus: "ACTIVE" | "PAUSED" | "COMPLETED" | "CANCELLED";
         /** @enum {string} */
         PaymentPlanType: "RECURRING" | "INSTALLMENT" | "CUSTOM" | "GROUP";
+        ProviderQuoteDto: {
+            source?: string;
+            currency?: string;
+            baseCurrency?: string;
+            unitsPerBase?: number;
+        };
         RecordExchangeRateDto: {
             currency?: string;
             unitsPerBase?: number;
+            source?: components["schemas"]["ExchangeRateSource"] | null;
         };
         /** @description Payload to record a UI selection event */
         RecordSelectionDto: {
@@ -5552,6 +5790,13 @@ export interface components {
             amount?: number;
             type?: components["schemas"]["EventType"];
             category?: components["schemas"]["CategoryDto"];
+        };
+        RequestConversionRecalculationDto: {
+            sourceCurrency?: string;
+            targetCurrency?: string;
+            rate?: number;
+            startDate?: ((string | components["schemas"]["LocalDateTime"] | null) | null) | components["schemas"]["LocalDateTime"] | null;
+            endDate?: ((string | components["schemas"]["LocalDateTime"] | null) | null) | components["schemas"]["LocalDateTime"] | null;
         };
         ResolveDuplicateRequestDto: {
             action: components["schemas"]["DuplicateRecordStatus"];
@@ -5690,6 +5935,15 @@ export interface components {
         };
         UpdateCurrencyDto: {
             principal?: boolean;
+        };
+        UpdateExchangeRateRefreshScheduleDto: {
+            enabled?: boolean;
+            /**
+             * Format: time
+             * @example 18:00
+             */
+            refreshTime?: string;
+            businessDaysOnly?: boolean;
         };
         /** @description Statistics about entity usage and selection frequency */
         UsageStatsDto: {

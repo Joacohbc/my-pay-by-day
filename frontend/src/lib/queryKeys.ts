@@ -69,6 +69,9 @@ export const currencyKeys = {
   all: ['currencies'] as const,
   list: () => [...currencyKeys.all, 'list'] as const,
   rateHistory: (currency?: string) => [...currencyKeys.all, 'rates', currency ?? null] as const,
+  recalculations: () => [...currencyKeys.all, 'recalculations'] as const,
+  providerQuotes: () => [...currencyKeys.all, 'providerQuotes'] as const,
+  refreshSchedule: () => [...currencyKeys.all, 'refreshSchedule'] as const,
 };
 
 export const subscriptionKeys = {

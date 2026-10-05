@@ -67,7 +67,7 @@ class BaseCurrencyTest {
 	}
 
 	private void quote(String currency, String unitsPerBase) throws BusinessException {
-		exchangeRateService.recordManualRate(new RecordExchangeRateDto(currency, new BigDecimal(unitsPerBase)));
+		exchangeRateService.recordRate(new RecordExchangeRateDto(currency, new BigDecimal(unitsPerBase)));
 	}
 
 	private static CurrencyDto find(List<CurrencyDto> currencies, String code) {

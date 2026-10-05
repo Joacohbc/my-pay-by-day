@@ -5,17 +5,21 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Icon } from '@/components/ui/Icon';
+import { ConvertingIcon, Icon } from '@/components/ui/Icon';
 import { CurrencySelect } from '@/components/ui/CurrencySelect';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { useAlert } from '@/contexts/AlertContext';
 import { Routes } from '@/lib/routes';
 import { formatDateTime, formatExchangeRate } from '@/lib/format';
+import { parsePositiveNumber } from '@/lib/utils/numbers';
+import { ConversionRecalculationSection } from '@/components/currency/ConversionRecalculationSection';
+import { RefreshScheduleCard } from '@/components/currency/RefreshScheduleCard';
 import {
   useCurrencies,
   useExchangeRateHistory,
   useMakeBaseCurrency,
+  useFetchProviderQuote,
   useRecordExchangeRate,
-  useRefreshExchangeRates,
   useSetPrincipalCurrency,
 } from '@/hooks/useCurrencies';
 import type { CurrencySetting } from '@/models';
@@ -51,9 +55,20 @@ export function CurrenciesPage() {
       </section>
 
       <section className="px-5">
+        <SectionTitle>{t('currencies.schedule.section')}</SectionTitle>
+        <RefreshScheduleCard currencies={currencies ?? []} />
+      </section>
+
+      <section className="px-5">
         <SectionTitle>{t('currencies.historySection')}</SectionTitle>
         <RateHistory />
       </section>
+
+      {!isLoading && (
+        <section className="px-5">
+          <ConversionRecalculationSection currencies={currencies ?? []} />
+        </section>
+      )}
     </div>
   );
 }
@@ -122,7 +137,7 @@ function CurrencyRow({ currency }: { currency: CurrencySetting }) {
         )}
         {currency.conversionPending && (
           <p className="text-xs text-dn-warning flex items-center gap-1">
-            <Icon name="sync" className="text-sm animate-spin" />
+            <ConvertingIcon />
             {t('currencies.converting')}
           </p>
         )}
@@ -151,18 +166,38 @@ function CurrencyRow({ currency }: { currency: CurrencySetting }) {
   );
 }
 
-function parsePositiveNumber(rawValue: string): number | null {
-  const parsed = Number(rawValue.replace(',', '.'));
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+/** The provider's figure as it was put in the rate field, so saving it untouched records it as API. */
+interface FetchedRate {
+  currency: string;
+  unitsPerBase: string;
 }
 
 function RecordRateForm({ baseCurrency }: { baseCurrency: string }) {
   const { t } = useTranslation();
+  const alert = useAlert();
   const recordRate = useRecordExchangeRate();
-  const refreshRates = useRefreshExchangeRates();
+  const fetchProviderQuote = useFetchProviderQuote();
   const [currency, setCurrency] = useState('');
   const [unitsPerBase, setUnitsPerBase] = useState('');
+  const [fetchedRate, setFetchedRate] = useState<FetchedRate | null>(null);
   const [rateError, setRateError] = useState<string | undefined>();
+  const isProviderFigureUntouched = fetchedRate?.currency === currency && fetchedRate.unitsPerBase === unitsPerBase;
+
+  const handleFetchFromProvider = () =>
+    fetchProviderQuote.mutate(currency, {
+      onSuccess: (quotes) => {
+        const quote = quotes.find((providerQuote) => providerQuote.currency === currency);
+        if (!quote) {
+          alert.error(t('currencies.fetchRate.notQuoted', { currency }));
+          return;
+        }
+        const fetchedUnitsPerBase = String(quote.unitsPerBase);
+        setUnitsPerBase(fetchedUnitsPerBase);
+        setFetchedRate({ currency, unitsPerBase: fetchedUnitsPerBase });
+        setRateError(undefined);
+      },
+      onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
+    });
 
   const handleSubmit = (submitEvent: FormEvent) => {
     submitEvent.preventDefault();
@@ -173,12 +208,18 @@ function RecordRateForm({ baseCurrency }: { baseCurrency: string }) {
     }
     setRateError(undefined);
     recordRate.mutate(
-      { currency, unitsPerBase: parsedRate },
-      { onSuccess: () => setUnitsPerBase('') }
+      { currency, unitsPerBase: parsedRate, source: isProviderFigureUntouched ? 'API' : 'MANUAL' },
+      {
+        onSuccess: () => {
+          setUnitsPerBase('');
+          setFetchedRate(null);
+        },
+      }
     );
   };
 
-  const canSubmit = currency !== '' && currency !== baseCurrency && unitsPerBase !== '';
+  const isQuotableCurrency = currency !== '' && currency !== baseCurrency;
+  const canSubmit = isQuotableCurrency && unitsPerBase !== '';
 
   return (
     <Card className="space-y-4">
@@ -191,14 +232,16 @@ function RecordRateForm({ baseCurrency }: { baseCurrency: string }) {
           value={unitsPerBase}
           onChange={(changeEvent) => setUnitsPerBase(changeEvent.target.value)}
           error={rateError}
+          hint={isProviderFigureUntouched ? t('currencies.fetchRate.fromProvider') : undefined}
         />
         <div className="flex flex-wrap gap-2 justify-end">
           <Button
             type="button"
             variant="secondary"
             size="sm"
-            loading={refreshRates.isPending}
-            onClick={() => refreshRates.mutate()}
+            loading={fetchProviderQuote.isPending}
+            disabled={!isQuotableCurrency}
+            onClick={handleFetchFromProvider}
           >
             <Icon name="cloud_sync" className="text-sm" />
             {t('currencies.refreshFromApi')}

@@ -7,6 +7,7 @@ import java.util.List;
 import jakarta.inject.Inject;
 
 import com.mypaybyday.dto.ConversionBackfillBatchDto;
+import com.mypaybyday.dto.ConversionRecalculationDto;
 import com.mypaybyday.dto.CurrencyDto;
 import com.mypaybyday.dto.CurrencyTotalsDto;
 import com.mypaybyday.dto.EventQuery;
@@ -15,6 +16,7 @@ import com.mypaybyday.dto.FinanceEventDto;
 import com.mypaybyday.dto.FinanceNodeDto;
 import com.mypaybyday.dto.MoneyDto;
 import com.mypaybyday.dto.RecordExchangeRateDto;
+import com.mypaybyday.dto.RequestConversionRecalculationDto;
 import com.mypaybyday.dto.TransactionConversionDto;
 import com.mypaybyday.dto.UpdateCurrencyDto;
 import com.mypaybyday.entity.FinanceEventEntity;
@@ -24,7 +26,9 @@ import com.mypaybyday.entity.FinanceTransactionEntity;
 import com.mypaybyday.enums.ConversionOrigin;
 import com.mypaybyday.enums.EventType;
 import com.mypaybyday.enums.FinanceNodeType;
+import com.mypaybyday.enums.JobStatus;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.service.currency.ConversionRecalculationService;
 import com.mypaybyday.service.currency.CurrencyService;
 import com.mypaybyday.service.currency.ExchangeRateService;
 import com.mypaybyday.service.event.EventService;
@@ -50,6 +54,8 @@ class ExchangeRateConversionTest {
 	private static final LocalDateTime FILTERED_VIEW_MONTH = LocalDateTime.of(2018, 3, 10, 12, 0);
 	private static final LocalDateTime BACKFILL_MONTH = LocalDateTime.of(2018, 4, 10, 12, 0);
 	private static final LocalDateTime MISSING_QUOTE_MONTH = LocalDateTime.of(2018, 5, 10, 12, 0);
+	private static final LocalDateTime RECALCULATED_MONTH = LocalDateTime.of(2018, 6, 10, 12, 0);
+	private static final LocalDateTime OUTSIDE_RECALCULATION_MONTH = LocalDateTime.of(2018, 7, 10, 12, 0);
 
 	private static final String USD = "USD";
 	private static final String UYU = "UYU";
@@ -71,6 +77,12 @@ class ExchangeRateConversionTest {
 
 	@Inject
 	TransactionConversionService transactionConversionService;
+
+	@Inject
+	ConversionRecalculationService conversionRecalculationService;
+
+	@Inject
+	JobSchedulerService jobSchedulerService;
 
 	@AfterEach
 	void switchOffPrincipalCurrencies() throws BusinessException {
@@ -169,6 +181,51 @@ class ExchangeRateConversionTest {
 		assertThrows(BusinessException.class, () -> makePrincipal(BRL));
 	}
 
+	@Test
+	void aRecalculationReplacesTheFrozenRateOnlyWithinItsDateRange() throws BusinessException {
+		quote(UYU, "40");
+		makePrincipal(UYU);
+		FinanceNodeEntity wallet = createNode("Recalculated Wallet");
+		FinanceNodeEntity store = createNode("Recalculated Store");
+		FinanceEventDto groceries = createEvent("Groceries", EventType.OUTBOUND, store, wallet, "100.00", USD, RECALCULATED_MONTH);
+		FinanceEventDto pharmacy = createEvent("Pharmacy", EventType.OUTBOUND, store, wallet, "100.00", USD, OUTSIDE_RECALCULATION_MONTH);
+
+		ConversionRecalculationDto requested = conversionRecalculationService.request(new RequestConversionRecalculationDto(
+				USD, UYU, new BigDecimal("42"),
+				RECALCULATED_MONTH.withDayOfMonth(1).toLocalDate().atStartOfDay(),
+				RECALCULATED_MONTH.withDayOfMonth(28).toLocalDate().atTime(23, 59)));
+		assertEquals(JobStatus.PENDING, requested.status());
+		jobSchedulerService.processConversionRecalculationJob();
+
+		TransactionConversionDto groceriesInPesos = conversionTo(eventService.findById(groceries.id()), UYU);
+		assertEquals(ConversionOrigin.RECALCULATED, groceriesInPesos.origin());
+		assertEquals(0, new BigDecimal("4200.00").compareTo(groceriesInPesos.amount()));
+
+		TransactionConversionDto pharmacyInPesos = conversionTo(eventService.findById(pharmacy.id()), UYU);
+		assertEquals(ConversionOrigin.AT_ENTRY, pharmacyInPesos.origin());
+		assertEquals(0, new BigDecimal("4000.00").compareTo(pharmacyInPesos.amount()));
+
+		ConversionRecalculationDto finished = conversionRecalculationService.listRecent().stream()
+				.filter(recalculation -> recalculation.id().equals(requested.id()))
+				.findFirst()
+				.orElseThrow();
+		assertEquals(JobStatus.COMPLETED, finished.status());
+		assertEquals(1, finished.recalculatedCount());
+	}
+
+	@Test
+	void aRecalculationIsRejectedIntoANonPrincipalOrTheSameCurrency() throws BusinessException {
+		quote(UYU, "40");
+
+		assertThrows(BusinessException.class, () -> conversionRecalculationService.request(
+				new RequestConversionRecalculationDto(USD, UYU, new BigDecimal("42"), null, null)));
+		makePrincipal(UYU);
+		assertThrows(BusinessException.class, () -> conversionRecalculationService.request(
+				new RequestConversionRecalculationDto(UYU, UYU, BigDecimal.ONE, null, null)));
+		assertThrows(BusinessException.class, () -> conversionRecalculationService.request(
+				new RequestConversionRecalculationDto(USD, UYU, BigDecimal.ZERO, null, null)));
+	}
+
 	private void runBackfill(String currency) {
 		long resumeAfterId = 0;
 		ConversionBackfillBatchDto batch;
@@ -179,7 +236,7 @@ class ExchangeRateConversionTest {
 	}
 
 	private void quote(String currency, String unitsPerUsd) throws BusinessException {
-		exchangeRateService.recordManualRate(new RecordExchangeRateDto(currency, new BigDecimal(unitsPerUsd)));
+		exchangeRateService.recordRate(new RecordExchangeRateDto(currency, new BigDecimal(unitsPerUsd)));
 	}
 
 	private void makePrincipal(String currency) throws BusinessException {
