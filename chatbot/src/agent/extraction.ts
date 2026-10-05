@@ -61,7 +61,7 @@ export async function buildExtractionUserContent(input: ExtractInput): Promise<E
       ...(file.typeLabel != null ? { typeLabel: file.typeLabel } : {}),
     };
     if (markdown != null) {
-      model.push({ type: 'text', text: markdownAttachmentText(file.filename, markdown) });
+      model.push({ type: 'text', text: markdownAttachmentText(file.filename, file.fileId, markdown) });
     } else {
       model.push(modelFilePart);
     }

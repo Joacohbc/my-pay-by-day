@@ -58,6 +58,8 @@ export const config = {
     maxSteps: intEnv('AGENT_MAX_STEPS', 25),
     /** Maximum tool-calling steps per in-turn sub-agent delegation before it stops. */
     subagentMaxSteps: intEnv('SUBAGENT_MAX_STEPS', 12),
+    /** Maximum tool-calling steps per extraction run; the last one is always spent creating the draft. */
+    extractionMaxSteps: intEnv('EXTRACTION_MAX_STEPS', 15),
     /** Maximum conversation messages kept before compaction kicks in. */
     maxChatMessages: intEnv('AGENT_MAX_CHAT_MESSAGES', 150),
   },
