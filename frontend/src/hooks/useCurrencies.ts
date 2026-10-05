@@ -112,11 +112,18 @@ export function useRecordExchangeRate() {
 export function useProviderQuotesPreview(isEnabled: boolean) {
   return useQuery({
     queryKey: currencyKeys.providerQuotes(),
-    queryFn: currenciesService.previewProviderQuotes,
+    queryFn: () => currenciesService.previewProviderQuotes(),
     enabled: isEnabled,
     staleTime: 0,
     gcTime: 0,
     retry: false,
+  });
+}
+
+/** One currency's current provider quote, fetched on demand to fill the rate form; nothing is recorded. */
+export function useFetchProviderQuote() {
+  return useMutation({
+    mutationFn: (currency: string) => currenciesService.previewProviderQuotes(currency),
   });
 }
 

@@ -8,16 +8,17 @@ import { Input } from '@/components/ui/Input';
 import { ConvertingIcon, Icon } from '@/components/ui/Icon';
 import { CurrencySelect } from '@/components/ui/CurrencySelect';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { useAlert } from '@/contexts/AlertContext';
 import { Routes } from '@/lib/routes';
 import { formatDateTime, formatExchangeRate } from '@/lib/format';
 import { parsePositiveNumber } from '@/lib/utils/numbers';
 import { ConversionRecalculationSection } from '@/components/currency/ConversionRecalculationSection';
-import { RefreshRatesPreviewModal } from '@/components/currency/RefreshRatesPreviewModal';
 import { RefreshScheduleCard } from '@/components/currency/RefreshScheduleCard';
 import {
   useCurrencies,
   useExchangeRateHistory,
   useMakeBaseCurrency,
+  useFetchProviderQuote,
   useRecordExchangeRate,
   useSetPrincipalCurrency,
 } from '@/hooks/useCurrencies';
@@ -50,12 +51,12 @@ export function CurrenciesPage() {
 
       <section className="px-5">
         <SectionTitle>{t('currencies.recordSection')}</SectionTitle>
-        <RecordRateForm baseCurrency={baseCurrency} currencies={currencies ?? []} />
+        <RecordRateForm baseCurrency={baseCurrency} />
       </section>
 
       <section className="px-5">
         <SectionTitle>{t('currencies.schedule.section')}</SectionTitle>
-        <RefreshScheduleCard />
+        <RefreshScheduleCard currencies={currencies ?? []} />
       </section>
 
       <section className="px-5">
@@ -165,13 +166,38 @@ function CurrencyRow({ currency }: { currency: CurrencySetting }) {
   );
 }
 
-function RecordRateForm({ baseCurrency, currencies }: { baseCurrency: string; currencies: CurrencySetting[] }) {
+/** The provider's figure as it was put in the rate field, so saving it untouched records it as API. */
+interface FetchedRate {
+  currency: string;
+  unitsPerBase: string;
+}
+
+function RecordRateForm({ baseCurrency }: { baseCurrency: string }) {
   const { t } = useTranslation();
+  const alert = useAlert();
   const recordRate = useRecordExchangeRate();
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const fetchProviderQuote = useFetchProviderQuote();
   const [currency, setCurrency] = useState('');
   const [unitsPerBase, setUnitsPerBase] = useState('');
+  const [fetchedRate, setFetchedRate] = useState<FetchedRate | null>(null);
   const [rateError, setRateError] = useState<string | undefined>();
+  const isProviderFigureUntouched = fetchedRate?.currency === currency && fetchedRate.unitsPerBase === unitsPerBase;
+
+  const handleFetchFromProvider = () =>
+    fetchProviderQuote.mutate(currency, {
+      onSuccess: (quotes) => {
+        const quote = quotes.find((providerQuote) => providerQuote.currency === currency);
+        if (!quote) {
+          alert.error(t('currencies.fetchRate.notQuoted', { currency }));
+          return;
+        }
+        const fetchedUnitsPerBase = String(quote.unitsPerBase);
+        setUnitsPerBase(fetchedUnitsPerBase);
+        setFetchedRate({ currency, unitsPerBase: fetchedUnitsPerBase });
+        setRateError(undefined);
+      },
+      onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
+    });
 
   const handleSubmit = (submitEvent: FormEvent) => {
     submitEvent.preventDefault();
@@ -182,12 +208,18 @@ function RecordRateForm({ baseCurrency, currencies }: { baseCurrency: string; cu
     }
     setRateError(undefined);
     recordRate.mutate(
-      { currency, unitsPerBase: parsedRate },
-      { onSuccess: () => setUnitsPerBase('') }
+      { currency, unitsPerBase: parsedRate, source: isProviderFigureUntouched ? 'API' : 'MANUAL' },
+      {
+        onSuccess: () => {
+          setUnitsPerBase('');
+          setFetchedRate(null);
+        },
+      }
     );
   };
 
-  const canSubmit = currency !== '' && currency !== baseCurrency && unitsPerBase !== '';
+  const isQuotableCurrency = currency !== '' && currency !== baseCurrency;
+  const canSubmit = isQuotableCurrency && unitsPerBase !== '';
 
   return (
     <Card className="space-y-4">
@@ -200,13 +232,16 @@ function RecordRateForm({ baseCurrency, currencies }: { baseCurrency: string; cu
           value={unitsPerBase}
           onChange={(changeEvent) => setUnitsPerBase(changeEvent.target.value)}
           error={rateError}
+          hint={isProviderFigureUntouched ? t('currencies.fetchRate.fromProvider') : undefined}
         />
         <div className="flex flex-wrap gap-2 justify-end">
           <Button
             type="button"
             variant="secondary"
             size="sm"
-            onClick={() => setIsPreviewOpen(true)}
+            loading={fetchProviderQuote.isPending}
+            disabled={!isQuotableCurrency}
+            onClick={handleFetchFromProvider}
           >
             <Icon name="cloud_sync" className="text-sm" />
             {t('currencies.refreshFromApi')}
@@ -216,7 +251,6 @@ function RecordRateForm({ baseCurrency, currencies }: { baseCurrency: string; cu
           </Button>
         </div>
       </form>
-      <RefreshRatesPreviewModal open={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} currencies={currencies} />
     </Card>
   );
 }

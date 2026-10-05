@@ -4,28 +4,34 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Icon } from '@/components/ui/Icon';
+import { RefreshRatesPreviewModal } from '@/components/currency/RefreshRatesPreviewModal';
 import { formatDateFromParts } from '@/lib/format';
 import { useExchangeRateRefreshSchedule, useUpdateExchangeRateRefreshSchedule } from '@/hooks/useCurrencies';
-import type { ExchangeRateRefreshSchedule } from '@/models';
+import type { CurrencySetting, ExchangeRateRefreshSchedule } from '@/models';
 
 /** The server sends "HH:mm:ss"; a time input works in "HH:mm". */
 const HOURS_AND_MINUTES_LENGTH = 5;
 
-/** Whether, and at what time of day, the provider's quotes are recorded on their own. */
-export function RefreshScheduleCard() {
+/**
+ * Whether, and at what time of day, the provider's quotes are recorded on their own, plus the same
+ * refresh on demand after previewing it.
+ */
+export function RefreshScheduleCard({ currencies }: { currencies: CurrencySetting[] }) {
   const { data: schedule, isLoading } = useExchangeRateRefreshSchedule();
 
   if (isLoading || !schedule) return <Skeleton className="h-32 w-full" />;
   const savedScheduleKey = `${schedule.enabled}-${schedule.refreshTime}-${schedule.businessDaysOnly}`;
-  return <RefreshScheduleForm key={savedScheduleKey} schedule={schedule} />;
+  return <RefreshScheduleForm key={savedScheduleKey} schedule={schedule} currencies={currencies} />;
 }
 
-function RefreshScheduleForm({ schedule }: { schedule: ExchangeRateRefreshSchedule }) {
+function RefreshScheduleForm({ schedule, currencies }: { schedule: ExchangeRateRefreshSchedule; currencies: CurrencySetting[] }) {
   const { t } = useTranslation();
   const updateSchedule = useUpdateExchangeRateRefreshSchedule();
   const [isEnabled, setIsEnabled] = useState(schedule.enabled);
   const [refreshTime, setRefreshTime] = useState(schedule.refreshTime.slice(0, HOURS_AND_MINUTES_LENGTH));
   const [isBusinessDaysOnly, setIsBusinessDaysOnly] = useState(schedule.businessDaysOnly);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const hasChanges =
     isEnabled !== schedule.enabled ||
@@ -53,11 +59,16 @@ function RefreshScheduleForm({ schedule }: { schedule: ExchangeRateRefreshSchedu
         disabled={!isEnabled}
       />
       <LastRunStatus schedule={schedule} />
-      <div className="flex justify-end">
+      <div className="flex flex-wrap gap-2 justify-end">
+        <Button variant="secondary" size="sm" onClick={() => setIsPreviewOpen(true)}>
+          <Icon name="cloud_sync" className="text-sm" />
+          {t('currencies.schedule.refreshAllNow')}
+        </Button>
         <Button size="sm" onClick={handleSave} loading={updateSchedule.isPending} disabled={!hasChanges || refreshTime === ''}>
           {t('currencies.schedule.save')}
         </Button>
       </div>
+      <RefreshRatesPreviewModal open={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} currencies={currencies} />
     </Card>
   );
 }

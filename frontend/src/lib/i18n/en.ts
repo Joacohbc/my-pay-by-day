@@ -922,7 +922,7 @@ const en = {
     save: 'Save rate',
     invalidRate: 'Enter a number greater than zero',
     rateSaved: 'Rate saved',
-    refreshFromApi: 'Update from API',
+    refreshFromApi: 'Fetch from API',
     ratesRefreshed: '{{count}} rates updated',
     historySection: 'History',
     historyEmpty: 'No rates loaded yet',
@@ -934,7 +934,12 @@ const en = {
       currentRate: 'Now saved: {{line}}',
       noCurrentRate: 'No rate saved yet',
     },
+    fetchRate: {
+      notQuoted: 'The provider does not quote {{currency}}.',
+      fromProvider: 'As quoted by the provider: saved as API. Edit it to save it as manual.',
+    },
     schedule: {
+      refreshAllNow: 'Update all now',
       section: 'Automatic update',
       hint: 'Saves the rates of the provider once a day, from the chosen time on. If the server was off at that time, it runs as soon as it is back that same day.',
       enabled: 'Update automatically',

@@ -142,9 +142,11 @@ export interface UpdateExchangeRateRefreshScheduleDto {
   businessDaysOnly: boolean;
 }
 
+/** `source` is `API` only when the user saves a provider quote exactly as fetched; it defaults to `MANUAL`. */
 export interface RecordExchangeRateDto {
   currency: string;
   unitsPerBase: number;
+  source?: ExchangeRateSource;
 }
 
 /**

@@ -18,7 +18,10 @@ export const currenciesService = {
   getRateHistory: (currency?: string) =>
     api.get<ExchangeRate[]>(currency ? `/exchange-rates?currency=${currency}` : '/exchange-rates'),
   recordRate: (dto: RecordExchangeRateDto) => api.post<ExchangeRate>('/exchange-rates', dto),
-  previewProviderQuotes: () => api.get<ProviderQuote[]>('/exchange-rates/provider-quotes'),
+  previewProviderQuotes: (onlyCurrency?: string) =>
+    api.get<ProviderQuote[]>(
+      onlyCurrency ? `/exchange-rates/provider-quotes?currency=${onlyCurrency}` : '/exchange-rates/provider-quotes'
+    ),
   refreshRates: () => api.post<ExchangeRate[]>('/exchange-rates/refresh', {}),
   getRefreshSchedule: () => api.get<ExchangeRateRefreshSchedule>('/exchange-rates/refresh-schedule'),
   updateRefreshSchedule: (dto: UpdateExchangeRateRefreshScheduleDto) =>

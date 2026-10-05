@@ -921,7 +921,7 @@ const es = {
     save: 'Guardar cotización',
     invalidRate: 'Ingresá un número mayor a cero',
     rateSaved: 'Cotización guardada',
-    refreshFromApi: 'Actualizar desde la API',
+    refreshFromApi: 'Traer desde la API',
     ratesRefreshed: '{{count}} cotizaciones actualizadas',
     historySection: 'Historial',
     historyEmpty: 'Todavía no hay cotizaciones cargadas',
@@ -933,7 +933,12 @@ const es = {
       currentRate: 'Guardada ahora: {{line}}',
       noCurrentRate: 'Todavía no hay cotización guardada',
     },
+    fetchRate: {
+      notQuoted: 'El proveedor no cotiza {{currency}}.',
+      fromProvider: 'Tal como lo cotiza el proveedor: se guarda como API. Si lo editás, se guarda como manual.',
+    },
     schedule: {
+      refreshAllNow: 'Actualizar todas ahora',
       section: 'Actualización automática',
       hint: 'Guarda las cotizaciones del proveedor una vez por día, a partir de la hora elegida. Si el servidor estaba apagado a esa hora, corre apenas vuelve ese mismo día.',
       enabled: 'Actualizar automáticamente',
