@@ -41,6 +41,10 @@ export const filesService = {
     return api.delete(`/files/${id}`);
   },
 
+  deleteOrphans: async (): Promise<void> => {
+    return api.delete('/files/orphans');
+  },
+
   getContentUrl: (id: number): string => {
     return `${BASE_URL}/files/${id}/content/binary`;
   },

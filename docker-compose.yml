@@ -88,6 +88,7 @@ services:
       - MODEL_AUDIO=${MODEL_AUDIO:-openai/whisper-large-v3-turbo}
       - AGENT_MAX_STEPS=${AGENT_MAX_STEPS:-25}
       - SUBAGENT_MAX_STEPS=${SUBAGENT_MAX_STEPS:-12}
+      - EXTRACTION_MAX_STEPS=${EXTRACTION_MAX_STEPS:-15}
       - AGENT_MAX_CHAT_MESSAGES=${AGENT_MAX_CHAT_MESSAGES:-150}
       # 'production' makes the chatbot default to JSON logs; keep LOG_LEVEL=info so the
       # verbose content (prompts/replies/tool args) stays at DEBUG and off prod logs.

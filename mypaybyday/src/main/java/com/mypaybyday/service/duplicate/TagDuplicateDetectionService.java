@@ -17,21 +17,25 @@ import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.repository.DuplicateDetectionSettingsRepository;
 import com.mypaybyday.repository.DuplicateRecordRepository;
 import com.mypaybyday.repository.EventRepository;
+import com.mypaybyday.repository.TagGroupRepository;
 import com.mypaybyday.repository.TagRepository;
 
 @ApplicationScoped
 public class TagDuplicateDetectionService {
 
 	private final TagRepository tagRepository;
+	private final TagGroupRepository tagGroupRepository;
 	private final DuplicateRecordRepository duplicateRecordRepository;
 	private final DuplicateDetectionSettingsRepository settingsRepository;
 	private final EventRepository eventRepository;
 
 	public TagDuplicateDetectionService(TagRepository tagRepository,
+			TagGroupRepository tagGroupRepository,
 			DuplicateRecordRepository duplicateRecordRepository,
 			DuplicateDetectionSettingsRepository settingsRepository,
 			EventRepository eventRepository) {
 		this.tagRepository = tagRepository;
+		this.tagGroupRepository = tagGroupRepository;
 		this.duplicateRecordRepository = duplicateRecordRepository;
 		this.settingsRepository = settingsRepository;
 		this.eventRepository = eventRepository;
@@ -105,11 +109,11 @@ public class TagDuplicateDetectionService {
 			eventRepository.persist(event);
 		}
 
-		List<TagGroupEntity> groups = TagGroupEntity.find("select g from TagGroup g join g.tags t where t = ?1", deleteTag).list();
+		List<TagGroupEntity> groups = tagGroupRepository.findByTag(deleteTag);
 		for (TagGroupEntity group : groups) {
 			group.tags.remove(deleteTag);
 			group.tags.add(keepTag);
-			group.persist();
+			tagGroupRepository.persist(group);
 		}
 
 		tagRepository.delete(deleteTag);

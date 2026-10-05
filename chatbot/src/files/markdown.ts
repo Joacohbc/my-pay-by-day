@@ -42,8 +42,10 @@ export async function fetchBackendMarkdown(fileId: number): Promise<string | nul
   }
 }
 
-export function markdownAttachmentText(filename: string | undefined, markdown: string): string {
-  return `Content of the attached document "${filename ?? 'attachment'}" (converted to Markdown):\n\n${markdown}`;
+export function markdownAttachmentText(filename: string | undefined, fileId: number | undefined, markdown: string): string {
+  const fileIdNote = fileId != null ? ` (fileId ${fileId})` : '';
+  return `Full content of the attached document "${filename ?? 'attachment'}"${fileIdNote}, converted to Markdown. ` +
+    `This is the whole document: do not fetch it again with getFileContent.\n\n${markdown}`;
 }
 
 async function documentPartAsMarkdownText(part: {
@@ -53,7 +55,7 @@ async function documentPartAsMarkdownText(part: {
 }): Promise<{ type: 'text'; text: string }> {
   if (part.fileId != null) {
     const backendMarkdown = await fetchBackendMarkdown(part.fileId);
-    if (backendMarkdown != null) return { type: 'text', text: markdownAttachmentText(part.filename, backendMarkdown) };
+    if (backendMarkdown != null) return { type: 'text', text: markdownAttachmentText(part.filename, part.fileId, backendMarkdown) };
   }
   return { type: 'text', text: `Attached document "${part.filename ?? 'attachment'}" could not be read.` };
 }

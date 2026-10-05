@@ -23,6 +23,7 @@ import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
+import com.mypaybyday.repository.FileRepository;
 import com.mypaybyday.service.transfer.ArchivedItemImporter;
 import com.mypaybyday.service.transfer.DataSectionTransfer;
 import com.mypaybyday.service.transfer.ImportContext;
@@ -35,11 +36,13 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @ApplicationScoped
 public class FileService implements DataSectionTransfer<FileExportDto> {
 
+	private final FileRepository fileRepository;
 	private final Messages messages;
 	private final MarkItDownClient markItDownClient;
 	private final ArchivedItemImporter archivedItemImporter;
 
-	public FileService(Messages messages, MarkItDownClient markItDownClient, ArchivedItemImporter archivedItemImporter) {
+	public FileService(FileRepository fileRepository, Messages messages, MarkItDownClient markItDownClient, ArchivedItemImporter archivedItemImporter) {
+		this.fileRepository = fileRepository;
 		this.messages = messages;
 		this.markItDownClient = markItDownClient;
 		this.archivedItemImporter = archivedItemImporter;
@@ -105,7 +108,7 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 	}
 
 	private FileDto findByHash(String hash) {
-		FileEntity existing = FileEntity.find("hash", hash).firstResult();
+		FileEntity existing = fileRepository.findByHash(hash);
 		if (existing == null) {
 			return null;
 		}
@@ -120,7 +123,7 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 		file.data = data;
 		file.hash = hash;
 		file.markdownContent = markdown;
-		file.persist();
+		fileRepository.persist(file);
 
 		Log.infof("Stored file id=%d size=%d mime=%s", file.id, file.size, file.mimeType);
 		return FileDto.from(file);
@@ -170,7 +173,7 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 	}
 
 	public FileDto getFileMetadata(Long id) throws BusinessException {
-		FileEntity file = FileEntity.findById(id);
+		FileEntity file = fileRepository.findById(id);
 		if (file == null) {
 			throw messages.reject(MsgKey.FILE_NOT_FOUND);
 		}
@@ -179,7 +182,7 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 
 	@Transactional
 	public FileEntity getFileContent(Long id) throws BusinessException {
-		FileEntity file = FileEntity.findById(id);
+		FileEntity file = fileRepository.findById(id);
 		if (file == null) {
 			throw messages.reject(MsgKey.FILE_NOT_FOUND);
 		}
@@ -200,17 +203,17 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 		PanacheQuery<FileEntity> query;
 
 		if (orphaned != null && orphaned) {
-			query = FileEntity.find("id not in (select f.id from FinanceEvent e join e.files f)");
+			query = fileRepository.findOrphans();
 		} else if (orphaned != null && !orphaned) {
-			query = FileEntity.find("id in (select f.id from FinanceEvent e join e.files f)");
+			query = fileRepository.findLinked();
 		} else {
-			query = FileEntity.findAll();
+			query = fileRepository.findAll();
 		}
 
 		query.page(Page.of(page, size));
 
 		List<FileWithEventDto> dtos = query.list().stream().map(file -> {
-			List<FinanceEventEntity> associatedEvents = getAssociatedEvents(file.id);
+			List<FinanceEventEntity> associatedEvents = fileRepository.findEventsUsing(file.id);
 			boolean isOrphanStatus = associatedEvents.isEmpty();
 			List<EventSummaryDto> eventSummaries = associatedEvents.stream()
 				.map(EventSummaryDto::from)
@@ -229,39 +232,31 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 
 	@Transactional
 	public void deleteFile(Long id) throws BusinessException {
-		FileEntity file = FileEntity.findById(id);
+		FileEntity file = fileRepository.findById(id);
 		if (file == null) {
 			throw messages.reject(MsgKey.FILE_NOT_FOUND);
 		}
 
-		long eventCount = FileEntity.getEntityManager().createQuery(
-			"select count(e) from FinanceEvent e join e.files f where f.id = :fileId", Long.class)
-			.setParameter("fileId", id)
-			.getSingleResult();
+		long eventCount = fileRepository.countEventsUsing(id);
 
 		if (eventCount > 0) {
 			Log.warnf("Delete rejected: file id=%d is used by %d events", id, eventCount);
 			throw messages.reject(MsgKey.FILE_IN_USE);
 		}
 
-		file.delete();
+		fileRepository.delete(file);
 		Log.infof("Deleted file id=%d", id);
 	}
 
-	private boolean isOrphan(Long fileId) {
-		long eventCount = FileEntity.getEntityManager().createQuery(
-			"select count(e) from FinanceEvent e join e.files f where f.id = :fileId", Long.class)
-			.setParameter("fileId", fileId)
-			.getSingleResult();
-		return eventCount == 0;
+	@Transactional
+	public void deleteOrphanFiles() {
+		List<FileEntity> orphanFiles = fileRepository.findOrphans().list();
+		orphanFiles.forEach(fileRepository::delete);
+		Log.infof("Deleted %d orphan files", orphanFiles.size());
 	}
 
-	@SuppressWarnings("unchecked")
-	private List<FinanceEventEntity> getAssociatedEvents(Long fileId) {
-		return FileEntity.getEntityManager()
-			.createQuery("select e from FinanceEvent e join e.files f where f.id = :fileId")
-			.setParameter("fileId", fileId)
-			.getResultList();
+	private boolean isOrphan(Long fileId) {
+		return fileRepository.countEventsUsing(fileId) == 0;
 	}
 
 	// -------------------------------------------------------------------------
@@ -276,13 +271,13 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 	@Override
 	@Transactional
 	public long countForExport() {
-		return FileEntity.count();
+		return fileRepository.count();
 	}
 
 	@Override
 	@Transactional
 	public List<FileExportDto> exportData() {
-		List<FileEntity> files = FileEntity.listAll();
+		List<FileEntity> files = fileRepository.listAll();
 		return files.stream().map(f -> FileExportDto.from(f, false)).toList();
 	}
 
@@ -305,7 +300,7 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 					throw new RuntimeException(e);
 				}
 			}
-			FileEntity.getEntityManager().persist(entity);
+			fileRepository.persist(entity);
 			context.rememberId(section(), dto.id(), entity.id);
 		});
 	}

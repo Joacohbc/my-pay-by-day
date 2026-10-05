@@ -1,4 +1,4 @@
-import { generateText, stepCountIs, type ModelMessage } from 'ai';
+import { generateText, stepCountIs, type ModelMessage, type PrepareStepFunction, type Tool } from 'ai';
 import { buildAllTools, toolsForMode } from '@/agent/buildTools.js';
 import { buildExtractionUserContent, type ExtractInput } from '@/agent/extraction.js';
 import { createApiClient, unwrap } from '@/backend/client.js';
@@ -12,6 +12,22 @@ import { longTermMemory } from '@/memory/longTerm.js';
 import { extractionAgentSystemPrompt } from '@/prompts/system.js';
 
 const extractionAgentLog = logger.child('extraction-agent');
+
+const CREATE_DRAFT_TOOL = 'createDraft';
+
+/**
+ * The input already carries the whole document, so the agent only needs to resolve IDs, match the user's
+ * naming style and stage the draft. File, chat and exchange-rate reads are left out on purpose: with them
+ * the agent spent its whole step budget re-reading the input and unrelated emails and never created a draft.
+ */
+const EXTRACTION_TOOL_NAMES: readonly string[] = [
+  'getWorkspaceInfo', 'listNodes', 'listCategories', 'listTags', 'searchEvents', 'calculate', CREATE_DRAFT_TOOL,
+];
+
+function extractionTools(ctx: RequestContext): Record<string, Tool> {
+  const draftOnlyTools = toolsForMode(buildAllTools(ctx), 'DRAFT_ONLY');
+  return Object.fromEntries(Object.entries(draftOnlyTools).filter(([name]) => EXTRACTION_TOOL_NAMES.includes(name)));
+}
 
 async function fetchTemplateContext(ctx: RequestContext, templateId: number | undefined): Promise<string | undefined> {
   if (templateId == null) return undefined;
@@ -29,6 +45,16 @@ function findCreatedDraftId(steps: { toolResults: readonly { toolName: string; o
     }
   }
   return undefined;
+}
+
+/** Spends the last step of the budget on createDraft when the agent has not staged one yet. */
+function forceDraftOnLastStep(maxSteps: number): PrepareStepFunction<Record<string, Tool>> {
+  return ({ stepNumber, steps }) => {
+    const isLastStep = stepNumber >= maxSteps - 1;
+    if (!isLastStep || findCreatedDraftId(steps) != null) return undefined;
+    extractionAgentLog.warn('step budget exhausted, forcing createDraft', { event: 'forced_draft', stepNumber });
+    return { activeTools: [CREATE_DRAFT_TOOL], toolChoice: { type: 'tool', toolName: CREATE_DRAFT_TOOL } };
+  };
 }
 
 export interface ExtractionAgentResult {
@@ -54,6 +80,7 @@ export async function runExtractionAgent(ctx: RequestContext, input: ExtractInpu
   const extractionCtx: RequestContext = { ...ctx, attachedFileIds: (input.files ?? []).map((file) => file.fileId) };
   const userMessage: ModelMessage = { role: 'user', content: displayContent };
 
+  const maxSteps = config.agent.extractionMaxSteps;
   const startedAt = performance.now();
   let result: Awaited<ReturnType<typeof generateText>>;
   try {
@@ -68,8 +95,9 @@ export async function runExtractionAgent(ctx: RequestContext, input: ExtractInpu
         templateContext,
       }),
       messages: [{ role: 'user', content: modelContent }],
-      tools: toolsForMode(buildAllTools(extractionCtx), 'DRAFT_ONLY'),
-      stopWhen: stepCountIs(config.agent.subagentMaxSteps),
+      tools: extractionTools(extractionCtx),
+      stopWhen: stepCountIs(maxSteps),
+      prepareStep: forceDraftOnLastStep(maxSteps),
       onStepFinish: (step) => logLlmGeneration('extraction', step.response.modelId, step),
     });
   } catch (error) {
