@@ -30,6 +30,7 @@ import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
+import com.mypaybyday.repository.FileRepository;
 import com.mypaybyday.service.transfer.DataSectionTransfer;
 import com.mypaybyday.service.transfer.ImportContext;
 import com.mypaybyday.validation.CurrencyValidator;
@@ -44,15 +45,18 @@ public class DataTransferService {
 	public static final String CURRENT_VERSION = "1.1";
 
 	private final Map<DataSection, DataSectionTransfer<?>> transfersBySection;
+	private final FileRepository fileRepository;
 	private final Messages messages;
 	private final CurrencyValidator currencyValidator;
 	private final String defaultCurrency;
 
 	public DataTransferService(
 			@All List<DataSectionTransfer<?>> transfers,
+			FileRepository fileRepository,
 			Messages messages,
 			CurrencyValidator currencyValidator,
 			@ConfigProperty(name = "mypaybyday.default-currency") String defaultCurrency) {
+		this.fileRepository = fileRepository;
 		this.messages = messages;
 		this.currencyValidator = currencyValidator;
 		this.defaultCurrency = defaultCurrency;
@@ -80,7 +84,7 @@ public class DataTransferService {
 			DataSectionTransfer<?> transfer = transfersBySection.get(section);
 			counts.add(new SectionCountDto(section, transfer.countForExport()));
 		}
-		long binaryFileCount = FileEntity.count();
+		long binaryFileCount = fileRepository.count();
 		return new DataExportSummaryDto(DataTransferDto.CURRENT_VERSION, LocalDateTime.now(ZoneOffset.UTC), counts, binaryFileCount);
 	}
 
@@ -95,7 +99,7 @@ public class DataTransferService {
 				zos.write(jsonBytes);
 				zos.closeEntry();
 
-				try (java.util.stream.Stream<FileEntity> filesStream = FileEntity.streamAll()) {
+				try (java.util.stream.Stream<FileEntity> filesStream = fileRepository.streamAll()) {
 					filesStream.forEach(file -> {
 						if (file.data != null) {
 							try {
@@ -207,7 +211,7 @@ public class DataTransferService {
 
 	@Transactional
 	public void updateFileData(Long newId, byte[] data) {
-		FileEntity entity = FileEntity.findById(newId);
+		FileEntity entity = fileRepository.findById(newId);
 		if (entity != null) {
 			entity.data = data;
 			try {

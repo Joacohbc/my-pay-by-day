@@ -36,6 +36,7 @@ import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.CategoryRepository;
 import com.mypaybyday.repository.EventRepository;
+import com.mypaybyday.repository.FileRepository;
 import com.mypaybyday.repository.FinanceNodeRepository;
 import com.mypaybyday.repository.SubscriptionRepository;
 import com.mypaybyday.repository.TagRepository;
@@ -61,6 +62,7 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 	private final FinanceNodeRepository financeNodeRepository;
 	private final CategoryRepository categoryRepository;
 	private final TagRepository tagRepository;
+	private final FileRepository fileRepository;
 	private final SubscriptionRepository subscriptionRepository;
 	private final TransactionRepository transactionRepository;
 	private final TransactionValidator transactionValidator;
@@ -81,6 +83,7 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 			FinanceNodeRepository financeNodeRepository,
 			CategoryRepository categoryRepository,
 			TagRepository tagRepository,
+			FileRepository fileRepository,
 			SubscriptionRepository subscriptionRepository,
 			TransactionRepository transactionRepository,
 			TransactionValidator transactionValidator,
@@ -99,6 +102,7 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 		this.financeNodeRepository = financeNodeRepository;
 		this.categoryRepository = categoryRepository;
 		this.tagRepository = tagRepository;
+		this.fileRepository = fileRepository;
 		this.subscriptionRepository = subscriptionRepository;
 		this.transactionRepository = transactionRepository;
 		this.transactionValidator = transactionValidator;
@@ -275,7 +279,7 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 				for (FileDto fDto : dto.files()) {
 					Long newFileId = context.remap(DataSection.FILES, fDto.id());
 					if (newFileId != null) {
-						FileEntity fEntity = FileEntity.findById(newFileId);
+						FileEntity fEntity = fileRepository.findById(newFileId);
 						if (fEntity != null) {
 							event.files.add(fEntity);
 						}
