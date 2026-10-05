@@ -1852,8 +1852,8 @@ export interface paths {
         };
         put?: never;
         /**
-         * Record a quote manually
-         * @description Appends a quote that becomes the currency's current rate. Entries already recorded keep the rate frozen on them.
+         * Record a quote
+         * @description Appends a quote that becomes the currency's current rate. Entries already recorded keep the rate frozen on them. The source defaults to MANUAL.
          */
         post: {
             parameters: {
@@ -1903,11 +1903,14 @@ export interface paths {
         };
         /**
          * Preview the configured provider's quotes
-         * @description Asks the external quote source for every configured currency and returns what it offers right now, without recording anything.
+         * @description Asks the external quote source for every configured currency, or only for the given one, and returns what it offers right now, without recording anything.
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description Only the quote of this ISO 4217 currency, even when it is not configured yet */
+                    currency?: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -1923,7 +1926,7 @@ export interface paths {
                         "application/json": components["schemas"]["ProviderQuoteDto"][];
                     };
                 };
-                /** @description No provider is configured, it cannot quote against the base currency, or it failed */
+                /** @description Unknown currency code, no provider is configured, it cannot quote against the base currency, or it failed */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -5765,6 +5768,7 @@ export interface components {
         RecordExchangeRateDto: {
             currency?: string;
             unitsPerBase?: number;
+            source?: components["schemas"]["ExchangeRateSource"] | null;
         };
         /** @description Payload to record a UI selection event */
         RecordSelectionDto: {

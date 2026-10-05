@@ -236,7 +236,7 @@ class ExchangeRateConversionTest {
 	}
 
 	private void quote(String currency, String unitsPerUsd) throws BusinessException {
-		exchangeRateService.recordManualRate(new RecordExchangeRateDto(currency, new BigDecimal(unitsPerUsd)));
+		exchangeRateService.recordRate(new RecordExchangeRateDto(currency, new BigDecimal(unitsPerUsd)));
 	}
 
 	private void makePrincipal(String currency) throws BusinessException {

@@ -61,9 +61,9 @@ public class ExchangeRateResource {
 	}
 
 	@POST
-	@Operation(summary = "Record a quote manually",
+	@Operation(summary = "Record a quote",
 			description = "Appends a quote that becomes the currency's current rate. Entries already recorded keep the rate "
-					+ "frozen on them.")
+					+ "frozen on them. The source defaults to MANUAL.")
 	@APIResponses({
 			@APIResponse(responseCode = "201", description = "Quote recorded",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ExchangeRateDto.class))),
@@ -71,22 +71,24 @@ public class ExchangeRateResource {
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<ExchangeRateDto> record(RecordExchangeRateDto quote) throws BusinessException {
-		return RestResponse.status(RestResponse.Status.CREATED, exchangeRateService.recordManualRate(quote));
+		return RestResponse.status(RestResponse.Status.CREATED, exchangeRateService.recordRate(quote));
 	}
 
 	@GET
 	@Path("/provider-quotes")
 	@Operation(summary = "Preview the configured provider's quotes",
-			description = "Asks the external quote source for every configured currency and returns what it offers right "
-					+ "now, without recording anything.")
+			description = "Asks the external quote source for every configured currency, or only for the given one, and "
+					+ "returns what it offers right now, without recording anything.")
 	@APIResponses({
 			@APIResponse(responseCode = "200", description = "Quotes the provider offers, against the current base currency",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(type = SchemaType.ARRAY, implementation = ProviderQuoteDto.class))),
-			@APIResponse(responseCode = "400", description = "No provider is configured, it cannot quote against the base currency, or it failed",
+			@APIResponse(responseCode = "400", description = "Unknown currency code, no provider is configured, it cannot quote against the base currency, or it failed",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
-	public RestResponse<List<ProviderQuoteDto>> providerQuotes() throws BusinessException {
-		return RestResponse.ok(exchangeRateService.previewProviderQuotes());
+	public RestResponse<List<ProviderQuoteDto>> providerQuotes(
+			@Parameter(description = "Only the quote of this ISO 4217 currency, even when it is not configured yet") @QueryParam("currency") String currency)
+			throws BusinessException {
+		return RestResponse.ok(exchangeRateService.previewProviderQuotes(currency));
 	}
 
 	@POST

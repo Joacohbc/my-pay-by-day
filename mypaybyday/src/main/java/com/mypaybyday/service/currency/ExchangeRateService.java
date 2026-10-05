@@ -82,8 +82,9 @@ public class ExchangeRateService implements DataSectionTransfer<ExchangeRateDto>
 	 *                           a positive number
 	 */
 	@Transactional
-	public ExchangeRateDto recordManualRate(RecordExchangeRateDto quote) throws BusinessException {
-		ExchangeRateEntity recorded = record(quote.currency(), quote.unitsPerBase(), ExchangeRateSource.MANUAL);
+	public ExchangeRateDto recordRate(RecordExchangeRateDto quote) throws BusinessException {
+		ExchangeRateSource source = quote.source() == null ? ExchangeRateSource.MANUAL : quote.source();
+		ExchangeRateEntity recorded = record(quote.currency(), quote.unitsPerBase(), source);
 		conversionBackfillQueue.enqueueAllPrincipal();
 		return ExchangeRateDto.from(recorded);
 	}
@@ -108,15 +109,26 @@ public class ExchangeRateService implements DataSectionTransfer<ExchangeRateDto>
 	}
 
 	/**
-	 * Asks the configured provider for its current quote of every configured currency without
-	 * recording anything, so the user can see it before deciding to adopt it.
+	 * Asks the configured provider for its current quotes without recording anything, so the user can
+	 * see them before deciding to adopt them.
 	 *
-	 * @throws BusinessException if no provider is configured or it fails
+	 * @param onlyCurrency limits the preview to this currency, configured or not; {@code null} asks
+	 *                     for every configured currency
+	 * @return the quotes; a currency the provider does not quote is left out
+	 * @throws BusinessException if the code is unknown, or no provider is configured or it fails
 	 */
 	@Transactional
-	public List<ProviderQuoteDto> previewProviderQuotes() throws BusinessException {
+	public List<ProviderQuoteDto> previewProviderQuotes(String onlyCurrency) throws BusinessException {
+		String normalizedCurrency = currencyValidator.validateOptional(onlyCurrency);
 		String baseCurrency = exchangeRateLookup.baseCurrency();
-		return fetchProviderQuotes(baseCurrency).entrySet().stream()
+		Map<String, BigDecimal> fetchedQuotes = normalizedCurrency == null
+				? fetchProviderQuotes(baseCurrency)
+				: exchangeRateProvider.fetchUnitsPerBase(baseCurrency, Set.of(normalizedCurrency));
+		return toProviderQuotes(fetchedQuotes, baseCurrency);
+	}
+
+	private List<ProviderQuoteDto> toProviderQuotes(Map<String, BigDecimal> fetchedQuotes, String baseCurrency) {
+		return fetchedQuotes.entrySet().stream()
 				.map(quote -> new ProviderQuoteDto(exchangeRateProvider.name(), quote.getKey(), baseCurrency, quote.getValue()))
 				.toList();
 	}
