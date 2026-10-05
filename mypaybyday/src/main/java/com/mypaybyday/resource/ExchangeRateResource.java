@@ -22,6 +22,7 @@ import org.jboss.resteasy.reactive.RestResponse;
 
 import com.mypaybyday.dto.ErrorResponseDto;
 import com.mypaybyday.dto.ExchangeRateDto;
+import com.mypaybyday.dto.ProviderQuoteDto;
 import com.mypaybyday.dto.RecordExchangeRateDto;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.service.currency.ExchangeRateService;
@@ -66,6 +67,21 @@ public class ExchangeRateResource {
 		return RestResponse.status(RestResponse.Status.CREATED, exchangeRateService.recordManualRate(quote));
 	}
 
+	@GET
+	@Path("/provider-quotes")
+	@Operation(summary = "Preview the configured provider's quotes",
+			description = "Asks the external quote source for every configured currency and returns what it offers right "
+					+ "now, without recording anything.")
+	@APIResponses({
+			@APIResponse(responseCode = "200", description = "Quotes the provider offers, against the current base currency",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(type = SchemaType.ARRAY, implementation = ProviderQuoteDto.class))),
+			@APIResponse(responseCode = "400", description = "No provider is configured, it cannot quote against the base currency, or it failed",
+					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
+	})
+	public RestResponse<List<ProviderQuoteDto>> providerQuotes() throws BusinessException {
+		return RestResponse.ok(exchangeRateService.previewProviderQuotes());
+	}
+
 	@POST
 	@Path("/refresh")
 	@Operation(summary = "Fetch quotes from the configured provider",
@@ -74,10 +90,11 @@ public class ExchangeRateResource {
 	@APIResponses({
 			@APIResponse(responseCode = "200", description = "Quotes recorded",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(type = SchemaType.ARRAY, implementation = ExchangeRateDto.class))),
-			@APIResponse(responseCode = "400", description = "No provider is configured, or it failed",
+			@APIResponse(responseCode = "400", description = "No provider is configured, it cannot quote against the base currency, or it failed",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<List<ExchangeRateDto>> refresh() throws BusinessException {
 		return RestResponse.ok(exchangeRateService.refreshFromProvider());
 	}
+
 }

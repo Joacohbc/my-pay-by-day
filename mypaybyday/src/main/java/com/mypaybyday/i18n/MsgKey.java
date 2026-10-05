@@ -76,6 +76,8 @@ public enum MsgKey {
 	EXCHANGE_RATE_BASE_NOT_QUOTABLE("error.exchange_rate.base_not_quotable"),
 	EXCHANGE_RATE_BASE_UNQUOTED("error.exchange_rate.base_unquoted"),
 	EXCHANGE_RATE_PROVIDER_NOT_CONFIGURED("error.exchange_rate.provider_not_configured"),
+	EXCHANGE_RATE_PROVIDER_BASE_UNSUPPORTED("error.exchange_rate.provider_base_unsupported"),
+	EXCHANGE_RATE_PROVIDER_UNAVAILABLE("error.exchange_rate.provider_unavailable"),
 	CONVERSION_RECALCULATION_SAME_CURRENCY("error.conversion_recalculation.same_currency"),
 	CONVERSION_RECALCULATION_TARGET_NOT_PRINCIPAL("error.conversion_recalculation.target_not_principal"),
 

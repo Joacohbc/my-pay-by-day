@@ -63,6 +63,7 @@ services:
       - APP_LOG_LEVEL=${APP_LOG_LEVEL:-INFO}
       - APP_DEFAULT_CURRENCY=${APP_DEFAULT_CURRENCY:-USD}
       - APP_EXCHANGE_RATE_BASE_CURRENCY=${APP_EXCHANGE_RATE_BASE_CURRENCY:-USD}
+      - APP_BROU_RATES_URL=${APP_BROU_RATES_URL:-https://brou.com.uy/cotizaciones}
       - MARKITDOWN_URL=http://markitdown:8590
     volumes:
       - ./data/backend:/data
