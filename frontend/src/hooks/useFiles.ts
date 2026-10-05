@@ -48,3 +48,13 @@ export function useDeleteFile() {
     },
   });
 }
+
+export function useDeleteOrphanFiles() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, void>({
+    mutationFn: () => filesService.deleteOrphans(),
+    onSuccess: () => {
+      invalidateDomains(queryClient, ['files']);
+    },
+  });
+}

@@ -35,6 +35,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @ApplicationScoped
 public class FileService implements DataSectionTransfer<FileExportDto> {
 
+	private static final String ORPHAN_FILES_QUERY = "id not in (select f.id from FinanceEvent e join e.files f)";
+
 	private final Messages messages;
 	private final MarkItDownClient markItDownClient;
 	private final ArchivedItemImporter archivedItemImporter;
@@ -200,7 +202,7 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 		PanacheQuery<FileEntity> query;
 
 		if (orphaned != null && orphaned) {
-			query = FileEntity.find("id not in (select f.id from FinanceEvent e join e.files f)");
+			query = FileEntity.find(ORPHAN_FILES_QUERY);
 		} else if (orphaned != null && !orphaned) {
 			query = FileEntity.find("id in (select f.id from FinanceEvent e join e.files f)");
 		} else {
@@ -246,6 +248,13 @@ public class FileService implements DataSectionTransfer<FileExportDto> {
 
 		file.delete();
 		Log.infof("Deleted file id=%d", id);
+	}
+
+	@Transactional
+	public void deleteOrphanFiles() {
+		List<FileEntity> orphanFiles = FileEntity.list(ORPHAN_FILES_QUERY);
+		orphanFiles.forEach(FileEntity::delete);
+		Log.infof("Deleted %d orphan files", orphanFiles.size());
 	}
 
 	private boolean isOrphan(Long fileId) {

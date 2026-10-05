@@ -169,6 +169,15 @@ public class FileResource {
 	}
 
 	@DELETE
+	@Path("/orphans")
+	@Operation(summary = "Delete all orphan files", description = "Permanently deletes every file that is not linked to any event")
+	@APIResponse(responseCode = "204", description = "Orphan files deleted")
+	public RestResponse<Void> deleteOrphans() {
+		fileService.deleteOrphanFiles();
+		return RestResponse.noContent();
+	}
+
+	@DELETE
 	@Path("/{id}")
 	@Operation(summary = "Delete a file", description = "Permanently deletes the file. Fails if the file is still linked to an event.")
 	@APIResponses({

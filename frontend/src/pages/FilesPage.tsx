@@ -3,7 +3,7 @@ import { normalizeText } from '@/lib/utils/textUtils';
 import { getFileTypeLabel } from '@/lib/fileUtils';
 import { Routes } from '@/lib/routes';
 import { useTranslation } from 'react-i18next';
-import { useFiles, useDeleteFile, useUploadFile } from '@/hooks/useFiles';
+import { useFiles, useDeleteFile, useDeleteOrphanFiles, useUploadFile } from '@/hooks/useFiles';
 import { useAlert } from '@/contexts/AlertContext';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -28,6 +28,7 @@ export function FilesPage() {
   const [filter, setFilter] = useState<FilterMode>('all');
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [createEmailOpen, setCreateEmailOpen] = useState(false);
+  const [confirmDeleteOrphansOpen, setConfirmDeleteOrphansOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadFile = useUploadFile();
@@ -61,6 +62,7 @@ export function FilesPage() {
   const orphaned = filter === 'all' ? undefined : filter === 'orphan' ? true : false;
   const { data: paged, isLoading, error } = useFiles(0, 200, orphaned);
   const deleteFile = useDeleteFile();
+  const deleteOrphanFiles = useDeleteOrphanFiles();
 
   const availableMimeTypes = useMemo(() => {
     const types = new Set<string>();
@@ -102,6 +104,12 @@ export function FilesPage() {
     setConfirmDeleteId(null);
   };
 
+  const handleDeleteOrphans = async () => {
+    await deleteOrphanFiles.mutateAsync();
+    setConfirmDeleteOrphansOpen(false);
+    alert.success(t('files.deleteOrphansSuccess'));
+  };
+
   if (isLoading) return <FullPageSpinner />;
   if (error) return <ErrorState message={String(error)} />;
 
@@ -121,6 +129,16 @@ export function FilesPage() {
         message={t('files.deleteConfirm')}
         confirmLabel={t('common.delete')}
         loading={deleteFile.isPending}
+      />
+
+      <ConfirmModal
+        open={confirmDeleteOrphansOpen}
+        onClose={() => setConfirmDeleteOrphansOpen(false)}
+        onConfirm={handleDeleteOrphans}
+        title={t('files.deleteOrphansButton')}
+        message={t('files.deleteOrphansConfirm')}
+        confirmLabel={t('common.delete')}
+        loading={deleteOrphanFiles.isPending}
       />
 
       <CreateEmailModal
@@ -198,7 +216,7 @@ export function FilesPage() {
         </div>
 
         {/* Filter tabs + Sort */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1 bg-dn-surface-low rounded-xl p-0.5">
             {filterOptions.map((opt) => (
               <button
@@ -216,13 +234,23 @@ export function FilesPage() {
             ))}
           </div>
 
-          <button
-            onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-dn-surface-low text-dn-text-muted hover:text-dn-text-main text-xs font-medium transition-colors"
-          >
-            <Icon name={sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward'} className="text-sm" />
-            {t('files.sortBySize')}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setConfirmDeleteOrphansOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-dn-surface-low text-dn-text-muted hover:text-dn-error text-xs font-medium transition-colors"
+            >
+              <Icon name="delete_sweep" className="text-sm" />
+              {t('files.deleteOrphansButton')}
+            </button>
+
+            <button
+              onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-dn-surface-low text-dn-text-muted hover:text-dn-text-main text-xs font-medium transition-colors"
+            >
+              <Icon name={sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward'} className="text-sm" />
+              {t('files.sortBySize')}
+            </button>
+          </div>
         </div>
       </div>
 
