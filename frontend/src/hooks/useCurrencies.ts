@@ -8,6 +8,7 @@ import type {
   CurrencySetting,
   RecordExchangeRateDto,
   RequestConversionRecalculationDto,
+  UpdateExchangeRateRefreshScheduleDto,
 } from '@/models';
 import { currencyKeys } from '@/lib/queryKeys';
 import { cachePolicy } from '@/lib/cachePolicies';
@@ -99,6 +100,43 @@ export function useRecordExchangeRate() {
     onSuccess: () => {
       invalidateCurrenciesAndFinances(queryClient);
       alert.success(t('currencies.rateSaved'));
+    },
+    onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
+  });
+}
+
+/**
+ * What the provider quotes right now, fetched only while `isEnabled` (the preview is open) and never
+ * served from cache: the point is to see the current quote before recording it.
+ */
+export function useProviderQuotesPreview(isEnabled: boolean) {
+  return useQuery({
+    queryKey: currencyKeys.providerQuotes(),
+    queryFn: currenciesService.previewProviderQuotes,
+    enabled: isEnabled,
+    staleTime: 0,
+    gcTime: 0,
+    retry: false,
+  });
+}
+
+export function useExchangeRateRefreshSchedule() {
+  return useQuery({
+    queryKey: currencyKeys.refreshSchedule(),
+    queryFn: currenciesService.getRefreshSchedule,
+    ...cachePolicy.reference,
+  });
+}
+
+export function useUpdateExchangeRateRefreshSchedule() {
+  const queryClient = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: (dto: UpdateExchangeRateRefreshScheduleDto) => currenciesService.updateRefreshSchedule(dto),
+    onSuccess: (saved) => {
+      queryClient.setQueryData(currencyKeys.refreshSchedule(), saved);
+      alert.success(t('currencies.schedule.saved'));
     },
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
   });

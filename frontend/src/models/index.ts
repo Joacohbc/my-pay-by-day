@@ -115,6 +115,33 @@ export interface ExchangeRate extends Identifiable {
   recordedAt: string;
 }
 
+/** A quote the configured provider offers right now; nothing is recorded until the user adopts it. */
+export interface ProviderQuote {
+  source: string;
+  currency: string;
+  baseCurrency: string;
+  unitsPerBase: number;
+}
+
+/**
+ * When the provider's quotes are recorded on their own: once a day from `refreshTime` ("HH:mm:ss"),
+ * read in `timeZone`, the zone of whoever last saved it.
+ */
+export interface ExchangeRateRefreshSchedule {
+  enabled: boolean;
+  refreshTime: string;
+  businessDaysOnly: boolean;
+  timeZone: string;
+  lastAttemptOn?: string | null;
+  lastFailure?: string | null;
+}
+
+export interface UpdateExchangeRateRefreshScheduleDto {
+  enabled: boolean;
+  refreshTime: string;
+  businessDaysOnly: boolean;
+}
+
 export interface RecordExchangeRateDto {
   currency: string;
   unitsPerBase: number;

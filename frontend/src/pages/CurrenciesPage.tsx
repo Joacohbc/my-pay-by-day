@@ -12,12 +12,13 @@ import { Routes } from '@/lib/routes';
 import { formatDateTime, formatExchangeRate } from '@/lib/format';
 import { parsePositiveNumber } from '@/lib/utils/numbers';
 import { ConversionRecalculationSection } from '@/components/currency/ConversionRecalculationSection';
+import { RefreshRatesPreviewModal } from '@/components/currency/RefreshRatesPreviewModal';
+import { RefreshScheduleCard } from '@/components/currency/RefreshScheduleCard';
 import {
   useCurrencies,
   useExchangeRateHistory,
   useMakeBaseCurrency,
   useRecordExchangeRate,
-  useRefreshExchangeRates,
   useSetPrincipalCurrency,
 } from '@/hooks/useCurrencies';
 import type { CurrencySetting } from '@/models';
@@ -49,7 +50,12 @@ export function CurrenciesPage() {
 
       <section className="px-5">
         <SectionTitle>{t('currencies.recordSection')}</SectionTitle>
-        <RecordRateForm baseCurrency={baseCurrency} />
+        <RecordRateForm baseCurrency={baseCurrency} currencies={currencies ?? []} />
+      </section>
+
+      <section className="px-5">
+        <SectionTitle>{t('currencies.schedule.section')}</SectionTitle>
+        <RefreshScheduleCard />
       </section>
 
       <section className="px-5">
@@ -159,10 +165,10 @@ function CurrencyRow({ currency }: { currency: CurrencySetting }) {
   );
 }
 
-function RecordRateForm({ baseCurrency }: { baseCurrency: string }) {
+function RecordRateForm({ baseCurrency, currencies }: { baseCurrency: string; currencies: CurrencySetting[] }) {
   const { t } = useTranslation();
   const recordRate = useRecordExchangeRate();
-  const refreshRates = useRefreshExchangeRates();
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [currency, setCurrency] = useState('');
   const [unitsPerBase, setUnitsPerBase] = useState('');
   const [rateError, setRateError] = useState<string | undefined>();
@@ -200,8 +206,7 @@ function RecordRateForm({ baseCurrency }: { baseCurrency: string }) {
             type="button"
             variant="secondary"
             size="sm"
-            loading={refreshRates.isPending}
-            onClick={() => refreshRates.mutate()}
+            onClick={() => setIsPreviewOpen(true)}
           >
             <Icon name="cloud_sync" className="text-sm" />
             {t('currencies.refreshFromApi')}
@@ -211,6 +216,7 @@ function RecordRateForm({ baseCurrency }: { baseCurrency: string }) {
           </Button>
         </div>
       </form>
+      <RefreshRatesPreviewModal open={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} currencies={currencies} />
     </Card>
   );
 }
