@@ -17,6 +17,7 @@ import com.mypaybyday.dto.ConversionBackfillBatchDto;
 import com.mypaybyday.dto.ConversionRecalculationBatchDto;
 import com.mypaybyday.dto.ConversionRecalculationDto;
 import com.mypaybyday.dto.ExchangeRateDto;
+import com.mypaybyday.dto.GmailIngestionResultDto;
 import com.mypaybyday.entity.SystemJobEntity;
 import com.mypaybyday.enums.JobCategory;
 import com.mypaybyday.enums.JobStatus;
@@ -29,6 +30,7 @@ import com.mypaybyday.service.currency.ConversionRecalculationService;
 import com.mypaybyday.service.currency.ExchangeRateRefreshScheduleService;
 import com.mypaybyday.service.currency.ExchangeRateService;
 import com.mypaybyday.service.event.TransactionConversionService;
+import com.mypaybyday.service.gmail.GmailIngestionService;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.scheduler.Scheduled;
 import org.jboss.logging.Logger;
@@ -44,6 +46,7 @@ public class JobSchedulerService {
 	private static final String JOB_CURRENCY_CONVERSION_BACKFILL = "currency-conversion-backfill";
 	private static final String JOB_CURRENCY_CONVERSION_RECALCULATION = "currency-conversion-recalculation";
 	private static final String JOB_EXCHANGE_RATE_REFRESH = "exchange-rate-refresh";
+	private static final String JOB_GMAIL_INGESTION = "gmail-ingestion";
 
 	/** The job message column is a VARCHAR(255). */
 	private static final int JOB_MESSAGE_MAX_LENGTH = 255;
@@ -91,9 +94,10 @@ public class JobSchedulerService {
 	private final ConversionRecalculationService conversionRecalculationService;
 	private final ExchangeRateRefreshScheduleService exchangeRateRefreshScheduleService;
 	private final ExchangeRateService exchangeRateService;
+	private final GmailIngestionService gmailIngestionService;
 	private final LanguageContext languageContext;
 
-	public JobSchedulerService(SystemJobRepository systemJobRepository, SubscriptionService subscriptionService, PaymentPlanService paymentPlanService, DuplicateDetectionService duplicateDetectionService, TransactionConversionService transactionConversionService, ConversionRecalculationService conversionRecalculationService, ExchangeRateRefreshScheduleService exchangeRateRefreshScheduleService, ExchangeRateService exchangeRateService, LanguageContext languageContext) {
+	public JobSchedulerService(SystemJobRepository systemJobRepository, SubscriptionService subscriptionService, PaymentPlanService paymentPlanService, DuplicateDetectionService duplicateDetectionService, TransactionConversionService transactionConversionService, ConversionRecalculationService conversionRecalculationService, ExchangeRateRefreshScheduleService exchangeRateRefreshScheduleService, ExchangeRateService exchangeRateService, GmailIngestionService gmailIngestionService, LanguageContext languageContext) {
 		this.systemJobRepository = systemJobRepository;
 		this.subscriptionService = subscriptionService;
 		this.paymentPlanService = paymentPlanService;
@@ -102,6 +106,7 @@ public class JobSchedulerService {
 		this.conversionRecalculationService = conversionRecalculationService;
 		this.exchangeRateRefreshScheduleService = exchangeRateRefreshScheduleService;
 		this.exchangeRateService = exchangeRateService;
+		this.gmailIngestionService = gmailIngestionService;
 		this.languageContext = languageContext;
 	}
 
@@ -401,6 +406,35 @@ public class JobSchedulerService {
 			LOG.warnf("Automatic exchange rate refresh failed: %s", exception.getMessage());
 			exchangeRateRefreshScheduleService.recordRunOutcome(exception.getMessage());
 			logJobSummary(JOB_EXCHANGE_RATE_REFRESH, JOB_STATUS_COMPLETED, 0, 1, startedAtMillis);
+		}
+	}
+
+	/**
+	 * Turns the spending emails of the user's Gmail account into draft events. The interval comes
+	 * from {@code GMAIL_POLL_INTERVAL} and the job is off until it is set. A run that fails as a whole
+	 * (revoked grant, unreachable Google) is reported with {@code job_status=skipped}, because every
+	 * email it would have ingested is still waiting and the ledger is understated until it recovers.
+	 */
+	@Scheduled(every = "{mypaybyday.gmail.poll-interval}", delayed = "60s", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+	@ActivateRequestContext
+	public void processGmailIngestionJob() {
+		withJobCorrelation("scheduler:gmail-ingestion", this::runGmailIngestionJob);
+	}
+
+	private void runGmailIngestionJob() {
+		long startedAtMillis = System.currentTimeMillis();
+		if (!gmailIngestionService.isConfigured()) {
+			LOG.error("Gmail ingestion is enabled but its credentials, source labels or chatbot URL are not configured.");
+			logJobSummary(JOB_GMAIL_INGESTION, JOB_STATUS_SKIPPED, 0, 0, startedAtMillis);
+			return;
+		}
+
+		try {
+			GmailIngestionResultDto result = gmailIngestionService.ingest();
+			logJobSummary(JOB_GMAIL_INGESTION, JOB_STATUS_COMPLETED, result.ingestedCount(), result.failedCount(), startedAtMillis);
+		} catch (RuntimeException exception) {
+			LOG.error("Gmail ingestion run failed.", exception);
+			logJobSummary(JOB_GMAIL_INGESTION, JOB_STATUS_SKIPPED, 0, 0, startedAtMillis);
 		}
 	}
 
