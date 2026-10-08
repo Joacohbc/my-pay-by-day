@@ -1,6 +1,7 @@
 package com.mypaybyday.validation;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -10,6 +11,7 @@ import java.util.Set;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
+import com.mypaybyday.dto.ValidationErrorDto;
 import com.mypaybyday.entity.FinanceLineItemEntity;
 import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.entity.FinanceTransactionEntity;
@@ -159,6 +161,37 @@ public class TransactionValidator {
 	*/
 	public void validateDateNotInFuture(FinanceTransactionEntity transaction) throws BusinessException {
 		dateValidator.validateNotFuture(transaction.transactionDate);
+	}
+
+	/**
+	 * Runs the integrity rules a transaction can break once it has a date and line items, collecting
+	 * every violation instead of stopping at the first, so a caller can show them all at once. A
+	 * missing date or missing line items is the caller's to report: what counts as missing differs
+	 * between a draft and a merge.
+	 *
+	 * @return one entry per broken rule, empty when the transaction would be accepted
+	 */
+	public List<ValidationErrorDto> findViolations(FinanceTransactionEntity transaction) {
+		List<ValidationErrorDto> violations = new ArrayList<>();
+		if (transaction.transactionDate != null) {
+			collectViolation(violations, ValidationErrorDto.DATE_FIELD, () -> validateDateNotInFuture(transaction));
+		}
+		boolean hasLineItems = transaction.lineItems != null && !transaction.lineItems.isEmpty();
+		if (!hasLineItems) {
+			return violations;
+		}
+		collectViolation(violations, ValidationErrorDto.ZERO_SUM_FIELD, () -> validateZeroSum(transaction));
+		collectViolation(violations, ValidationErrorDto.NODES_FIELD, () -> validateNodesExist(transaction));
+		collectViolation(violations, ValidationErrorDto.CURRENCY_FIELD, () -> validateSingleCurrency(transaction));
+		return violations;
+	}
+
+	private static void collectViolation(List<ValidationErrorDto> violations, String field, Runnable rule) {
+		try {
+			rule.run();
+		} catch (BusinessException violation) {
+			violations.add(new ValidationErrorDto(field, violation.getMessage()));
+		}
 	}
 
 	/**

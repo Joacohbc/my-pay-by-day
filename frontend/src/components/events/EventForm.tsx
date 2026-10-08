@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '@/contexts/AlertContext';
 import { findFirstFieldErrorMessage } from '@/lib/formErrors';
@@ -159,18 +159,14 @@ export function EventForm({
     alert.error(findFirstFieldErrorMessage(fieldErrors) ?? t('common.validationError'));
   };
 
-  const hasUserInteracted = useRef(false);
-
   useEffect(() => {
     // Added eslint-disable-next-line - idiomatic RHF subscription pattern
     // eslint-disable-next-line react-hooks/incompatible-library
     const subscription = watch((values, { name }) => {
-      if (name === 'draftId') return;
-
-      if (!hasUserInteracted.current) {
-        hasUserInteracted.current = true;
-        return;
-      }
+      // RHF reports its own `values` sync as an update with no field name; every edit made by the
+      // user or applied from the AI patch names the field it changed, so only those are saved.
+      const isFormWideReset = name === undefined;
+      if (isFormWideReset || name === 'draftId') return;
 
       if (onChange) {
         onChange(toDraftDto(values as FormValues, t), values as FormValues);

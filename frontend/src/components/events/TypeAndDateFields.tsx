@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Controller, useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
-import { CurrencySelect } from '@/components/ui/CurrencySelect';
+import { QuotedCurrencyPicker } from '@/components/events/QuotedCurrencyPicker';
 import type { FormValues } from '@/components/events/EventFormMapper';
 
 export function TypeAndDateFields() {
@@ -80,8 +80,7 @@ export function TypeAndDateFields() {
         name="currency"
         control={control}
         render={({ field }) => (
-          <CurrencySelect
-            label={t('eventForm.currency')}
+          <QuotedCurrencyPicker
             value={field.value}
             onChange={field.onChange}
             error={errors.currency?.message}

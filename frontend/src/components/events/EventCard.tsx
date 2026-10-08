@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { FinanceEvent, PaymentPlan } from '@/models';
 import { Icon, AttachmentIcon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
-import { formatMoney, formatDate, eventCurrency, eventNetAmount, eventConversionTo } from '@/lib/format';
+import { formatMoney, formatAmount, formatDate, eventCurrency, eventNetAmount, eventConversionTo, recordedEventCurrency } from '@/lib/format';
 import { useDisplayCurrency } from '@/store/displayCurrencyStore';
 import { NodeIcon } from '@/components/ui/NodeIcon';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
@@ -50,6 +50,10 @@ export function EventCard({ event, disableLink, iconSource = 'category', groupPl
   const conversion = eventConversionTo(event, useDisplayCurrency());
   const shownAmount = conversion ? conversion.amount : net;
   const shownCurrency = conversion ? conversion.currency : eventCurrency(event);
+  const isMissingCurrency = !conversion && recordedEventCurrency(event) === null;
+  const shownMoney = isMissingCurrency
+    ? `${formatAmount(Math.abs(shownAmount || 0))} · ${t('common.noCurrency')}`
+    : formatMoney(Math.abs(shownAmount || 0), shownCurrency);
   const date = event.transactionDate;
   const lineItems = event.lineItems ?? [];
 
@@ -131,8 +135,11 @@ export function EventCard({ event, disableLink, iconSource = 'category', groupPl
       <div className="flex items-center gap-4 min-w-0 flex-1">
         {/* Icon */}
         {event.isDraft ? (
-          <div className="relative w-12 h-12 rounded-full flex items-center justify-center bg-dn-surface-low text-dn-text-muted border border-dashed border-white/20 shrink-0">
-            <Icon name="draft" />
+          <div
+            className={`relative w-12 h-12 rounded-full flex items-center justify-center border border-dashed border-white/20 shrink-0 ${cfg.iconBg}`}
+            title={t(cfg.labelKey)}
+          >
+            <Icon name={cfg.icon} />
             {planBadgeElement}
           </div>
         ) : (
@@ -192,10 +199,10 @@ export function EventCard({ event, disableLink, iconSource = 'category', groupPl
 
       {/* Amount */}
       <span className="flex flex-col items-end shrink-0">
-        <span className={`font-mono text-sm whitespace-nowrap ${event.isDraft ? 'text-dn-text-muted' : cfg.amountClass}`}>
-          {!event.isDraft && event.type === 'INBOUND' ? '+' : ''}
-          {!event.isDraft && event.type === 'OUTBOUND' ? '-' : ''}
-          {formatMoney(Math.abs(shownAmount || 0), shownCurrency)}
+        <span className={`font-mono text-sm whitespace-nowrap ${cfg.amountClass}`}>
+          {event.type === 'INBOUND' ? '+' : ''}
+          {event.type === 'OUTBOUND' ? '-' : ''}
+          {shownMoney}
         </span>
         {conversion && (
           <span className="font-mono text-[10px] text-dn-text-muted whitespace-nowrap">

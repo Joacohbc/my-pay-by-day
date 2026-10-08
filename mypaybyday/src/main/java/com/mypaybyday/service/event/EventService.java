@@ -17,6 +17,8 @@ import com.mypaybyday.dto.EventQuery;
 import com.mypaybyday.dto.EventTotalsDto;
 import com.mypaybyday.dto.FileDto;
 import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.dto.MergeEventsRequestDto;
+import com.mypaybyday.dto.MergePreviewDto;
 import com.mypaybyday.dto.FinanceLineItemDto;
 import com.mypaybyday.dto.PagedResponse;
 import com.mypaybyday.dto.PatchEventDto;
@@ -169,16 +171,13 @@ public class EventService implements DataSectionTransfer<FinanceEventDto> {
 	}
 
 	@Transactional
-	public FinanceEventDto mergeEvents(
-			Long baseEventId,
-			List<Long> sourceIds,
-			List<Long> groupByNodeIds,
-			Long categoryId,
-			List<Long> tagIds,
-			String name,
-			String description)
-			throws BusinessException {
-		return eventMergeService.mergeEvents(baseEventId, sourceIds, groupByNodeIds, categoryId, tagIds, name, description);
+	public MergePreviewDto previewMerge(Long baseEventId, MergeEventsRequestDto request) throws BusinessException {
+		return eventMergeService.previewMerge(baseEventId, request);
+	}
+
+	@Transactional
+	public FinanceEventDto mergeEvents(Long baseEventId, MergeEventsRequestDto request) throws BusinessException {
+		return eventMergeService.mergeEvents(baseEventId, request);
 	}
 
 	@Transactional

@@ -9,10 +9,12 @@ interface CurrencySelectProps {
   onChange: (value: string) => void;
   /** Offers "none", for a currency that is a preference rather than a requirement. */
   allowNone?: boolean;
+  /** Shown while no currency is selected. */
+  placeholder?: string;
   error?: string;
 }
 
-export function CurrencySelect({ label, value, onChange, allowNone, error }: CurrencySelectProps) {
+export function CurrencySelect({ label, value, onChange, allowNone, placeholder, error }: CurrencySelectProps) {
   return (
     <SearchableSelect
       label={label}
@@ -20,6 +22,7 @@ export function CurrencySelect({ label, value, onChange, allowNone, error }: Cur
       value={value}
       onChange={(selected) => onChange(selected == null ? '' : String(selected))}
       allowNone={allowNone}
+      placeholder={placeholder}
       error={error}
     />
   );

@@ -20,9 +20,12 @@ import com.mypaybyday.dto.DraftValidationResultDto;
 import com.mypaybyday.dto.ErrorResponseDto;
 import com.mypaybyday.dto.FinanceEventDraftInputDto;
 import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.dto.MergeEventsRequestDto;
+import com.mypaybyday.dto.MergePreviewDto;
 import com.mypaybyday.entity.DraftEntity;
 import com.mypaybyday.enums.EntityType;
 import com.mypaybyday.exception.BusinessException;
+import com.mypaybyday.service.DraftMergeService;
 import com.mypaybyday.service.DraftService;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -38,9 +41,11 @@ import org.jboss.resteasy.reactive.RestResponse;
 public class DraftResource {
 
 	private final DraftService draftService;
+	private final DraftMergeService draftMergeService;
 
-	public DraftResource(DraftService draftService) {
+	public DraftResource(DraftService draftService, DraftMergeService draftMergeService) {
 		this.draftService = draftService;
+		this.draftMergeService = draftMergeService;
 	}
 
 	@GET
@@ -127,14 +132,49 @@ public class DraftResource {
 	@Path("/finance-events/confirm-batch")
 	@Operation(summary = "Confirm multiple finance event drafts in one call",
 		description = "MERGE updates the linked event when a draft already has one, creating it otherwise. " +
-			"CREATE_ONLY always creates a new event. Drafts that fail validation are skipped and reported " +
-			"in the result instead of aborting the whole batch.")
-	@APIResponse(responseCode = "200", description = "Batch processed (see result for any skipped drafts)",
+			"CREATE_ONLY always creates a new event. All or nothing: when any draft fails validation, none is " +
+			"confirmed and every failing draft is reported in failedDrafts with its errors.")
+	@APIResponse(responseCode = "200", description = "Batch processed (failedDrafts is empty when every draft was confirmed)",
 		content = @Content(schema = @Schema(implementation = ConfirmDraftsResultDto.class)))
 	@APIResponse(responseCode = "400", description = "No draft IDs supplied (Business Exception)",
 			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
+	@APIResponse(responseCode = "404", description = "Draft not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	public RestResponse<ConfirmDraftsResultDto> confirmFinanceEventDraftsBatch(ConfirmDraftsRequestDto request) throws BusinessException {
 		return RestResponse.ok(draftService.confirmDraftsBatch(request.draftIds, request.mode));
+	}
+
+	@POST
+	@Path("/finance-events/{id}/merge/preview")
+	@Operation(summary = "Preview merging finance event drafts into one new event, persisting nothing",
+		description = "The path draft is the base: it supplies the date, the type and every field the request " +
+			"leaves unset. Reports every rule the merge would break, including drafts that are invalid, edit an " +
+			"existing event or belong to a payment plan.")
+	@APIResponse(responseCode = "200", description = "Preview computed (valid may be true or false; errors lists every violation)",
+		content = @Content(schema = @Schema(implementation = MergePreviewDto.class)))
+	@APIResponse(responseCode = "400", description = "No sources, or the base listed among them",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
+	@APIResponse(responseCode = "404", description = "Draft not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
+	public RestResponse<MergePreviewDto> previewFinanceEventDraftMerge(@PathParam("id") Long baseDraftId,
+			MergeEventsRequestDto request) throws BusinessException {
+		return RestResponse.ok(draftMergeService.previewMerge(baseDraftId, request));
+	}
+
+	@POST
+	@Path("/finance-events/{id}/merge")
+	@Operation(summary = "Merge finance event drafts into one new event",
+		description = "Creates a single event from the base draft and the source drafts, then deletes all of " +
+			"them. Rejected, changing nothing, when the preview reports any error.")
+	@APIResponse(responseCode = "201", description = "Event created from the merged drafts",
+		content = @Content(schema = @Schema(implementation = FinanceEventDto.class)))
+	@APIResponse(responseCode = "400", description = "The merge breaks a rule, or no sources were supplied",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
+	@APIResponse(responseCode = "404", description = "Draft not found",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
+	public RestResponse<FinanceEventDto> mergeFinanceEventDrafts(@PathParam("id") Long baseDraftId,
+			MergeEventsRequestDto request) throws BusinessException {
+		return RestResponse.status(RestResponse.Status.CREATED, draftMergeService.mergeDrafts(baseDraftId, request));
 	}
 
 	@POST
