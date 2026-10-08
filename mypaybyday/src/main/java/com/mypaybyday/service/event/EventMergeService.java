@@ -1,19 +1,20 @@
 package com.mypaybyday.service.event;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
 import com.mypaybyday.dto.FinanceEventDto;
+import com.mypaybyday.dto.FinanceLineItemDto;
+import com.mypaybyday.dto.MergeEventsRequestDto;
+import com.mypaybyday.dto.MergePreviewDto;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.dto.TagResolveConfig;
 import com.mypaybyday.entity.FinanceEventEntity;
@@ -34,19 +35,12 @@ import io.quarkus.logging.Log;
 @ApplicationScoped
 public class EventMergeService {
 
-	/**
-	 * Groups line items that a merge should collapse into one. Two movements only cancel or
-	 * accumulate when they touch the same node <em>and</em> are denominated the same way, so the
-	 * currency is part of the identity rather than a detail carried along with it.
-	 */
-	private record NodeCurrency(FinanceNodeEntity node, String currency) {
-	}
-
 	private final EventRepository eventRepository;
 	private final CategoryService categoryService;
 	private final TagService tagService;
 	private final DraftService entityDraftService;
 	private final PaymentPlanService paymentPlanService;
+	private final EventMergeComposer composer;
 	private final Messages messages;
 
 	public EventMergeService(
@@ -55,118 +49,112 @@ public class EventMergeService {
 			TagService tagService,
 			DraftService entityDraftService,
 			PaymentPlanService paymentPlanService,
+			EventMergeComposer composer,
 			Messages messages) {
 		this.eventRepository = eventRepository;
 		this.categoryService = categoryService;
 		this.tagService = tagService;
 		this.entityDraftService = entityDraftService;
 		this.paymentPlanService = paymentPlanService;
+		this.composer = composer;
 		this.messages = messages;
 	}
 
+	/**
+	 * Works out what merging the sources into the base would produce, persisting nothing.
+	 *
+	 * @throws BusinessException if the base or a source does not exist, or the request names no
+	 *                           sources or the base among them
+	 */
 	@Transactional
-	public FinanceEventDto mergeEvents(
-			Long baseEventId,
-			List<Long> sourceIds,
-			List<Long> groupByNodeIds,
-			Long categoryId,
-			List<Long> tagIds,
-			String name,
-			String description)
-			throws BusinessException {
-		if (sourceIds == null || sourceIds.isEmpty()) {
-			throw messages.reject(MsgKey.EVENT_MERGE_NO_SOURCES);
+	public MergePreviewDto previewMerge(Long baseEventId, MergeEventsRequestDto request) throws BusinessException {
+		FinanceEventEntity baseEvent = findBaseEvent(baseEventId, request);
+		return composer.compose(FinanceEventDto.from(baseEvent), toDtos(validateAndFetchRelatedEvents(request.sourceIds)), request);
+	}
+
+	/**
+	 * Merges the sources into the base event, which keeps its id, date and links, and deletes the
+	 * sources. Nothing changes unless the merged event passes every rule the preview checks.
+	 *
+	 * @throws BusinessException if an event does not exist or the merged event breaks a rule
+	 */
+	@Transactional
+	public FinanceEventDto mergeEvents(Long baseEventId, MergeEventsRequestDto request) throws BusinessException {
+		FinanceEventEntity baseEvent = findBaseEvent(baseEventId, request);
+		List<FinanceEventEntity> sourceEvents = validateAndFetchRelatedEvents(request.sourceIds);
+		MergePreviewDto preview = composer.compose(FinanceEventDto.from(baseEvent), toDtos(sourceEvents), request);
+		if (!preview.valid()) {
+			throw messages.reject(MsgKey.EVENT_MERGE_INVALID, preview.describeErrors());
 		}
 
+		FinanceEventDto mergedEvent = preview.mergedEvent();
+		replaceLineItems(baseEvent, sourceEvents, mergedEvent.lineItems());
+		baseEvent.name = mergedEvent.name();
+		baseEvent.description = mergedEvent.description();
+		if (request.categoryId != null) {
+			baseEvent.category = categoryService.findEntityById(request.categoryId);
+		}
+		if (request.tagIds != null) {
+			List<TagDto> tagDtos = request.tagIds.stream().map(TagDto::ofId).toList();
+			baseEvent.tags = tagService.resolveTags(tagDtos, TagResolveConfig.forNewEntity());
+		}
+		sourceEvents.forEach(sourceEvent -> baseEvent.files.addAll(sourceEvent.files));
+
+		detachSourcesFromRelatedEvents(sourceEvents);
+		paymentPlanService.relinkMergedEvents(baseEventId, request.sourceIds);
+		for (FinanceEventEntity sourceEvent : sourceEvents) {
+			entityDraftService.deleteByOriginalEntityId(sourceEvent.id, EntityType.FINANCE_EVENT);
+			eventRepository.delete(sourceEvent);
+		}
+
+		Log.infof("Merged %d events into base id=%d: sources=%s", request.sourceIds.size(), baseEventId, request.sourceIds);
+		Long planId = paymentPlanService.findPlanIdsByEventIds(List.of(baseEventId)).get(baseEventId);
+		return FinanceEventDto.from(baseEvent).withPaymentPlanId(planId);
+	}
+
+	private FinanceEventEntity findBaseEvent(Long baseEventId, MergeEventsRequestDto request) throws BusinessException {
+		if (request.sourceIds == null || request.sourceIds.isEmpty()) {
+			throw messages.reject(MsgKey.EVENT_MERGE_NO_SOURCES);
+		}
+		if (request.sourceIds.contains(baseEventId)) {
+			throw messages.reject(MsgKey.EVENT_MERGE_SELF);
+		}
 		FinanceEventEntity baseEvent = eventRepository.findById(baseEventId);
 		if (baseEvent == null) {
 			throw messages.reject(MsgKey.EVENT_NOT_FOUND);
 		}
+		return baseEvent;
+	}
 
-		if (sourceIds.contains(baseEventId)) {
-			throw messages.reject(MsgKey.EVENT_MERGE_SELF);
-		}
+	private static List<FinanceEventDto> toDtos(List<FinanceEventEntity> events) {
+		return events.stream().map(FinanceEventDto::from).toList();
+	}
 
-		List<FinanceEventEntity> sourceEvents = validateAndFetchRelatedEvents(sourceIds);
-		sourceEvents.sort(Comparator.comparing(event -> event.transaction.transactionDate));
-
-		boolean sameEventType = sourceEvents.stream().allMatch(source -> source.type == baseEvent.type);
-		if (!sameEventType) {
-			throw messages.reject(MsgKey.EVENT_MERGE_MIXED_TYPES);
-		}
-
-		Set<Long> groupedNodeIds = groupByNodeIds != null ? new HashSet<>(groupByNodeIds) : new HashSet<>();
-		List<FinanceLineItemEntity> allLineItems = new ArrayList<>();
-		if (baseEvent.transaction != null && baseEvent.transaction.lineItems != null) {
-			allLineItems.addAll(baseEvent.transaction.lineItems);
-		}
-		for (FinanceEventEntity sourceEvent : sourceEvents) {
-			if (sourceEvent.transaction != null && sourceEvent.transaction.lineItems != null) {
-				allLineItems.addAll(sourceEvent.transaction.lineItems);
-			}
-		}
-
-		Map<NodeCurrency, BigDecimal> aggregatedAmountsByNode = new LinkedHashMap<>();
-		List<FinanceLineItemEntity> nonGroupedLineItems = new ArrayList<>();
-
-		for (FinanceLineItemEntity lineItem : allLineItems) {
-			if (lineItem.financeNode == null) {
-				continue;
-			}
-			if (groupedNodeIds.contains(lineItem.financeNode.id)) {
-				aggregatedAmountsByNode.merge(
-						new NodeCurrency(lineItem.financeNode, lineItem.currency), lineItem.amount, BigDecimal::add);
-			} else {
-				nonGroupedLineItems.add(lineItem);
-			}
-		}
+	/**
+	 * Swaps the base transaction's line items for the merged ones. Every node they reference
+	 * already belongs to one of the merged events, so it is taken from there rather than reloaded.
+	 */
+	private static void replaceLineItems(FinanceEventEntity baseEvent, List<FinanceEventEntity> sourceEvents,
+			List<FinanceLineItemDto> mergedLineItems) {
+		Map<Long, FinanceNodeEntity> nodesById = new HashMap<>();
+		Stream.concat(Stream.of(baseEvent), sourceEvents.stream())
+				.flatMap(event -> event.transaction.lineItems.stream())
+				.filter(lineItem -> lineItem.financeNode != null)
+				.forEach(lineItem -> nodesById.putIfAbsent(lineItem.financeNode.id, lineItem.financeNode));
 
 		FinanceTransactionEntity baseTransaction = baseEvent.transaction;
 		baseTransaction.lineItems.clear();
-		List<FinanceLineItemEntity> mergedLineItems = new ArrayList<>();
-
-		for (Map.Entry<NodeCurrency, BigDecimal> aggregatedEntry : aggregatedAmountsByNode.entrySet()) {
-			FinanceLineItemEntity mergedItem = new FinanceLineItemEntity();
-			mergedItem.transaction = baseTransaction;
-			mergedItem.financeNode = aggregatedEntry.getKey().node();
-			mergedItem.currency = aggregatedEntry.getKey().currency();
-			mergedItem.amount = aggregatedEntry.getValue();
-			mergedLineItems.add(mergedItem);
+		for (FinanceLineItemDto mergedLineItem : mergedLineItems) {
+			FinanceLineItemEntity lineItem = new FinanceLineItemEntity();
+			lineItem.transaction = baseTransaction;
+			lineItem.financeNode = nodesById.get(mergedLineItem.financeNodeId());
+			lineItem.amount = mergedLineItem.amount();
+			lineItem.currency = mergedLineItem.currency();
+			baseTransaction.lineItems.add(lineItem);
 		}
+	}
 
-		for (FinanceLineItemEntity lineItem : nonGroupedLineItems) {
-			FinanceLineItemEntity mergedItem = new FinanceLineItemEntity();
-			mergedItem.transaction = baseTransaction;
-			mergedItem.financeNode = lineItem.financeNode;
-			mergedItem.amount = lineItem.amount;
-			mergedItem.currency = lineItem.currency;
-			mergedLineItems.add(mergedItem);
-		}
-
-		mergedLineItems.sort(this::compareMergedLineItems);
-		baseTransaction.lineItems.addAll(mergedLineItems);
-
-		if (name != null && !name.isBlank()) {
-			baseEvent.name = name.trim();
-		}
-
-		if (description != null && !description.isBlank()) {
-			baseEvent.description = description.trim();
-		}
-
-		if (categoryId != null) {
-			baseEvent.category = categoryService.findEntityById(categoryId);
-		}
-
-		if (tagIds != null) {
-			List<TagDto> tagDtos = tagIds.stream().map(tagId -> new TagDto(tagId, null, null, null, false)).toList();
-			baseEvent.tags = tagService.resolveTags(tagDtos, TagResolveConfig.forNewEntity());
-		}
-
-		for (FinanceEventEntity sourceEvent : sourceEvents) {
-			baseEvent.files.addAll(sourceEvent.files);
-		}
-
+	private static void detachSourcesFromRelatedEvents(List<FinanceEventEntity> sourceEvents) {
 		Set<FinanceEventEntity> sourceEventSet = new HashSet<>(sourceEvents);
 		sourceEvents.stream()
 				.flatMap(sourceEvent -> sourceEvent.relatedEvents.stream())
@@ -174,16 +162,6 @@ public class EventMergeService {
 				.collect(Collectors.toSet())
 				.forEach(relatedEvent -> relatedEvent.relatedEvents.removeAll(sourceEventSet));
 		sourceEvents.forEach(sourceEvent -> sourceEvent.relatedEvents.clear());
-
-		paymentPlanService.relinkMergedEvents(baseEventId, sourceIds);
-		for (FinanceEventEntity sourceEvent : sourceEvents) {
-			entityDraftService.deleteByOriginalEntityId(sourceEvent.id, EntityType.FINANCE_EVENT);
-			eventRepository.delete(sourceEvent);
-		}
-
-		Log.infof("Merged %d events into base id=%d: sources=%s", sourceIds.size(), baseEventId, sourceIds);
-		Long planId = paymentPlanService.findPlanIdsByEventIds(List.of(baseEventId)).get(baseEventId);
-		return FinanceEventDto.from(baseEvent).withPaymentPlanId(planId);
 	}
 
 	@Transactional
@@ -231,41 +209,6 @@ public class EventMergeService {
 	@Transactional
 	public FinanceEventDto removeRelation(Long eventId, Long relatedId) throws BusinessException {
 		return removeRelations(eventId, List.of(relatedId));
-	}
-
-	private int compareMergedLineItems(FinanceLineItemEntity first, FinanceLineItemEntity second) {
-		int signComparison = Boolean.compare(!isNegativeAmount(first.amount), !isNegativeAmount(second.amount));
-		if (signComparison != 0) {
-			return signComparison;
-		}
-
-		if (isNegativeAmount(first.amount) && isNegativeAmount(second.amount)) {
-			int amountComparison = second.amount.compareTo(first.amount);
-			if (amountComparison != 0) {
-				return amountComparison;
-			}
-		}
-
-		return compareNodeId(first.financeNode, second.financeNode);
-	}
-
-	private int compareNodeId(FinanceNodeEntity first, FinanceNodeEntity second) {
-		Long firstNodeId = first != null ? first.id : null;
-		Long secondNodeId = second != null ? second.id : null;
-		if (firstNodeId == null && secondNodeId == null) {
-			return 0;
-		}
-		if (firstNodeId == null) {
-			return 1;
-		}
-		if (secondNodeId == null) {
-			return -1;
-		}
-		return firstNodeId.compareTo(secondNodeId);
-	}
-
-	private boolean isNegativeAmount(BigDecimal amount) {
-		return amount != null && amount.compareTo(BigDecimal.ZERO) < 0;
 	}
 
 	private List<FinanceEventEntity> validateAndFetchRelatedEvents(List<Long> relatedIds) throws BusinessException {

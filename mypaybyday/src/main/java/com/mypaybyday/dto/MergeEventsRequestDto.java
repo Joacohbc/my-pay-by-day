@@ -6,7 +6,10 @@ import jakarta.validation.constraints.NotEmpty;
 
 public class MergeEventsRequestDto {
 
-	/** IDs of the events to be merged into the base. */
+	/**
+	 * IDs of what is merged into the base: event IDs when merging events, draft IDs when merging
+	 * drafts.
+	 */
 	@NotEmpty
 	public List<Long> sourceIds;
 
