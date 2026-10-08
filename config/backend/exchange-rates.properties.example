@@ -1,0 +1,17 @@
+# Copy to exchange-rates.properties to override the exchange-rate providers. The backend reads it from
+# /deployments/config when started with docker compose; a missing file leaves every default in place.
+
+# ── Routing ──────────────────────────────────────────────
+# Which providers quote each currency, in order of preference: when the first fails or does not quote
+# it, the next one is asked. A currency without its own entry follows `default`; with no routing at
+# all, every configured provider is tried in order of name.
+# mypaybyday.exchange-rate.routing.default=brou
+# mypaybyday.exchange-rate.routing.USD=brou
+# mypaybyday.exchange-rate.routing.JPY=other-bank,brou
+
+# ── Providers ────────────────────────────────────────────
+# Each provider reads mypaybyday.exchange-rate.providers.<name>.*. A blank URL disables it.
+# mypaybyday.exchange-rate.providers.brou.url=https://brou.com.uy/cotizaciones
+
+# Secrets belong in exchange-rates.env and are referenced from here:
+# mypaybyday.exchange-rate.providers.other-bank.api-key=${OTHER_BANK_API_KEY}

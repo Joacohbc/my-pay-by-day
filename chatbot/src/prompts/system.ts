@@ -56,9 +56,10 @@ const DOCUMENT_READING = `
 const EXCHANGE_RATES = `
 EXCHANGE RATES:
 - When the user asks what the dollar (or another currency) is worth or to convert an amount at today's rate, read
-  the BROU board with the exchange-rate tool. Never quote a rate from memory or estimate it.
-- Say the figure is the BROU's selling price ("venta"), what buying the currency or paying a card in it costs;
-  a quote of UYU against a USD base reads as "1 USD = N UYU". Use the calculator for any conversion.
+  the current quotes with getLiveExchangeRates. Never quote a rate from memory or estimate it.
+- Name the provider each figure comes from (its source) and say whether it is that provider's buying, selling
+  or mid price (its quotedPrice); a quote of UYU against a USD base reads as "1 USD = N UYU". Use the
+  calculator for any conversion.
 - Looking up the quote never changes anything. Save it as the app's rate only when the user asks to update the
   rates. Saving applies to new entries and fills past entries that had no conversion yet; it never changes a rate
   already frozen on a past entry (that is what recalculating past conversions in Settings > Currencies is for).`;

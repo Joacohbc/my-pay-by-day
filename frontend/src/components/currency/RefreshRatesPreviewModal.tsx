@@ -12,7 +12,7 @@ interface RefreshRatesPreviewModalProps {
   currencies: CurrencySetting[];
 }
 
-/** Shows what the provider quotes right now, and records it only once the user confirms. */
+/** Shows what the providers quote right now, and records it only once the user confirms. */
 export function RefreshRatesPreviewModal({ open, onClose, currencies }: RefreshRatesPreviewModalProps) {
   const { t } = useTranslation();
   const { data: quotes, isLoading, error } = useProviderQuotesPreview(open);
@@ -63,7 +63,7 @@ function PreviewBody({ quotes, isLoading, errorMessage, currencies }: PreviewBod
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-dn-text-muted">{t('currencies.preview.hint', { source: quotes[0].source })}</p>
+      <p className="text-xs text-dn-text-muted">{t('currencies.preview.hint')}</p>
       <div className="divide-y divide-white/5">
         {quotes.map((quote) => (
           <QuoteRow
@@ -88,6 +88,9 @@ function QuoteRow({ quote, currentUnitsPerBase }: { quote: ProviderQuote; curren
       </p>
       <p className="text-xs font-mono text-dn-text-muted">
         {t('currencies.rateLine', { base: quote.baseCurrency, rate: formatExchangeRate(quote.unitsPerBase), currency: quote.currency })}
+      </p>
+      <p className="text-xs text-dn-text-muted">
+        {quote.source} · {t(`currencies.quotedPrice.${quote.quotedPrice}`)}
       </p>
       <p className="text-xs text-dn-text-muted">
         {currentUnitsPerBase === undefined

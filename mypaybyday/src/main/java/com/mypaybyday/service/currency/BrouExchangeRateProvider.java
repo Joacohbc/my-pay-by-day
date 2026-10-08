@@ -12,11 +12,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
+import com.mypaybyday.enums.QuotedPrice;
 import com.mypaybyday.exception.BusinessException;
 import com.mypaybyday.i18n.Messages;
 import com.mypaybyday.i18n.MsgKey;
@@ -24,13 +27,13 @@ import io.quarkus.logging.Log;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
- * Quotes currencies at Banco República's (BROU) board selling price ("venta"): the pesos the bank
- * charges for one unit of each currency, which is what buying dollars or paying a card balance in
- * dollars actually costs.
+ * Quotes currencies at the midpoint of Banco República's (BROU) board buying ("compra") and selling
+ * ("venta") prices. The midpoint is a neutral value for what a balance held in the currency is worth,
+ * rather than the cost of buying it or what selling it would yield.
  *
  * <p>The BROU publishes no API, so the board is read from its public quotes page. The board prices
- * every currency in pesos; a quote against any other base is the ratio of both selling prices. Only
- * the board ("pizarra") dollar is read: the cheaper "Dólar eBROU" applies to online operations alone.
+ * every currency in pesos; a quote against any other base is the ratio of both midpoints. Only the
+ * board ("pizarra") dollar is read: the "Dólar eBROU" applies to online operations alone.
  */
 @ApplicationScoped
 public class BrouExchangeRateProvider implements ExchangeRateProvider {
@@ -53,7 +56,9 @@ public class BrouExchangeRateProvider implements ExchangeRateProvider {
 	private static final Pattern CURRENCY_NAME = Pattern.compile("<p class=\"moneda\">\\s*([^<]+?)\\s*</p>");
 	private static final Pattern PRICE_CELL = Pattern.compile("<p class=\"valor\">\\s*([^<]*?)\\s*</p>");
 	private static final Pattern BOARD_NUMBER = Pattern.compile("[0-9.]+,[0-9]+");
+	private static final int BUYING_PRICE_COLUMN = 0;
 	private static final int SELLING_PRICE_COLUMN = 1;
+	private static final BigDecimal PRICES_AVERAGED = BigDecimal.valueOf(2);
 
 	private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
 	private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(15);
@@ -65,7 +70,7 @@ public class BrouExchangeRateProvider implements ExchangeRateProvider {
 
 	public BrouExchangeRateProvider(
 			Messages messages,
-			@ConfigProperty(name = "mypaybyday.exchange-rate.brou.url") Optional<String> boardUrl) {
+			@ConfigProperty(name = "mypaybyday.exchange-rate.providers.brou.url") Optional<String> boardUrl) {
 		this.messages = messages;
 		this.boardUrl = boardUrl.filter(url -> !url.isBlank());
 		this.httpClient = HttpClient.newBuilder()
@@ -80,39 +85,53 @@ public class BrouExchangeRateProvider implements ExchangeRateProvider {
 	}
 
 	@Override
+	public boolean isConfigured() {
+		return boardUrl.isPresent();
+	}
+
+	@Override
+	public Set<String> quotableCurrencies() {
+		return Stream.concat(Stream.of(PESO), CURRENCY_BY_BOARD_NAME.values().stream()).collect(Collectors.toSet());
+	}
+
+	@Override
+	public QuotedPrice quotedPrice() {
+		return QuotedPrice.MID;
+	}
+
+	@Override
 	public Map<String, BigDecimal> fetchUnitsPerBase(String baseCurrency, Set<String> currencies)
 			throws BusinessException {
 		if (boardUrl.isEmpty()) {
 			throw messages.reject(MsgKey.EXCHANGE_RATE_PROVIDER_NOT_CONFIGURED);
 		}
-		Map<String, BigDecimal> pesosPerUnit = parseSellingPrices(fetchBoard());
-		if (!pesosPerUnit.containsKey(DOLLAR)) {
-			Log.warnf("The %s board no longer lists the dollar where expected", SOURCE_NAME);
+		Map<String, BigDecimal> pesosPerUnit = parseMidPrices(fetchBoard());
+		boolean boardListsEveryCurrencyNeeded = pesosPerUnit.containsKey(DOLLAR) && pesosPerUnit.containsKey(baseCurrency);
+		if (!boardListsEveryCurrencyNeeded) {
+			Log.warnf("The %s board no longer lists the dollar or %s where expected", SOURCE_NAME, baseCurrency);
 			throw unavailable();
-		}
-		if (!pesosPerUnit.containsKey(baseCurrency)) {
-			throw messages.reject(MsgKey.EXCHANGE_RATE_PROVIDER_BASE_UNSUPPORTED, SOURCE_NAME, baseCurrency);
 		}
 		return toUnitsPerBase(pesosPerUnit, baseCurrency, currencies);
 	}
 
 	/**
-	 * Reads the selling price of every board row the application tracks.
+	 * Reads the midpoint between the buying and selling price of every board row the application
+	 * tracks.
 	 *
 	 * @return pesos per unit of each currency, the peso itself included at 1
 	 */
-	static Map<String, BigDecimal> parseSellingPrices(String boardHtml) {
+	static Map<String, BigDecimal> parseMidPrices(String boardHtml) {
 		Map<String, BigDecimal> pesosPerUnit = new HashMap<>();
 		pesosPerUnit.put(PESO, BigDecimal.ONE);
 		Matcher row = BOARD_ROW.matcher(boardHtml);
 		while (row.find()) {
-			readSellingPrice(row.group(1)).ifPresent(quote -> pesosPerUnit.put(quote.getKey(), quote.getValue()));
+			readMidPrice(row.group(1)).ifPresent(quote -> pesosPerUnit.put(quote.getKey(), quote.getValue()));
 		}
 		return pesosPerUnit;
 	}
 
 	/**
-	 * @param pesosPerUnit the selling price in pesos of every currency the board lists
+	 * @param pesosPerUnit the price in pesos of every currency the board lists
 	 * @return how many units of each asked-for currency buy one unit of the base
 	 */
 	static Map<String, BigDecimal> toUnitsPerBase(Map<String, BigDecimal> pesosPerUnit, String baseCurrency,
@@ -127,19 +146,30 @@ public class BrouExchangeRateProvider implements ExchangeRateProvider {
 		return unitsPerBase;
 	}
 
-	private static Optional<Map.Entry<String, BigDecimal>> readSellingPrice(String rowHtml) {
+	private static Optional<Map.Entry<String, BigDecimal>> readMidPrice(String rowHtml) {
 		Matcher name = CURRENCY_NAME.matcher(rowHtml);
 		if (!name.find()) {
 			return Optional.empty();
 		}
 		String currency = CURRENCY_BY_BOARD_NAME.get(name.group(1));
 		List<String> prices = PRICE_CELL.matcher(rowHtml).results().map(cell -> cell.group(1)).toList();
-		boolean hasSellingPrice = prices.size() > SELLING_PRICE_COLUMN
-				&& BOARD_NUMBER.matcher(prices.get(SELLING_PRICE_COLUMN)).matches();
-		if (currency == null || !hasSellingPrice) {
+		boolean hasBothPrices = isBoardNumberAt(prices, BUYING_PRICE_COLUMN) && isBoardNumberAt(prices, SELLING_PRICE_COLUMN);
+		if (currency == null || !hasBothPrices) {
 			return Optional.empty();
 		}
-		return Optional.of(Map.entry(currency, parseBoardNumber(prices.get(SELLING_PRICE_COLUMN))));
+		BigDecimal buyingPrice = parseBoardNumber(prices.get(BUYING_PRICE_COLUMN));
+		BigDecimal sellingPrice = parseBoardNumber(prices.get(SELLING_PRICE_COLUMN));
+		return Optional.of(Map.entry(currency, midPrice(buyingPrice, sellingPrice)));
+	}
+
+	private static boolean isBoardNumberAt(List<String> prices, int column) {
+		return prices.size() > column && BOARD_NUMBER.matcher(prices.get(column)).matches();
+	}
+
+	private static BigDecimal midPrice(BigDecimal buyingPrice, BigDecimal sellingPrice) {
+		return buyingPrice.add(sellingPrice)
+				.divide(PRICES_AVERAGED, ExchangeRateQuotes.RATE_SCALE, RoundingMode.HALF_EVEN)
+				.stripTrailingZeros();
 	}
 
 	/** The board writes numbers the Uruguayan way: "1.234,56". */

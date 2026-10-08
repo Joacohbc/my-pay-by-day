@@ -34,6 +34,8 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ExchangeRateEntity extends BaseEntity {
 
+	public static final int PROVIDER_MAX_LENGTH = 64;
+
 	@NotNull
 	@Column(length = CurrencyValidator.CODE_LENGTH)
 	public String currency;
@@ -49,4 +51,8 @@ public class ExchangeRateEntity extends BaseEntity {
 	@NotNull
 	@Enumerated(EnumType.STRING)
 	public ExchangeRateSource source;
+
+	/** Name of the provider an {@code API} quote came from; {@code null} for manual quotes. */
+	@Column(length = PROVIDER_MAX_LENGTH)
+	public String provider;
 }

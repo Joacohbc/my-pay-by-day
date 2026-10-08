@@ -103,6 +103,7 @@ export interface Money {
 // ─── Currencies & exchange rates ──────────────────────────────────────────────
 
 export type ExchangeRateSource = 'MANUAL' | 'API';
+export type QuotedPrice = 'BUYING' | 'SELLING' | 'MID';
 export type ConversionOrigin = 'AT_ENTRY' | 'RETROACTIVE' | 'RECALCULATED';
 export type ConversionRecalculationStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
 
@@ -112,19 +113,23 @@ export interface ExchangeRate extends Identifiable {
   baseCurrency: string;
   unitsPerBase: number;
   source: ExchangeRateSource;
+  /** The provider an `API` quote came from; absent for manual quotes. */
+  provider?: string | null;
   recordedAt: string;
 }
 
-/** A quote the configured provider offers right now; nothing is recorded until the user adopts it. */
+/** A quote a configured provider offers right now; nothing is recorded until the user adopts it. */
 export interface ProviderQuote {
+  /** The provider's name. */
   source: string;
+  quotedPrice: QuotedPrice;
   currency: string;
   baseCurrency: string;
   unitsPerBase: number;
 }
 
 /**
- * When the provider's quotes are recorded on their own: once a day from `refreshTime` ("HH:mm:ss"),
+ * When the providers' quotes are recorded on their own: once a day from `refreshTime` ("HH:mm:ss"),
  * read in `timeZone`, the zone of whoever last saved it.
  */
 export interface ExchangeRateRefreshSchedule {
@@ -142,11 +147,15 @@ export interface UpdateExchangeRateRefreshScheduleDto {
   businessDaysOnly: boolean;
 }
 
-/** `source` is `API` only when the user saves a provider quote exactly as fetched; it defaults to `MANUAL`. */
+/**
+ * `source` is `API` only when the user saves a provider quote exactly as fetched, naming that `provider`;
+ * it defaults to `MANUAL`.
+ */
 export interface RecordExchangeRateDto {
   currency: string;
   unitsPerBase: number;
   source?: ExchangeRateSource;
+  provider?: string;
 }
 
 /**

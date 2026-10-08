@@ -1902,8 +1902,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Preview the configured provider's quotes
-         * @description Asks the external quote source for every configured currency, or only for the given one, and returns what it offers right now, without recording anything.
+         * Preview the configured providers' quotes
+         * @description Asks the configured providers, by their priority for each currency, for every configured currency or only the given one, and returns what they offer right now, without recording anything.
          */
         get: {
             parameters: {
@@ -1917,7 +1917,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Quotes the provider offers, against the current base currency */
+                /** @description Quotes the providers offer, against the current base currency, each naming its provider */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -1926,7 +1926,7 @@ export interface paths {
                         "application/json": components["schemas"]["ProviderQuoteDto"][];
                     };
                 };
-                /** @description Unknown currency code, no provider is configured, it cannot quote against the base currency, or it failed */
+                /** @description Unknown currency code, no provider is configured, or every provider asked failed */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1955,8 +1955,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Fetch quotes from the configured provider
-         * @description Asks the external quote source for every configured currency and records what it returns. Also runs once a day on its own when a refresh schedule is enabled.
+         * Fetch quotes from the configured providers
+         * @description Asks the configured providers, by their priority for each currency, for every configured currency and records what they return. Also runs once a day on its own when a refresh schedule is enabled.
          */
         post: {
             parameters: {
@@ -1976,7 +1976,7 @@ export interface paths {
                         "application/json": components["schemas"]["ExchangeRateDto"][];
                     };
                 };
-                /** @description No provider is configured, it cannot quote against the base currency, or it failed */
+                /** @description No provider is configured, or every provider asked failed */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -5429,6 +5429,7 @@ export interface components {
             baseCurrency?: string;
             unitsPerBase?: number;
             source?: components["schemas"]["ExchangeRateSource"];
+            provider?: string | null;
             recordedAt?: components["schemas"]["Instant"];
         };
         ExchangeRateRefreshScheduleDto: {
@@ -5798,14 +5799,18 @@ export interface components {
         PaymentPlanType: "RECURRING" | "INSTALLMENT" | "CUSTOM" | "GROUP";
         ProviderQuoteDto: {
             source?: string;
+            quotedPrice?: components["schemas"]["QuotedPrice"];
             currency?: string;
             baseCurrency?: string;
             unitsPerBase?: number;
         };
+        /** @enum {string} */
+        QuotedPrice: "BUYING" | "SELLING" | "MID";
         RecordExchangeRateDto: {
             currency?: string;
             unitsPerBase?: number;
             source?: components["schemas"]["ExchangeRateSource"] | null;
+            provider?: string | null;
         };
         /** @description Payload to record a UI selection event */
         RecordSelectionDto: {

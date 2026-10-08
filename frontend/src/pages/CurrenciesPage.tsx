@@ -22,7 +22,8 @@ import {
   useRecordExchangeRate,
   useSetPrincipalCurrency,
 } from '@/hooks/useCurrencies';
-import type { CurrencySetting } from '@/models';
+import type { TFunction } from 'i18next';
+import type { CurrencySetting, ExchangeRate } from '@/models';
 
 const HISTORY_LIMIT = 20;
 const FALLBACK_BASE_CURRENCY = 'USD';
@@ -131,7 +132,7 @@ function CurrencyRow({ currency }: { currency: CurrencySetting }) {
                   base: currentRate.baseCurrency,
                   rate: formatExchangeRate(currentRate.unitsPerBase),
                   currency: currency.code,
-                })} · ${t(`currencies.rateSource.${currentRate.source}`)} · ${formatDateTime(currentRate.recordedAt)}`
+                })} · ${describeRateOrigin(currentRate, t)} · ${formatDateTime(currentRate.recordedAt)}`
               : t('currencies.noRate')}
           </p>
         )}
@@ -170,6 +171,7 @@ function CurrencyRow({ currency }: { currency: CurrencySetting }) {
 interface FetchedRate {
   currency: string;
   unitsPerBase: string;
+  provider: string;
 }
 
 function RecordRateForm({ baseCurrency }: { baseCurrency: string }) {
@@ -193,7 +195,7 @@ function RecordRateForm({ baseCurrency }: { baseCurrency: string }) {
         }
         const fetchedUnitsPerBase = String(quote.unitsPerBase);
         setUnitsPerBase(fetchedUnitsPerBase);
-        setFetchedRate({ currency, unitsPerBase: fetchedUnitsPerBase });
+        setFetchedRate({ currency, unitsPerBase: fetchedUnitsPerBase, provider: quote.source });
         setRateError(undefined);
       },
       onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
@@ -208,7 +210,9 @@ function RecordRateForm({ baseCurrency }: { baseCurrency: string }) {
     }
     setRateError(undefined);
     recordRate.mutate(
-      { currency, unitsPerBase: parsedRate, source: isProviderFigureUntouched ? 'API' : 'MANUAL' },
+      isProviderFigureUntouched
+        ? { currency, unitsPerBase: parsedRate, source: 'API', provider: fetchedRate?.provider }
+        : { currency, unitsPerBase: parsedRate, source: 'MANUAL' },
       {
         onSuccess: () => {
           setUnitsPerBase('');
@@ -280,10 +284,15 @@ function RateHistory() {
             })}
           </span>
           <span className="text-xs text-dn-text-muted text-right">
-            {t(`currencies.rateSource.${rate.source}`)} · {formatDateTime(rate.recordedAt)}
+            {describeRateOrigin(rate, t)} · {formatDateTime(rate.recordedAt)}
           </span>
         </div>
       ))}
     </Card>
   );
+}
+
+function describeRateOrigin(rate: ExchangeRate, t: TFunction): string {
+  const sourceLabel = t(`currencies.rateSource.${rate.source}`);
+  return rate.provider ? `${sourceLabel} · ${rate.provider}` : sourceLabel;
 }

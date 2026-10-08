@@ -57,10 +57,14 @@ services:
       - APP_LOG_LEVEL=${APP_LOG_LEVEL:-INFO}
       - APP_DEFAULT_CURRENCY=${APP_DEFAULT_CURRENCY:-USD}
       - APP_EXCHANGE_RATE_BASE_CURRENCY=${APP_EXCHANGE_RATE_BASE_CURRENCY:-USD}
-      - APP_BROU_RATES_URL=${APP_BROU_RATES_URL:-https://brou.com.uy/cotizaciones}
+      - QUARKUS_CONFIG_LOCATIONS=/deployments/config/exchange-rates.properties
       - MARKITDOWN_URL=http://markitdown:8590
+    env_file:
+      - path: ./config/backend/exchange-rates.env
+        required: false
     volumes:
       - ./data/backend:/data
+      - ./config/backend:/deployments/config:ro
     depends_on:
       markitdown:
         condition: service_healthy
