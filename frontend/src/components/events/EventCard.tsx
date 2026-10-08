@@ -135,8 +135,11 @@ export function EventCard({ event, disableLink, iconSource = 'category', groupPl
       <div className="flex items-center gap-4 min-w-0 flex-1">
         {/* Icon */}
         {event.isDraft ? (
-          <div className="relative w-12 h-12 rounded-full flex items-center justify-center bg-dn-surface-low text-dn-text-muted border border-dashed border-white/20 shrink-0">
-            <Icon name="draft" />
+          <div
+            className={`relative w-12 h-12 rounded-full flex items-center justify-center border border-dashed border-white/20 shrink-0 ${cfg.iconBg}`}
+            title={t(cfg.labelKey)}
+          >
+            <Icon name={cfg.icon} />
             {planBadgeElement}
           </div>
         ) : (
@@ -196,9 +199,9 @@ export function EventCard({ event, disableLink, iconSource = 'category', groupPl
 
       {/* Amount */}
       <span className="flex flex-col items-end shrink-0">
-        <span className={`font-mono text-sm whitespace-nowrap ${event.isDraft ? 'text-dn-text-muted' : cfg.amountClass}`}>
-          {!event.isDraft && event.type === 'INBOUND' ? '+' : ''}
-          {!event.isDraft && event.type === 'OUTBOUND' ? '-' : ''}
+        <span className={`font-mono text-sm whitespace-nowrap ${cfg.amountClass}`}>
+          {event.type === 'INBOUND' ? '+' : ''}
+          {event.type === 'OUTBOUND' ? '-' : ''}
           {shownMoney}
         </span>
         {conversion && (
