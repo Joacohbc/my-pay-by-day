@@ -3,6 +3,7 @@ import { chatToolLabels } from '@/lib/chat/toolManifest.generated';
 const en = {
   // ─── Common ──────────────────────────────────────────────────────────────
   common: {
+    noCurrency: 'No currency',
     new: 'New',
     create: 'Create',
     update: 'Update',

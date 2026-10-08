@@ -94,6 +94,16 @@ export function formatMoney(amount: number, currency: string): string {
   }).format(amount);
 }
 
+const AMOUNT_FRACTION_DIGITS = 2;
+
+/** An amount with no currency symbol, for the rare figure that has no currency to show. */
+export function formatAmount(amount: number): string {
+  return new Intl.NumberFormat(locale(), {
+    minimumFractionDigits: AMOUNT_FRACTION_DIGITS,
+    maximumFractionDigits: AMOUNT_FRACTION_DIGITS,
+  }).format(amount);
+}
+
 const EXCHANGE_RATE_FRACTION_DIGITS = 6;
 
 /** An exchange rate as a plain number, precise enough to tell 0.000025 from 0.00003. */
@@ -267,7 +277,16 @@ export function eventNetAmount(event: FinanceEvent): number {
 
 /** One-line label for pickers/selects that need to identify an event or draft at a glance. */
 export function eventCurrency(event: FinanceEvent): string {
-  return event.currency ?? event.lineItems?.[0]?.currency ?? getCurrency();
+  return recordedEventCurrency(event) ?? getCurrency();
+}
+
+/**
+ * The currency an event or draft actually stores, or `null` when it has none — drafts saved before
+ * amounts carried a currency. Unlike {@link eventCurrency} it never falls back to the user's default,
+ * so a missing currency can be shown as missing instead of passing for that default.
+ */
+export function recordedEventCurrency(event: Pick<Partial<FinanceEvent>, 'currency' | 'lineItems'>): string | null {
+  return event.currency || event.lineItems?.find((lineItem) => lineItem.currency)?.currency || null;
 }
 
 export function describeFinanceEvent(event: FinanceEvent): string {

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { FinanceEvent, PaymentPlan } from '@/models';
 import { Icon, AttachmentIcon } from '@/components/ui/Icon';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
-import { formatMoney, formatDate, eventCurrency, eventNetAmount, eventConversionTo } from '@/lib/format';
+import { formatMoney, formatAmount, formatDate, eventCurrency, eventNetAmount, eventConversionTo, recordedEventCurrency } from '@/lib/format';
 import { useDisplayCurrency } from '@/store/displayCurrencyStore';
 import { NodeIcon } from '@/components/ui/NodeIcon';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
@@ -50,6 +50,10 @@ export function EventCard({ event, disableLink, iconSource = 'category', groupPl
   const conversion = eventConversionTo(event, useDisplayCurrency());
   const shownAmount = conversion ? conversion.amount : net;
   const shownCurrency = conversion ? conversion.currency : eventCurrency(event);
+  const isMissingCurrency = !conversion && recordedEventCurrency(event) === null;
+  const shownMoney = isMissingCurrency
+    ? `${formatAmount(Math.abs(shownAmount || 0))} · ${t('common.noCurrency')}`
+    : formatMoney(Math.abs(shownAmount || 0), shownCurrency);
   const date = event.transactionDate;
   const lineItems = event.lineItems ?? [];
 
@@ -195,7 +199,7 @@ export function EventCard({ event, disableLink, iconSource = 'category', groupPl
         <span className={`font-mono text-sm whitespace-nowrap ${event.isDraft ? 'text-dn-text-muted' : cfg.amountClass}`}>
           {!event.isDraft && event.type === 'INBOUND' ? '+' : ''}
           {!event.isDraft && event.type === 'OUTBOUND' ? '-' : ''}
-          {formatMoney(Math.abs(shownAmount || 0), shownCurrency)}
+          {shownMoney}
         </span>
         {conversion && (
           <span className="font-mono text-[10px] text-dn-text-muted whitespace-nowrap">

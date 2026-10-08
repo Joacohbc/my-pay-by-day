@@ -82,6 +82,7 @@ export function TypeAndDateFields() {
         render={({ field }) => (
           <CurrencySelect
             label={t('eventForm.currency')}
+            placeholder={t('common.noCurrency')}
             value={field.value}
             onChange={field.onChange}
             error={errors.currency?.message}

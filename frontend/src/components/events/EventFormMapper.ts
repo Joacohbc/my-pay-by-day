@@ -1,9 +1,12 @@
 import { z } from 'zod/v4';
 import type { CreateEventDto, PatchEventDto, FinanceEvent, CreateTransactionDto, EventType, FinanceEventDraftInputDto, FileDto } from '@/models';
-import { toLocalDateTimeString, getCurrency, getLocalizedNow } from '@/lib/format';
+import { toLocalDateTimeString, getCurrency, getLocalizedNow, recordedEventCurrency } from '@/lib/format';
 import { nameField, descriptionField } from '@/lib/validation';
 
 export const MIN_LINE_ITEMS = 2;
+
+/** Left empty so the selector reads "no currency" and the user must pick one before saving. */
+const MISSING_CURRENCY = '';
 
 const DEFAULT_LINE_ITEMS = [
   { nodeId: '', amount: '' },
@@ -28,12 +31,16 @@ export function buildFormDefaults(defaultValues?: Partial<FinanceEvent>): FormVa
       amount: li.amount !== 0 ? String(li.amount) : '',
     })) ?? DEFAULT_LINE_ITEMS;
 
+  const hasStoredLineItems = (defaultValues?.lineItems?.length ?? 0) > 0;
+  const storedCurrency = defaultValues ? recordedEventCurrency(defaultValues) : null;
+  const defaultCurrency = hasStoredLineItems ? MISSING_CURRENCY : getCurrency();
+
   return {
     name: defaultValues?.name ?? '',
     description: defaultValues?.description ?? '',
     type: (defaultValues?.type as EventType) ?? 'OUTBOUND',
     transactionDate,
-    currency: defaultValues?.currency ?? defaultValues?.lineItems?.[0]?.currency ?? getCurrency(),
+    currency: storedCurrency ?? defaultCurrency,
     categoryId,
     tagIds,
     lineItems,
