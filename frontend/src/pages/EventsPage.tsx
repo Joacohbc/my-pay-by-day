@@ -143,7 +143,6 @@ const FILTER_PARAMS = {
   dateField: { key: 'df', defaultValue: 'TRANSACTION', type: 'string' },
   categoryIds: { key: 'cats', defaultValue: '', type: 'string' },
   tagIds: { key: 'tags', defaultValue: '', type: 'string' },
-  mergeIds: { key: 'mergeIds', defaultValue: '', type: 'string' },
   nodeId: { key: 'node', defaultValue: '', type: 'string' },
   minAmount: { key: 'minAmt', defaultValue: '', type: 'string' },
   maxAmount: { key: 'maxAmt', defaultValue: '', type: 'string' },
@@ -171,7 +170,6 @@ export function EventsPage() {
     dateField = 'TRANSACTION',
     categoryIdsStr = '',
     tagIdsStr = '',
-    mergeIdsStr = '',
     nodeIdStr = '',
     minAmountStr = '',
     maxAmountStr = '',
@@ -184,7 +182,6 @@ export function EventsPage() {
     dateField: (values.dateField || 'TRANSACTION') as DateField,
     categoryIdsStr: values.categoryIds as string,
     tagIdsStr: values.tagIds as string,
-    mergeIdsStr: values.mergeIds as string,
     nodeIdStr: values.nodeId as string,
     minAmountStr: values.minAmount as string,
     maxAmountStr: values.maxAmount as string,
@@ -237,20 +234,6 @@ export function EventsPage() {
   const [showMerge, setShowMerge] = useState(false);
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
 
-  const initialMergeIds = useMemo(() => {
-    return mergeIdsStr
-      ? mergeIdsStr.split(',').map(Number).filter((n) => !isNaN(n))
-      : [];
-  }, [mergeIdsStr]);
-
-  const isMergeModalOpen = showMerge || initialMergeIds.length > 0;
-
-  const handleCloseMerge = useCallback(() => {
-    setShowMerge(false);
-    if (mergeIdsStr) {
-      setValues({ mergeIds: '' });
-    }
-  }, [mergeIdsStr, setValues]);
 
   const handlePickTemplate = (template: Template | null) => {
     setShowPicker(false);
@@ -507,9 +490,8 @@ export function EventsPage() {
       />
 
       <MergeEventsModal
-        open={isMergeModalOpen}
-        initialMergeIds={initialMergeIds}
-        onClose={handleCloseMerge}
+        open={showMerge}
+        onClose={() => setShowMerge(false)}
       />
 
       <BulkUpdateEventsModal

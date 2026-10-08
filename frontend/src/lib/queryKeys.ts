@@ -90,6 +90,11 @@ export const templateKeys = {
   list: (page: number, size: number) => [...templateKeys.all, page, size] as const,
 };
 
+export const mergePreviewKeys = {
+  all: ['merge-preview'] as const,
+  preview: (source: string, baseId: number, request: object) => [...mergePreviewKeys.all, source, baseId, request] as const,
+};
+
 export const draftKeys = {
   all: ['drafts'] as const,
   byEntity: (entityId: number | null) => [...draftKeys.all, 'by-entity', entityId] as const,

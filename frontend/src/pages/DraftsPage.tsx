@@ -13,7 +13,7 @@ import {
 import { draftsService } from '@/services/drafts.service';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateDomains, EVENT_MUTATION_DOMAINS } from '@/lib/cacheInvalidation';
-import type { DraftConfirmMode, FinanceEvent } from '@/models';
+import type { DraftConfirmFailure, DraftConfirmMode, FinanceEvent } from '@/models';
 import { usePlanByRowId } from '@/hooks/usePlanByRowId';
 import { computeGroupRuns } from '@/lib/groupRuns';
 import { getGroupColor } from '@/lib/groupColors';
@@ -28,12 +28,16 @@ import { EventGroupFolderCard } from '@/components/events/EventGroupFolderCard';
 import { BulkActionsModal } from '@/components/events/BulkActionsModal';
 import { EventsListView } from '@/components/events/EventsListView';
 import { DraftsPageActions } from '@/components/events/DraftsPageActions';
+import { MergeEventsModal } from '@/components/events/MergeEventsModal';
+import { DraftErrorsModal } from '@/components/events/DraftErrorsModal';
+import { useAlert } from '@/contexts/AlertContext';
 import { logger } from '@/lib/logger';
 
 type DraftSegment = 'RECENT' | 'LINKED' | 'UNLINKED';
 type PlanFilter = 'ALL' | 'IN_PLAN' | 'NOT_IN_PLAN';
 
 const LONG_PRESS_MS = 450;
+const MIN_DRAFTS_TO_MERGE = 2;
 
 const getDraftSelectionId = (draft: FinanceEvent) => draft.draftId ?? draft.id;
 
@@ -42,11 +46,15 @@ const isLinkedDraft = (draft: FinanceEvent) =>
 
 const isPlannedDraft = (draft: FinanceEvent) => !!draft.paymentPlanId;
 
+const describeConfirmFailure = (failure: DraftConfirmFailure) =>
+  `${failure.draftName ?? `#${failure.draftId}`}: ${failure.errors.map((error) => error.message).join('; ')}`;
+
 
 export function DraftsPage() {
   const { t } = useTranslation();
   const { navigate, linkStateFromHere } = useAppNavigation();
   const queryClient = useQueryClient();
+  const alert = useAlert();
 
   const { data: draftEvents, isLoading, error } = useFinanceEventDrafts();
   const deleteAllDrafts = useDeleteAllDrafts();
@@ -62,6 +70,9 @@ export function DraftsPage() {
   const [selectedDraftIds, setSelectedDraftIds] = useState<Set<number>>(new Set());
   const [isConfirming, setIsConfirming] = useState(false);
   const [isDeletingSelected, setIsDeletingSelected] = useState(false);
+  const [draftIdsToMerge, setDraftIdsToMerge] = useState<number[]>([]);
+  const [isCheckingMerge, setIsCheckingMerge] = useState(false);
+  const [refusal, setRefusal] = useState<{ title: string; messages: string[] }>({ title: '', messages: [] });
 
   const longPressTimer = useRef<number | null>(null);
   const longPressFiredRef = useRef(false);
@@ -169,58 +180,74 @@ export function DraftsPage() {
     }
   };
 
+  /** Confirms all the drafts or none; resolves to whether they were confirmed. */
   const confirmDrafts = useCallback(
-    async (draftsToConfirm: FinanceEvent[], mode: 'merge' | 'createOnly'): Promise<number[]> => {
+    async (draftsToConfirm: FinanceEvent[], mode: DraftConfirmMode): Promise<boolean> => {
       const draftIds = draftsToConfirm.map((draft) => draft.draftId).filter((id): id is number => !!id);
-      if (!draftIds.length || isConfirming) return [];
+      if (!draftIds.length || isConfirming) return false;
       setIsConfirming(true);
       try {
-        const backendMode: DraftConfirmMode = mode === 'merge' ? 'MERGE' : 'CREATE_ONLY';
-        const result = await draftsService.confirmDraftsBatch({ draftIds, mode: backendMode });
+        const result = await draftsService.confirmDraftsBatch({ draftIds, mode });
+        if (result.failedDrafts.length > 0) {
+          setRefusal({
+            title: t('drafts.confirmFailed', { count: result.failedDrafts.length }),
+            messages: result.failedDrafts.map(describeConfirmFailure),
+          });
+          return false;
+        }
         invalidateDomains(queryClient, EVENT_MUTATION_DOMAINS);
         exitSelectionMode();
-        return result.confirmedEvents.map((event) => event.id);
+        return true;
       } catch (error) {
         logger.child('drafts').error('Batch draft confirm failed', { error, draftCount: draftIds.length, mode });
-        return [];
+        alert.error(error instanceof Error ? error.message : t('common.error'));
+        return false;
       } finally {
         setIsConfirming(false);
       }
     },
-    [isConfirming, queryClient, exitSelectionMode]
+    [isConfirming, queryClient, exitSelectionMode, alert, t]
   );
 
-  const handleConfirmAllMerge = async () => {
-    const ids = await confirmDrafts(segmentedDrafts, 'merge');
-    if (ids.length > 1) {
-      navigate(`${Routes.EVENTS}?mergeIds=${ids.join(',')}`);
-    } else {
-      navigate(Routes.EVENTS);
+  const confirmAndShowEvents = async (draftsToConfirm: FinanceEvent[], mode: DraftConfirmMode) => {
+    const isConfirmed = await confirmDrafts(draftsToConfirm, mode);
+    if (isConfirmed) navigate(Routes.EVENTS);
+  };
+
+  /**
+   * Checks the drafts as merged as they stand before opening the modal, so drafts that could never
+   * be merged (invalid, linked, planned, mixed types or currencies) are reported up front instead of
+   * after the user has walked through every step.
+   */
+  const openMerge = async (draftsToMerge: FinanceEvent[]) => {
+    const [baseDraftId, ...sourceDraftIds] = draftsToMerge.map(getDraftSelectionId);
+    if (baseDraftId === undefined || isCheckingMerge) return;
+    setIsCheckingMerge(true);
+    try {
+      const preview = await draftsService.previewMerge(baseDraftId, {
+        sourceIds: sourceDraftIds,
+        groupByNodeIds: [],
+        categoryId: null,
+        tagIds: [],
+        name: '',
+        description: '',
+      });
+      if (!preview.valid) {
+        setRefusal({ title: t('drafts.mergeRefused'), messages: preview.errors.map((error) => error.message) });
+        return;
+      }
+      setDraftIdsToMerge([baseDraftId, ...sourceDraftIds]);
+    } catch (error) {
+      logger.child('drafts').error('Draft merge check failed', { error, draftCount: draftsToMerge.length });
+      alert.error(error instanceof Error ? error.message : t('common.error'));
+    } finally {
+      setIsCheckingMerge(false);
     }
   };
 
-  const handleConfirmAllCreate = async () => {
-    const ids = await confirmDrafts(segmentedDrafts, 'createOnly');
-    if (ids.length > 1) {
-      // Just navigate to Events to view created items
-      navigate(Routes.EVENTS);
-    }
-  };
-
-  const handleConfirmSelectedMerge = async () => {
-    const ids = await confirmDrafts(selectedDrafts, 'merge');
-    if (ids.length > 1) {
-      navigate(`${Routes.EVENTS}?mergeIds=${ids.join(',')}`);
-    } else {
-      navigate(Routes.EVENTS);
-    }
-  };
-
-  const handleConfirmSelectedCreate = async () => {
-    const ids = await confirmDrafts(selectedDrafts, 'createOnly');
-    if (ids.length > 1) {
-      navigate(Routes.EVENTS);
-    }
+  const handleCloseMerge = () => {
+    setDraftIdsToMerge([]);
+    exitSelectionMode();
   };
 
   const handleDeleteSelected = async () => {
@@ -449,22 +476,22 @@ export function DraftsPage() {
                 size="sm"
                 variant="secondary"
                 className="flex-1 sm:flex-none"
-                onClick={handleConfirmSelectedCreate}
+                onClick={() => confirmAndShowEvents(selectedDrafts, 'MERGE')}
                 disabled={actionsBusy}
                 loading={isConfirming}
               >
-                <Icon name="add_circle" className="text-sm" />
-                {t('drafts.confirmSelectedCreate')}
+                <Icon name="check_circle" className="text-sm" />
+                {t('drafts.confirmSelected')}
               </Button>
               <Button
                 size="sm"
                 className="flex-1 sm:flex-none"
-                onClick={handleConfirmSelectedMerge}
-                disabled={actionsBusy}
-                loading={isConfirming}
+                onClick={() => openMerge(selectedDrafts)}
+                disabled={actionsBusy || selectedDrafts.length < MIN_DRAFTS_TO_MERGE}
+                loading={isCheckingMerge}
               >
                 <Icon name="merge" className="text-sm" />
-                {t('drafts.confirmSelectedMerge')}
+                {t('drafts.mergeSelected')}
               </Button>
             </div>
           </div>
@@ -474,12 +501,26 @@ export function DraftsPage() {
       <BulkActionsModal
         open={showBulkActions}
         onClose={() => setShowBulkActions(false)}
-        onConfirmAllMerge={handleConfirmAllMerge}
-        onConfirmAllCreate={handleConfirmAllCreate}
+        onConfirmAll={() => confirmAndShowEvents(segmentedDrafts, 'MERGE')}
+        onConfirmAllCreate={() => confirmAndShowEvents(segmentedDrafts, 'CREATE_ONLY')}
+        onMergeAll={() => openMerge(segmentedDrafts)}
         onDeleteAll={handleDeleteAll}
         isConfirming={isConfirming}
         isDeleting={deleteAllDrafts.isPending}
         draftCount={segmentedDrafts.length}
+      />
+
+      <MergeEventsModal
+        open={draftIdsToMerge.length > 0}
+        source="drafts"
+        initialMergeIds={draftIdsToMerge}
+        onClose={handleCloseMerge}
+      />
+
+      <DraftErrorsModal
+        title={refusal.title}
+        messages={refusal.messages}
+        onClose={() => setRefusal({ title: '', messages: [] })}
       />
     </div>
   );

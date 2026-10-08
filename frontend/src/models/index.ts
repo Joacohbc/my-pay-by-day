@@ -343,9 +343,37 @@ export interface ConfirmDraftsRequestDto {
   mode: DraftConfirmMode;
 }
 
+export interface ValidationError {
+  field: string;
+  message: string;
+}
+
+export interface DraftConfirmFailure {
+  draftId: number;
+  draftName?: string | null;
+  errors: ValidationError[];
+}
+
+/** All or nothing: when `failedDrafts` is not empty, no draft was confirmed. */
 export interface ConfirmDraftsResultDto {
   confirmedEvents: FinanceEvent[];
-  failedDraftIds: number[];
+  failedDrafts: DraftConfirmFailure[];
+}
+
+/** `sourceIds` are event ids when merging events and draft ids when merging drafts. */
+export interface MergeRequest {
+  sourceIds: number[];
+  groupByNodeIds: number[];
+  categoryId: number | null;
+  tagIds: number[];
+  name: string;
+  description: string;
+}
+
+export interface MergePreview {
+  valid: boolean;
+  errors: ValidationError[];
+  mergedEvent: FinanceEvent;
 }
 
 // ─── Template ─────────────────────────────────────────────────────────────────

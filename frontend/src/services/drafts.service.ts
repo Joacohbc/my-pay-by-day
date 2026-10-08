@@ -1,4 +1,4 @@
-import type { ConfirmDraftsRequestDto, ConfirmDraftsResultDto, EntityDraft, FinanceEvent, FinanceEventDraftInputDto } from '@/models';
+import type { ConfirmDraftsRequestDto, ConfirmDraftsResultDto, EntityDraft, FinanceEvent, FinanceEventDraftInputDto, MergePreview, MergeRequest } from '@/models';
 import { api } from '@/services/api';
 
 export const draftsService = {
@@ -18,6 +18,12 @@ export const draftsService = {
 
   confirmDraftsBatch: (request: ConfirmDraftsRequestDto) =>
     api.post<ConfirmDraftsResultDto>('/drafts/finance-events/confirm-batch', request),
+
+  previewMerge: (baseDraftId: number, request: MergeRequest) =>
+    api.post<MergePreview>(`/drafts/finance-events/${baseDraftId}/merge/preview`, request),
+
+  mergeDrafts: (baseDraftId: number, request: MergeRequest) =>
+    api.post<FinanceEvent>(`/drafts/finance-events/${baseDraftId}/merge`, request),
 
   delete: (id: number) => api.delete(`/drafts/${id}`),
 

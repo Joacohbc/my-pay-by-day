@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { eventsService, type EventFilters } from '@/services/events.service';
 import { usePendingEventsStore } from '@/store/pendingEventsStore';
-import type { CreateEventDto, PatchEventDto, BulkPatchEventDto, FinanceEvent, Category, Tag, FinanceNode, FinanceLineItem, FileDto } from '@/models';
+import type { CreateEventDto, PatchEventDto, BulkPatchEventDto, FinanceEvent, Category, Tag, FinanceNode, FinanceLineItem, FileDto, MergeRequest } from '@/models';
 import {
   type QueriesSnapshot,
   snapshotAndCancel,
@@ -268,8 +268,7 @@ export function useMergeEvents() {
   const alert = useAlert();
   const { t } = useTranslation();
   return useMutation({
-    mutationFn: ({ baseId, sourceIds, groupByNodeIds, categoryId, tagIds, name, description }: { baseId: number; sourceIds: number[]; groupByNodeIds: number[]; categoryId: number | null; tagIds: number[]; name: string; description: string }) =>
-      eventsService.mergeEvents(baseId, sourceIds, groupByNodeIds, categoryId, tagIds, name, description),
+    mutationFn: ({ baseId, request }: { baseId: number; request: MergeRequest }) => eventsService.mergeEvents(baseId, request),
     onSuccess: () => {
       invalidateDomains(queryClient, EVENT_MUTATION_DOMAINS);
       alert.success(t('events.mergeSuccess'));
