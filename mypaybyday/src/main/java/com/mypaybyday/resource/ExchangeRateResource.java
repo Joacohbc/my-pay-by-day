@@ -76,13 +76,13 @@ public class ExchangeRateResource {
 
 	@GET
 	@Path("/provider-quotes")
-	@Operation(summary = "Preview the configured provider's quotes",
-			description = "Asks the external quote source for every configured currency, or only for the given one, and "
-					+ "returns what it offers right now, without recording anything.")
+	@Operation(summary = "Preview the configured providers' quotes",
+			description = "Asks the configured providers, by their priority for each currency, for every configured currency "
+					+ "or only the given one, and returns what they offer right now, without recording anything.")
 	@APIResponses({
-			@APIResponse(responseCode = "200", description = "Quotes the provider offers, against the current base currency",
+			@APIResponse(responseCode = "200", description = "Quotes the providers offer, against the current base currency, each naming its provider",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(type = SchemaType.ARRAY, implementation = ProviderQuoteDto.class))),
-			@APIResponse(responseCode = "400", description = "Unknown currency code, no provider is configured, it cannot quote against the base currency, or it failed",
+			@APIResponse(responseCode = "400", description = "Unknown currency code, no provider is configured, or every provider asked failed",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<List<ProviderQuoteDto>> providerQuotes(
@@ -93,13 +93,14 @@ public class ExchangeRateResource {
 
 	@POST
 	@Path("/refresh")
-	@Operation(summary = "Fetch quotes from the configured provider",
-			description = "Asks the external quote source for every configured currency and records what it returns. "
+	@Operation(summary = "Fetch quotes from the configured providers",
+			description = "Asks the configured providers, by their priority for each currency, for every configured currency "
+					+ "and records what they return. "
 					+ "Also runs once a day on its own when a refresh schedule is enabled.")
 	@APIResponses({
 			@APIResponse(responseCode = "200", description = "Quotes recorded",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(type = SchemaType.ARRAY, implementation = ExchangeRateDto.class))),
-			@APIResponse(responseCode = "400", description = "No provider is configured, it cannot quote against the base currency, or it failed",
+			@APIResponse(responseCode = "400", description = "No provider is configured, or every provider asked failed",
 					content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorResponseDto.class)))
 	})
 	public RestResponse<List<ExchangeRateDto>> refresh() throws BusinessException {

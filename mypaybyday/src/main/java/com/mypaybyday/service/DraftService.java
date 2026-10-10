@@ -4,12 +4,9 @@ import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -19,6 +16,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mypaybyday.dto.CategoryDto;
 import com.mypaybyday.dto.ConfirmDraftsResultDto;
+import com.mypaybyday.dto.DraftConfirmFailureDto;
 import com.mypaybyday.dto.DraftDto;
 import com.mypaybyday.dto.DraftValidationResultDto;
 import com.mypaybyday.dto.FileDto;
@@ -30,13 +28,8 @@ import com.mypaybyday.dto.PatchTransactionDto;
 import com.mypaybyday.dto.SectionImportResult;
 import com.mypaybyday.dto.TagDto;
 import com.mypaybyday.dto.ValidationErrorDto;
-import com.mypaybyday.entity.CategoryEntity;
 import com.mypaybyday.entity.DraftEntity;
-import com.mypaybyday.entity.FinanceEventEntity;
-import com.mypaybyday.entity.FinanceLineItemEntity;
-import com.mypaybyday.entity.FinanceNodeEntity;
 import com.mypaybyday.entity.FinanceTransactionEntity;
-import com.mypaybyday.entity.TagEntity;
 import com.mypaybyday.enums.DataSection;
 import com.mypaybyday.enums.DraftConfirmMode;
 import com.mypaybyday.enums.EntityType;
@@ -47,6 +40,7 @@ import com.mypaybyday.i18n.MsgKey;
 import com.mypaybyday.repository.EntityDraftRepository;
 import com.mypaybyday.service.event.EventCreateService;
 import com.mypaybyday.service.event.EventUpdateService;
+import com.mypaybyday.service.event.TransientFinanceEvent;
 import com.mypaybyday.service.transfer.ArchivedItemImporter;
 import com.mypaybyday.service.transfer.DataSectionTransfer;
 import com.mypaybyday.service.transfer.ImportContext;
@@ -280,9 +274,10 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 	}
 
 	/**
-	* Confirms multiple drafts in one call. MERGE updates the linked event when a draft already
-	* has one (falling back to create otherwise); CREATE_ONLY always creates a new event. Drafts
-	* that fail validation are skipped and reported in the result rather than aborting the batch.
+	* Confirms multiple drafts in one call, all or nothing. MERGE updates the linked event when a
+	* draft already has one (falling back to create otherwise); CREATE_ONLY always creates a new
+	* event. Every draft is validated first: if any fails, none is confirmed and each failing draft
+	* is reported with its errors.
 	*/
 	@Transactional
 	public ConfirmDraftsResultDto confirmDraftsBatch(List<Long> draftIds, DraftConfirmMode mode) throws BusinessException {
@@ -290,51 +285,42 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 			throw messages.reject(MsgKey.DRAFT_CONFIRM_NO_IDS);
 		}
 
-		List<FinanceEventDto> confirmedEvents = new ArrayList<>();
-		List<Long> failedDraftIds = new ArrayList<>();
+		List<DraftConfirmFailureDto> failedDrafts = findConfirmFailures(draftIds);
+		if (!failedDrafts.isEmpty()) {
+			Log.infof("Confirmed no drafts: %d of %d failed validation", failedDrafts.size(), draftIds.size());
+			return new ConfirmDraftsResultDto(List.of(), failedDrafts);
+		}
 
+		List<FinanceEventDto> confirmedEvents = new ArrayList<>();
 		for (Long draftId : draftIds) {
-			try {
-				confirmedEvents.add(confirmDraftForBatch(draftId, mode));
-			} catch (BusinessException e) {
-				Log.warnf("Skipping draft %d during batch confirm: %s", draftId, e.getMessage());
-				failedDraftIds.add(draftId);
+			confirmedEvents.add(confirmDraft(draftId, mode));
+		}
+		Log.infof("Confirmed %d drafts", confirmedEvents.size());
+		return new ConfirmDraftsResultDto(confirmedEvents, List.of());
+	}
+
+	private List<DraftConfirmFailureDto> findConfirmFailures(List<Long> draftIds) throws BusinessException {
+		List<DraftConfirmFailureDto> failedDrafts = new ArrayList<>();
+		for (Long draftId : draftIds) {
+			DraftValidationResultDto validation = validateDraft(draftId);
+			if (!validation.valid()) {
+				String draftName = mapToFinanceEventDto(findEntityById(draftId)).name();
+				failedDrafts.add(new DraftConfirmFailureDto(draftId, draftName, validation.errors()));
 			}
 		}
-
-		Log.infof("Confirmed %d drafts, skipped %d: failed=%s", confirmedEvents.size(), failedDraftIds.size(), failedDraftIds);
-		return new ConfirmDraftsResultDto(confirmedEvents, failedDraftIds);
+		return failedDrafts;
 	}
 
-	private FinanceEventDto confirmDraftForBatch(Long draftId, DraftConfirmMode mode) throws BusinessException {
-		FinanceEventDto dto = getConfirmableDraftDto(draftId);
+	private FinanceEventDto confirmDraft(Long draftId, DraftConfirmMode mode) throws BusinessException {
+		FinanceEventDto dto = mapToFinanceEventDto(findEntityById(draftId));
+		boolean updatesLinkedEvent = mode == DraftConfirmMode.MERGE && dto.id() != null;
+		FinanceEventDto confirmedEvent = updatesLinkedEvent
+				? eventUpdateService.update(dto.id(), buildPatchFromDraftDto(dto))
+				: eventCreateService.create(TransientFinanceEvent.from(dto));
 
-		FinanceEventDto result;
-		if (mode == DraftConfirmMode.MERGE && dto.id() != null) {
-			result = eventUpdateService.update(dto.id(), buildPatchFromDraftDto(dto));
-		} else {
-			result = eventCreateService.create(buildEventEntityFromDraftDto(dto));
-		}
-
-		paymentPlanService.relinkDraftToEvent(draftId, result.id());
+		paymentPlanService.relinkDraftToEvent(draftId, confirmedEvent.id());
 		delete(draftId);
-		return result;
-	}
-
-	private FinanceEventDto getConfirmableDraftDto(Long draftId) throws BusinessException {
-		List<FinanceEventDto> drafts = listFinanceEventDrafts();
-		FinanceEventDto dto = drafts.stream()
-				.filter(d -> draftId.equals(d.draftId()))
-				.findFirst()
-				.orElse(null);
-		if (dto == null) throw messages.reject(MsgKey.DRAFT_NOT_FOUND, draftId);
-		if (dto.name() == null || dto.name().isBlank())
-			throw messages.reject(MsgKey.DRAFT_MISSING_NAME);
-		if (dto.transactionDate() == null)
-			throw messages.reject(MsgKey.DRAFT_MISSING_DATE);
-		if (dto.lineItems() == null || dto.lineItems().isEmpty())
-			throw messages.reject(MsgKey.DRAFT_MISSING_LINE_ITEMS);
-		return dto;
+		return confirmedEvent;
 	}
 
 	/**
@@ -344,93 +330,21 @@ public class DraftService implements DataSectionTransfer<DraftDto> {
 	*/
 	public DraftValidationResultDto validateDraft(Long draftId) throws BusinessException {
 		FinanceEventDto dto = mapToFinanceEventDto(findEntityById(draftId));
-		FinanceEventEntity transientEvent = buildEventEntityFromDraftDto(dto);
-		FinanceTransactionEntity transaction = transientEvent.transaction;
+		FinanceTransactionEntity transaction = TransientFinanceEvent.from(dto).transaction;
 		List<ValidationErrorDto> errors = new ArrayList<>();
 
-		if (transientEvent.name == null || transientEvent.name.isBlank()) {
-			errors.add(new ValidationErrorDto("name", messages.get(MsgKey.DRAFT_MISSING_NAME)));
+		if (dto.name() == null || dto.name().isBlank()) {
+			errors.add(new ValidationErrorDto(ValidationErrorDto.NAME_FIELD, messages.get(MsgKey.DRAFT_MISSING_NAME)));
 		}
-
-		if (transaction == null || transaction.transactionDate == null) {
-			errors.add(new ValidationErrorDto("transactionDate", messages.get(MsgKey.DRAFT_MISSING_DATE)));
-		} else {
-			try {
-				transactionValidator.validateDateNotInFuture(transaction);
-			} catch (BusinessException e) {
-				errors.add(new ValidationErrorDto("transactionDate", e.getMessage()));
-			}
+		if (transaction.transactionDate == null) {
+			errors.add(new ValidationErrorDto(ValidationErrorDto.DATE_FIELD, messages.get(MsgKey.DRAFT_MISSING_DATE)));
 		}
-
-		if (transaction == null || transaction.lineItems == null || transaction.lineItems.isEmpty()) {
-			errors.add(new ValidationErrorDto("lineItems", messages.get(MsgKey.DRAFT_MISSING_LINE_ITEMS)));
-		} else {
-			try {
-				transactionValidator.validateZeroSum(transaction);
-			} catch (BusinessException e) {
-				errors.add(new ValidationErrorDto("lineItems.zeroSum", e.getMessage()));
-			}
-			try {
-				transactionValidator.validateNodesExist(transaction);
-			} catch (BusinessException e) {
-				errors.add(new ValidationErrorDto("lineItems.nodes", e.getMessage()));
-			}
-			try {
-				transactionValidator.validateSingleCurrency(transaction);
-			} catch (BusinessException e) {
-				errors.add(new ValidationErrorDto("lineItems.currency", e.getMessage()));
-			}
+		if (transaction.lineItems.isEmpty()) {
+			errors.add(new ValidationErrorDto(ValidationErrorDto.LINE_ITEMS_FIELD, messages.get(MsgKey.DRAFT_MISSING_LINE_ITEMS)));
 		}
+		errors.addAll(transactionValidator.findViolations(transaction));
 
 		return new DraftValidationResultDto(errors.isEmpty(), errors);
-	}
-
-	private FinanceEventEntity buildEventEntityFromDraftDto(FinanceEventDto dto) {
-		FinanceEventEntity event = new FinanceEventEntity();
-		event.name = dto.name();
-		event.description = dto.description();
-		event.type = dto.type() != null ? dto.type() : EventType.OUTBOUND;
-
-		if (dto.category() != null && dto.category().id() != null) {
-			CategoryEntity cat = new CategoryEntity();
-			cat.id = dto.category().id();
-			event.category = cat;
-		}
-
-		if (dto.tags() != null) {
-			event.tags = dto.tags().stream()
-					.filter(t -> t.id() != null)
-					.map(t -> {
-						TagEntity tag = new TagEntity();
-						tag.id = t.id();
-						return tag;
-					})
-					.collect(Collectors.toSet());
-		}
-
-		if (dto.files() != null) {
-			event.fileIds = dto.files().stream().map(FileDto::id).toList();
-		}
-
-		FinanceTransactionEntity tx = new FinanceTransactionEntity();
-		tx.transactionDate = dto.transactionDate();
-
-		Set<FinanceLineItemEntity> lineItems = new HashSet<>();
-		for (var li : dto.lineItems()) {
-			FinanceLineItemEntity item = new FinanceLineItemEntity();
-			item.setAmount(li.amount());
-			item.currency = li.currency();
-			if (li.financeNodeId() != null) {
-				FinanceNodeEntity node = new FinanceNodeEntity();
-				node.id = li.financeNodeId();
-				item.financeNode = node;
-			}
-			item.transaction = tx;
-			lineItems.add(item);
-		}
-		tx.lineItems = lineItems;
-		event.transaction = tx;
-		return event;
 	}
 
 	private PatchEventDto buildPatchFromDraftDto(FinanceEventDto dto) {

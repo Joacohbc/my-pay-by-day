@@ -19,23 +19,33 @@ class BrouExchangeRateProviderTest {
 	private static final String BOARD_FIXTURE = "/exchange-rate/brou-cotizaciones.html";
 
 	@Test
-	void readsTheBoardDollarAtItsSellingPriceNotTheEbrouOne() throws IOException {
-		Map<String, BigDecimal> pesosPerUnit = BrouExchangeRateProvider.parseSellingPrices(board());
+	void readsTheBoardDollarAtTheMidpointOfBuyingAndSellingNotTheEbrouOne() throws IOException {
+		Map<String, BigDecimal> pesosPerUnit = BrouExchangeRateProvider.parseMidPrices(board());
 
-		assertAmount("41.65", pesosPerUnit.get("USD"));
+		assertAmount("40.40", pesosPerUnit.get("USD"));
 	}
 
 	@Test
 	void readsEveryTrackedCurrencyAndSkipsTheRest() throws IOException {
-		Map<String, BigDecimal> pesosPerUnit = BrouExchangeRateProvider.parseSellingPrices(board());
+		Map<String, BigDecimal> pesosPerUnit = BrouExchangeRateProvider.parseMidPrices(board());
 
 		assertEquals(Set.of("UYU", "USD", "EUR", "ARS", "BRL", "GBP", "CHF", "PYG"), pesosPerUnit.keySet());
-		assertAmount("48.02", pesosPerUnit.get("EUR"));
-		assertAmount("0.00724", pesosPerUnit.get("PYG"));
+		assertAmount("45.59", pesosPerUnit.get("EUR"));
+		assertAmount("0.006885", pesosPerUnit.get("PYG"));
 	}
 
 	@Test
-	void againstADollarBaseThePesoIsTheDollarSellingPrice() {
+	void aRowMissingEitherPriceIsLeftOut() {
+		String boardWithoutBuyingPrice = "<tr><p class=\"moneda\">Euro</p>"
+				+ "<p class=\"valor\">-</p><p class=\"valor\">48,02000</p></tr>";
+
+		Map<String, BigDecimal> pesosPerUnit = BrouExchangeRateProvider.parseMidPrices(boardWithoutBuyingPrice);
+
+		assertFalse(pesosPerUnit.containsKey("EUR"));
+	}
+
+	@Test
+	void againstADollarBaseThePesoIsTheDollarPrice() {
 		Map<String, BigDecimal> quotes = BrouExchangeRateProvider.toUnitsPerBase(
 				Map.of("UYU", BigDecimal.ONE, "USD", new BigDecimal("40")), "USD", Set.of("UYU"));
 
@@ -43,7 +53,7 @@ class BrouExchangeRateProviderTest {
 	}
 
 	@Test
-	void againstAPesoBaseEveryCurrencyIsTheInverseOfItsSellingPrice() {
+	void againstAPesoBaseEveryCurrencyIsTheInverseOfItsPrice() {
 		Map<String, BigDecimal> quotes = BrouExchangeRateProvider.toUnitsPerBase(
 				Map.of("UYU", BigDecimal.ONE, "USD", new BigDecimal("40")), "UYU", Set.of("USD"));
 
@@ -51,7 +61,7 @@ class BrouExchangeRateProviderTest {
 	}
 
 	@Test
-	void aCrossRateIsTheRatioOfBothSellingPrices() {
+	void aCrossRateIsTheRatioOfBothPrices() {
 		Map<String, BigDecimal> pesosPerUnit = Map.of(
 				"UYU", BigDecimal.ONE, "USD", new BigDecimal("40"), "EUR", new BigDecimal("50"));
 

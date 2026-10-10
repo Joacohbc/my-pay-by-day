@@ -916,7 +916,7 @@ export interface paths {
         put?: never;
         /**
          * Confirm multiple finance event drafts in one call
-         * @description MERGE updates the linked event when a draft already has one, creating it otherwise. CREATE_ONLY always creates a new event. Drafts that fail validation are skipped and reported in the result instead of aborting the whole batch.
+         * @description MERGE updates the linked event when a draft already has one, creating it otherwise. CREATE_ONLY always creates a new event. All or nothing: when any draft fails validation, none is confirmed and every failing draft is reported in failedDrafts with its errors.
          */
         post: {
             parameters: {
@@ -931,7 +931,7 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Batch processed (see result for any skipped drafts) */
+                /** @description Batch processed (failedDrafts is empty when every draft was confirmed) */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -942,6 +942,15 @@ export interface paths {
                 };
                 /** @description No draft IDs supplied (Business Exception) */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Draft not found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1006,6 +1015,132 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/drafts/finance-events/{id}/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Merge finance event drafts into one new event
+         * @description Creates a single event from the base draft and the source drafts, then deletes all of them. Rejected, changing nothing, when the preview reports any error.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MergeEventsRequestDto"];
+                };
+            };
+            responses: {
+                /** @description Event created from the merged drafts */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FinanceEventDto"];
+                    };
+                };
+                /** @description The merge breaks a rule, or no sources were supplied */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Draft not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/drafts/finance-events/{id}/merge/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview merging finance event drafts into one new event, persisting nothing
+         * @description The path draft is the base: it supplies the date, the type and every field the request leaves unset. Reports every rule the merge would break, including drafts that are invalid, edit an existing event or belong to a payment plan.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MergeEventsRequestDto"];
+                };
+            };
+            responses: {
+                /** @description Preview computed (valid may be true or false; errors lists every violation) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MergePreviewDto"];
+                    };
+                };
+                /** @description No sources, or the base listed among them */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Draft not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/drafts/finance-events/{id}/validate": {
@@ -1659,7 +1794,7 @@ export interface paths {
         put?: never;
         /**
          * Merge source events into a base event
-         * @description Combines all line items from the source events into the base event's transaction (summing amounts for duplicate nodes), then permanently deletes the source events. All events must share the same type.
+         * @description Combines all line items from the source events into the base event's transaction (summing amounts for the grouped nodes), then permanently deletes the source events. Rejected, changing nothing, when the merged event breaks a rule the preview reports: mixed types, mixed currencies, a non-zero sum, an archived node or a missing name.
          */
         post: {
             parameters: {
@@ -1686,7 +1821,71 @@ export interface paths {
                         "application/json": components["schemas"]["FinanceEventDto"];
                     };
                 };
-                /** @description Validation error (e.g. mixed types, self-merge) */
+                /** @description Validation error (e.g. mixed types or currencies, self-merge) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Base or source event not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/events/{id}/merge/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview merging source events into a base event, persisting nothing
+         * @description Returns the single event the merge would leave behind and every rule it would break, so the merge can be reviewed before it is confirmed.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID of the base event */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MergeEventsRequestDto"];
+                };
+            };
+            responses: {
+                /** @description Preview computed (valid may be true or false; errors lists every violation) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MergePreviewDto"];
+                    };
+                };
+                /** @description No sources, or the base listed among them */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1902,8 +2101,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Preview the configured provider's quotes
-         * @description Asks the external quote source for every configured currency, or only for the given one, and returns what it offers right now, without recording anything.
+         * Preview the configured providers' quotes
+         * @description Asks the configured providers, by their priority for each currency, for every configured currency or only the given one, and returns what they offer right now, without recording anything.
          */
         get: {
             parameters: {
@@ -1917,7 +2116,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Quotes the provider offers, against the current base currency */
+                /** @description Quotes the providers offer, against the current base currency, each naming its provider */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -1926,7 +2125,7 @@ export interface paths {
                         "application/json": components["schemas"]["ProviderQuoteDto"][];
                     };
                 };
-                /** @description Unknown currency code, no provider is configured, it cannot quote against the base currency, or it failed */
+                /** @description Unknown currency code, no provider is configured, or every provider asked failed */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1955,8 +2154,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Fetch quotes from the configured provider
-         * @description Asks the external quote source for every configured currency and records what it returns. Also runs once a day on its own when a refresh schedule is enabled.
+         * Fetch quotes from the configured providers
+         * @description Asks the configured providers, by their priority for each currency, for every configured currency and records what they return. Also runs once a day on its own when a refresh schedule is enabled.
          */
         post: {
             parameters: {
@@ -1976,7 +2175,7 @@ export interface paths {
                         "application/json": components["schemas"]["ExchangeRateDto"][];
                     };
                 };
-                /** @description No provider is configured, it cannot quote against the base currency, or it failed */
+                /** @description No provider is configured, or every provider asked failed */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -5190,7 +5389,7 @@ export interface components {
         };
         ConfirmDraftsResultDto: {
             confirmedEvents: components["schemas"]["FinanceEventDto"][];
-            failedDraftIds: number[];
+            failedDrafts: components["schemas"]["DraftConfirmFailureDto"][];
         };
         /** @enum {string} */
         ConversionOrigin: "AT_ENTRY" | "RETROACTIVE" | "RECALCULATED";
@@ -5306,6 +5505,12 @@ export interface components {
         };
         /** @enum {string} */
         DateField: "TRANSACTION" | "CREATED" | "UPDATED";
+        DraftConfirmFailureDto: {
+            /** Format: int64 */
+            draftId: number;
+            draftName?: string | null;
+            errors: components["schemas"]["ValidationErrorDto"][];
+        };
         /** @enum {string} */
         DraftConfirmMode: "MERGE" | "CREATE_ONLY";
         /** @description An incomplete entity kept as raw UI state, bypassing the strict validations of its typed counterpart */
@@ -5429,6 +5634,7 @@ export interface components {
             baseCurrency?: string;
             unitsPerBase?: number;
             source?: components["schemas"]["ExchangeRateSource"];
+            provider?: string | null;
             recordedAt?: components["schemas"]["Instant"];
         };
         ExchangeRateRefreshScheduleDto: {
@@ -5665,6 +5871,11 @@ export interface components {
             name?: string;
             description?: string;
         };
+        MergePreviewDto: {
+            valid: boolean;
+            errors: components["schemas"]["ValidationErrorDto"][];
+            mergedEvent: components["schemas"]["FinanceEventDto"];
+        };
         /** @enum {string} */
         ModifierType: "FIXED" | "PERCENTAGE";
         MoneyDto: {
@@ -5798,14 +6009,18 @@ export interface components {
         PaymentPlanType: "RECURRING" | "INSTALLMENT" | "CUSTOM" | "GROUP";
         ProviderQuoteDto: {
             source?: string;
+            quotedPrice?: components["schemas"]["QuotedPrice"];
             currency?: string;
             baseCurrency?: string;
             unitsPerBase?: number;
         };
+        /** @enum {string} */
+        QuotedPrice: "BUYING" | "SELLING" | "MID";
         RecordExchangeRateDto: {
             currency?: string;
             unitsPerBase?: number;
             source?: components["schemas"]["ExchangeRateSource"] | null;
+            provider?: string | null;
         };
         /** @description Payload to record a UI selection event */
         RecordSelectionDto: {

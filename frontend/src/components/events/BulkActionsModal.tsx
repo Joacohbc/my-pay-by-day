@@ -4,11 +4,15 @@ import { HoldToConfirmButton } from '@/components/ui/HoldToConfirmButton';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 
+const MIN_DRAFTS_TO_MERGE = 2;
+
 interface BulkActionsModalProps {
   open: boolean;
   onClose: () => void;
-  onConfirmAllMerge: () => Promise<void>;
+  onConfirmAll: () => Promise<void>;
   onConfirmAllCreate: () => Promise<void>;
+  /** Opens the merge preview instead of acting right away, so it needs no hold to confirm. */
+  onMergeAll: () => void;
   onDeleteAll: () => Promise<void>;
   isConfirming: boolean;
   isDeleting: boolean;
@@ -19,8 +23,9 @@ interface BulkActionsModalProps {
 export function BulkActionsModal({
   open,
   onClose,
-  onConfirmAllMerge,
+  onConfirmAll,
   onConfirmAllCreate,
+  onMergeAll,
   onDeleteAll,
   isConfirming,
   isDeleting,
@@ -29,9 +34,14 @@ export function BulkActionsModal({
 }: BulkActionsModalProps) {
   const { t } = useTranslation();
 
-  const handleConfirmMerge = async () => {
-    await onConfirmAllMerge();
+  const handleConfirmAll = async () => {
+    await onConfirmAll();
     onClose();
+  };
+
+  const handleMergeAll = () => {
+    onClose();
+    onMergeAll();
   };
 
   const handleConfirmCreate = async () => {
@@ -71,10 +81,10 @@ export function BulkActionsModal({
           )}
 
           <HoldToConfirmButton
-            icon="merge"
-            label={isConfirming ? t('common.loading') : t('drafts.confirmAllMerge')}
-            description={t('drafts.confirmAllMergeDesc')}
-            onConfirm={handleConfirmMerge}
+            icon="check_circle"
+            label={isConfirming ? t('common.loading') : t('drafts.confirmAll')}
+            description={t('drafts.confirmAllDesc')}
+            onConfirm={handleConfirmAll}
             disabled={isConfirming || isDeleting}
             variant="primary"
           />
@@ -87,6 +97,21 @@ export function BulkActionsModal({
             disabled={isConfirming || isDeleting}
             variant="secondary"
           />
+
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            fullWidth
+            onClick={handleMergeAll}
+            disabled={isConfirming || isDeleting || draftCount < MIN_DRAFTS_TO_MERGE}
+          >
+            <Icon name="merge" className="text-base" />
+            <span className="flex flex-col items-start">
+              <span>{t('drafts.mergeAll')}</span>
+              <span className="text-xs font-normal text-dn-text-muted">{t('drafts.mergeAllDesc')}</span>
+            </span>
+          </Button>
 
           <HoldToConfirmButton
             icon="delete_sweep"

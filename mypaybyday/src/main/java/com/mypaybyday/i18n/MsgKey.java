@@ -44,6 +44,8 @@ public enum MsgKey {
 	EVENT_MERGE_SELF("error.event.merge_self"),
 	EVENT_MERGE_MIXED_TYPES("error.event.merge_mixed_types"),
 	EVENT_MERGE_NO_SOURCES("error.event.merge_no_sources"),
+	EVENT_MERGE_MISSING_NAME("error.event.merge_missing_name"),
+	EVENT_MERGE_INVALID("error.event.merge_invalid"),
 	EVENT_BULK_NO_IDS("error.event.bulk_no_ids"),
 	EVENT_BULK_EVENTS_NOT_FOUND("error.event.bulk_events_not_found"),
 
@@ -76,7 +78,7 @@ public enum MsgKey {
 	EXCHANGE_RATE_BASE_NOT_QUOTABLE("error.exchange_rate.base_not_quotable"),
 	EXCHANGE_RATE_BASE_UNQUOTED("error.exchange_rate.base_unquoted"),
 	EXCHANGE_RATE_PROVIDER_NOT_CONFIGURED("error.exchange_rate.provider_not_configured"),
-	EXCHANGE_RATE_PROVIDER_BASE_UNSUPPORTED("error.exchange_rate.provider_base_unsupported"),
+	EXCHANGE_RATE_PROVIDER_WITHOUT_API_SOURCE("error.exchange_rate.provider_without_api_source"),
 	EXCHANGE_RATE_PROVIDER_UNAVAILABLE("error.exchange_rate.provider_unavailable"),
 	EXCHANGE_RATE_REFRESH_TIME_REQUIRED("error.exchange_rate.refresh_time_required"),
 	CONVERSION_RECALCULATION_SAME_CURRENCY("error.conversion_recalculation.same_currency"),
@@ -135,6 +137,9 @@ public enum MsgKey {
 	DRAFT_MISSING_DATE("error.draft.missing_date"),
 	DRAFT_MISSING_LINE_ITEMS("error.draft.missing_line_items"),
 	DRAFT_CONFIRM_NO_IDS("error.draft.confirm_no_ids"),
+	DRAFT_MERGE_LINKED_TO_EVENT("error.draft.merge_linked_to_event"),
+	DRAFT_MERGE_IN_PAYMENT_PLAN("error.draft.merge_in_payment_plan"),
+	DRAFT_MERGE_SOURCE_INVALID("error.draft.merge_source_invalid"),
 
 	// ── File ─────────────────────────────────────────────
 	FILE_CONTENT_EMPTY("file.content.empty"),

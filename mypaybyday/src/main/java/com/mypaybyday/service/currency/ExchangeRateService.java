@@ -3,7 +3,6 @@ package com.mypaybyday.service.currency;
 import java.math.BigDecimal;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -25,10 +24,11 @@ import com.mypaybyday.service.transfer.ArchivedItemImporter;
 import com.mypaybyday.service.transfer.DataSectionTransfer;
 import com.mypaybyday.service.transfer.ImportContext;
 import com.mypaybyday.validation.CurrencyValidator;
+import com.mypaybyday.validation.RegexValidator;
 import io.quarkus.logging.Log;
 
 /**
- * Records quotes, by hand or from the configured {@link ExchangeRateProvider}.
+ * Records quotes, by hand or from the configured {@link ExchangeRateProvider}s.
  *
  * <p>A quote is only ever appended: the history stays intact and the newest quote per currency is
  * the current one. Recording a quote never re-prices a transaction that already holds a rate.
@@ -40,9 +40,10 @@ public class ExchangeRateService implements DataSectionTransfer<ExchangeRateDto>
 	private final CurrencyRepository currencyRepository;
 	private final CurrencyService currencyService;
 	private final ExchangeRateLookup exchangeRateLookup;
-	private final ExchangeRateProvider exchangeRateProvider;
+	private final ExchangeRateProviderRouter exchangeRateProviderRouter;
 	private final ConversionBackfillQueue conversionBackfillQueue;
 	private final CurrencyValidator currencyValidator;
+	private final RegexValidator regexValidator;
 	private final ArchivedItemImporter archivedItemImporter;
 	private final Messages messages;
 
@@ -51,18 +52,20 @@ public class ExchangeRateService implements DataSectionTransfer<ExchangeRateDto>
 			CurrencyRepository currencyRepository,
 			CurrencyService currencyService,
 			ExchangeRateLookup exchangeRateLookup,
-			ExchangeRateProvider exchangeRateProvider,
+			ExchangeRateProviderRouter exchangeRateProviderRouter,
 			ConversionBackfillQueue conversionBackfillQueue,
 			CurrencyValidator currencyValidator,
+			RegexValidator regexValidator,
 			ArchivedItemImporter archivedItemImporter,
 			Messages messages) {
 		this.exchangeRateRepository = exchangeRateRepository;
 		this.currencyRepository = currencyRepository;
 		this.currencyService = currencyService;
 		this.exchangeRateLookup = exchangeRateLookup;
-		this.exchangeRateProvider = exchangeRateProvider;
+		this.exchangeRateProviderRouter = exchangeRateProviderRouter;
 		this.conversionBackfillQueue = conversionBackfillQueue;
 		this.currencyValidator = currencyValidator;
+		this.regexValidator = regexValidator;
 		this.archivedItemImporter = archivedItemImporter;
 		this.messages = messages;
 	}
@@ -78,72 +81,88 @@ public class ExchangeRateService implements DataSectionTransfer<ExchangeRateDto>
 	}
 
 	/**
-	 * @throws BusinessException if the code is unknown or is the base currency, or the rate is not
-	 *                           a positive number
+	 * @throws BusinessException if the code is unknown or is the base currency, the rate is not a
+	 *                           positive number, or a provider is named on a rate that is not
+	 *                           {@code API}
 	 */
 	@Transactional
 	public ExchangeRateDto recordRate(RecordExchangeRateDto quote) throws BusinessException {
 		ExchangeRateSource source = quote.source() == null ? ExchangeRateSource.MANUAL : quote.source();
-		ExchangeRateEntity recorded = record(quote.currency(), quote.unitsPerBase(), source);
+		String provider = validateProvider(source, quote.provider());
+		ExchangeRateEntity recorded = record(quote.currency(), quote.unitsPerBase(), source, provider);
 		conversionBackfillQueue.enqueueAllPrincipal();
 		return ExchangeRateDto.from(recorded);
 	}
 
 	/**
-	 * Asks the configured provider for a quote of every configured currency and records whatever it
-	 * returns. Runs when the user asks for it, or from the daily refresh the user scheduled.
+	 * Asks the providers for a quote of every configured currency and records whatever they return.
+	 * Runs when the user asks for it, or from the daily refresh the user scheduled.
 	 *
-	 * @throws BusinessException if no provider is configured or it fails
+	 * @throws BusinessException if no provider is configured or every provider asked fails
 	 */
 	@Transactional
 	public List<ExchangeRateDto> refreshFromProvider() throws BusinessException {
-		Map<String, BigDecimal> fetchedQuotes = fetchProviderQuotes(exchangeRateLookup.baseCurrency());
-		List<ExchangeRateDto> recorded = fetchedQuotes.entrySet().stream()
-				.map(quote -> record(quote.getKey(), quote.getValue(), ExchangeRateSource.API))
+		List<ProviderQuote> fetchedQuotes = fetchProviderQuotes(exchangeRateLookup.baseCurrency());
+		List<ExchangeRateDto> recorded = fetchedQuotes.stream()
+				.map(quote -> record(quote.currency(), quote.unitsPerBase(), ExchangeRateSource.API, quote.providerName()))
 				.map(ExchangeRateDto::from)
 				.toList();
 
 		conversionBackfillQueue.enqueueAllPrincipal();
-		Log.infof("Recorded %d quotes from the exchange rate provider", recorded.size());
+		Log.infof("Recorded %d quotes from the exchange rate providers", recorded.size());
 		return recorded;
 	}
 
 	/**
-	 * Asks the configured provider for its current quotes without recording anything, so the user can
-	 * see them before deciding to adopt them.
+	 * Asks the providers for their current quotes without recording anything, so the user can see
+	 * them before deciding to adopt them.
 	 *
 	 * @param onlyCurrency limits the preview to this currency, configured or not; {@code null} asks
 	 *                     for every configured currency
-	 * @return the quotes; a currency the provider does not quote is left out
-	 * @throws BusinessException if the code is unknown, or no provider is configured or it fails
+	 * @return the quotes; a currency no provider quotes is left out
+	 * @throws BusinessException if the code is unknown, or no provider is configured or every
+	 *                           provider asked fails
 	 */
 	@Transactional
 	public List<ProviderQuoteDto> previewProviderQuotes(String onlyCurrency) throws BusinessException {
 		String normalizedCurrency = currencyValidator.validateOptional(onlyCurrency);
 		String baseCurrency = exchangeRateLookup.baseCurrency();
-		Map<String, BigDecimal> fetchedQuotes = normalizedCurrency == null
+		List<ProviderQuote> fetchedQuotes = normalizedCurrency == null
 				? fetchProviderQuotes(baseCurrency)
-				: exchangeRateProvider.fetchUnitsPerBase(baseCurrency, Set.of(normalizedCurrency));
-		return toProviderQuotes(fetchedQuotes, baseCurrency);
-	}
-
-	private List<ProviderQuoteDto> toProviderQuotes(Map<String, BigDecimal> fetchedQuotes, String baseCurrency) {
-		return fetchedQuotes.entrySet().stream()
-				.map(quote -> new ProviderQuoteDto(exchangeRateProvider.name(), quote.getKey(), baseCurrency, quote.getValue()))
+				: exchangeRateProviderRouter.fetchQuotes(baseCurrency, Set.of(normalizedCurrency));
+		return fetchedQuotes.stream()
+				.map(quote -> new ProviderQuoteDto(quote.providerName(), quote.quotedPrice(), quote.currency(),
+						baseCurrency, quote.unitsPerBase()))
 				.toList();
 	}
 
-	private Map<String, BigDecimal> fetchProviderQuotes(String baseCurrency) throws BusinessException {
+	private List<ProviderQuote> fetchProviderQuotes(String baseCurrency) throws BusinessException {
 		Set<String> quotedCurrencies = new LinkedHashSet<>();
 		currencyRepository.listOrderedByCode().stream()
 				.map(currency -> currency.code)
 				.filter(code -> !code.equals(baseCurrency))
 				.forEach(quotedCurrencies::add);
-		return exchangeRateProvider.fetchUnitsPerBase(baseCurrency, quotedCurrencies);
+		return exchangeRateProviderRouter.fetchQuotes(baseCurrency, quotedCurrencies);
 	}
 
-	private ExchangeRateEntity record(String currency, BigDecimal unitsPerBase, ExchangeRateSource source)
-			throws BusinessException {
+	/**
+	 * @return the provider name, trimmed, or {@code null} when none was given
+	 * @throws BusinessException if a provider is named on a rate that did not come from one, or the
+	 *                           name is not valid text
+	 */
+	private String validateProvider(ExchangeRateSource source, String provider) throws BusinessException {
+		String trimmedProvider = regexValidator.sanitize(provider);
+		boolean isProviderGiven = trimmedProvider != null && !trimmedProvider.isEmpty();
+		if (!isProviderGiven) return null;
+		if (source != ExchangeRateSource.API) {
+			throw messages.reject(MsgKey.EXCHANGE_RATE_PROVIDER_WITHOUT_API_SOURCE);
+		}
+		regexValidator.validateText(trimmedProvider, ExchangeRateEntity.PROVIDER_MAX_LENGTH);
+		return trimmedProvider;
+	}
+
+	private ExchangeRateEntity record(String currency, BigDecimal unitsPerBase, ExchangeRateSource source,
+			String provider) throws BusinessException {
 		String normalizedCurrency = currencyValidator.validateRequired(currency);
 		String baseCurrency = exchangeRateLookup.baseCurrency();
 		if (normalizedCurrency.equals(baseCurrency)) {
@@ -160,8 +179,10 @@ public class ExchangeRateService implements DataSectionTransfer<ExchangeRateDto>
 		rate.baseCurrency = baseCurrency;
 		rate.unitsPerBase = unitsPerBase;
 		rate.source = source;
+		rate.provider = provider;
 		exchangeRateRepository.persist(rate);
-		Log.infof("Recorded %s quote: 1 %s = %s %s", source, baseCurrency, unitsPerBase.toPlainString(), normalizedCurrency);
+		Log.infof("Recorded %s quote%s: 1 %s = %s %s", source, provider == null ? "" : " from " + provider,
+				baseCurrency, unitsPerBase.toPlainString(), normalizedCurrency);
 		return rate;
 	}
 
@@ -202,6 +223,7 @@ public class ExchangeRateService implements DataSectionTransfer<ExchangeRateDto>
 			rate.baseCurrency = currencyValidator.validateRequired(item.baseCurrency());
 			rate.unitsPerBase = item.unitsPerBase();
 			rate.source = item.source() != null ? item.source() : ExchangeRateSource.MANUAL;
+			rate.provider = validateProvider(rate.source, item.provider());
 			boolean isPositive = rate.unitsPerBase != null && rate.unitsPerBase.signum() > 0;
 			if (!isPositive) {
 				throw messages.reject(MsgKey.EXCHANGE_RATE_INVALID);

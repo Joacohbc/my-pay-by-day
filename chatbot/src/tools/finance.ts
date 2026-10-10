@@ -355,8 +355,9 @@ export function buildFinanceTools(ctx: RequestContext): KindedToolSet {
                 body: { draftIds: [draftId], mode: mode ?? 'MERGE' },
               }),
             );
-            if (result.failedDraftIds?.includes(draftId)) {
-              return { error: `Draft incomplete or not found: ${draftId}` };
+            const failure = result.failedDrafts.find((failedDraft) => failedDraft.draftId === draftId);
+            if (failure) {
+              return { error: `Draft ${draftId} cannot be confirmed: ${failure.errors.map((error) => error.message).join('; ')}` };
             }
             return { ...toBotEvent(result.confirmedEvents[0]), confirmedDraftId: draftId };
           }),

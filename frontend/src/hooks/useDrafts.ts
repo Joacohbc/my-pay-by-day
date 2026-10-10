@@ -2,9 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { draftsService } from '@/services/drafts.service';
 import { useAlert } from '@/contexts/AlertContext';
 import { useTranslation } from 'react-i18next';
-import type { FinanceEventDraftInputDto } from '@/models';
+import type { FinanceEventDraftInputDto, MergeRequest } from '@/models';
 import { draftKeys } from '@/lib/queryKeys';
-import { invalidateDomains } from '@/lib/cacheInvalidation';
+import { invalidateDomains, EVENT_MUTATION_DOMAINS } from '@/lib/cacheInvalidation';
 
 export function useFinanceEventDrafts() {
   const query = useQuery({
@@ -90,6 +90,22 @@ export function useDeleteAllDrafts() {
     onSuccess: () => {
       invalidateDomains(qc, ['drafts']);
       alert.success(t('drafts.allDeleted'));
+    },
+    onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
+  });
+}
+
+/** Turns several drafts into one new event; the drafts themselves are deleted. */
+export function useMergeDrafts() {
+  const qc = useQueryClient();
+  const alert = useAlert();
+  const { t } = useTranslation();
+
+  return useMutation({
+    mutationFn: ({ baseId, request }: { baseId: number; request: MergeRequest }) => draftsService.mergeDrafts(baseId, request),
+    onSuccess: () => {
+      invalidateDomains(qc, EVENT_MUTATION_DOMAINS);
+      alert.success(t('drafts.mergeSuccess'));
     },
     onError: (err) => alert.error(err instanceof Error ? err.message : t('common.error')),
   });

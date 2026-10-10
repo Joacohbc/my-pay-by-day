@@ -1,6 +1,8 @@
 core
 .pnpm-store/
 .env
+config/backend/exchange-rates.properties
+config/backend/exchange-rates.env
 data/
 
 # devcontainer-cli
