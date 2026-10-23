@@ -6,6 +6,8 @@ minimumReleaseAgeExclude:
   - js-yaml@4.3.1
 
 overrides:
+  brace-expansion@>=2.0.0 <2.1.7: ^2.1.7
+  hono@>=4.12.4 <4.13.11: ^4.13.11
   js-yaml@>=4.0.0 <4.3.0: ^4.3.0
   js-yaml@>=4.0.0 <4.3.1: ^4.3.1
   undici@<6.23.0: ^6.23.0
